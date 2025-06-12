@@ -1,0 +1,349 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SUSModder.ViewModels"
+        xmlns:local="using:SUSModder.Views"
+        xmlns:converters="using:SUSModder.Converters"
+        Icon="/Assets/icon.ico"
+        Title="SUSModder"
+        x:Class="SUSModder.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Width="1000" Height="650"
+        MinWidth="800" MinHeight="600">
+	<Window.Resources>
+		<converters:StringNotNullOrEmptyToBoolConverter x:Key="StringNotNullOrEmptyToBoolConverter"/>
+		<converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
+		<converters:InstallStatusToOpacityConverter x:Key="InstallStatusToOpacityConverter"/>
+	</Window.Resources>
+	<Design.DataContext>
+		<vm:MainWindowViewModel/>
+	</Design.DataContext>
+
+	<Window.Styles>
+		<FluentTheme />
+	</Window.Styles>
+
+	<SplitView x:Name="MainSplitView"
+               IsPaneOpen="{Binding IsPaneOpen}"
+               DisplayMode="CompactOverlay"
+               PaneBackground="{DynamicResource PaneBackgroundBrush}"
+               OpenPaneLength="220">
+
+		<SplitView.Pane>
+			<Grid RowDefinitions="Auto,*,Auto" Margin="10,40,10,0">
+				<!-- Menu główne na górze -->
+				<StackPanel Grid.Row="0">
+
+					<!-- Hamburger menu button -->
+					<Button Command="{Binding TogglePaneCommand}"
+							Padding="5,0"
+							Background="Transparent" BorderThickness="0"
+							Foreground="{DynamicResource TextPrimaryBrush}">
+						<TextBlock Text="☰" FontSize="18"/>
+					</Button>
+
+
+					<!-- Menu options with icons and text -->
+					<Button Margin="0,15,0,5"
+							HorizontalContentAlignment="Left"
+							Padding="0,10"
+							Background="Transparent"
+							Foreground="{DynamicResource TextPrimaryBrush}"
+							Command="{Binding ShowAdditionalActionsCommand}">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<TextBlock Text="🛠️" FontSize="18"/>
+							<TextBlock Text="Dodatkowe akcje"
+									   VerticalAlignment="Center"
+									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
+						</StackPanel>
+					</Button>
+					<Button Margin="0,0,0,5"
+							HorizontalContentAlignment="Left"
+							Padding="0,10"
+							Background="Transparent"
+							Foreground="{DynamicResource TextPrimaryBrush}">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<TextBlock Text="🧩" FontSize="18"/>
+							<TextBlock Text="Modyfikacje DLL"
+									   VerticalAlignment="Center"
+									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
+						</StackPanel>
+					</Button>
+					<Button Margin="0,0,0,5"
+							HorizontalContentAlignment="Left"
+							Padding="0,10"
+							Background="Transparent"
+							Foreground="{DynamicResource TextPrimaryBrush}"
+							Command="{Binding FixBlackScreenCommand}">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<TextBlock Text="🩹" FontSize="18"/>
+							<TextBlock Text="Napraw Amonga"
+									   VerticalAlignment="Center"
+									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
+						</StackPanel>
+					</Button>
+					<Button Margin="0,0,0,5"
+							HorizontalContentAlignment="Left"
+							Padding="0,10"
+							Background="Transparent"
+							Foreground="{DynamicResource TextPrimaryBrush}">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<TextBlock Text="🎬" FontSize="18"/>
+							<TextBlock Text="Poradniki video"
+									   VerticalAlignment="Center"
+									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
+						</StackPanel>
+					</Button>
+					<Button Margin="0,0,0,5"
+							HorizontalContentAlignment="Left"
+							Padding="0,10"
+							Background="Transparent"
+							Foreground="{DynamicResource TextPrimaryBrush}"
+							Command="{Binding ShowInfoCommand}">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<TextBlock Text="ℹ️" FontSize="18"/>
+							<TextBlock Text="Informacje"
+									   VerticalAlignment="Center"
+									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
+						</StackPanel>
+					</Button>
+
+
+				</StackPanel>
+				<Border Grid.Row="1"/>
+				<!-- Przycisk motywu na dole -->
+				<Button Grid.Row="2"
+						Command="{Binding ToggleThemeCommand}"
+						Margin="0,0,0,0"
+						HorizontalContentAlignment="Left"
+						Padding="0,10"
+						Background="Transparent"
+						Foreground="{DynamicResource TextPrimaryBrush}"
+						DockPanel.Dock="Bottom">
+					<StackPanel Orientation="Horizontal" Spacing="10">
+						<TextBlock Text="{Binding ThemeButtonText}"								   
+								   VerticalAlignment="Center"									   
+								   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
+					</StackPanel>
+				</Button>
+			</Grid>
+		</SplitView.Pane>
+
+		<Grid Background="{DynamicResource WindowBackgroundBrush}">
+			<Grid ColumnDefinitions="Auto, *, Auto, Auto">
+
+				<ListBox Grid.Column="1" Margin="10"
+						 ItemsSource="{Binding Mods}"
+						 SelectedItem="{Binding SelectedMod}"
+						 Background="Transparent"
+						 BorderThickness="0">
+					<ListBox.ItemsPanel>
+						<ItemsPanelTemplate>
+							<WrapPanel Orientation="Horizontal" />
+						</ItemsPanelTemplate>
+					</ListBox.ItemsPanel>
+					<ListBox.ItemTemplate>
+						<DataTemplate>
+							<Border Width="140" Height="140" Margin="10" Padding="10"
+									Background="{DynamicResource ModCardBackgroundBrush}"
+									CornerRadius="8"
+									BorderBrush="{DynamicResource ModCardBorderBrush}"
+									BorderThickness="1">
+								<StackPanel>
+									<Image Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
+										   Width="64" Height="64"
+										   HorizontalAlignment="Center"
+										   Opacity="{Binding InstallPath, Converter={StaticResource InstallStatusToOpacityConverter}}"/>
+									<TextBlock Text="{Binding Name}"
+											   FontWeight="Bold" FontSize="16"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   TextAlignment="Center" TextWrapping="Wrap"
+											   Opacity="{Binding InstallPath, Converter={StaticResource InstallStatusToOpacityConverter}}"
+											   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+								</StackPanel>
+							</Border>
+						</DataTemplate>
+					</ListBox.ItemTemplate>
+				</ListBox>
+
+				<GridSplitter Grid.Column="2" Width="2"
+							  Background="{DynamicResource GridSplitterBrush}"
+							  VerticalAlignment="Stretch" HorizontalAlignment="Center"/>
+
+				<Panel Grid.Column="3" Margin="20">
+					<!-- Panel informacji z animacją fade-in -->
+					<local:InfoPanel IsVisible="{Binding IsInfoPanelVisible}"
+									 DataContext="{Binding}"
+									 Classes="fade-in-panel"/>
+
+					<!-- Panel dodatkowych akcji z animacją slide od lewej -->
+					<local:AdditionalActionsPanel IsVisible="{Binding IsAdditionalActionsVisible}"
+												  DataContext="{Binding}"
+												  Classes="fade-in-panel"/>
+
+					<!-- Panel modów z animacją slide od prawej -->
+					<Panel Classes="fade-in-panel">
+						<Panel.IsVisible>
+							<MultiBinding Converter="{x:Static BoolConverters.And}">
+								<Binding Path="IsModSelected"/>
+								<Binding Path="IsInfoPanelVisible" Converter="{x:Static BoolConverters.Not}"/>
+								<Binding Path="IsAdditionalActionsVisible" Converter="{x:Static BoolConverters.Not}"/>
+							</MultiBinding>
+						</Panel.IsVisible>
+
+						<StackPanel DataContext="{Binding SelectedMod}">
+							<!-- Istniejące elementy: ikona, nazwa, opis... -->
+							<StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
+								<Image Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
+									   Width="64" Height="64" HorizontalAlignment="Center"/>
+								<StackPanel>
+									<TextBlock Text="{Binding Name}"
+											   FontSize="28" FontWeight="Bold"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   TextWrapping="Wrap"/>
+									<TextBlock Text="{Binding ModVersion, StringFormat='Wersja moda: {0}'}"
+											   FontSize="14"
+											   Foreground="{DynamicResource TextSecondaryBrush}"/>
+									<TextBlock Text="{Binding AmongVersion, StringFormat='Wersja AmongUs: {0}'}"
+											   FontSize="14"
+											   Foreground="{DynamicResource TextSecondaryBrush}"/>
+								</StackPanel>
+							</StackPanel>
+
+							<TextBlock Text="{Binding Description}"
+									   TextWrapping="Wrap"
+									   MaxWidth="250"
+									   Margin="0,0,0,10"
+									   FontSize="14"
+									   Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+							<!-- DODAJ PROGRESS BAR TUTAJ -->
+							<Border IsVisible="{Binding ShowProgress}"
+									Background="{DynamicResource SecondaryBackgroundBrush}"
+									BorderBrush="{DynamicResource BorderBrush}"
+									BorderThickness="1"
+									CornerRadius="4"
+									Padding="10"
+									Margin="0,0,0,10">
+								<StackPanel>
+									<TextBlock Text="{Binding InstallStatusMessage}"
+											   FontSize="12"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   TextAlignment="Center"
+											   Margin="0,0,0,5"/>
+									<ProgressBar Value="{Binding InstallProgress}"
+												 Minimum="0"
+												 Maximum="100"
+												 Height="20"
+												 Background="{DynamicResource TertiaryBackgroundBrush}"
+												 Foreground="{DynamicResource AccentBrush}"/>
+									<TextBlock Text="{Binding InstallProgress, StringFormat='{}{0}%'}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"
+											   TextAlignment="Center"
+											   Margin="0,2,0,0"/>
+								</StackPanel>
+							</Border>
+
+							<!-- Przyciski dla Vanilla - tylko Uruchom -->
+							<StackPanel IsVisible="{Binding IsVanilla}">
+								<Button Content="Uruchom"
+										HorizontalAlignment="Stretch"
+										Margin="0,0,0,8" Padding="10"
+										Background="{DynamicResource SuccessBrush}"
+										Foreground="White"
+										IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+										Command="{Binding $parent[local:MainWindow].DataContext.LaunchCommand}"/>
+							</StackPanel>
+
+							<!-- Przyciski dla niezainstalowanego moda (NIE Vanilla) -->
+							<StackPanel>
+								<StackPanel.IsVisible>
+									<MultiBinding Converter="{x:Static BoolConverters.And}">
+										<Binding Path="InstallPath" Converter="{StaticResource StringNotNullOrEmptyToBoolConverter}" ConverterParameter="Invert"/>
+										<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+									</MultiBinding>
+								</StackPanel.IsVisible>
+
+								<Button Content="Instaluj"
+										HorizontalAlignment="Stretch"
+										Margin="0,0,0,8" Padding="10"
+										Background="{DynamicResource AccentBrush}"
+										Foreground="White"
+										IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+										Command="{Binding $parent[local:MainWindow].DataContext.InstallCommand}"/>
+							</StackPanel>
+
+							<!-- Przyciski dla zainstalowanego moda (NIE Vanilla) -->
+							<StackPanel>
+								<StackPanel.IsVisible>
+									<MultiBinding Converter="{x:Static BoolConverters.And}">
+										<Binding Path="InstallPath" Converter="{StaticResource StringNotNullOrEmptyToBoolConverter}"/>
+										<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+									</MultiBinding>
+								</StackPanel.IsVisible>
+
+								<Button Content="Uruchom"
+										HorizontalAlignment="Stretch"
+										Margin="0,0,0,8" Padding="10"
+										Background="{DynamicResource SuccessBrush}"
+										Foreground="White"
+										IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+										Command="{Binding $parent[local:MainWindow].DataContext.LaunchCommand}"/>
+
+								<Button Content="Aktualizuj"
+										HorizontalAlignment="Stretch"
+										Margin="0,0,0,8" Padding="10"
+										Background="{DynamicResource AccentBrush}"
+										Foreground="White"
+										IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+										Command="{Binding $parent[local:MainWindow].DataContext.UpdateCommand}"/>
+
+								<Button Content="Usuń"
+										HorizontalAlignment="Stretch"
+										Margin="0,0,0,8" Padding="10"
+										Background="{DynamicResource DangerBrush}"
+										Foreground="White"
+										IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+										Command="{Binding $parent[local:MainWindow].DataContext.UninstallCommand}"/>
+							</StackPanel>
+
+							<!-- Przycisk Role - zawsze widoczny (NIE dla Vanilla) -->
+							<Button Content="Role"
+									HorizontalAlignment="Stretch"
+									Margin="0,0,0,8" Padding="10"
+									Background="{DynamicResource ModCardBackgroundBrush}"
+									Foreground="{DynamicResource TextPrimaryBrush}"
+									BorderBrush="{DynamicResource ModCardBorderBrush}"
+									BorderThickness="1"
+									IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+									Command="{Binding $parent[local:MainWindow].DataContext.ShowRolesCommand}">
+								<Button.IsVisible>
+									<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+								</Button.IsVisible>
+							</Button>
+
+							<StackPanel IsVisible="{Binding InstallPath, Converter={StaticResource StringNotNullOrEmptyToBoolConverter}}"
+										Margin="0,30,0,0">
+								<TextBlock Text="Zainstalowano w:"
+										   FontSize="12"
+										   Foreground="{DynamicResource TextSecondaryBrush}"
+										   Margin="0,0,0,5"/>
+								<Border BorderBrush="{DynamicResource InstallPathBorderBrush}"
+										BorderThickness="2"
+										Background="{DynamicResource SecondaryBackgroundBrush}"
+										CornerRadius="4">
+									<SelectableTextBlock Text="{Binding InstallPath, Converter={x:Static converters:PathShorteningConverter.Instance}, ConverterParameter=35}"
+														 Background="Transparent"
+														 Foreground="{DynamicResource TextPrimaryBrush}"
+														 Padding="8"
+														 FontFamily="Consolas"
+														 ToolTip.Tip="{Binding InstallPath}"/>
+								</Border>
+							</StackPanel>
+						</StackPanel>
+					</Panel>
+				</Panel>
+			</Grid>
+		</Grid>
+	</SplitView>
+</Window>
