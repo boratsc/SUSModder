@@ -1,0 +1,64 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SUSModder.Views.LobbySetDialog"
+        Title="Ustaw ilość graczy w lobby"
+        Width="400" Height="250"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+	<Window.Styles>
+		<FluentTheme />
+	</Window.Styles>
+
+	<Grid Margin="20" RowDefinitions="Auto,*,Auto">
+
+		<!-- Nagłówek -->
+		<TextBlock Grid.Row="0"
+                   Text="Ustaw liczbę graczy w lobby"
+                   FontSize="18" FontWeight="Bold"
+                   Foreground="{DynamicResource TextPrimaryBrush}"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,20"/>
+
+		<!-- Zawartość -->
+		<StackPanel Grid.Row="1" Spacing="15">
+			<TextBlock Text="Wprowadź liczbę graczy (4-255):"
+                       FontSize="14"
+                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+			<NumericUpDown x:Name="PlayerCountNumeric"
+                          Minimum="4" Maximum="255"
+                          Value="18"
+                          HorizontalAlignment="Stretch"
+                          Background="{DynamicResource ModCardBackgroundBrush}"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
+                          Increment="1"
+                          FormatString="F0"/>
+
+			<TextBlock x:Name="ErrorMessage"
+                       Foreground="{DynamicResource DangerBrush}"
+                       FontSize="12"
+                       IsVisible="False"
+                       TextWrapping="Wrap"/>
+		</StackPanel>
+
+		<!-- Przyciski -->
+		<StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Spacing="10">
+			<Button Content="Anuluj"
+                    Width="80" Height="30"
+                    Background="{DynamicResource ModCardBackgroundBrush}"
+                    Foreground="{DynamicResource TextPrimaryBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    Click="CancelButton_Click"/>
+			<Button Content="OK"
+                    Width="80" Height="30"
+                    Background="{DynamicResource AccentBrush}"
+                    Foreground="White"
+                    Click="OkButton_Click"/>
+		</StackPanel>
+	</Grid>
+</Window>

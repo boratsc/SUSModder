@@ -1,0 +1,65 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SUSModder.Views.ErrorDialog"
+        Title="Wystąpił błąd!"
+        Width="500" Height="350"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+    <Window.Styles>
+        <FluentTheme />
+    </Window.Styles>
+
+    <Grid Margin="20" RowDefinitions="Auto,*,Auto">
+
+        <!-- Nagłówek z ikoną błędu -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,20">
+            <TextBlock Text="❌" FontSize="24" VerticalAlignment="Center"/>
+            <TextBlock Text="Wystąpił błąd!"
+                       FontSize="18" FontWeight="Bold"
+                       Foreground="{DynamicResource DangerBrush}"
+                       VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Pole tekstowe z błędem -->
+        <Border Grid.Row="1" 
+                Background="{DynamicResource ModCardBackgroundBrush}"
+                BorderBrush="{DynamicResource ModCardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="10">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <TextBox x:Name="ErrorMessageTextBox"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         IsReadOnly="True"
+                         TextWrapping="Wrap"
+                         FontFamily="Consolas"
+                         FontSize="12"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         AcceptsReturn="True"
+                         AcceptsTab="True"/>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Przyciski -->
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="10"
+                    Margin="0,20,0,0">
+            <Button Content="Kopiuj"
+                    Width="80" Height="30"
+                    Background="{DynamicResource ModCardBackgroundBrush}"
+                    Foreground="{DynamicResource TextPrimaryBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    Click="CopyButton_Click"/>
+            <Button Content="OK"
+                    Width="80" Height="30"
+                    Background="{DynamicResource AccentBrush}"
+                    Foreground="White"
+                    Click="OkButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,143 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:converters="using:SUSModder.Converters"
+             x:Class="SUSModder.Views.InfoPanel"
+             x:DataType="vm:MainWindowViewModel">
+
+	<UserControl.Resources>
+		<converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
+		<converters:UrlToCommandConverter x:Key="UrlToCommandConverter"/>
+	</UserControl.Resources>
+
+	<ScrollViewer MaxWidth="300">
+		<StackPanel Spacing="15">
+			<TextBlock Text="Informacje o aplikacji"
+                       FontSize="24" FontWeight="Bold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,20"/>
+
+			<!-- Wersja -->
+			<StackPanel>
+				<TextBlock Text="Wersja aplikacji:"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+				<TextBlock Text="{Binding AppVersion}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+			</StackPanel>
+
+			<!-- Twórca -->
+			<StackPanel>
+				<TextBlock Text="Twórca aplikacji:"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+				<TextBlock Text=" Bartosz &quot;boracik&quot; G."
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+			</StackPanel>
+
+			<!-- Testerzy -->
+			<StackPanel>
+				<TextBlock Text="Testerzy:"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+				<TextBlock Text=" Społeczność Psychopatyczna"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+			</StackPanel>
+
+			<!-- Grafiki -->
+			<StackPanel>
+				<TextBlock Text="Grafiki:"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+				<TextBlock Text=" Pacia"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+			</StackPanel>
+
+			<!-- Podziękowania -->
+			<StackPanel>
+				<TextBlock Text="Specjalne podziękowania dla:"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+				<TextBlock Text=" notpe"
+						   Foreground="{DynamicResource TextSecondaryBrush}"/>
+				<TextBlock Text=" ma1ked"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+				<TextBlock Text=" bobofrucik"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+				<TextBlock Text=" Pacia"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+				<TextBlock Text=" Anonimowy darczyńca"
+						   Foreground="{DynamicResource TextSecondaryBrush}"/>
+			</StackPanel>
+
+			<!-- Social Media -->
+			<StackPanel>
+				<TextBlock Text="Social Media:"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Margin="0,0,0,10"/>
+
+				<!-- Discord -->
+				<Button Background="Transparent"
+                        BorderThickness="0"
+                        Padding="5"
+                        HorizontalContentAlignment="Left"
+                        Command="{Binding Source='https://discord.gg/psychopaci', Converter={StaticResource UrlToCommandConverter}}">
+					<StackPanel Orientation="Horizontal" Spacing="10">
+						<Image Source="{Binding Source='discord.png', Converter={StaticResource StringToBitmapConverter}}"
+                               Width="24" Height="24"/>
+						<TextBlock Text="Discord - Psychopaci"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+					</StackPanel>
+				</Button>
+
+				<!-- YouTube -->
+				<Button Background="Transparent"
+                        BorderThickness="0"
+                        Padding="5"
+                        HorizontalContentAlignment="Left"
+                        Command="{Binding Source='https://www.youtube.com/@boracikgaming', Converter={StaticResource UrlToCommandConverter}}">
+					<StackPanel Orientation="Horizontal" Spacing="10">
+						<Image Source="{Binding Source='youtube.png', Converter={StaticResource StringToBitmapConverter}}"
+                               Width="24" Height="24"/>
+						<TextBlock Text="YouTube - boracikgaming"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+					</StackPanel>
+				</Button>
+
+				<!-- Kick -->
+				<Button Background="Transparent"
+                        BorderThickness="0"
+                        Padding="5"
+                        HorizontalContentAlignment="Left"
+                        Command="{Binding Source='https://kick.com/boracik-gaming', Converter={StaticResource UrlToCommandConverter}}">
+					<StackPanel Orientation="Horizontal" Spacing="10">
+						<Image Source="{Binding Source='kick.png', Converter={StaticResource StringToBitmapConverter}}"
+                               Width="24" Height="24"/>
+						<TextBlock Text="Kick - boracik-gaming"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+					</StackPanel>
+				</Button>
+
+				<!-- Twitch -->
+				<Button Background="Transparent"
+                        BorderThickness="0"
+                        Padding="5"
+                        HorizontalContentAlignment="Left"
+                        Command="{Binding Source='https://www.twitch.tv/boracik_gaming', Converter={StaticResource UrlToCommandConverter}}">
+					<StackPanel Orientation="Horizontal" Spacing="10">
+						<Image Source="{Binding Source='twitch.png', Converter={StaticResource StringToBitmapConverter}}"
+                               Width="24" Height="24"/>
+						<TextBlock Text="Twitch - boracik_gaming"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+					</StackPanel>
+				</Button>
+			</StackPanel>
+		</StackPanel>
+	</ScrollViewer>
+</UserControl>

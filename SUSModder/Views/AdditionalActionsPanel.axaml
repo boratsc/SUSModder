@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             x:Class="SUSModder.Views.AdditionalActionsPanel"
+             x:DataType="vm:MainWindowViewModel">
+
+	<ScrollViewer MaxWidth="300">
+		<StackPanel Spacing="15">
+			<TextBlock Text="Dodatkowe akcje"
+                       FontSize="24" FontWeight="Bold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,20"/>
+
+			<!-- Sekcja Konfiguracje ToU -->
+			<StackPanel>
+				<TextBlock Text="Konfiguracje ToU"
+                           FontSize="18" FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Margin="0,0,0,10"/>
+
+				<Button Content="Zapisz konfiguracje lokalnie"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,0,0,5" Padding="10"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White"
+                        Command="{Binding SaveLocalConfigCommand}"/>
+
+				<Button Content="Wczytaj konfiguracje lokalne"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,0,0,5" Padding="10"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White"
+                        Command="{Binding LoadLocalConfigCommand}"/>
+
+				<Button Content="Zapisz konfiguracje na serwerze"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,0,0,5" Padding="10"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White"
+                        Command="{Binding SaveServerConfigCommand}"/>
+
+				<Button Content="Wczytaj konfiguracje z serwera"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,0,0,5" Padding="10"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White"
+                        Command="{Binding LoadServerConfigCommand}"/>
+
+				<Button Content="Wczytaj konfigurację z pliku .txt"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,0,0,5" Padding="10"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White"
+                        Command="{Binding LoadLocalTxtConfigCommand}"/>
+
+				<Button Content="Zmień nazwy presetów lobby"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,0,0,5" Padding="10"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White"
+                        Command="{Binding ChangePresetNamesCommand}"/>
+
+				<Button Content="Ustaw ilość osób w Lobby"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,0,0,5" Padding="10"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White"
+                        Command="{Binding LobbySetCommand}"/>
+			</StackPanel>
+		</StackPanel>
+	</ScrollViewer>
+</UserControl>

@@ -1,0 +1,588 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
+using SUSModder.Core.Configuration;
+using SUSModder.Core.Utilities;
+using SUSModder.Core.Diagnostics;
+using Microsoft.Extensions.Configuration;
+
+namespace SUSModder.Core.GameIntegration
+{
+    public class ModManager
+    {
+        private readonly IConfiguration configuration;
+        private IDiagnosticsOutput? log;
+
+        public ModManager(IConfiguration configuration)
+        {
+            this.configuration = configuration;
+        }
+
+        public async Task ModifyAsync(
+            ModConfiguration modConfig,
+            List<ModConfiguration> modConfigs,
+            IProgressReporter progress,
+            IDiagnosticsOutput log,
+            IUserInteraction userInteraction,
+            string mode)
+        {
+            this.log = log; // Przypisz log do pola klasy
+
+            if (modConfig.ModType == "full")
+            {
+                if (mode == "steam")
+                {
+                    await InstallSteamAsync(modConfig, modConfigs, progress, log, userInteraction);
+                }
+                else
+                {
+                    userInteraction.ShowInfo("Instalacja modów Epic obsługiwana jest przez EpicVersionManager.", "Informacja");
+                }
+            }
+        }
+
+        private async Task InstallSteamAsync(
+            ModConfiguration modConfig,
+            List<ModConfiguration> modConfigs,
+            IProgressReporter progress,
+            IDiagnosticsOutput log,
+            IUserInteraction userInteraction)
+        {
+            string modsInstallPath = PathSettings.ModsInstallPath;
+            Directory.CreateDirectory(modsInstallPath);
+
+            string vanillaDir = Path.Combine(modsInstallPath, "Among Us - Vanilla");
+            Directory.CreateDirectory(vanillaDir);
+
+            // Nazwa pliku vanilla
+            string vanilla7zName = $"{modConfig.AmongVersion.Replace("-", "").Replace(".", "")}";
+            string vanilla7zPath = Path.Combine(vanillaDir, vanilla7zName + ".7z");
+
+            string baseUrl = configuration.GetSection("Configuration")["BaseUrl"] ?? "https://susfuckr.boracik.pl/";
+            string fileUrlAmongUs = $"{baseUrl}api/susfuckr-download-version?version={vanilla7zName}";
+
+            string tempDir = Path.Combine(modsInstallPath, "temp");
+            string modFolderPath = Path.Combine(modsInstallPath, modConfig.ModName);
+            string modFile = Path.Combine(tempDir, "mod.zip");
+
+            // Pobierz vanilla 7z jeśli nie istnieje
+            bool needsDownload = !File.Exists(vanilla7zPath);
+
+            while (true) // Pętla dla ponownego pobierania w przypadku błędów
+            {
+                if (needsDownload)
+                {
+                    progress.Report(10, "Pobieranie gry vanilla...");
+                    log.Write($"Pobieram vanilla: {fileUrlAmongUs}");
+
+                    bool downloaded = false;
+                    do
+                    {
+                        downloaded = await DownloadFileWithMemoryManagementAsync(
+                            fileUrlAmongUs,
+                            vanilla7zPath,
+                            progress,
+                            "vanilla Among Us");
+
+                        if (!downloaded)
+                        {
+                            bool retry = userInteraction.Confirm(
+                                "Wystąpił błąd podczas pobierania pliku vanilla. Czy chcesz spróbować ponownie?",
+                                "Błąd pobierania");
+
+                            if (!retry)
+                            {
+                                userInteraction.ShowError("Przerwano instalację.", "Błąd");
+                                return;
+                            }
+                        }
+                    } while (!downloaded);
+                }
+                else
+                {
+                    log.Write($"Plik vanilla już istnieje: {vanilla7zPath}");
+                }
+
+                // Sprawdź rozmiar pliku
+                if (!File.Exists(vanilla7zPath) || new FileInfo(vanilla7zPath).Length < 1000)
+                {
+                    log.Write("Pobrany plik vanilla jest nieprawidłowy lub pusty.");
+                    userInteraction.ShowError("Pobrany plik vanilla jest nieprawidłowy lub pusty. Sprawdź token i wersję.", "Błąd");
+                    return;
+                }
+
+                // Pobierz moda
+                progress.Report(30, "Pobieranie moda...");
+                Directory.CreateDirectory(tempDir);
+
+                string downloadUrl = !string.IsNullOrEmpty(modConfig.GitHubRepoOrLink)
+                    ? modConfig.GitHubRepoOrLink
+                    : throw new InvalidOperationException("Brak linku do pobrania moda.");
+
+                bool retryMod;
+                do
+                {
+                    retryMod = false;
+                    progress.Report(30, "Pobieranie moda...");
+
+                    bool modDownloaded = await DownloadFileWithMemoryManagementAsync(
+                        downloadUrl,
+                        modFile,
+                        progress,
+                        $"mod {modConfig.ModName}");
+
+                    if (!modDownloaded)
+                    {
+                        retryMod = userInteraction.Confirm(
+                            $"Błąd pobierania moda: {modConfig.ModName}\nCzy chcesz spróbować ponownie?",
+                            "Błąd pobierania");
+
+                        if (!retryMod)
+                        {
+                            userInteraction.ShowError("Przerwano instalację moda.", "Błąd");
+                            return;
+                        }
+                    }
+                } while (retryMod);
+
+                // Przygotuj katalog moda
+                progress.Report(50, "Przygotowywanie katalogu...");
+                if (Directory.Exists(modFolderPath))
+                {
+                    log.Write($"Usuwam istniejący katalog moda: {modFolderPath}");
+                    Directory.Delete(modFolderPath, true);
+                }
+                Directory.CreateDirectory(modFolderPath);
+
+                // Rozpakuj vanilla 7z do katalogu moda
+                try
+                {
+                    progress.Report(60, "Rozpakowywanie gry vanilla...");
+                    log.Write($"Rozpakowuję vanilla 7z: {vanilla7zPath} do {modFolderPath}");
+
+                    string zipPassword = SecretProvider.Get7zPassword();
+                    await Task.Run(() => Extract7zWithPassword(vanilla7zPath, modFolderPath, zipPassword));
+
+                    log.Write("Rozpakowano vanilla.");
+                    break; // Jeśli rozpakowywanie się udało, wychodzimy z pętli
+                }
+                catch (Exception ex)
+                {
+                    log.Write($"[ERROR] Błąd podczas rozpakowywania archiwum: {ex}");
+
+                    // Usuń uszkodzony plik
+                    if (File.Exists(vanilla7zPath))
+                    {
+                        try
+                        {
+                            File.Delete(vanilla7zPath);
+                            log.Write($"Usunięto uszkodzony plik: {vanilla7zPath}");
+                        }
+                        catch (Exception deleteEx)
+                        {
+                            log.Write($"[WARNING] Nie udało się usunąć uszkodzonego pliku: {deleteEx.Message}");
+                        }
+                    }
+
+                    // Zapytaj użytkownika czy chce pobrać ponownie
+                    bool retryExtract = userInteraction.Confirm(
+                        $"Błąd podczas rozpakowywania archiwum vanilla:\n{ex.Message}\n\nPlik może być uszkodzony. Czy chcesz pobrać go ponownie?",
+                        "Błąd rozpakowywania");
+
+                    if (retryExtract)
+                    {
+                        needsDownload = true; // Oznacz że trzeba pobrać ponownie
+                        continue; // Kontynuuj pętlę - pobierz i spróbuj ponownie
+                    }
+                    else
+                    {
+                        userInteraction.ShowError("Przerwano instalację.", "Błąd");
+                        return;
+                    }
+                }
+            }
+
+            // Rozpakuj moda do temp
+            progress.Report(80, "Rozpakowywanie moda...");
+            string tempExtractPath = Path.Combine(tempDir, "extractMod");
+
+            await SafeDeleteDirectory(tempExtractPath);
+            Directory.CreateDirectory(tempExtractPath);
+
+            try
+            {
+                log.Write($"Rozpakowuję archiwum moda: {modFile} do {tempExtractPath}");
+                ZipFile.ExtractToDirectory(modFile, tempExtractPath, overwriteFiles: true);
+                log.Write("Pomyślnie rozpakowano archiwum moda");
+            }
+            catch (Exception ex)
+            {
+                log.Write($"ERROR podczas rozpakowywania moda: {ex.Message}");
+                userInteraction.ShowError($"Błąd podczas rozpakowywania archiwum moda: {ex.Message}", "Błąd");
+                return;
+            }
+
+            // Skopiuj pliki moda do katalogu moda
+            progress.Report(90, "Kopiowanie plików moda...");
+            string sourcePath = Directory.Exists(Path.Combine(tempExtractPath, "BepInEx"))
+                ? tempExtractPath
+                : Directory.GetDirectories(tempExtractPath).FirstOrDefault() ?? string.Empty;
+
+            if (string.IsNullOrEmpty(sourcePath))
+            {
+                log.Write("ERROR: Nie znaleziono plików do skopiowania");
+                userInteraction.ShowError("Nie znaleziono plików do skopiowania.", "Błąd");
+                return;
+            }
+
+            log.Write($"Kopiuję pliki z {sourcePath} do {modFolderPath}");
+            CopyContent(sourcePath, modFolderPath);
+
+            // Zapisz konfigurację i posprzątaj temp
+            var existingConfig = modConfigs.FirstOrDefault(c => c.Id == modConfig.Id);
+            if (existingConfig != null)
+            {
+                existingConfig.InstallPath = modFolderPath;
+                existingConfig.LastUpdated = DateTime.Now;
+                log.Write($"Zaktualizowano konfigurację dla istniejącego moda: {modConfig.ModName}");
+            }
+            else
+            {
+                modConfig.InstallPath = modFolderPath;
+                modConfigs.Add(modConfig);
+                log.Write($"Dodano nową konfigurację dla moda: {modConfig.ModName}");
+            }
+
+            ConfigManager.SaveConfig(modConfigs);
+            Directory.Delete(tempDir, true);
+
+            ForceMemoryCleanup();
+
+            progress.Report(100, "Zakończono instalację moda.");
+            log.Write($"SUCCESS: Instalacja moda '{modConfig.ModName}' zakończona pomyślnie");
+
+            userInteraction.ShowInfo($"Instalacja moda {modConfig.ModName} zakończona pomyślnie.", "Sukces");
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
+        public async Task ModifyDllAsync(
+            ModConfiguration modConfig,
+            List<ModConfiguration> selectedFullMods,
+            IProgressReporter progress,
+            IDiagnosticsOutput log,
+            IUserInteraction userInteraction)
+        {
+            string modsInstallPath = PathSettings.ModsInstallPath;
+            string tempDir = Path.Combine(modsInstallPath, "temp");
+            Directory.CreateDirectory(tempDir);
+
+            string modFile = Path.Combine(tempDir, "mod.dll");
+            string downloadUrl = !string.IsNullOrEmpty(modConfig.GitHubRepoOrLink)
+                ? modConfig.GitHubRepoOrLink
+                : throw new InvalidOperationException("Brak linku do pobrania DLL moda.");
+
+            bool retry;
+            do
+            {
+                retry = false;
+                try
+                {
+                    progress.Report(0, "Ściąganie moda DLL...");
+                    log.Write($"Rozpoczynam pobieranie DLL moda '{modConfig.ModName}' z: {downloadUrl}");
+
+                    using (var client = new HttpClient())
+                    {
+                        string downloadToken = SecretProvider.GetDownloadToken();
+                        client.DefaultRequestHeaders.Add("Authorization", downloadToken);
+
+                        using var response = await client.GetAsync(downloadUrl);
+                        response.EnsureSuccessStatusCode();
+                        using var fs = new FileStream(modFile, FileMode.Create, FileAccess.Write);
+                        await response.Content.CopyToAsync(fs);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log.Write($"[ERROR] Błąd pobierania DLL: {ex}");
+                    retry = userInteraction.Confirm($"Błąd pobierania DLL moda: {ex.Message}\nCzy chcesz spróbować ponownie?", "Błąd pobierania");
+                    if (!retry)
+                    {
+                        userInteraction.ShowError("Przerwano instalację DLL moda.", "Błąd");
+                        return;
+                    }
+                }
+            } while (retry);
+
+            progress.Report(50, "Kopiowanie DLL do wybranych modów...");
+            foreach (var fullMod in selectedFullMods)
+            {
+                // Sprawdź czy InstallPath nie jest null ani pusty
+                if (string.IsNullOrEmpty(fullMod.InstallPath))
+                {
+                    log.Write($"Pominięto mod '{fullMod.ModName}' - brak ścieżki instalacji");
+                    continue;
+                }
+
+                string dllTargetDir = Path.Combine(fullMod.InstallPath, modConfig.DllInstallPath ?? string.Empty);
+                Directory.CreateDirectory(dllTargetDir);
+                string dllTargetPath = Path.Combine(dllTargetDir, $"{modConfig.ModName}.dll");
+                File.Copy(modFile, dllTargetPath, overwrite: true);
+                log.Write($"Skopiowano DLL do: {dllTargetPath}");
+            }
+
+            progress.Report(100, "Zakończono instalację DLL moda.");
+            log.Write($"SUCCESS: Instalacja DLL moda '{modConfig.ModName}' zakończona pomyślnie");
+
+            userInteraction.ShowInfo($"Instalacja DLL moda {modConfig.ModName} zakończona pomyślnie.", "Sukces");
+            Directory.Delete(tempDir, true);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
+        private void Extract7zWithPassword(string archivePath, string extractPath, string password)
+        {
+            try
+            {
+                log?.Write($"Rozpakowuję archiwum 7z: {archivePath} do {extractPath} (z hasłem)");
+
+                // Ścieżka do 7z.exe w katalogu aplikacji
+                string? appDirPath = Path.GetDirectoryName(Environment.ProcessPath);
+                if (string.IsNullOrEmpty(appDirPath))
+                {
+                    throw new InvalidOperationException("Nie można określić katalogu aplikacji.");
+                }
+
+                string sevenZipPath = Path.Combine(appDirPath, "tools", "7z.exe");
+                Directory.CreateDirectory(extractPath);
+
+                if (!File.Exists(sevenZipPath))
+                {
+                    log?.Write($"Nie znaleziono 7z.exe w katalogu: {Path.Combine(appDirPath, "tools")}");
+                    throw new FileNotFoundException($"Nie znaleziono 7z.exe: {sevenZipPath}");
+                }
+
+                using (var process = new Process())
+                {
+                    process.StartInfo.FileName = sevenZipPath;
+                    process.StartInfo.Arguments = $"x \"{archivePath}\" -o\"{extractPath}\" -p{password} -y";
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.CreateNoWindow = true;
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.RedirectStandardError = true;
+
+                    log?.Write($"Uruchamiam 7z.exe do rozpakowania: {archivePath}");
+                    process.Start();
+
+                    string output = process.StandardOutput.ReadToEnd();
+                    string error = process.StandardError.ReadToEnd();
+                    process.WaitForExit();
+
+                    if (process.ExitCode != 0)
+                    {
+                        throw new Exception($"Błąd podczas rozpakowywania archiwum. Kod wyjścia: {process.ExitCode}. Błąd: {error}");
+                    }
+
+                    log?.Write("Archiwum rozpakowane pomyślnie.");
+                }
+            }
+            catch (Exception ex)
+            {
+                string safeErrorMessage = ex.Message.Replace(password, "***HIDDEN***");
+                log?.Write($"Błąd podczas rozpakowywania archiwum: {safeErrorMessage}");
+                throw new Exception(safeErrorMessage, ex.InnerException);
+            }
+        }
+
+        private async Task SafeDeleteDirectory(string directoryPath)
+        {
+            if (!Directory.Exists(directoryPath))
+                return;
+
+            int maxRetries = 3;
+            int currentRetry = 0;
+
+            while (currentRetry < maxRetries)
+            {
+                try
+                {
+                    // Spróbuj usunąć katalog normalnie
+                    Directory.Delete(directoryPath, true);
+                    log?.Write($"Pomyślnie usunięto katalog: {directoryPath}");
+                    return;
+                }
+                catch (IOException ex) when (currentRetry < maxRetries - 1)
+                {
+                    log?.Write($"Próba {currentRetry + 1} usunięcia katalogu nieudana: {ex.Message}");
+                    currentRetry++;
+
+                    // Spróbuj zwolnić pliki poprzez GC
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+
+                    // Odczekaj chwilę
+                    await Task.Delay(1000);
+
+                    // Spróbuj usunąć pliki jeden po jednym
+                    try
+                    {
+                        await ForceDeleteDirectory(directoryPath);
+                        return;
+                    }
+                    catch (Exception innerEx)
+                    {
+                        log?.Write($"Nie udało się wymusić usunięcia: {innerEx.Message}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log?.Write($"Błąd podczas usuwania katalogu: {ex.Message}");
+                    throw;
+                }
+            }
+
+            throw new IOException($"Nie udało się usunąć katalogu {directoryPath} po {maxRetries} próbach.");
+        }
+
+        private async Task ForceDeleteDirectory(string directoryPath)
+        {
+            if (!Directory.Exists(directoryPath))
+                return;
+
+            await Task.Run(() =>
+            {
+                try
+                {
+                    Directory.Delete(directoryPath, true);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error deleting directory: {ex.Message}");
+                }
+            });
+        }
+
+        private void CopyContent(string sourceDir, string destDir)
+        {
+            Directory.CreateDirectory(destDir);
+            foreach (var file in Directory.GetFiles(sourceDir))
+            {
+                string destinationFile = Path.Combine(destDir, Path.GetFileName(file));
+                File.Copy(file, destinationFile, true);
+            }
+            foreach (var dir in Directory.GetDirectories(sourceDir))
+            {
+                string destinationDir = Path.Combine(destDir, Path.GetFileName(dir));
+                DirectoryCopy(dir, destinationDir);
+            }
+        }
+
+        private void DirectoryCopy(string sourceDir, string destDir)
+        {
+            Directory.CreateDirectory(destDir);
+            foreach (var file in Directory.GetFiles(sourceDir))
+            {
+                string destinationFile = Path.Combine(destDir, Path.GetFileName(file));
+                File.Copy(file, destinationFile, true);
+            }
+            foreach (var dir in Directory.GetDirectories(sourceDir))
+            {
+                string destinationDir = Path.Combine(destDir, Path.GetFileName(dir));
+                DirectoryCopy(dir, destinationDir);
+            }
+        }
+
+        private async Task<bool> DownloadFileWithMemoryManagementAsync(string url, string filePath, IProgressReporter progress, string fileDescription)
+        {
+            const int bufferSize = 8192; // 8KB buffer
+            const long maxMemoryThreshold = 50 * 1024 * 1024; // 50MB threshold dla GC
+
+            try
+            {
+                using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromMinutes(30); // Timeout dla dużych plików
+
+                string downloadToken = SecretProvider.GetDownloadToken();
+                client.DefaultRequestHeaders.Add("Authorization", downloadToken);
+
+                using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+                response.EnsureSuccessStatusCode();
+
+                var totalBytes = response.Content.Headers.ContentLength ?? 0;
+                var downloadedBytes = 0L;
+                var lastGcBytes = 0L;
+
+                using var contentStream = await response.Content.ReadAsStreamAsync();
+                using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize);
+
+                var buffer = new byte[bufferSize];
+                int bytesRead;
+
+                while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                {
+                    await fileStream.WriteAsync(buffer, 0, bytesRead);
+                    downloadedBytes += bytesRead;
+
+                    // Aktualizuj progress
+                    if (totalBytes > 0)
+                    {
+                        var percentage = (int)((downloadedBytes * 100) / totalBytes);
+                        progress?.Report(percentage, $"Pobieranie {fileDescription}...");
+
+                    }
+
+                    // Wymuś GC co 50MB pobranych danych
+                    if (downloadedBytes - lastGcBytes > maxMemoryThreshold)
+                    {
+                        lastGcBytes = downloadedBytes;
+                        GC.Collect(0, GCCollectionMode.Optimized);
+                        GC.WaitForPendingFinalizers();
+                    }
+                }
+
+                // Wymuś flush i zamknij strumień
+                await fileStream.FlushAsync();
+
+                log?.Write($"Pobrano {fileDescription}: {downloadedBytes:N0} bajtów do {filePath}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                log?.Write($"Błąd pobierania {fileDescription}: {ex.Message}");
+
+                // Usuń częściowo pobrany plik
+                if (File.Exists(filePath))
+                {
+                    try { File.Delete(filePath); } catch { }
+                }
+
+                return false;
+            }
+            finally
+            {
+                // Wymuś czyszczenie pamięci po zakończeniu
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+            }
+        }
+        private void ForceMemoryCleanup()
+        {
+            // Agresywne czyszczenie pamięci
+            GC.Collect(2, GCCollectionMode.Forced);
+            GC.WaitForPendingFinalizers();
+            GC.Collect(2, GCCollectionMode.Forced);
+
+            // Dodatkowe czyszczenie dla .NET
+            if (Environment.Version.Major >= 5)
+            {
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
+            }
+        }
+    }
+}
