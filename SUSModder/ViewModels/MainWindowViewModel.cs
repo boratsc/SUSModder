@@ -28,6 +28,8 @@ using SUSModder.Core.Diagnostics;
 using Avalonia.Platform.Storage;
 using System.Diagnostics;
 using SUSModder.Services;
+using System.Windows.Input;
+
 
 namespace SUSModder.ViewModels
 {
@@ -46,7 +48,13 @@ namespace SUSModder.ViewModels
         private bool _isAdditionalActionsVisible = false;
         private List<ModConfiguration> _loadedConfigs = new();
         private UserInteractionService _userInteractionService;
-
+        private readonly DllModificationService _dllModificationService;
+        private bool _isDllModificationsVisible = false;
+        private ObservableCollection<ModItem> _dllMods = new();
+        private ModItem? _selectedDllMod;
+        private ObservableCollection<ModItem> _availableFullMods = new();
+        private bool _isDllInstallDialogVisible = false;
+        public ReactiveCommand<Unit, Unit> ShowAppSettingsCommand { get; }
 
         public ReactiveCommand<Unit, Unit> LobbySetCommand { get; }
 
@@ -59,17 +67,31 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> ShowAdditionalActionsCommand { get; }
 
         // Komendy dla akcji ToU
-        public ReactiveCommand<Unit, Unit> SaveLocalConfigCommand { get; }
-        public ReactiveCommand<Unit, Unit> LoadLocalConfigCommand { get; }
-        public ReactiveCommand<Unit, Unit> SaveServerConfigCommand { get; }
-        public ReactiveCommand<Unit, Unit> LoadServerConfigCommand { get; }
-        public ReactiveCommand<Unit, Unit> LoadLocalTxtConfigCommand { get; }
-        public ReactiveCommand<Unit, Unit> ChangePresetNamesCommand { get; }
         public ReactiveCommand<Unit, Unit> FixBlackScreenCommand { get; }
         public ReactiveCommand<Unit, Unit> LaunchCommand { get; }
         public ReactiveCommand<Unit, Unit> UpdateCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowRolesCommand { get; }
+        public ICommand OpenFolderCommand { get; }
+        public ICommand CreateShortcutCommand { get; }
+        public ReactiveCommand<Unit, Unit> ShowDllModificationsCommand { get; }
+        public ReactiveCommand<ModItem, Unit> SelectDllModCommand { get; }
+        public ReactiveCommand<ModItem, Unit> InstallDllToModCommand { get; }
+        public ReactiveCommand<ModItem, Unit> UninstallDllFromModCommand { get; }
+        public ReactiveCommand<Unit, Unit> CloseDllDialogCommand { get; }
+        private ObservableCollection<ModItem> _modsWithDllInstalled = new();
+        private ObservableCollection<ModItem> _modsWithoutDllInstalled = new();
 
+        public ObservableCollection<ModItem> ModsWithDllInstalled
+        {
+            get => _modsWithDllInstalled;
+            set => this.RaiseAndSetIfChanged(ref _modsWithDllInstalled, value);
+        }
+
+        public ObservableCollection<ModItem> ModsWithoutDllInstalled
+        {
+            get => _modsWithoutDllInstalled;
+            set => this.RaiseAndSetIfChanged(ref _modsWithoutDllInstalled, value);
+        }
         public bool IsInfoPanelVisible
         {
             get => _isInfoPanelVisible;
@@ -82,8 +104,36 @@ namespace SUSModder.ViewModels
             set => this.RaiseAndSetIfChanged(ref _appVersion, value);
         }
 
+        public bool IsDllModificationsVisible
+        {
+            get => _isDllModificationsVisible;
+            set => this.RaiseAndSetIfChanged(ref _isDllModificationsVisible, value);
+        }
 
-        // Dodaj komendę
+        public ObservableCollection<ModItem> DllMods
+        {
+            get => _dllMods;
+            set => this.RaiseAndSetIfChanged(ref _dllMods, value);
+        }
+
+        public ModItem? SelectedDllMod
+        {
+            get => _selectedDllMod;
+            set => this.RaiseAndSetIfChanged(ref _selectedDllMod, value);
+        }
+
+        public ObservableCollection<ModItem> AvailableFullMods
+        {
+            get => _availableFullMods;
+            set => this.RaiseAndSetIfChanged(ref _availableFullMods, value);
+        }
+
+        public bool IsDllInstallDialogVisible
+        {
+            get => _isDllInstallDialogVisible;
+            set => this.RaiseAndSetIfChanged(ref _isDllInstallDialogVisible, value);
+        }
+     
         public ReactiveCommand<Unit, Unit> ShowInfoCommand { get; }
 
         public ObservableCollection<ModItem> Mods { get; } = new();
@@ -99,7 +149,17 @@ namespace SUSModder.ViewModels
                 ShowSelectFileDialogAsync
             );
 
- 
+            var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+            {
+                System.Diagnostics.Debug.WriteLine($"[DLL Service] {message}");
+            });
+
+            var configService = new ConfigService();
+            _dllModificationService = new DllModificationService(configService, diagnosticsOutput);
+
+            var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+            var configRepository = new ConfigRepository(exeDir);
+            ModConfigHandler.Initialize(configRepository, _userInteractionService);
 
             TogglePaneCommand = ReactiveCommand.Create(TogglePane);
             ToggleThemeCommand = ReactiveCommand.Create(ToggleTheme);
@@ -110,25 +170,22 @@ namespace SUSModder.ViewModels
             ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             ShowInfoCommand = ReactiveCommand.Create(ShowInfo);
             ShowAdditionalActionsCommand = ReactiveCommand.Create(ShowAdditionalActions);
+            OpenFolderCommand = ReactiveCommand.Create(OpenFolder);
+            CreateShortcutCommand = ReactiveCommand.Create(CreateShortcut);
+            ShowDllModificationsCommand = ReactiveCommand.Create(ShowDllModifications);
+            SelectDllModCommand = ReactiveCommand.Create<ModItem>(SelectDllMod);
+            InstallDllToModCommand = ReactiveCommand.CreateFromTask<ModItem>(InstallDllToMod);
+            UninstallDllFromModCommand = ReactiveCommand.CreateFromTask<ModItem>(UninstallDllFromMod);
+            CloseDllDialogCommand = ReactiveCommand.Create(CloseDllDialog);
+            ShowAppSettingsCommand = ReactiveCommand.Create(ShowAppSettings);
 
-            SaveLocalConfigCommand = ReactiveCommand.Create(() => _touConfigService.SaveLocalConfig());
-            LoadLocalConfigCommand = ReactiveCommand.Create(() => _touConfigService.LoadLocalConfig());
-            SaveServerConfigCommand = ReactiveCommand.CreateFromTask(() => _touConfigService.SaveServerConfigAsync());
-            LoadServerConfigCommand = ReactiveCommand.CreateFromTask(() => _touConfigService.LoadServerConfigAsync());
-            LoadLocalTxtConfigCommand = ReactiveCommand.Create(() => _touConfigService.LoadLocalTxtConfig());
-            ChangePresetNamesCommand = ReactiveCommand.Create(() => _touConfigService.ChangePresetNames());
             LobbySetCommand = ReactiveCommand.CreateFromTask(ShowLobbySetDialog);
             FixBlackScreenCommand = ReactiveCommand.CreateFromTask(ExecuteFixBlackScreenAsync);
 
             FixBlackScreenCommand.ThrownExceptions.Subscribe(HandleCommandError);
             LobbySetCommand.ThrownExceptions.Subscribe(HandleCommandError);
-            SaveLocalConfigCommand.ThrownExceptions.Subscribe(HandleCommandError);
-            LoadLocalConfigCommand.ThrownExceptions.Subscribe(HandleCommandError);
-            SaveServerConfigCommand.ThrownExceptions.Subscribe(HandleCommandError);
-            LoadServerConfigCommand.ThrownExceptions.Subscribe(HandleCommandError);
-            LoadLocalTxtConfigCommand.ThrownExceptions.Subscribe(HandleCommandError);
-            ChangePresetNamesCommand.ThrownExceptions.Subscribe(HandleCommandError);
 
+            ClearEpicLogsOnStartup();
             LoadSavedTheme();
             InitializeApplicationAsync();
             LoadAppVersion();
@@ -190,6 +247,144 @@ namespace SUSModder.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"Error during application initialization: {ex.Message}");
                 await ShowDetailedErrorDialogAsync("Błąd podczas inicjalizacji aplikacji", ex);
+            }
+        }
+
+        private void OpenFolder()
+        {
+            if (SelectedMod?.InstallPath != null && Directory.Exists(SelectedMod.InstallPath))
+            {
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = SelectedMod.InstallPath,
+                        UseShellExecute = true,
+                        Verb = "open"
+                    });
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Nie udało się otworzyć folderu: {ex.Message}");
+                    Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        await ShowErrorDialogAsync($"Nie udało się otworzyć folderu: {ex.Message}", "Błąd");
+                    });
+                }
+            }
+            else
+            {
+                Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await ShowErrorDialogAsync("Folder instalacji nie istnieje lub mod nie jest zainstalowany.", "Błąd");
+                });
+            }
+        }
+
+        private void CreateShortcut()
+        {
+            if (SelectedMod?.InstallPath != null && Directory.Exists(SelectedMod.InstallPath))
+            {
+                try
+                {
+                    string amongUsExePath = Path.Combine(SelectedMod.InstallPath, "Among Us.exe");
+                    if (File.Exists(amongUsExePath))
+                    {
+                        // Sprawdź czy jesteśmy na Windows
+                        if (OperatingSystem.IsWindows())
+                        {
+                            string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                            string shortcutPath = Path.Combine(desktopPath, $"{SelectedMod.Name}.lnk");
+
+                            CreateWindowsShortcut(amongUsExePath, shortcutPath, SelectedMod.InstallPath);
+                        }
+                        else
+                        {
+                            // Na innych platformach możesz pokazać komunikat lub zaimplementować inne rozwiązanie
+                            System.Diagnostics.Debug.WriteLine("Shortcut creation is only supported on Windows");
+                            // Opcjonalnie: pokaż komunikat użytkownikowi
+                            _ = ShowMessageAsync("Informacja", "Tworzenie skrótów jest dostępne tylko na Windows.");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Nie udało się utworzyć skrótu: {ex.Message}");
+                }
+            }
+        }
+
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        private async void CreateWindowsShortcut(string targetPath, string shortcutPath, string workingDirectory)
+        {
+            try
+            {
+                Type? shellType = Type.GetTypeFromProgID("WScript.Shell");
+                if (shellType == null)
+                {
+                    await ShowErrorDialogAsync("Nie można uzyskać dostępu do WScript.Shell", "Błąd");
+                    return;
+                }
+
+                dynamic? shell = Activator.CreateInstance(shellType);
+                if (shell == null)
+                {
+                    await ShowErrorDialogAsync("Nie można utworzyć instancji WScript.Shell", "Błąd");
+                    return;
+                }
+
+                dynamic shortcut = shell.CreateShortcut(shortcutPath);
+                shortcut.TargetPath = targetPath;
+                shortcut.WorkingDirectory = workingDirectory;
+                shortcut.Description = $"Skrót do {Path.GetFileNameWithoutExtension(targetPath)}";
+                shortcut.Save();
+
+                System.Diagnostics.Debug.WriteLine($"Shortcut created: {shortcutPath}");
+
+                // Dialog sukcesu
+                await ShowMessageAsync("Sukces", $"Skrót został utworzony na pulpicie:\n{Path.GetFileName(shortcutPath)}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating Windows shortcut: {ex.Message}");
+                await ShowErrorDialogAsync($"Błąd podczas tworzenia skrótu: {ex.Message}", "Błąd");
+            }
+        }
+
+        private void CreateShortcutWithPowerShell(string targetPath, string shortcutPath, string workingDirectory, string shortcutName)
+        {
+            string powershellScript = $@"
+            $WshShell = New-Object -comObject WScript.Shell
+            $Shortcut = $WshShell.CreateShortcut('{shortcutPath}')
+            $Shortcut.TargetPath = '{targetPath}'
+            $Shortcut.WorkingDirectory = '{workingDirectory}'
+            $Shortcut.Description = 'Skrót do {shortcutName}'
+            $Shortcut.Save()
+        ";
+
+            var processInfo = new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = $"-Command \"{powershellScript}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            using (var process = Process.Start(processInfo))
+            {
+                if (process == null)
+                {
+                    throw new InvalidOperationException("Failed to start PowerShell process");
+                }
+
+                process.WaitForExit();
+                if (process.ExitCode != 0)
+                {
+                    string error = process.StandardError.ReadToEnd();
+                    throw new InvalidOperationException($"PowerShell error: {error}");
+                }
             }
         }
 
@@ -285,72 +480,25 @@ namespace SUSModder.ViewModels
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("Checking for mod updates...");
+                var updateManager = new ModUpdateManager();
+                var result = await updateManager.CheckForUpdatesAsync();
 
-                var configService = new ConfigService();
-                var currentConfigs = configService.LoadConfig();
-                var installedConfigs = currentConfigs.Where(c => !string.IsNullOrEmpty(c.InstallPath)).ToList();
-
-                var availableUpdates = new List<ModUpdateInfo>();
-
-                foreach (var config in installedConfigs)
+                if (!result.Success)
                 {
-                    var updatedConfig = await configService.CheckSingleModUpdateAsync(config.ModName);
-                    if (updatedConfig != null)
-                    {
-                        availableUpdates.Add(new ModUpdateInfo
-                        {
-                            ModName = config.ModName,
-                            CurrentVersion = config.ModVersion ?? "Nieznana",
-                            NewVersion = updatedConfig.ModVersion ?? "Nieznana",
-                            Description = updatedConfig.Description ?? "",
-                            IsSelected = true,
-                            LocalMod = config,
-                            RemoteMod = updatedConfig
-                        });
-                    }
-                }
-
-                if (!availableUpdates.Any())
-                {
-                    System.Diagnostics.Debug.WriteLine("No updates available");
+                    await ShowErrorDialogAsync($"Błąd podczas sprawdzania aktualizacji: {result.ErrorMessage}", "Błąd");
                     return;
                 }
 
-                // Pokaż dialog
-                var updateDialog = new UpdateDialog(availableUpdates);
-                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-
-                if (mainWindow != null)
+                // Jeśli config został zaktualizowany, odśwież listę modów
+                if (result.ConfigWasUpdated)
                 {
-                    // Pokaż dialog bez czekania
-                    updateDialog.Show(mainWindow);
-
-                    // Czekaj aż użytkownik kliknie Update lub Cancel
-                    while (!updateDialog.DialogResult && updateDialog.IsVisible)
-                    {
-                        await Task.Delay(100);
-                    }
-
-                    // Jeśli użytkownik potwierdził aktualizację
-                    if (updateDialog.DialogResult && updateDialog.IsVisible)
-                    {
-                        var selectedMods = updateDialog.GetSelectedMods();
-                        if (selectedMods.Any())
-                        {
-                            // Wykonaj aktualizację używając TYLKO logiki z MainWindowViewModel
-                            await ProcessSelectedUpdatesWithProgressAsync(selectedMods, updateDialog);
-                        }
-                    }
-
-                    // Zamknij dialog jeśli jeszcze jest otwarty
-                    if (updateDialog.IsVisible)
-                    {
-                        updateDialog.Close();
-                    }
-
-                    // Odśwież listę modów
                     await RefreshModsListAsync();
+                }
+
+                // Pokaż dialog aktualizacji tylko jeśli są dostępne aktualizacje dla zainstalowanych modów
+                if (result.InstalledModUpdates.Any())
+                {
+                    await ShowUpdateDialogAsync(result.InstalledModUpdates);
                 }
             }
             catch (Exception ex)
@@ -359,6 +507,39 @@ namespace SUSModder.ViewModels
                 await ShowErrorDialogAsync($"Błąd podczas sprawdzania aktualizacji: {ex.Message}", "Błąd");
             }
         }
+
+        private async Task ShowUpdateDialogAsync(List<ModUpdateInfo> availableUpdates)
+        {
+            var updateDialog = new UpdateDialog(availableUpdates);
+            var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+            if (mainWindow != null)
+            {
+                updateDialog.Show(mainWindow);
+
+                while (!updateDialog.DialogResult && updateDialog.IsVisible)
+                {
+                    await Task.Delay(100);
+                }
+
+                if (updateDialog.DialogResult && updateDialog.IsVisible)
+                {
+                    var selectedMods = updateDialog.GetSelectedMods();
+                    if (selectedMods.Any())
+                    {
+                        await ProcessSelectedUpdatesWithProgressAsync(selectedMods, updateDialog);
+                    }
+                }
+
+                if (updateDialog.IsVisible)
+                {
+                    updateDialog.Close();
+                }
+
+                await RefreshModsListAsync();
+            }
+        }
+
 
 
 
@@ -688,6 +869,8 @@ namespace SUSModder.ViewModels
                 {
                     IsInfoPanelVisible = false;
                     IsAdditionalActionsVisible = false;
+                    IsDllModificationsVisible = false;  
+                    IsDllInstallDialogVisible = false;  
                 }
             }
         }
@@ -783,6 +966,8 @@ namespace SUSModder.ViewModels
             if (IsAdditionalActionsVisible)
             {
                 IsInfoPanelVisible = false;
+                IsDllModificationsVisible = false;  // Dodaj
+                IsDllInstallDialogVisible = false;  // Dodaj
                 SelectedMod = null;
             }
 
@@ -796,6 +981,8 @@ namespace SUSModder.ViewModels
             if (IsInfoPanelVisible)
             {
                 IsAdditionalActionsVisible = false;
+                IsDllModificationsVisible = false;  // Dodaj
+                IsDllInstallDialogVisible = false;  // Dodaj
                 SelectedMod = null;
             }
 
@@ -819,6 +1006,9 @@ namespace SUSModder.ViewModels
 
         private async Task ShowMessageAsync(string title, string message)
         {
+            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ShowMessageAsync called - Title: '{title}', Message: '{message}'");
+            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: StackTrace: {Environment.StackTrace}");
+
             var dialog = new MessageDialog(title, message);
             var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
             if (mainWindow != null)
@@ -933,6 +1123,16 @@ namespace SUSModder.ViewModels
                     var epicUserInteraction = new EpicUserInteractionAdapter(_userInteractionService);
                     var epicManager = new EpicVersionManager(diagnosticsOutput, epicUserInteraction);
 
+                    epicManager.ResetErrorState();
+
+                    epicManager.EpicLaunchError += async (modName, logContent) =>
+                    {
+                        await Dispatcher.UIThread.InvokeAsync(async () =>
+                        {
+                            await ShowEpicErrorDialogAsync(currentSelectedMod.Name, logContent);
+                        });
+                    };
+
                     // NOWE: Subskrybuj progress z legendary
                     epicManager.ProgressChanged += (percentage, message) =>
                     {
@@ -1043,7 +1243,25 @@ namespace SUSModder.ViewModels
             }
         }
 
+        private async Task ShowEpicErrorDialogAsync(string modName, string logContent)
+        {
+            try
+            {
+                var dialog = new EpicErrorDialog(modName, logContent);
+                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
 
+                if (mainWindow != null)
+                {
+                    await dialog.ShowDialog(mainWindow);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error showing Epic error dialog: {ex.Message}");
+                // Fallback - pokaż standardowy dialog błędu
+                await ShowErrorDialogAsync($"Błąd uruchamiania gry Epic: {ex.Message}\n\nLog:\n{logContent}", "Błąd Epic Games");
+            }
+        }
 
         private void ShowRoles()
         {
@@ -1069,7 +1287,7 @@ namespace SUSModder.ViewModels
 
                 // Pobierz konfigurację moda
                 var configService = new ConfigService();
-                var allConfigs = configService.LoadConfig(); 
+                var allConfigs = configService.LoadConfig();
                 var modConfig = allConfigs.FirstOrDefault(c => c.ModName == currentSelectedMod.Name);
 
                 if (modConfig == null)
@@ -1081,9 +1299,10 @@ namespace SUSModder.ViewModels
                 string platform = DeterminePlatform();
                 bool success = false;
 
+                // W metodzie Install(), w sekcji Epic, zamień tę część:
+
                 if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Epic installation
                     var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
                     {
                         System.Diagnostics.Debug.WriteLine($"[Install Epic] {message}");
@@ -1092,51 +1311,42 @@ namespace SUSModder.ViewModels
                     var epicUserInteraction = new EpicUserInteractionAdapter(_userInteractionService);
                     var epicManager = new EpicVersionManager(diagnosticsOutput, epicUserInteraction);
 
-                    Action<int, string> epicProgressCallback = (percentage, message) =>
-                    {
-                        Dispatcher.UIThread.InvokeAsync(() =>
-                        {
+                    // NOWE: Wyczyść log przed instalacją
+                    epicManager.ClearLegendaryLog();
+
+                    // Subskrybuj progress
+                    epicManager.ProgressChanged += (percentage, message) => {
+                        Dispatcher.UIThread.InvokeAsync(() => {
                             currentSelectedMod.InstallProgress = percentage;
                             currentSelectedMod.InstallStatusMessage = message;
+                            System.Diagnostics.Debug.WriteLine($"[Epic Progress] {percentage}% - {message}");
                         });
                     };
 
-                    epicManager.ProgressChanged += (percentage, message) =>
-                    {
-                        Dispatcher.UIThread.InvokeAsync(() =>
-                        {
-                            currentSelectedMod.InstallProgress = percentage;
-                            currentSelectedMod.InstallStatusMessage = message;
+                    // Subskrybuj zakończenie instalacji
+                    epicManager.InstallationCompleted += (completedModConfig) => {
+                        Dispatcher.UIThread.InvokeAsync(async () => {
+                            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: InstallationCompleted callback for: {completedModConfig.ModName}");
+                            await RefreshModsListAsync();
+                            SelectedMod = Mods.FirstOrDefault(m => m.Name == completedModConfig.ModName);
                         });
                     };
 
                     try
                     {
-                        await epicManager.ModifyEpicAsync(modConfig, epicProgressCallback, null);
+                        System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Calling ModifyEpicAsync for {modConfig.ModName}");
+                        // Przekaż null zamiast epicProgressCallback
+                        await epicManager.ModifyEpicAsync(modConfig, null, null);
+                        System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync returned successfully");
                         success = true;
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[Install Epic] Exception: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync threw exception: {ex.Message}");
                         success = false;
                     }
-
-                    if (success)
-                    {
-                        // Przeładuj konfigurację z pliku
-                        var updatedConfigs = configService.LoadConfig();
-                        var updatedConfig = updatedConfigs.FirstOrDefault(c => c.ModName == currentSelectedMod.Name);
-
-                        if (updatedConfig != null)
-                        {
-                            await Dispatcher.UIThread.InvokeAsync(() =>
-                            {
-                                currentSelectedMod.InstallPath = updatedConfig.InstallPath;
-                                System.Diagnostics.Debug.WriteLine($"[Epic Install] Updated InstallPath: {updatedConfig.InstallPath}");
-                            });
-                        }
-                    }
                 }
+
                 else
                 {
                     // Steam installation
@@ -1162,7 +1372,7 @@ namespace SUSModder.ViewModels
                     {
                         await modManager.ModifyAsync(
                             modConfig,
-                            allConfigs, 
+                            allConfigs,
                             progressReporter,
                             diagnosticsOutput,
                             _userInteractionService,
@@ -1181,12 +1391,12 @@ namespace SUSModder.ViewModels
                     {
                         currentSelectedMod.InstallPath = modConfig.InstallPath;
                     });
-                }
 
-                // Odświeżenie dla obu platform
-                if (success)
-                {
-                    RefreshModsSortingKeepSelection(currentSelectedMod);
+                    // Odświeżenie dla Steam
+                    if (success)
+                    {
+                        RefreshModsSortingKeepSelection(currentSelectedMod);
+                    }
                 }
             }
             catch (Exception ex)
@@ -1205,6 +1415,7 @@ namespace SUSModder.ViewModels
                 });
             }
         }
+
 
         private string DeterminePlatform()
         {
@@ -1421,7 +1632,30 @@ namespace SUSModder.ViewModels
             }
         }
 
+        private void ClearEpicLogsOnStartup()
+        {
+            try
+            {
+                string platform = DeterminePlatform();
+                if (platform.Equals("Epic", StringComparison.OrdinalIgnoreCase))
+                {
+                    var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Epic Startup] {message}");
+                    });
 
+                    var epicUserInteraction = new EpicUserInteractionAdapter(_userInteractionService);
+                    var epicManager = new EpicVersionManager(diagnosticsOutput, epicUserInteraction);
+
+                    epicManager.ClearLegendaryLog();
+                    System.Diagnostics.Debug.WriteLine("Epic legendary log cleared on startup");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to clear Epic logs on startup: {ex.Message}");
+            }
+        }
 
         private async void Uninstall()
         {
@@ -1501,8 +1735,220 @@ namespace SUSModder.ViewModels
                 currentSelectedMod.IsInstalling = false;
             }
         }
+        private async void ShowAppSettings()
+        {
+            try
+            {
+                var settingsWindow = new AppSettingsWindow();
+
+                // Bezpieczne rzutowanie z sprawdzeniem null
+                if (settingsWindow.DataContext is not AppSettingsViewModel settingsViewModel)
+                {
+                    System.Diagnostics.Debug.WriteLine("Error: AppSettingsWindow DataContext is not AppSettingsViewModel");
+                    await ShowErrorDialogAsync("Błąd inicjalizacji okna ustawień.", "Błąd");
+                    return;
+                }
+
+                // Subskrybuj event zapisania ustawień
+                settingsViewModel.SettingsSaved += OnSettingsSaved;
+
+                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+                if (mainWindow != null)
+                {
+                    await settingsWindow.ShowDialog(mainWindow);
+                }
+
+                // Odsubskrybuj po zamknięciu okna
+                settingsViewModel.SettingsSaved -= OnSettingsSaved;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error opening settings window: {ex.Message}");
+                await ShowErrorDialogAsync($"Nie udało się otworzyć okna ustawień: {ex.Message}", "Błąd");
+            }
+        }
 
 
+        private void OnSettingsSaved()
+        {
+            System.Diagnostics.Debug.WriteLine("Settings were saved - refreshing application state");
+
+            Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                try
+                {
+                    // Wymuś przeładowanie ustawień ścieżki
+                    PathSettings.RefreshSettings();
+
+                    // Przeładuj listę modów
+                    await RefreshModsListAsync();
+
+                    System.Diagnostics.Debug.WriteLine($"Application refreshed with new ModsInstallPath: {PathSettings.ModsInstallPath}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error refreshing after settings change: {ex.Message}");
+                }
+            });
+        }
+
+        private void ShowDllModifications()
+        {
+            IsDllModificationsVisible = !IsDllModificationsVisible;
+
+            if (IsDllModificationsVisible)
+            {
+                IsInfoPanelVisible = false;
+                IsAdditionalActionsVisible = false;
+                SelectedMod = null;
+                IsDllInstallDialogVisible = false;
+
+                LoadDllMods();
+            }
+
+            this.RaisePropertyChanged(nameof(IsModPanelVisible));
+        }
+
+        private void SelectDllMod(ModItem dllMod)
+        {
+            SelectedDllMod = dllMod;
+            IsDllInstallDialogVisible = true;
+            LoadAvailableFullMods();
+        }
+
+        private void CloseDllDialog()
+        {
+            IsDllInstallDialogVisible = false;
+            SelectedDllMod = null;
+            ModsWithDllInstalled.Clear();
+            ModsWithoutDllInstalled.Clear();
+        }
+
+        private void LoadDllMods()
+        {
+            try
+            {
+                var dllConfigs = _dllModificationService.GetDllMods();
+                var dllModItems = dllConfigs.Select(ModItemAdapter.FromConfig).ToList();
+
+                DllMods.Clear();
+                foreach (var mod in dllModItems)
+                {
+                    DllMods.Add(mod);
+                }
+
+                System.Diagnostics.Debug.WriteLine($"Loaded {DllMods.Count} DLL mods");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading DLL mods: {ex.Message}");
+            }
+        }
+
+        private void LoadAvailableFullMods()
+        {
+            if (SelectedDllMod == null) return;
+
+            try
+            {
+                string platform = DeterminePlatform();
+                var dllConfig = ModItemAdapter.ToConfig(SelectedDllMod);
+
+                // Załaduj mody z zainstalowaną DLL
+                var modsWithDll = _dllModificationService.GetModsWithDllInstalled(dllConfig, platform);
+                var modsWithDllItems = modsWithDll.Select(ModItemAdapter.FromConfig).ToList();
+
+                ModsWithDllInstalled.Clear();
+                foreach (var mod in modsWithDllItems)
+                {
+                    ModsWithDllInstalled.Add(mod);
+                }
+
+                // Załaduj mody bez zainstalowanej DLL
+                var modsWithoutDll = _dllModificationService.GetModsWithoutDllInstalled(dllConfig, platform);
+                var modsWithoutDllItems = modsWithoutDll.Select(ModItemAdapter.FromConfig).ToList();
+
+                ModsWithoutDllInstalled.Clear();
+                foreach (var mod in modsWithoutDllItems)
+                {
+                    ModsWithoutDllInstalled.Add(mod);
+                }
+
+                System.Diagnostics.Debug.WriteLine($"Found {ModsWithDllInstalled.Count} mods with DLL installed");
+                System.Diagnostics.Debug.WriteLine($"Found {ModsWithoutDllInstalled.Count} mods without DLL installed");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading available full mods: {ex.Message}");
+            }
+        }
+
+        private async Task InstallDllToMod(ModItem targetMod)
+        {
+            if (SelectedDllMod == null || targetMod == null) return;
+
+            try
+            {
+                // Konwertuj ModItem na ModConfiguration
+                var dllConfig = ModItemAdapter.ToConfig(SelectedDllMod);
+                var targetConfig = ModItemAdapter.ToConfig(targetMod);
+
+                string platform = DeterminePlatform();
+
+                bool success = await _dllModificationService.InstallDllToModAsync(dllConfig, targetConfig, platform);
+
+                if (success)
+                {
+                    LoadAvailableFullMods(); // Odśwież listę
+                }
+                else
+                {
+                    await ShowErrorDialogAsync("Nie udało się zainstalować modyfikacji DLL.", "Błąd instalacji");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error installing DLL: {ex.Message}");
+                await ShowErrorDialogAsync($"Błąd podczas instalacji: {ex.Message}", "Błąd instalacji");
+            }
+        }
+
+        private async Task UninstallDllFromMod(ModItem targetMod)
+        {
+            if (SelectedDllMod == null || targetMod == null) return;
+
+            try
+            {
+                bool confirm = await ShowConfirmDialogAsync(
+                    $"Czy na pewno chcesz usunąć mod DLL '{SelectedDllMod.Name}' z '{targetMod.Name}'?",
+                    "Potwierdzenie usunięcia");
+
+                if (!confirm) return;
+
+                // Konwertuj ModItem na ModConfiguration
+                var dllConfig = ModItemAdapter.ToConfig(SelectedDllMod);
+                var targetConfig = ModItemAdapter.ToConfig(targetMod);
+
+                string platform = DeterminePlatform();
+
+                bool success = await _dllModificationService.UninstallDllFromModAsync(dllConfig, targetConfig, platform);
+
+                if (success)
+                {
+                    LoadAvailableFullMods(); // Odśwież listę
+                }
+                else
+                {
+                    await ShowErrorDialogAsync("Nie udało się usunąć modyfikacji DLL.", "Błąd usuwania");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error uninstalling DLL: {ex.Message}");
+                await ShowErrorDialogAsync($"Błąd podczas usuwania: {ex.Message}", "Błąd usuwania");
+            }
+        }
         private void RefreshModsSortingKeepSelection(ModItem selectedMod)
         {
             var currentMods = Mods.ToList();
@@ -1601,15 +2047,19 @@ public class EpicUserInteractionAdapter : IEpicUserInteraction
 
     public bool Confirm(string message)
     {
-        var task = _userInteractionService.ShowConfirmAsync(message, "Potwierdzenie");
-        task.Wait();
-        return task.Result;
+        System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: EpicUserInteractionAdapter.Confirm called with: {message}");
+        System.Diagnostics.Debug.WriteLine($"[EpicUserInteractionAdapter] Auto-confirm: {message}");
+        return true;
     }
 
     public void ShowError(string message)
     {
-        var task = _userInteractionService.ShowErrorAsync(message, "Błąd");
-        task.Wait();
+        System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: EpicUserInteractionAdapter.ShowError called with: {message}");
+
+        System.Diagnostics.Debug.WriteLine($"[EpicUserInteractionAdapter] Error: {message}");
+
+        // Rzuć wyjątek który zostanie obsłużony w MainWindowViewModel
+        //throw new InvalidOperationException(message);
     }
 }
 
@@ -1714,6 +2164,4 @@ public class InstallationSilentUserInteraction : IUserInteraction
     {
         _retryCounters.Clear();
     }
-
-
 }

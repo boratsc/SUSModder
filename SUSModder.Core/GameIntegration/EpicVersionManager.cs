@@ -11,6 +11,7 @@ using SUSModder.Core.Utilities;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Diagnostics;
 using System.Globalization;
+using System.Text;
 
 namespace SUSModder.Core.GameIntegration
 {
@@ -40,7 +41,28 @@ namespace SUSModder.Core.GameIntegration
         private string _lastEta = "";
         private string _lastDownloaded = "";
         private string _lastDownloadSpeed = "";
+        public event Action<ModConfiguration>? InstallationCompleted;
+        private StringBuilder _errorLog = new StringBuilder();
+        public event Action<string, string>? EpicLaunchError; // ModName, LogContent
+        private bool _hasLaunchError = false;
+        private bool _isRetryingInstallation = false;
 
+        public void ClearLegendaryLog()
+        {
+            try
+            {
+                if (File.Exists(legendaryLogFilePath))
+                {
+                    File.Delete(legendaryLogFilePath);
+                    LogToFile("Legendary log file cleared");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogToFile($"Failed to clear legendary log: {ex.Message}");
+            }
+        }
+        public string GetErrorLog() => _errorLog.ToString();
 
         private readonly IDiagnosticsOutput _output;
         private readonly IEpicUserInteraction _userInteraction;
@@ -232,7 +254,7 @@ namespace SUSModder.Core.GameIntegration
             string tempDirectory = Path.Combine(baseDirectory, "temp");
             Directory.CreateDirectory(tempDirectory);
             string modFile = Path.Combine(tempDirectory, "mod.zip");
-            // ProgressBar i Label obsłuż w UI
+            ProgressChanged?.Invoke(10, "Rozpoczynam pobieranie moda...");
 
             Write($"Rozpoczynam pobieranie moda '{modConfig.ModName}' z: {downloadUrl}");
             await DownloadFileAsync(downloadUrl, modFile);
@@ -245,6 +267,7 @@ namespace SUSModder.Core.GameIntegration
             }
 
             Write($"Pomyślnie pobrano mod do: {modFile}");
+            ProgressChanged?.Invoke(40, "Pobieranie zakończone, przygotowywanie instalacji...");
 
             string gameBasePath = Path.Combine(baseDirectory, modConfig.ModName, "AmongUs");
             if (Directory.Exists(gameBasePath))
@@ -255,6 +278,8 @@ namespace SUSModder.Core.GameIntegration
             Directory.CreateDirectory(gameBasePath);
             string tempExtractPath = Path.Combine(tempDirectory, "extractMod");
             Directory.CreateDirectory(tempExtractPath);
+
+            ProgressChanged?.Invoke(50, "Rozpakowywanie archiwum...");
 
             try
             {
@@ -269,6 +294,8 @@ namespace SUSModder.Core.GameIntegration
                 return;
             }
 
+            ProgressChanged?.Invoke(70, "Kopiowanie plików...");
+
             string sourcePath = Directory.Exists(Path.Combine(tempExtractPath, "BepInEx"))
                 ? tempExtractPath
                 : Directory.GetDirectories(tempExtractPath).FirstOrDefault() ?? string.Empty;
@@ -282,6 +309,8 @@ namespace SUSModder.Core.GameIntegration
 
             Write($"Kopiuję pliki z {sourcePath} do {gameBasePath}");
             CopyContent(sourcePath, gameBasePath);
+
+            ProgressChanged?.Invoke(90, "Aktualizowanie konfiguracji...");
 
             var existingConfigs = ConfigManager.LoadConfig();
             var existingConfig = existingConfigs.FirstOrDefault(c => c.Id == modConfig.Id);
@@ -302,23 +331,24 @@ namespace SUSModder.Core.GameIntegration
             ConfigManager.SaveConfig(existingConfigs);
             Directory.Delete(tempDirectory, true);
 
-            Write($"SUCCESS: Instalacja moda '{modConfig.ModName}' zakończona pomyślnie");
-            if (usingFallback)
-            {
-                ShowError(
-                    $"Mod '{modConfig.ModName}' został zainstalowany używając wersji Steam. " +
-                    "Jeśli wystąpią problemy, sprawdź czy dostępna jest dedykowana wersja Epic.");
-            }
+            ProgressChanged?.Invoke(100, "Instalacja zakończona!");
+
+            // DODAJ DEBUGOWANIE
+            Write($"🔍 DEBUG: ModifyEpicAsync kończy się - przed GC.Collect()");
+            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync COMPLETED for mod: {modConfig.ModName}");
 
             GC.Collect();
             GC.WaitForPendingFinalizers();
+
+            System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync FULLY COMPLETED for mod: {modConfig.ModName}");
+            InstallationCompleted?.Invoke(modConfig);
         }
 
         public async Task HandleEpicGameAsync(ModConfiguration modConfig)
         {
             if (modConfig == null || string.IsNullOrEmpty(modConfig.AmongVersion))
             {
-                ShowError("Konfiguracja gry jest nieprawidłowa.");
+                Write("Konfiguracja gry jest nieprawidłowa.");
                 return;
             }
 
@@ -331,6 +361,7 @@ namespace SUSModder.Core.GameIntegration
 
             string installDirectory;
             int lastLaunchId = GetLastLaunchId();
+
             if (modConfig.Id == lastLaunchId)
             {
                 // Sprawdź czy InstallPath nie jest null
@@ -341,8 +372,55 @@ namespace SUSModder.Core.GameIntegration
                 }
 
                 installDirectory = modConfig.InstallPath;
-                await RunLegendaryCommandAsync($"import 963137e4c29d4c79a81323b8fab03a40 \"{installDirectory}\" -y");
-                await LaunchGameAsync();
+
+                try
+                {
+                    // Resetuj flagę błędu przed próbą uruchomienia
+                    _hasLaunchError = false;
+
+                    await RunLegendaryCommandAsync($"import 963137e4c29d4c79a81323b8fab03a40 \"{installDirectory}\" -y");
+                    await LaunchGameAsync();
+
+                    // Jeśli wystąpił błąd uruchamiania i nie próbowaliśmy jeszcze reinstalacji
+                    if (_hasLaunchError && !_isRetryingInstallation)
+                    {
+                        Write("Wykryto błąd uruchamiania - próba automatycznej reinstalacji...");
+                        _isRetryingInstallation = true;
+
+                        // Wykonaj sekwencję reinstalacji
+                        await PerformReinstallationSequence(modConfig);
+
+                        _isRetryingInstallation = false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Write($"Błąd podczas uruchamiania: {ex.Message}");
+
+                    // Jeśli nie próbowaliśmy jeszcze reinstalacji
+                    if (!_isRetryingInstallation)
+                    {
+                        Write("Próba automatycznej reinstalacji po błędzie...");
+                        _isRetryingInstallation = true;
+
+                        try
+                        {
+                            await PerformReinstallationSequence(modConfig);
+                        }
+                        catch (Exception reinstallEx)
+                        {
+                            Write($"Błąd podczas reinstalacji: {reinstallEx.Message}");
+                            // Tutaj już zgłaszamy błąd do frontu
+                            string logContent = GetLegendaryLogContent();
+                            EpicLaunchError?.Invoke(modConfig.ModName, logContent);
+                        }
+                        finally
+                        {
+                            _isRetryingInstallation = false;
+                        }
+                    }
+                }
+
                 return;
             }
 
@@ -350,7 +428,7 @@ namespace SUSModder.Core.GameIntegration
             {
                 if (string.IsNullOrEmpty(modConfig.InstallPath))
                 {
-                    ShowError("Ścieżka instalacji dla Vanilla Among Us jest nieprawidłowa.");
+                    Write("Ścieżka instalacji dla Vanilla Among Us jest nieprawidłowa.");
                     return;
                 }
 
@@ -369,7 +447,7 @@ namespace SUSModder.Core.GameIntegration
             {
                 if (string.IsNullOrEmpty(modConfig.InstallPath))
                 {
-                    ShowError("Ścieżka instalacji moda jest nieprawidłowa.");
+                    Write("Ścieżka instalacji moda jest nieprawidłowa.");
                     return;
                 }
 
@@ -417,11 +495,57 @@ namespace SUSModder.Core.GameIntegration
             SaveLastLaunchId(modConfig.Id);
         }
 
+        private async Task PerformReinstallationSequence(ModConfiguration modConfig)
+        {
+            try
+            {
+                Write($"Rozpoczynam automatyczną reinstalację dla moda: {modConfig.ModName}");
+
+                string amongVersionFormatted = modConfig.AmongVersion?.Replace("-", ".") ?? string.Empty;
+
+                // Wykonaj sekwencję reinstalacji
+                if (modConfig.Id != 0) // Dla modów (nie vanilla)
+                {
+                    Write("Pobieranie manifestu...");
+                    await DownloadManifestAsync(amongVersionFormatted);
+                }
+
+                Write("Odinstalowywanie gry...");
+                await UninstallGameAsync();
+
+                Write("Instalowanie gry...");
+                await InstallGameAsync(modConfig, amongVersionFormatted);
+
+                Write("Uruchamianie gry po reinstalacji...");
+                // Resetuj flagę błędu przed ponowną próbą uruchomienia
+                _hasLaunchError = false;
+                await LaunchGameAsync();
+
+                // Sprawdź czy tym razem uruchomienie się powiodło
+                if (!_hasLaunchError)
+                {
+                    Write("Automatyczna reinstalacja zakończona pomyślnie!");
+                }
+                else
+                {
+                    Write("Automatyczna reinstalacja nie rozwiązała problemu.");
+                    // Zgłoś błąd do frontu
+                    string logContent = GetLegendaryLogContent();
+                    EpicLaunchError?.Invoke(modConfig.ModName, logContent);
+                }
+            }
+            catch (Exception ex)
+            {
+                Write($"Błąd podczas automatycznej reinstalacji: {ex.Message}");
+                throw; // Przekaż wyjątek wyżej
+            }
+        }
+
         private async Task DownloadManifestAsync(string amongVersionFormatted)
         {
             if (string.IsNullOrWhiteSpace(amongVersionFormatted))
             {
-                ShowError("Niepoprawna wersja Among Us.");
+                Write("Niepoprawna wersja Among Us.");
                 return;
             }
 
@@ -443,7 +567,7 @@ namespace SUSModder.Core.GameIntegration
             {
                 if (string.IsNullOrEmpty(modConfig.InstallPath))
                 {
-                    ShowError("Ścieżka instalacji dla Vanilla Among Us jest nieprawidłowa.");
+                    Write("Ścieżka instalacji dla Vanilla Among Us jest nieprawidłowa.");
                     return;
                 }
 
@@ -465,7 +589,7 @@ namespace SUSModder.Core.GameIntegration
                 string manifestFilePath = Path.Combine(manifestDirectory, $"{EpicAppId}_{amongVersionFormatted}.manifest");
                 if (!File.Exists(manifestFilePath))
                 {
-                    ShowError($"Nie znaleziono manifestu: {manifestFilePath}.");
+                    Write($"Nie znaleziono manifestu: {manifestFilePath}.");
                     return;
                 }
                 commandArguments = $"install {EpicAppId} -y --manifest \"{manifestFilePath}\" --base-path \"{installDirectory}\"";
@@ -500,13 +624,14 @@ namespace SUSModder.Core.GameIntegration
                     EnableRaisingEvents = true
                 };
 
+                // Zbieraj stderr do analizy błędów
+                var stderrLines = new List<string>();
+
                 process.OutputDataReceived += (s, e) =>
                 {
                     if (string.IsNullOrEmpty(e.Data)) return;
 
-                    // Parsuj progress z stdout
                     ParseAndReportProgress(e.Data);
-
                     LegendaryOutput?.Invoke(e.Data);
                     lock (_fileLock)
                         File.AppendAllText(legendaryLogFilePath, e.Data + Environment.NewLine);
@@ -516,7 +641,9 @@ namespace SUSModder.Core.GameIntegration
                 {
                     if (string.IsNullOrEmpty(e.Data)) return;
 
-                    // Parsuj progress z stderr (Legendary wysyła tam większość info)
+                    // Dodaj do kolekcji stderr
+                    stderrLines.Add(e.Data);
+
                     ParseAndReportProgress(e.Data);
 
                     var line = "[ERR] " + e.Data;
@@ -534,11 +661,43 @@ namespace SUSModder.Core.GameIntegration
                 var exitMsg = $"Process exited with code {process.ExitCode}";
                 LegendaryOutput?.Invoke(exitMsg);
                 Write(exitMsg);
+
+                // Sprawdź czy wystąpił błąd uruchamiania
+                if (process.ExitCode == 1 && commandArguments.Contains("launch"))
+                {
+                    // Sprawdź czy to konkretnie błąd FileNotFoundError
+                    bool isFileNotFoundError = stderrLines.Any(line =>
+                        line.Contains("FileNotFoundError") ||
+                        line.Contains("Nie można odnaleźć określonego pliku") ||
+                        line.Contains("[WinError 2]"));
+
+                    if (isFileNotFoundError)
+                    {
+                        Write("Wykryto błąd FileNotFoundError - pliki gry nie zostały znalezione");
+                    }
+
+                    _hasLaunchError = true;
+
+                    // Jeśli nie jesteśmy w trakcie retry, nie zgłaszaj jeszcze błędu do frontu
+                    if (!_isRetryingInstallation)
+                    {
+                        Write("Błąd uruchamiania zostanie obsłużony przez automatyczną reinstalację");
+                    }
+                    else
+                    {
+                        // Jeśli to już druga próba (po reinstalacji), zgłoś błąd
+                        string logContent = GetLegendaryLogContent();
+                        string modName = ExtractModNameFromLaunchCommand(commandArguments);
+                        Write($"Błąd uruchamiania po reinstalacji dla moda: {modName}");
+                        EpicLaunchError?.Invoke(modName, logContent);
+                    }
+                }
             }
             catch (Exception ex)
             {
                 Write($"ERROR running legendary.exe {commandArguments}: {ex}");
-                ShowError($"Wystąpił błąd podczas uruchamiania legendary.exe: {ex.Message}");
+                Write($"Wystąpił błąd podczas uruchamiania legendary.exe: {ex.Message}");
+                throw; // Przekaż wyjątek wyżej
             }
         }
 
@@ -700,23 +859,63 @@ namespace SUSModder.Core.GameIntegration
             using var client = new HttpClient();
             try
             {
-                var response = await client.GetAsync(url);
+                ProgressChanged?.Invoke(15, "Łączenie z serwerem...");
+
+                var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    ShowError($"Nie znaleziono zasobu dla URL: {url}.");
+                    Write($"Nie znaleziono zasobu dla URL: {url}.");
                     return;
                 }
                 response.EnsureSuccessStatusCode();
-                using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
-                await response.Content.CopyToAsync(fs);
+
+                var totalBytes = response.Content.Headers.ContentLength ?? -1L;
+                var canReportProgress = totalBytes != -1L;
+
+                using var contentStream = await response.Content.ReadAsStreamAsync();
+                using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+
+                var buffer = new byte[8192];
+                long totalBytesRead = 0L;
+                int bytesRead;
+                var lastProgressReport = DateTime.Now;
+
+                ProgressChanged?.Invoke(20, "Pobieranie pliku...");
+
+                while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) != 0)
+                {
+                    await fs.WriteAsync(buffer, 0, bytesRead);
+                    totalBytesRead += bytesRead;
+
+                    // Reportuj progress co 500ms
+                    if (canReportProgress && DateTime.Now - lastProgressReport > TimeSpan.FromMilliseconds(500))
+                    {
+                        var progressPercentage = (int)((totalBytesRead * 100L) / totalBytes);
+                        // Mapuj na zakres 20-35% (pobieranie to część całego procesu)
+                        var mappedProgress = 20 + (progressPercentage * 15 / 100);
+
+                        var downloadedMB = totalBytesRead / (1024.0 * 1024.0);
+                        var totalMB = totalBytes / (1024.0 * 1024.0);
+
+                        ProgressChanged?.Invoke(mappedProgress, $"Pobieranie: {downloadedMB:F1} MB / {totalMB:F1} MB");
+                        lastProgressReport = DateTime.Now;
+                    }
+                }
+
+                if (canReportProgress)
+                {
+                    ProgressChanged?.Invoke(35, "Pobieranie zakończone");
+                }
             }
             catch (HttpRequestException ex)
             {
-                ShowError($"Błąd HTTP: {ex.Message} dla URL: {url}.");
+                Write($"Błąd HTTP: {ex.Message} dla URL: {url}.");
+                throw;
             }
             catch (Exception ex)
             {
-                ShowError($"Wystąpił błąd podczas pobierania pliku: {ex.Message}.");
+                Write($"Wystąpił błąd podczas pobierania pliku: {ex.Message}.");
+                throw;
             }
         }
 
@@ -775,6 +974,36 @@ namespace SUSModder.Core.GameIntegration
             }
         }
 
+        private string GetLegendaryLogContent()
+        {
+            try
+            {
+                if (File.Exists(legendaryLogFilePath))
+                {
+                    return File.ReadAllText(legendaryLogFilePath);
+                }
+                return "Brak dostępnych logów.";
+            }
+            catch (Exception ex)
+            {
+                return $"Błąd odczytu logów: {ex.Message}";
+            }
+        }
 
+        private string ExtractModNameFromLaunchCommand(string commandArguments)
+        {
+            // Dla launch command argumenty wyglądają jak: "launch 963137e4c29d4c79a81323b8fab03a40 --skip-version-check"
+            // Możemy spróbować wyciągnąć nazwę z kontekstu lub użyć domyślnej
+            return "wybranego moda"; // Można to ulepszyć jeśli potrzebujemy dokładnej nazwy
+        }
+
+        // Dodaj właściwość do sprawdzania czy wystąpił błąd
+        public bool HasLaunchError => _hasLaunchError;
+
+        // Dodaj metodę do resetowania flagi błędu
+        public void ResetErrorState()
+        {
+            _hasLaunchError = false;
+        }
     }
 }

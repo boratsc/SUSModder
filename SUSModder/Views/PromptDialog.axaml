@@ -1,0 +1,57 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:SUSModder.Views"
+        x:Class="SUSModder.Views.PromptDialog"
+        x:DataType="views:PromptDialog"
+        Title="{Binding DialogTitle}"
+        Width="400" Height="200"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+	<Window.Styles>
+		<FluentTheme />
+	</Window.Styles>
+
+	<Grid Margin="20" RowDefinitions="Auto,*,Auto">
+		<TextBlock Grid.Row="0"
+                   Text="{Binding Message}"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,15"
+                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+		<TextBox Grid.Row="1"
+                 x:Name="InputTextBox"
+                 Text="{Binding InputText}"
+                 Watermark="Wpisz nazwę..."
+                 VerticalAlignment="Top"
+                 Background="{DynamicResource SecondaryBackgroundBrush}"
+                 Foreground="{DynamicResource TextPrimaryBrush}"
+                 BorderBrush="{DynamicResource BorderBrush}"/>
+
+		<StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="10"
+                    Margin="0,15,0,0">
+			<Button Content="OK"
+                    Click="OnOkClick"
+                    IsDefault="True"
+                    MinWidth="80"
+                    Background="{DynamicResource AccentBrush}"
+                    Foreground="White"
+                    Padding="10,8"
+                    CornerRadius="4"/>
+			<Button Content="Anuluj"
+                    Click="OnCancelClick"
+                    IsCancel="True"
+                    MinWidth="80"
+                    Background="{DynamicResource ModCardBackgroundBrush}"
+                    Foreground="{DynamicResource TextPrimaryBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    BorderThickness="1"
+                    Padding="10,8"
+                    CornerRadius="4"/>
+		</StackPanel>
+	</Grid>
+</Window>

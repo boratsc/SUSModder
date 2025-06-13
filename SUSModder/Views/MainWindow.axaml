@@ -51,7 +51,7 @@
 							Command="{Binding ShowAdditionalActionsCommand}">
 						<StackPanel Orientation="Horizontal" Spacing="10">
 							<TextBlock Text="🛠️" FontSize="18"/>
-							<TextBlock Text="Dodatkowe akcje"
+							<TextBlock Text="Konfiguracje ToU"
 									   VerticalAlignment="Center"
 									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
 						</StackPanel>
@@ -60,7 +60,8 @@
 							HorizontalContentAlignment="Left"
 							Padding="0,10"
 							Background="Transparent"
-							Foreground="{DynamicResource TextPrimaryBrush}">
+							Foreground="{DynamicResource TextPrimaryBrush}"
+							Command="{Binding ShowDllModificationsCommand}">
 						<StackPanel Orientation="Horizontal" Spacing="10">
 							<TextBlock Text="🧩" FontSize="18"/>
 							<TextBlock Text="Modyfikacje DLL"
@@ -94,6 +95,19 @@
 						</StackPanel>
 					</Button>
 					<Button Margin="0,0,0,5"
+						HorizontalContentAlignment="Left"
+						Padding="0,10"
+						Background="Transparent"
+						Foreground="{DynamicResource TextPrimaryBrush}"
+						Command="{Binding ShowAppSettingsCommand}">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<TextBlock Text="⚙️" FontSize="18"/>
+							<TextBlock Text="Ustawienia aplikacji"
+									   VerticalAlignment="Center"
+									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
+						</StackPanel>
+					</Button>
+					<Button Margin="0,0,0,5"
 							HorizontalContentAlignment="Left"
 							Padding="0,10"
 							Background="Transparent"
@@ -120,8 +134,8 @@
 						Foreground="{DynamicResource TextPrimaryBrush}"
 						DockPanel.Dock="Bottom">
 					<StackPanel Orientation="Horizontal" Spacing="10">
-						<TextBlock Text="{Binding ThemeButtonText}"								   
-								   VerticalAlignment="Center"									   
+						<TextBlock Text="{Binding ThemeButtonText}"
+								   VerticalAlignment="Center"
 								   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
 					</StackPanel>
 				</Button>
@@ -129,9 +143,9 @@
 		</SplitView.Pane>
 
 		<Grid Background="{DynamicResource WindowBackgroundBrush}">
-			<Grid ColumnDefinitions="Auto, *, Auto, Auto">
+			<Grid ColumnDefinitions="*, Auto, Auto">
 
-				<ListBox Grid.Column="1" Margin="10"
+				<ListBox Grid.Column="0" Margin="10"
 						 ItemsSource="{Binding Mods}"
 						 SelectedItem="{Binding SelectedMod}"
 						 Background="Transparent"
@@ -165,184 +179,527 @@
 					</ListBox.ItemTemplate>
 				</ListBox>
 
-				<GridSplitter Grid.Column="2" Width="2"
+				<GridSplitter Grid.Column="1" Width="2"
 							  Background="{DynamicResource GridSplitterBrush}"
-							  VerticalAlignment="Stretch" HorizontalAlignment="Center"/>
+							  VerticalAlignment="Stretch" HorizontalAlignment="Center">
+					<GridSplitter.IsVisible>
+						<MultiBinding Converter="{x:Static BoolConverters.Or}">
+							<Binding Path="IsModSelected"/>
+							<Binding Path="IsInfoPanelVisible"/>
+							<Binding Path="IsAdditionalActionsVisible"/>
+							<Binding Path="IsDllModificationsVisible"/>
+						</MultiBinding>
+					</GridSplitter.IsVisible>
+				</GridSplitter>
 
-				<Panel Grid.Column="3" Margin="20">
-					<!-- Panel informacji z animacją fade-in -->
-					<local:InfoPanel IsVisible="{Binding IsInfoPanelVisible}"
-									 DataContext="{Binding}"
-									 Classes="fade-in-panel"/>
+				<!-- Panel po prawej stronie z nowym stylingiem -->
+				<Border Grid.Column="2"
+						Margin="15,10,10,10"
+						Background="{DynamicResource SecondaryBackgroundBrush}"
+						BorderBrush="{DynamicResource AccentBrush}"
+						BorderThickness="1"
+						CornerRadius="12"
+						BoxShadow="0 4 16 0 #20000000"
+						Width="350"
+						MaxWidth="400">
+					<Border.IsVisible>
+						<MultiBinding Converter="{x:Static BoolConverters.Or}">
+							<Binding Path="IsModSelected"/>
+							<Binding Path="IsInfoPanelVisible"/>
+							<Binding Path="IsAdditionalActionsVisible"/>
+							<Binding Path="IsDllModificationsVisible"/>
+						</MultiBinding>
+					</Border.IsVisible>
 
-					<!-- Panel dodatkowych akcji z animacją slide od lewej -->
-					<local:AdditionalActionsPanel IsVisible="{Binding IsAdditionalActionsVisible}"
-												  DataContext="{Binding}"
-												  Classes="fade-in-panel"/>
+					<Panel Margin="20">
+						<!-- Panel modyfikacji DLL -->
+						<Panel Classes="fade-in-panel" IsVisible="{Binding IsDllModificationsVisible}">
+							<Panel.IsVisible>
+								<MultiBinding Converter="{x:Static BoolConverters.And}">
+									<Binding Path="IsDllModificationsVisible"/>
+									<Binding Path="IsDllInstallDialogVisible" Converter="{x:Static BoolConverters.Not}"/>
+								</MultiBinding>
+							</Panel.IsVisible>
 
-					<!-- Panel modów z animacją slide od prawej -->
-					<Panel Classes="fade-in-panel">
-						<Panel.IsVisible>
-							<MultiBinding Converter="{x:Static BoolConverters.And}">
-								<Binding Path="IsModSelected"/>
-								<Binding Path="IsInfoPanelVisible" Converter="{x:Static BoolConverters.Not}"/>
-								<Binding Path="IsAdditionalActionsVisible" Converter="{x:Static BoolConverters.Not}"/>
-							</MultiBinding>
-						</Panel.IsVisible>
-
-						<StackPanel DataContext="{Binding SelectedMod}">
-							<!-- Istniejące elementy: ikona, nazwa, opis... -->
-							<StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
-								<Image Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
-									   Width="64" Height="64" HorizontalAlignment="Center"/>
+							<ScrollViewer>
 								<StackPanel>
-									<TextBlock Text="{Binding Name}"
-											   FontSize="28" FontWeight="Bold"
-											   Foreground="{DynamicResource TextPrimaryBrush}"
-											   TextWrapping="Wrap"/>
-									<TextBlock Text="{Binding ModVersion, StringFormat='Wersja moda: {0}'}"
-											   FontSize="14"
-											   Foreground="{DynamicResource TextSecondaryBrush}"/>
-									<TextBlock Text="{Binding AmongVersion, StringFormat='Wersja AmongUs: {0}'}"
-											   FontSize="14"
-											   Foreground="{DynamicResource TextSecondaryBrush}"/>
+									<!-- Header -->
+									<Border Background="{DynamicResource AccentBrush}"
+											CornerRadius="8"
+											Padding="15"
+											Margin="0,0,0,20">
+										<StackPanel Orientation="Horizontal" Spacing="15">
+											<TextBlock Text="🧩" FontSize="32" VerticalAlignment="Center"/>
+											<StackPanel VerticalAlignment="Center">
+												<TextBlock Text="Modyfikacje DLL"
+														   FontSize="20" FontWeight="Bold"
+														   Foreground="White"/>
+												<TextBlock Text="Wybierz modyfikację do zainstalowania"
+														   FontSize="12"
+														   Foreground="#E0FFFFFF"/>
+											</StackPanel>
+										</StackPanel>
+									</Border>
+
+									<!-- Lista modów DLL -->
+									<ItemsControl ItemsSource="{Binding DllMods}">
+										<ItemsControl.ItemTemplate>
+											<DataTemplate>
+												<Border Background="{DynamicResource ModCardBackgroundBrush}"
+														BorderBrush="{DynamicResource ModCardBorderBrush}"
+														BorderThickness="1"
+														CornerRadius="8"
+														Margin="0,0,0,10"
+														Padding="15">
+													<Grid ColumnDefinitions="Auto,*,Auto">
+														<!-- Ikona -->
+														<Image Grid.Column="0"
+															   Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
+															   Width="48" Height="48"
+															   Margin="0,0,15,0"/>
+
+														<!-- Informacje -->
+														<StackPanel Grid.Column="1" VerticalAlignment="Center">
+															<TextBlock Text="{Binding Name}"
+																	   FontSize="16" FontWeight="Bold"
+																	   Foreground="{DynamicResource TextPrimaryBrush}"/>
+															<TextBlock Text="{Binding Description}"
+																	   FontSize="12"
+																	   Foreground="{DynamicResource TextSecondaryBrush}"
+																	   TextWrapping="Wrap"
+																	   MaxWidth="200"/>
+															<TextBlock Text="{Binding ModVersion, StringFormat='Wersja: {0}'}"
+																	   FontSize="11"
+																	   Foreground="{DynamicResource TextSecondaryBrush}"/>
+														</StackPanel>
+
+														<!-- Przycisk wyboru -->
+														<Button Grid.Column="2"
+																Content="Wybierz"
+																Background="{DynamicResource AccentBrush}"
+																Foreground="White"
+																Padding="15,8"
+																CornerRadius="6"
+																FontSize="12"
+																FontWeight="SemiBold"
+																Command="{Binding $parent[local:MainWindow].DataContext.SelectDllModCommand}"
+																CommandParameter="{Binding}"/>
+													</Grid>
+												</Border>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
 								</StackPanel>
-							</StackPanel>
+							</ScrollViewer>
+						</Panel>
 
-							<TextBlock Text="{Binding Description}"
-									   TextWrapping="Wrap"
-									   MaxWidth="250"
-									   Margin="0,0,0,10"
-									   FontSize="14"
-									   Foreground="{DynamicResource TextSecondaryBrush}"/>
-
-							<!-- DODAJ PROGRESS BAR TUTAJ -->
-							<Border IsVisible="{Binding ShowProgress}"
-									Background="{DynamicResource SecondaryBackgroundBrush}"
-									BorderBrush="{DynamicResource BorderBrush}"
-									BorderThickness="1"
-									CornerRadius="4"
-									Padding="10"
-									Margin="0,0,0,10">
+						<!-- Dialog instalacji/odinstalowania DLL -->
+						<Panel Classes="fade-in-panel" IsVisible="{Binding IsDllInstallDialogVisible}">
+							<ScrollViewer>
 								<StackPanel>
-									<TextBlock Text="{Binding InstallStatusMessage}"
-											   FontSize="12"
-											   Foreground="{DynamicResource TextPrimaryBrush}"
-											   TextAlignment="Center"
-											   Margin="0,0,0,5"/>
-									<ProgressBar Value="{Binding InstallProgress}"
-												 Minimum="0"
-												 Maximum="100"
-												 Height="20"
-												 Background="{DynamicResource TertiaryBackgroundBrush}"
-												 Foreground="{DynamicResource AccentBrush}"/>
-									<TextBlock Text="{Binding InstallProgress, StringFormat='{}{0}%'}"
+									<!-- Header z informacją o wybranym DLL -->
+									<Border Background="{DynamicResource AccentBrush}"
+											CornerRadius="8"
+											Padding="15"
+											Margin="0,0,0,20">
+										<StackPanel Orientation="Horizontal" Spacing="15">
+											<Image Source="{Binding SelectedDllMod.PngFileName, Converter={StaticResource StringToBitmapConverter}}"
+												   Width="48" Height="48"/>
+											<StackPanel VerticalAlignment="Center">
+												<TextBlock Text="{Binding SelectedDllMod.Name}"
+														   FontSize="18" FontWeight="Bold"
+														   Foreground="White"/>
+												<TextBlock Text="Zarządzaj instalacją modyfikacji"
+														   FontSize="12"
+														   Foreground="#E0FFFFFF"/>
+											</StackPanel>
+										</StackPanel>
+									</Border>
+
+									<!-- Sekcja: Zainstaluj -->
+									<Border Background="{DynamicResource ModCardBackgroundBrush}"
+											BorderBrush="{DynamicResource ModCardBorderBrush}"
+											BorderThickness="1"
+											CornerRadius="8"
+											Margin="0,0,0,15"
+											Padding="15"
+											IsVisible="{Binding ModsWithoutDllInstalled.Count}">
+										<StackPanel>
+											<TextBlock Text="📥 Zainstaluj w:"
+													   FontSize="16" FontWeight="Bold"
+													   Foreground="{DynamicResource AccentBrush}"
+													   Margin="0,0,0,10"/>
+
+											<ItemsControl ItemsSource="{Binding ModsWithoutDllInstalled}">
+												<ItemsControl.ItemTemplate>
+													<DataTemplate>
+														<Border Background="{DynamicResource SecondaryBackgroundBrush}"
+																BorderBrush="{DynamicResource BorderBrush}"
+																BorderThickness="1"
+																CornerRadius="6"
+																Margin="0,0,0,8"
+																Padding="12">
+															<Grid ColumnDefinitions="Auto,*,Auto">
+																<!-- Ikona -->
+																<Image Grid.Column="0"
+																	   Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
+																	   Width="32" Height="32"
+																	   Margin="0,0,10,0"/>
+
+																<!-- Informacje -->
+																<StackPanel Grid.Column="1" VerticalAlignment="Center">
+																	<TextBlock Text="{Binding Name}"
+																			   FontSize="13" FontWeight="SemiBold"
+																			   Foreground="{DynamicResource TextPrimaryBrush}"/>
+																</StackPanel>
+
+																<!-- Przycisk Instaluj -->
+																<Button Grid.Column="2"
+																		Content="Instaluj"
+																		Background="{DynamicResource AccentBrush}"
+																		Foreground="White"
+																		Padding="10,5"
+																		CornerRadius="4"
+																		FontSize="11"
+																		FontWeight="SemiBold"
+																		Command="{Binding $parent[local:MainWindow].DataContext.InstallDllToModCommand}"
+																		CommandParameter="{Binding}"/>
+															</Grid>
+														</Border>
+													</DataTemplate>
+												</ItemsControl.ItemTemplate>
+											</ItemsControl>
+										</StackPanel>
+									</Border>
+
+									<!-- Sekcja: Odinstaluj -->
+									<Border Background="{DynamicResource ModCardBackgroundBrush}"
+											BorderBrush="{DynamicResource ModCardBorderBrush}"
+											BorderThickness="1"
+											CornerRadius="8"
+											Margin="0,0,0,15"
+											Padding="15"
+											IsVisible="{Binding ModsWithDllInstalled.Count}">
+										<StackPanel>
+											<TextBlock Text="🗑️ Odinstaluj z:"
+													   FontSize="16" FontWeight="Bold"
+													   Foreground="{DynamicResource DangerBrush}"
+													   Margin="0,0,0,10"/>
+
+											<ItemsControl ItemsSource="{Binding ModsWithDllInstalled}">
+												<ItemsControl.ItemTemplate>
+													<DataTemplate>
+														<Border Background="{DynamicResource SecondaryBackgroundBrush}"
+																BorderBrush="{DynamicResource BorderBrush}"
+																BorderThickness="1"
+																CornerRadius="6"
+																Margin="0,0,0,8"
+																Padding="12">
+															<Grid ColumnDefinitions="Auto,*,Auto">
+																<!-- Ikona -->
+																<Image Grid.Column="0"
+																	   Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
+																	   Width="32" Height="32"
+																	   Margin="0,0,10,0"/>
+
+																<!-- Informacje -->
+																<StackPanel Grid.Column="1" VerticalAlignment="Center">
+																	<TextBlock Text="{Binding Name}"
+																			   FontSize="13" FontWeight="SemiBold"
+																			   Foreground="{DynamicResource TextPrimaryBrush}"/>
+																</StackPanel>
+
+																<!-- Przycisk Usuń -->
+																<Button Grid.Column="2"
+																		Content="Usuń"
+																		Background="{DynamicResource DangerBrush}"
+																		Foreground="White"
+																		Padding="10,5"
+																		CornerRadius="4"
+																		FontSize="11"
+																		FontWeight="SemiBold"
+																		Command="{Binding $parent[local:MainWindow].DataContext.UninstallDllFromModCommand}"
+																		CommandParameter="{Binding}"/>
+															</Grid>
+														</Border>
+													</DataTemplate>
+												</ItemsControl.ItemTemplate>
+											</ItemsControl>
+										</StackPanel>
+									</Border>
+
+									<!-- Komunikat gdy brak modów -->
+									<Border Background="{DynamicResource ModCardBackgroundBrush}"
+											BorderBrush="{DynamicResource ModCardBorderBrush}"
+											BorderThickness="1"
+											CornerRadius="8"
+											Margin="0,0,0,15"
+											Padding="20">
+										<Border.IsVisible>
+											<MultiBinding Converter="{x:Static BoolConverters.And}">
+												<Binding Path="ModsWithDllInstalled.Count" Converter="{x:Static ObjectConverters.Equal}" ConverterParameter="0"/>
+												<Binding Path="ModsWithoutDllInstalled.Count" Converter="{x:Static ObjectConverters.Equal}" ConverterParameter="0"/>
+											</MultiBinding>
+										</Border.IsVisible>
+
+										<StackPanel HorizontalAlignment="Center">
+											<TextBlock Text="🤷‍♂️"
+													   FontSize="32"
+													   HorizontalAlignment="Center"
+													   Margin="0,0,0,10"/>
+											<TextBlock Text="Brak zainstalowanych modów"
+													   FontSize="14"
+													   Foreground="{DynamicResource TextSecondaryBrush}"
+													   TextAlignment="Center"/>
+											<TextBlock Text="Zainstaluj najpierw jakiś mod typu 'full'"
+													   FontSize="12"
+													   Foreground="{DynamicResource TextSecondaryBrush}"
+													   TextAlignment="Center"/>
+										</StackPanel>
+									</Border>
+
+									<!-- Przycisk powrotu -->
+									<Button Content="← Powrót do listy DLL"
+											HorizontalAlignment="Center"
+											Background="{DynamicResource ModCardBackgroundBrush}"
+											Foreground="{DynamicResource TextPrimaryBrush}"
+											BorderBrush="{DynamicResource ModCardBorderBrush}"
+											BorderThickness="1"
+											Padding="15,10"
+											CornerRadius="6"
+											Command="{Binding CloseDllDialogCommand}"/>
+								</StackPanel>
+							</ScrollViewer>
+						</Panel>
+						<!-- Panel informacji z animacją fade-in -->
+						<local:InfoPanel IsVisible="{Binding IsInfoPanelVisible}"
+										 DataContext="{Binding}"
+										 Classes="fade-in-panel"/>
+
+						<!-- Panel dodatkowych akcji z animacją slide od lewej -->
+						<local:AdditionalActionsPanel IsVisible="{Binding IsAdditionalActionsVisible}"
+													  DataContext="{Binding}"
+													  Classes="fade-in-panel"/>
+
+						<!-- Panel modów z animacją slide od prawej -->
+						<Panel Classes="fade-in-panel">
+							<Panel.IsVisible>
+								<MultiBinding Converter="{x:Static BoolConverters.And}">
+									<Binding Path="IsModSelected"/>
+									<Binding Path="IsInfoPanelVisible" Converter="{x:Static BoolConverters.Not}"/>
+									<Binding Path="IsAdditionalActionsVisible" Converter="{x:Static BoolConverters.Not}"/>
+								</MultiBinding>
+							</Panel.IsVisible>
+
+							<StackPanel DataContext="{Binding SelectedMod}">
+								<!-- Header z akcentem -->
+								<Border Background="{DynamicResource AccentBrush}"
+										CornerRadius="8"
+										Padding="15"
+										Margin="0,0,0,20">
+									<StackPanel Orientation="Horizontal" Spacing="15">
+										<Image Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
+											   Width="64" Height="64"
+											   HorizontalAlignment="Center"/>
+										<StackPanel VerticalAlignment="Center">
+											<TextBlock Text="{Binding Name}"
+													   FontSize="20" FontWeight="Bold"
+													   Foreground="White"
+													   TextWrapping="Wrap"/>
+											<TextBlock Text="{Binding ModVersion, StringFormat='Wersja moda: {0}'}"
+													   FontSize="11"
+													   Foreground="#E0FFFFFF"/>
+											<TextBlock Text="{Binding AmongVersion, StringFormat='Wersja AmongUs: {0}'}"
+													   FontSize="11"
+													   Foreground="#E0FFFFFF"/>
+										</StackPanel>
+									</StackPanel>
+								</Border>
+
+								<TextBlock Text="{Binding Description}"
+										   TextWrapping="Wrap"
+										   Margin="0,0,0,20"
+										   FontSize="13"
+										   LineHeight="18"
+										   Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+								<!-- PROGRESS BAR -->
+								<Border IsVisible="{Binding ShowProgress}"
+										Background="{DynamicResource TertiaryBackgroundBrush}"
+										BorderBrush="{DynamicResource BorderBrush}"
+										BorderThickness="1"
+										CornerRadius="8"
+										Padding="15"
+										Margin="0,0,0,20">
+									<StackPanel>
+										<TextBlock Text="{Binding InstallStatusMessage}"
+												   FontSize="12"
+												   Foreground="{DynamicResource TextPrimaryBrush}"
+												   TextAlignment="Center"
+												   Margin="0,0,0,8"/>
+										<ProgressBar Value="{Binding InstallProgress}"
+													 Minimum="0"
+													 Maximum="100"
+													 Height="24"
+													 CornerRadius="12"
+													 Background="{DynamicResource WindowBackgroundBrush}"
+													 Foreground="{DynamicResource AccentBrush}"/>
+										<TextBlock Text="{Binding InstallProgress, StringFormat='{}{0}%'}"
+												   FontSize="11"
+												   Foreground="{DynamicResource TextSecondaryBrush}"
+												   TextAlignment="Center"
+												   Margin="0,5,0,0"/>
+									</StackPanel>
+								</Border>
+
+								<!-- Przyciski dla Vanilla - tylko Uruchom -->
+								<StackPanel IsVisible="{Binding IsVanilla}" Spacing="10">
+									<Button Content="Uruchom"
+											HorizontalAlignment="Stretch"
+											Padding="12"
+											CornerRadius="8"
+											FontSize="14"
+											FontWeight="SemiBold"
+											Background="{DynamicResource SuccessBrush}"
+											Foreground="White"
+											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+											Command="{Binding $parent[local:MainWindow].DataContext.LaunchCommand}"/>
+								</StackPanel>
+
+								<!-- Przyciski dla niezainstalowanego moda (NIE Vanilla) -->
+								<StackPanel Spacing="10">
+									<StackPanel.IsVisible>
+										<MultiBinding Converter="{x:Static BoolConverters.And}">
+											<Binding Path="InstallPath" Converter="{StaticResource StringNotNullOrEmptyToBoolConverter}" ConverterParameter="Invert"/>
+											<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+										</MultiBinding>
+									</StackPanel.IsVisible>
+
+									<Button Content="Instaluj"
+											HorizontalAlignment="Stretch"
+											Padding="12"
+											CornerRadius="8"
+											FontSize="14"
+											FontWeight="SemiBold"
+											Background="{DynamicResource AccentBrush}"
+											Foreground="White"
+											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+											Command="{Binding $parent[local:MainWindow].DataContext.InstallCommand}"/>
+								</StackPanel>
+
+								<!-- Przyciski dla zainstalowanego moda (NIE Vanilla) -->
+								<StackPanel Spacing="10">
+									<StackPanel.IsVisible>
+										<MultiBinding Converter="{x:Static BoolConverters.And}">
+											<Binding Path="InstallPath" Converter="{StaticResource StringNotNullOrEmptyToBoolConverter}"/>
+											<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+										</MultiBinding>
+									</StackPanel.IsVisible>
+
+									<Button Content="Uruchom"
+											HorizontalAlignment="Stretch"
+											Padding="12"
+											CornerRadius="8"
+											FontSize="14"
+											FontWeight="SemiBold"
+											Background="{DynamicResource SuccessBrush}"
+											Foreground="White"
+											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+											Command="{Binding $parent[local:MainWindow].DataContext.LaunchCommand}"/>
+
+									<Button Content="Aktualizuj"
+											HorizontalAlignment="Stretch"
+											Padding="12"
+											CornerRadius="8"
+											FontSize="14"
+											FontWeight="SemiBold"
+											Background="{DynamicResource AccentBrush}"
+											Foreground="White"
+											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+											Command="{Binding $parent[local:MainWindow].DataContext.UpdateCommand}"/>
+
+									<Button Content="Usuń"
+											HorizontalAlignment="Stretch"
+											Padding="12"
+											CornerRadius="8"
+											FontSize="14"
+											FontWeight="SemiBold"
+											Background="{DynamicResource DangerBrush}"
+											Foreground="White"
+											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+											Command="{Binding $parent[local:MainWindow].DataContext.UninstallCommand}"/>
+								</StackPanel>
+
+								<!-- Przycisk Role - zawsze widoczny (NIE dla Vanilla) -->
+								<Button Content="Role"
+										HorizontalAlignment="Stretch"
+										Margin="0,10,0,0"
+										Padding="12"
+										CornerRadius="8"
+										FontSize="14"
+										FontWeight="SemiBold"
+										Background="{DynamicResource ModCardBackgroundBrush}"
+										Foreground="{DynamicResource TextPrimaryBrush}"
+										BorderBrush="{DynamicResource ModCardBorderBrush}"
+										BorderThickness="1"
+										IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+										Command="{Binding $parent[local:MainWindow].DataContext.ShowRolesCommand}">
+									<Button.IsVisible>
+										<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+									</Button.IsVisible>
+								</Button>
+
+								<StackPanel IsVisible="{Binding InstallPath, Converter={StaticResource StringNotNullOrEmptyToBoolConverter}}"
+											Margin="0,25,0,0">
+									<TextBlock Text="Zainstalowano w:"
 											   FontSize="11"
 											   Foreground="{DynamicResource TextSecondaryBrush}"
-											   TextAlignment="Center"
-											   Margin="0,2,0,0"/>
+											   Margin="0,0,0,8"/>
+									<Border BorderBrush="{DynamicResource AccentBrush}"
+											BorderThickness="1"
+											Background="{DynamicResource TertiaryBackgroundBrush}"
+											CornerRadius="6"
+											Margin="0,0,0,4">
+										<SelectableTextBlock Text="{Binding InstallPath, Converter={x:Static converters:PathShorteningConverter.Instance}, ConverterParameter=30}"
+															 Background="Transparent"
+															 Foreground="{DynamicResource TextPrimaryBrush}"
+															 Padding="10"
+															 FontFamily="Consolas"
+															 FontSize="10"
+															 ToolTip.Tip="{Binding InstallPath}"/>
+									</Border>
+									<Grid ColumnDefinitions="*,5,*">
+										<Button Grid.Column="0"
+												Content="Otwórz folder"
+												HorizontalAlignment="Stretch"
+												Padding="8"
+												CornerRadius="6"
+												FontSize="12"
+												FontWeight="SemiBold"
+												Background="{DynamicResource ModCardBackgroundBrush}"
+												Foreground="{DynamicResource TextPrimaryBrush}"
+												BorderBrush="{DynamicResource ModCardBorderBrush}"
+												BorderThickness="1"
+												Command="{Binding $parent[local:MainWindow].DataContext.OpenFolderCommand}"/>
+
+										<Button Grid.Column="2"
+												Content="Stwórz skrót"
+												HorizontalAlignment="Stretch"
+												Padding="8"
+												CornerRadius="6"
+												FontSize="12"
+												FontWeight="SemiBold"
+												Background="{DynamicResource ModCardBackgroundBrush}"
+												Foreground="{DynamicResource TextPrimaryBrush}"
+												BorderBrush="{DynamicResource ModCardBorderBrush}"
+												BorderThickness="1"
+												Command="{Binding $parent[local:MainWindow].DataContext.CreateShortcutCommand}"/>
+									</Grid>
 								</StackPanel>
-							</Border>
-
-							<!-- Przyciski dla Vanilla - tylko Uruchom -->
-							<StackPanel IsVisible="{Binding IsVanilla}">
-								<Button Content="Uruchom"
-										HorizontalAlignment="Stretch"
-										Margin="0,0,0,8" Padding="10"
-										Background="{DynamicResource SuccessBrush}"
-										Foreground="White"
-										IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
-										Command="{Binding $parent[local:MainWindow].DataContext.LaunchCommand}"/>
 							</StackPanel>
-
-							<!-- Przyciski dla niezainstalowanego moda (NIE Vanilla) -->
-							<StackPanel>
-								<StackPanel.IsVisible>
-									<MultiBinding Converter="{x:Static BoolConverters.And}">
-										<Binding Path="InstallPath" Converter="{StaticResource StringNotNullOrEmptyToBoolConverter}" ConverterParameter="Invert"/>
-										<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
-									</MultiBinding>
-								</StackPanel.IsVisible>
-
-								<Button Content="Instaluj"
-										HorizontalAlignment="Stretch"
-										Margin="0,0,0,8" Padding="10"
-										Background="{DynamicResource AccentBrush}"
-										Foreground="White"
-										IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
-										Command="{Binding $parent[local:MainWindow].DataContext.InstallCommand}"/>
-							</StackPanel>
-
-							<!-- Przyciski dla zainstalowanego moda (NIE Vanilla) -->
-							<StackPanel>
-								<StackPanel.IsVisible>
-									<MultiBinding Converter="{x:Static BoolConverters.And}">
-										<Binding Path="InstallPath" Converter="{StaticResource StringNotNullOrEmptyToBoolConverter}"/>
-										<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
-									</MultiBinding>
-								</StackPanel.IsVisible>
-
-								<Button Content="Uruchom"
-										HorizontalAlignment="Stretch"
-										Margin="0,0,0,8" Padding="10"
-										Background="{DynamicResource SuccessBrush}"
-										Foreground="White"
-										IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
-										Command="{Binding $parent[local:MainWindow].DataContext.LaunchCommand}"/>
-
-								<Button Content="Aktualizuj"
-										HorizontalAlignment="Stretch"
-										Margin="0,0,0,8" Padding="10"
-										Background="{DynamicResource AccentBrush}"
-										Foreground="White"
-										IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
-										Command="{Binding $parent[local:MainWindow].DataContext.UpdateCommand}"/>
-
-								<Button Content="Usuń"
-										HorizontalAlignment="Stretch"
-										Margin="0,0,0,8" Padding="10"
-										Background="{DynamicResource DangerBrush}"
-										Foreground="White"
-										IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
-										Command="{Binding $parent[local:MainWindow].DataContext.UninstallCommand}"/>
-							</StackPanel>
-
-							<!-- Przycisk Role - zawsze widoczny (NIE dla Vanilla) -->
-							<Button Content="Role"
-									HorizontalAlignment="Stretch"
-									Margin="0,0,0,8" Padding="10"
-									Background="{DynamicResource ModCardBackgroundBrush}"
-									Foreground="{DynamicResource TextPrimaryBrush}"
-									BorderBrush="{DynamicResource ModCardBorderBrush}"
-									BorderThickness="1"
-									IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
-									Command="{Binding $parent[local:MainWindow].DataContext.ShowRolesCommand}">
-								<Button.IsVisible>
-									<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
-								</Button.IsVisible>
-							</Button>
-
-							<StackPanel IsVisible="{Binding InstallPath, Converter={StaticResource StringNotNullOrEmptyToBoolConverter}}"
-										Margin="0,30,0,0">
-								<TextBlock Text="Zainstalowano w:"
-										   FontSize="12"
-										   Foreground="{DynamicResource TextSecondaryBrush}"
-										   Margin="0,0,0,5"/>
-								<Border BorderBrush="{DynamicResource InstallPathBorderBrush}"
-										BorderThickness="2"
-										Background="{DynamicResource SecondaryBackgroundBrush}"
-										CornerRadius="4">
-									<SelectableTextBlock Text="{Binding InstallPath, Converter={x:Static converters:PathShorteningConverter.Instance}, ConverterParameter=35}"
-														 Background="Transparent"
-														 Foreground="{DynamicResource TextPrimaryBrush}"
-														 Padding="8"
-														 FontFamily="Consolas"
-														 ToolTip.Tip="{Binding InstallPath}"/>
-								</Border>
-							</StackPanel>
-						</StackPanel>
+						</Panel>
 					</Panel>
-				</Panel>
+				</Border>
 			</Grid>
 		</Grid>
 	</SplitView>
