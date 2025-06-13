@@ -57,6 +57,7 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> ShowAppSettingsCommand { get; }
 
         public ReactiveCommand<Unit, Unit> LobbySetCommand { get; }
+        public ICommand ShowRolesCommand { get; }
 
         public bool IsAdditionalActionsVisible
         {
@@ -70,7 +71,6 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> FixBlackScreenCommand { get; }
         public ReactiveCommand<Unit, Unit> LaunchCommand { get; }
         public ReactiveCommand<Unit, Unit> UpdateCommand { get; }
-        public ReactiveCommand<Unit, Unit> ShowRolesCommand { get; }
         public ICommand OpenFolderCommand { get; }
         public ICommand CreateShortcutCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowDllModificationsCommand { get; }
@@ -1265,8 +1265,13 @@ namespace SUSModder.ViewModels
 
         private void ShowRoles()
         {
-            System.Diagnostics.Debug.WriteLine("ShowRoles command executed");
-            // TODO: Implementuj pokazywanie ról
+            if (SelectedMod != null)
+            {
+                // SelectedMod.Id to ID moda z config.json
+                // Przekazujemy to samo ID jako configId i modId
+                var rolesWindow = new RolesWindow(SelectedMod.Id, SelectedMod.Id, SelectedMod.Name);
+                rolesWindow.Show();
+            }
         }
 
         private async void Install()
