@@ -14,6 +14,7 @@
 		<converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
 		<converters:InstallStatusToOpacityConverter x:Key="InstallStatusToOpacityConverter"/>
 	</Window.Resources>
+
 	<Design.DataContext>
 		<vm:MainWindowViewModel/>
 	</Design.DataContext>
