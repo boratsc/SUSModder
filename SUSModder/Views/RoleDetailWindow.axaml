@@ -4,7 +4,7 @@
         x:Class="SUSModder.Views.RoleDetailWindow"
         x:DataType="models:Role"
         Title="Szczegóły roli"
-        Width="600" Height="700"
+        Width="600" Height="800"
         MinWidth="500" MinHeight="400"
         Icon="/Assets/icon.ico"
         Background="{DynamicResource PrimaryBackgroundBrush}">
@@ -45,14 +45,14 @@
                                    Margin="0,5,0,0"/>
 					</StackPanel>
 					<Border Grid.Column="1"
-                            Background="rgba(255,255,255,0.2)"
-                            CornerRadius="16"
-                            Padding="12,6">
+							Background="rgba(255,255,255,0.2)"
+							CornerRadius="16"
+							Padding="12,6">
 						<TextBlock x:Name="RoleType"
-                                   Text="{Binding Type}"
-                                   FontSize="14"
-                                   Foreground="White"
-                                   FontWeight="SemiBold"/>
+								   Text="{Binding Category}"
+								   FontSize="14"
+								   Foreground="White"
+								   FontWeight="SemiBold"/>
 					</Border>
 				</Grid>
 			</Border>

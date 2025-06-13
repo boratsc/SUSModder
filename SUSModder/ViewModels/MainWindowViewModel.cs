@@ -80,6 +80,7 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> CloseDllDialogCommand { get; }
         private ObservableCollection<ModItem> _modsWithDllInstalled = new();
         private ObservableCollection<ModItem> _modsWithoutDllInstalled = new();
+        public ICommand ShowPacmanCommand { get; }
 
         public ObservableCollection<ModItem> ModsWithDllInstalled
         {
@@ -614,6 +615,7 @@ namespace SUSModder.ViewModels
             // Przekaż końcową wiadomość do dialogu
             dialog.ShowFinalSummary(finalMessageBuilder.ToString());
         }
+
 
 
 

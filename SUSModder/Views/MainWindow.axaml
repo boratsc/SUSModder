@@ -124,7 +124,7 @@
 
 
 				</StackPanel>
-				<Border Grid.Row="1"/>
+
 				<!-- Przycisk motywu na dole -->
 				<Button Grid.Row="2"
 						Command="{Binding ToggleThemeCommand}"
@@ -273,7 +273,6 @@
 																	   FontSize="11"
 																	   Foreground="{DynamicResource TextSecondaryBrush}"/>
 														</StackPanel>
-
 														<!-- Przycisk wyboru -->
 														<Button Grid.Column="2"
 																Content="Wybierz"
