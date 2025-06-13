@@ -6,23 +6,27 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using SUSModder.Core.Utilities;
-using Microsoft.Extensions.Configuration;
+using SUSModder.Core.Services;
+using SUSModder.Core.Repositories;
 using Newtonsoft.Json;
+using System.Text.Json;
+using System.Linq;
+using Microsoft.Extensions.Configuration;
 
 namespace SUSModder.Core.Configuration
 {
     public static class ModConfigHandler
     {
-        private static IConfiguration? _configuration;
+        private static ConfigRepository? _configRepository;
         private static IUserInteraction? _userInteraction;
 
-        public static void Initialize(IConfiguration configuration, IUserInteraction userInteraction)
+        public static void Initialize(ConfigRepository configRepository, IUserInteraction userInteraction)
         {
-            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration), "Configuration cannot be null");
-            _userInteraction = userInteraction ?? throw new ArgumentNullException(nameof(userInteraction), "UserInteraction cannot be null");
+            _configRepository = configRepository ?? throw new ArgumentNullException(nameof(configRepository));
+            _userInteraction = userInteraction ?? throw new ArgumentNullException(nameof(userInteraction));
         }
 
-        public static void SaveLocalConfig()
+        public static void SaveLocalConfig(string? configName = null)
         {
             string sourceDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), @"AppData\LocalLow\Innersloth\Among Us");
             string configDir = Path.Combine(PathSettings.ModsInstallPath, "Konfiguracje");
@@ -31,8 +35,6 @@ namespace SUSModder.Core.Configuration
             {
                 Directory.CreateDirectory(configDir);
             }
-
-            string configName = _userInteraction?.Prompt("Wpisz nazwę konfiguracji:", "Nazwa konfiguracji") ?? "";
 
             string zipFileName = string.IsNullOrWhiteSpace(configName)
                 ? $"Konfiguracja z dnia - {DateTime.Now:yyyyMMddHHmmss}.zip"
@@ -47,37 +49,61 @@ namespace SUSModder.Core.Configuration
                     archive.CreateEntryFromFile(filePath, Path.GetFileName(filePath));
                 }
             }
-
-            _userInteraction?.ShowInfo("Konfiguracja została zapisana lokalnie.", "Sukces");
         }
 
-        public static void LoadLocalConfig()
+        public static void SaveLocalConfigWithName(string? configName)
+        {
+            string sourceDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), @"AppData\LocalLow\Innersloth\Among Us");
+            string configDir = Path.Combine(PathSettings.ModsInstallPath, "Konfiguracje");
+
+            if (!Directory.Exists(configDir))
+            {
+                Directory.CreateDirectory(configDir);
+            }
+
+            string zipFileName = string.IsNullOrWhiteSpace(configName)
+                ? $"Konfiguracja z dnia - {DateTime.Now:yyyyMMddHHmmss}.zip"
+                : $"{configName}.zip";
+            string destinationPath = Path.Combine(configDir, zipFileName);
+
+            using (var zipStream = new FileStream(destinationPath, FileMode.Create))
+            using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create))
+            {
+                foreach (var filePath in Directory.GetFiles(sourceDir, "*.txt"))
+                {
+                    archive.CreateEntryFromFile(filePath, Path.GetFileName(filePath));
+                }
+            }
+        }
+
+        public static void LoadLocalConfig(string? selectedFilePath = null)
         {
             string configDir = Path.Combine(PathSettings.ModsInstallPath, "Konfiguracje");
             if (!Directory.Exists(configDir))
             {
-                _userInteraction?.ShowError("Nie znaleziono katalogu konfiguracji.", "Błąd");
-                return;
+                throw new DirectoryNotFoundException("Nie znaleziono katalogu konfiguracji.");
             }
+
             string[] files = Directory.GetFiles(configDir, "*.zip");
             if (files.Length == 0)
             {
-                _userInteraction?.ShowError("Nie znaleziono zapisanych konfiguracji.", "Błąd");
-                return;
+                throw new FileNotFoundException("Nie znaleziono zapisanych konfiguracji.");
             }
-            string? selectedFile = files.Length == 1
-                ? files[0]
-                : _userInteraction?.SelectFile("ZIP files (*.zip)|*.zip", configDir);
 
-            if (!string.IsNullOrWhiteSpace(selectedFile))
+            // Jeśli nie podano ścieżki i jest tylko jeden plik, użyj go
+            string? fileToLoad = selectedFilePath ?? (files.Length == 1 ? files[0] : null);
+
+            if (string.IsNullOrWhiteSpace(fileToLoad))
             {
-                LoadConfigFromFile(selectedFile);
+                throw new ArgumentException("Nie wybrano pliku do wczytania.");
             }
+
+            LoadConfigFromFile(fileToLoad);
         }
 
-        public static async Task SaveServerConfigAsync()
+        public static async Task<string> SaveServerConfigAsync()
         {
-            if (_configuration == null)
+            if (_configRepository == null)
                 throw new InvalidOperationException("Configuration has not been initialized. Call Initialize() method first.");
             if (_userInteraction == null)
                 throw new InvalidOperationException("UserInteraction has not been initialized. Call Initialize() method first.");
@@ -91,14 +117,15 @@ namespace SUSModder.Core.Configuration
             string hash = Guid.NewGuid().ToString("N");
             string hashFileName = $"{hash}.zip";
             string tempFilePath = Path.Combine(tempDir, hashFileName);
+
             try
             {
                 var filesToZip = Directory.GetFiles(sourceDir, "*.txt");
                 if (filesToZip.Length == 0)
                 {
-                    _userInteraction.ShowError("No files available to zip.", "Error");
-                    return;
+                    throw new FileNotFoundException("Brak plików konfiguracyjnych do wysłania.");
                 }
+
                 using (var zipStream = new FileStream(tempFilePath, FileMode.Create))
                 using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create))
                 {
@@ -107,156 +134,398 @@ namespace SUSModder.Core.Configuration
                         archive.CreateEntryFromFile(filePath, Path.GetFileName(filePath));
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                string errorMessage = $"Wystąpił błąd podczas tworzenia pliku ZIP: {ex}";
-                LogErrorToFile(errorMessage);
-                _userInteraction.ShowError(errorMessage, "Błąd");
-                return;
-            }
 
-            var baseUrl = _configuration["Configuration:BaseUrl"];
-            var apiPort = _configuration["Configuration:ApiPort"];
-            var uploadEndpoint = _configuration["Configuration:UploadEndpoint"];
-            if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(apiPort) || string.IsNullOrWhiteSpace(uploadEndpoint))
-            {
-                _userInteraction.ShowError("Configuration contains null or whitespace values. Ensure BaseUrl, ApiPort, and UploadEndpoint are correctly set.", "Error");
-                return;
-            }
-            string serverUrl = $"{baseUrl.TrimEnd('/')}" + $":{apiPort}/" + $"{uploadEndpoint.TrimStart('/')}";
-            try
-            {
+                // Pobierz konfigurację z ConfigRepository
+                var appSettings = _configRepository.LoadAppSettings();
+
+                string? baseUrl = null;
+                string? apiPort = null;
+                string? uploadEndpoint = null;
+
+                if (appSettings != null && appSettings.TryGetValue("Configuration", out var configObj))
+                {
+                    if (configObj is JsonElement configElement)
+                    {
+                        if (configElement.TryGetProperty("BaseUrl", out var baseUrlElement))
+                            baseUrl = baseUrlElement.GetString();
+                        if (configElement.TryGetProperty("ApiPort", out var apiPortElement))
+                            apiPort = apiPortElement.GetString();
+                        if (configElement.TryGetProperty("UploadEndpoint", out var uploadElement))
+                            uploadEndpoint = uploadElement.GetString();
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(apiPort) || string.IsNullOrWhiteSpace(uploadEndpoint))
+                {
+                    throw new InvalidOperationException("Konfiguracja serwera jest niepełna. Sprawdź BaseUrl, ApiPort i UploadEndpoint w appsettings.json.");
+                }
+
+                string serverUrl = $"{baseUrl.TrimEnd('/')}" + $":{apiPort}/" + $"{uploadEndpoint.TrimStart('/')}";
+
+                System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Próba połączenia z: {serverUrl}");
+                System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] BaseUrl: {baseUrl}");
+                System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] ApiPort: {apiPort}");
+                System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] UploadEndpoint: {uploadEndpoint}");
+
+                // Sprawdź czy URL używa HTTPS
+                bool isHttps = serverUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+                System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Używa HTTPS: {isHttps}");
+
                 var handler = new HttpClientHandler();
-                handler.ServerCertificateCustomValidationCallback = (message, certificate, chain, sslPolicyErrors) => true;
+
+                if (isHttps)
+                {
+                    // Konfiguracja SSL tylko dla HTTPS
+                    handler.ServerCertificateCustomValidationCallback = (message, certificate, chain, sslPolicyErrors) =>
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[SSL] Walidacja certyfikatu dla: {message?.RequestUri}");
+                        System.Diagnostics.Debug.WriteLine($"[SSL] Certificate Subject: {certificate?.Subject}");
+                        System.Diagnostics.Debug.WriteLine($"[SSL] Certificate Issuer: {certificate?.Issuer}");
+                        System.Diagnostics.Debug.WriteLine($"[SSL] Certificate Valid From: {certificate?.NotBefore}");
+                        System.Diagnostics.Debug.WriteLine($"[SSL] Certificate Valid To: {certificate?.NotAfter}");
+                        System.Diagnostics.Debug.WriteLine($"[SSL] SSL Policy Errors: {sslPolicyErrors}");
+
+                        if (chain?.ChainStatus != null)
+                        {
+                            foreach (var status in chain.ChainStatus)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[SSL] Chain Status: {status.Status} - {status.StatusInformation}");
+                            }
+                        }
+
+                        if (sslPolicyErrors != System.Net.Security.SslPolicyErrors.None)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[SSL] UWAGA: Ignoruję błędy SSL: {sslPolicyErrors}");
+                        }
+
+                        return true; // Zawsze akceptuj (dla testów)
+                    };
+
+                    // Dodatkowe opcje SSL
+                    handler.SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13;
+                    System.Diagnostics.Debug.WriteLine($"[SSL] Ustawiono protokoły: TLS 1.2 i TLS 1.3");
+                }
+
                 using var client = new HttpClient(handler);
+                client.Timeout = TimeSpan.FromSeconds(30);
+
                 string downloadToken = SecretProvider.GetDownloadToken();
                 client.DefaultRequestHeaders.Add("Authorization", downloadToken);
+
+                // Dodaj User-Agent
+                client.DefaultRequestHeaders.Add("User-Agent", "SUSModder/1.0");
+
                 using var content = new MultipartFormDataContent();
                 using var fs = File.OpenRead(tempFilePath);
                 content.Add(new StreamContent(fs), "file", Path.GetFileName(tempFilePath));
-                var response = await client.PostAsync(serverUrl, content);
-                if (response.IsSuccessStatusCode)
+
+                System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Wysyłanie pliku: {tempFilePath}");
+                System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Rozmiar pliku: {new FileInfo(tempFilePath).Length} bytes");
+                System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Authorization header: {downloadToken}");
+
+                try
                 {
-                    ShowHashDialog(hash);
-                    AddConfigToJSON(hash);
-                    _userInteraction.ShowInfo("Konfiguracja została zapisana na serwerze.", "Sukces");
+                    System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Rozpoczynam POST request...");
+                    var response = await client.PostAsync(serverUrl, content);
+
+                    System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Otrzymano odpowiedź: {response.StatusCode}");
+                    System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Response headers: {string.Join(", ", response.Headers.Select(h => $"{h.Key}={string.Join(",", h.Value)}"))}");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        AddConfigToJSON(hash);
+                        System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Sukces! Hash: {hash}");
+                        return hash;
+                    }
+                    else
+                    {
+                        var responseContent = await response.Content.ReadAsStringAsync();
+                        System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Błąd serwera - Response content: {responseContent}");
+                        throw new HttpRequestException($"Błąd serwera: {response.StatusCode}. Szczegóły: {responseContent}");
+                    }
                 }
-                else
+                catch (HttpRequestException ex) when (ex.Message.Contains("SSL connection could not be established"))
                 {
-                    _userInteraction.ShowError("Błąd podczas zapisu. Kod statusu: " + response.StatusCode, "Błąd");
+                    System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Błąd SSL: {ex.Message}");
+
+                    // Jeśli to HTTPS i mamy błąd SSL, spróbuj HTTP
+                    if (isHttps)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Próbuję fallback na HTTP...");
+                        string httpUrl = serverUrl.Replace("https://", "http://");
+
+                        try
+                        {
+                            using var httpHandler = new HttpClientHandler();
+                            using var httpClient = new HttpClient(httpHandler);
+                            httpClient.Timeout = TimeSpan.FromSeconds(30);
+                            httpClient.DefaultRequestHeaders.Add("Authorization", downloadToken);
+                            httpClient.DefaultRequestHeaders.Add("User-Agent", "SUSModder/1.0");
+
+                            using var httpContent = new MultipartFormDataContent();
+                            using var httpFs = File.OpenRead(tempFilePath);
+                            httpContent.Add(new StreamContent(httpFs), "file", Path.GetFileName(tempFilePath));
+
+                            System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Fallback POST do: {httpUrl}");
+                            var httpResponse = await httpClient.PostAsync(httpUrl, httpContent);
+
+                            if (httpResponse.IsSuccessStatusCode)
+                            {
+                                AddConfigToJSON(hash);
+                                System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Sukces przez HTTP! Hash: {hash}");
+                                return hash;
+                            }
+                            else
+                            {
+                                var httpResponseContent = await httpResponse.Content.ReadAsStringAsync();
+                                throw new HttpRequestException($"Błąd serwera (HTTP fallback): {httpResponse.StatusCode}. Szczegóły: {httpResponseContent}");
+                            }
+                        }
+                        catch (Exception httpEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] HTTP fallback też nie działa: {httpEx.Message}");
+                            throw new HttpRequestException($"Nie udało się połączyć ani przez HTTPS ani przez HTTP. HTTPS: {ex.Message}, HTTP: {httpEx.Message}", ex);
+                        }
+                    }
+                    else
+                    {
+                        throw; // Jeśli to już było HTTP, przekaż błąd dalej
+                    }
                 }
-            }
-            catch (HttpRequestException ex)
-            {
-                string errorMessage = $"Wystąpił błąd przy zapisywaniu konfiguracji: {ex}";
-                LogErrorToFile(errorMessage);
-                _userInteraction.ShowError($"Wystąpił błąd przy zapisywaniu konfiguracji: {ex.Message}", "Błąd HTTP");
-            }
-            catch (Exception ex)
-            {
-                string errorMessage = $"Wystąpił nieoczekiwany błąd: {ex}";
-                LogErrorToFile(errorMessage);
-                _userInteraction.ShowError($"Wystąpił nieoczekiwany błąd: {ex.Message}", "Błąd");
+                catch (HttpRequestException ex)
+                {
+                    string errorMessage = $"Błąd HTTP podczas zapisywania konfiguracji: {ex.Message}";
+                    LogErrorToFile(errorMessage);
+                    System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] HttpRequestException: {ex}");
+                    throw new HttpRequestException(errorMessage, ex);
+                }
+                catch (TaskCanceledException ex)
+                {
+                    string errorMessage = $"Przekroczono limit czasu podczas zapisywania konfiguracji: {ex.Message}";
+                    LogErrorToFile(errorMessage);
+                    System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] TaskCanceledException: {ex}");
+                    throw new TimeoutException(errorMessage, ex);
+                }
+                catch (Exception ex)
+                {
+                    string errorMessage = $"Nieoczekiwany błąd podczas zapisywania konfiguracji: {ex.Message}";
+                    LogErrorToFile(errorMessage);
+                    System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Exception: {ex}");
+                    throw;
+                }
             }
             finally
             {
                 if (Directory.Exists(tempDir))
                 {
-                    Directory.Delete(tempDir, true);
+                    try
+                    {
+                        Directory.Delete(tempDir, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Nie udało się usunąć temp dir: {ex.Message}");
+                    }
                 }
             }
         }
 
-        public static async Task LoadServerConfigAsync()
+
+
+        public static async Task LoadServerConfigAsync(string hash)
         {
-            if (_configuration == null)
-                throw new InvalidOperationException("Configuration has not been initialized. Call Initialize() method first.");
-            if (_userInteraction == null)
-                throw new InvalidOperationException("UserInteraction has not been initialized. Call Initialize() method first.");
+            if (_configRepository == null)
+                throw new InvalidOperationException("ConfigRepository has not been initialized. Call Initialize() method first.");
 
-            string jsonFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SUSModder", "touConfigsBase.json");
-            List<dynamic> configs = new List<dynamic>();
-            string hash = string.Empty;
-            if (File.Exists(jsonFile))
-            {
-                var json = File.ReadAllText(jsonFile);
-                configs = JsonConvert.DeserializeObject<List<dynamic>>(json) ?? new List<dynamic>();
-            }
+            if (string.IsNullOrWhiteSpace(hash))
+                throw new ArgumentException("Hash nie może być pusty.", nameof(hash));
 
-            // Prompt for hash or select from list
-            string? inputHash = _userInteraction.Prompt("Podaj kod konfiguracji lub zostaw puste, aby wybrać z listy:", "Załaduj konfigurację");
-            if (!string.IsNullOrWhiteSpace(inputHash))
+            // Pobierz konfigurację z ConfigRepository
+            var appSettings = _configRepository.LoadAppSettings();
+
+            string? baseUrl = null;
+            string? apiPort = null;
+            string? downloadEndpoint = null;
+
+            if (appSettings != null && appSettings.TryGetValue("Configuration", out var configObj))
             {
-                hash = inputHash.Trim();
-            }
-            else if (configs.Count > 0)
-            {
-                // Build a selection string
-                var options = new List<string>();
-                foreach (var c in configs)
+                if (configObj is JsonElement configElement)
                 {
-                    options.Add($"{c.date} - {c.hash}");
-                }
-                string? selected = _userInteraction.SelectFile("ZIP files (*.zip)|*.zip", Path.GetDirectoryName(jsonFile) ?? "");
-                if (!string.IsNullOrWhiteSpace(selected))
-                {
-                    hash = selected.Split('-').LastOrDefault()?.Trim() ?? string.Empty;
+                    if (configElement.TryGetProperty("BaseUrl", out var baseUrlElement))
+                        baseUrl = baseUrlElement.GetString();
+                    if (configElement.TryGetProperty("ApiPort", out var apiPortElement))
+                        apiPort = apiPortElement.GetString();
+                    if (configElement.TryGetProperty("DownloadEndpoint", out var downloadElement))
+                        downloadEndpoint = downloadElement.GetString();
                 }
             }
-            if (string.IsNullOrWhiteSpace(hash)) return;
 
-            var baseUrl = _configuration["Configuration:BaseUrl"];
-            var apiPort = _configuration["Configuration:ApiPort"];
-            var downloadEndpoint = _configuration["Configuration:DownloadEndpoint"];
             if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(apiPort) || string.IsNullOrWhiteSpace(downloadEndpoint))
             {
-                _userInteraction.ShowError("Configuration contains null values. Ensure BaseUrl, ApiPort, and DownloadEndpoint are correctly set.", "Error");
-                return;
+                throw new InvalidOperationException("Konfiguracja serwera jest niepełna. Sprawdź BaseUrl, ApiPort i DownloadEndpoint w appsettings.json.");
             }
+
             string serverUrl = $"{baseUrl.TrimEnd('/')}" + $":{apiPort}/" + $"{downloadEndpoint.TrimStart('/')}/{hash}.zip";
             string tempFilePath = Path.Combine(Path.GetTempPath(), $"{hash}.zip");
+
+            System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Próba pobrania z: {serverUrl}");
+            System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Hash: {hash}");
+            System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Temp file: {tempFilePath}");
+
+            // Sprawdź czy URL używa HTTPS
+            bool isHttps = serverUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+            System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Używa HTTPS: {isHttps}");
+
+            var handler = new HttpClientHandler();
+
+            if (isHttps)
+            {
+                // Konfiguracja SSL tylko dla HTTPS
+                handler.ServerCertificateCustomValidationCallback = (message, certificate, chain, sslPolicyErrors) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SSL] Walidacja certyfikatu dla: {message?.RequestUri}");
+                    System.Diagnostics.Debug.WriteLine($"[SSL] SSL Policy Errors: {sslPolicyErrors}");
+
+                    if (sslPolicyErrors != System.Net.Security.SslPolicyErrors.None)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[SSL] UWAGA: Ignoruję błędy SSL: {sslPolicyErrors}");
+                    }
+
+                    return true; // Zawsze akceptuj (dla testów)
+                };
+
+                handler.SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13;
+                System.Diagnostics.Debug.WriteLine($"[SSL] Ustawiono protokoły: TLS 1.2 i TLS 1.3");
+            }
+
             try
             {
-                var handler = new HttpClientHandler();
-                handler.ServerCertificateCustomValidationCallback = (message, certificate, chain, sslPolicyErrors) => true;
                 using var client = new HttpClient(handler);
+                client.Timeout = TimeSpan.FromSeconds(30);
+
                 string downloadToken = SecretProvider.GetDownloadToken();
                 client.DefaultRequestHeaders.Add("Authorization", downloadToken);
+                client.DefaultRequestHeaders.Add("User-Agent", "SUSModder/1.0");
+
+                System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Rozpoczynam GET request...");
+                System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Authorization header: {downloadToken}");
+
                 var response = await client.GetAsync(serverUrl);
+
+                System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Otrzymano odpowiedź: {response.StatusCode}");
+
                 if (response.IsSuccessStatusCode)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Pobieranie pliku...");
                     using (var fs = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
                     {
                         await response.Content.CopyToAsync(fs);
                     }
+
+                    System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Plik pobrany, rozmiar: {new FileInfo(tempFilePath).Length} bytes");
+
+                    // Wczytaj konfigurację z pobranego pliku
                     LoadConfigFromFile(tempFilePath);
-                    _userInteraction.ShowInfo("Konfiguracja z serwera została pomyślnie wczytana.", "Sukces");
+
+                    System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Konfiguracja wczytana pomyślnie");
                 }
                 else
                 {
-                    _userInteraction.ShowError($"Nie udało się pobrać konfiguracji z serwera. Kod statusu: {response.StatusCode}", "Błąd");
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Błąd serwera - Response content: {responseContent}");
+                    throw new HttpRequestException($"Nie udało się pobrać konfiguracji z serwera. Kod statusu: {response.StatusCode}. Szczegóły: {responseContent}");
+                }
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("SSL connection could not be established"))
+            {
+                System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Błąd SSL: {ex.Message}");
+
+                // Jeśli to HTTPS i mamy błąd SSL, spróbuj HTTP
+                if (isHttps)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Próbuję fallback na HTTP...");
+                    string httpUrl = serverUrl.Replace("https://", "http://");
+
+                    try
+                    {
+                        using var httpHandler = new HttpClientHandler();
+                        using var httpClient = new HttpClient(httpHandler);
+                        httpClient.Timeout = TimeSpan.FromSeconds(30);
+
+                        string downloadToken = SecretProvider.GetDownloadToken();
+                        httpClient.DefaultRequestHeaders.Add("Authorization", downloadToken);
+                        httpClient.DefaultRequestHeaders.Add("User-Agent", "SUSModder/1.0");
+
+                        System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Fallback GET do: {httpUrl}");
+                        var httpResponse = await httpClient.GetAsync(httpUrl);
+
+                        if (httpResponse.IsSuccessStatusCode)
+                        {
+                            using (var fs = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                            {
+                                await httpResponse.Content.CopyToAsync(fs);
+                            }
+
+                            LoadConfigFromFile(tempFilePath);
+                            System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Sukces przez HTTP!");
+                            return;
+                        }
+                        else
+                        {
+                            var httpResponseContent = await httpResponse.Content.ReadAsStringAsync();
+                            throw new HttpRequestException($"Błąd serwera (HTTP fallback): {httpResponse.StatusCode}. Szczegóły: {httpResponseContent}");
+                        }
+                    }
+                    catch (Exception httpEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] HTTP fallback też nie działa: {httpEx.Message}");
+                        throw new HttpRequestException($"Nie udało się połączyć ani przez HTTPS ani przez HTTP. HTTPS: {ex.Message}, HTTP: {httpEx.Message}", ex);
+                    }
+                }
+                else
+                {
+                    throw; // Jeśli to już było HTTP, przekaż błąd dalej
                 }
             }
             catch (HttpRequestException ex)
             {
-                string errorMessage = $"Wystąpił błąd przy pobieraniu konfiguracji: {ex}";
+                string errorMessage = $"Błąd HTTP podczas pobierania konfiguracji: {ex.Message}";
                 LogErrorToFile(errorMessage);
-                _userInteraction.ShowError($"Wystąpił błąd przy pobieraniu konfiguracji: {ex.Message}", "Błąd HTTP");
+                System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] HttpRequestException: {ex}");
+                throw new HttpRequestException(errorMessage, ex);
             }
-            catch (SocketException ex)
+            catch (TaskCanceledException ex)
             {
-                string errorMessage = $"Nie udało się połączyć z serwerem. Szczegóły: {ex}";
+                string errorMessage = $"Przekroczono limit czasu podczas pobierania konfiguracji: {ex.Message}";
                 LogErrorToFile(errorMessage);
-                _userInteraction.ShowError($"Nie udało się połączyć z serwerem. Szczegóły: {ex.Message}", "Błąd połączenia");
+                System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] TaskCanceledException: {ex}");
+                throw new TimeoutException(errorMessage, ex);
             }
             catch (Exception ex)
             {
-                string errorMessage = $"Wystąpił nieoczekiwany błąd: {ex}";
+                string errorMessage = $"Nieoczekiwany błąd podczas pobierania konfiguracji: {ex.Message}";
                 LogErrorToFile(errorMessage);
-                _userInteraction.ShowError($"Wystąpił nieoczekiwany błąd: {ex.Message}", "Błąd");
+                System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Exception: {ex}");
+                throw;
+            }
+            finally
+            {
+                // Usuń tymczasowy plik
+                if (File.Exists(tempFilePath))
+                {
+                    try
+                    {
+                        File.Delete(tempFilePath);
+                        System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Usunięto tymczasowy plik: {tempFilePath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Nie udało się usunąć temp file: {ex.Message}");
+                    }
+                }
             }
         }
+
 
         private static void LoadConfigFromFile(string filePath)
         {
@@ -271,7 +540,6 @@ namespace SUSModder.Core.Configuration
                     }
                 }
             }
-            _userInteraction?.ShowInfo("Konfiguracja została wczytana.", "Sukces");
         }
 
         private static void LogErrorToFile(string message)
@@ -306,37 +574,42 @@ namespace SUSModder.Core.Configuration
             else
             {
                 configList = new List<dynamic>();
+                // Utwórz katalog jeśli nie istnieje
+                Directory.CreateDirectory(Path.GetDirectoryName(jsonFile)!);
             }
             configList.Add(newEntry);
             File.WriteAllText(jsonFile, JsonConvert.SerializeObject(configList, Newtonsoft.Json.Formatting.Indented));
         }
 
-        public static void LoadLocalTxtConfig()
+
+        public static void LoadLocalTxtConfig(string selectedFilePath)
         {
-            string targetDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), @"AppData\LocalLow\Innersloth\Among Us");
-            string? selectedFilePath = _userInteraction?.SelectFile("TXT files (*.txt)|*.txt");
-            if (!string.IsNullOrWhiteSpace(selectedFilePath))
+            if (string.IsNullOrWhiteSpace(selectedFilePath))
             {
-                string destinationFilePath = Path.Combine(targetDir, Path.GetFileName(selectedFilePath));
-                try
-                {
-                    File.Copy(selectedFilePath, destinationFilePath, overwrite: true);
-                    _userInteraction?.ShowInfo("Konfiguracja została wczytana z pliku txt.", "Sukces");
-                }
-                catch (Exception ex)
-                {
-                    _userInteraction?.ShowError($"Błąd podczas ładowania konfiguracji: {ex.Message}", "Błąd");
-                }
+                throw new ArgumentException("Nie wybrano pliku do wczytania.");
             }
+
+            string targetDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), @"AppData\LocalLow\Innersloth\Among Us");
+            string destinationFilePath = Path.Combine(targetDir, Path.GetFileName(selectedFilePath));
+            File.Copy(selectedFilePath, destinationFilePath, overwrite: true);
+        }
+
+        public static string[] GetAvailableConfigFiles()
+        {
+            string configDir = Path.Combine(PathSettings.ModsInstallPath, "Konfiguracje");
+            if (!Directory.Exists(configDir))
+            {
+                return Array.Empty<string>();
+            }
+
+            return Directory.GetFiles(configDir, "*.zip");
         }
 
         public static void ChangePresetNames()
         {
-            // Ta metoda wymaga UI do edycji wielu plików naraz.
-            // W Core można przygotować tylko logikę do zmiany nazw plików na podstawie mapy stary->nowy.
-            // UI powinien zebrać od użytkownika mapę nazw i przekazać ją tutaj.
-
-            throw new NotImplementedException("Zmiana nazw presetów wymaga implementacji UI w warstwie frontend.");
+            // Ta metoda jest teraz obsługiwana przez UI w AdditionalActionsPanel
+            // Logika została przeniesiona do ChangePresetNamesDialog
+            System.Diagnostics.Debug.WriteLine("[ModConfigHandler] ChangePresetNames wywołane - obsługa w UI");
         }
     }
 }

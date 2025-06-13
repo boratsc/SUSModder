@@ -266,7 +266,6 @@ namespace SUSModder.Core.GameIntegration
             progress.Report(100, "Zakończono instalację moda.");
             log.Write($"SUCCESS: Instalacja moda '{modConfig.ModName}' zakończona pomyślnie");
 
-            userInteraction.ShowInfo($"Instalacja moda {modConfig.ModName} zakończona pomyślnie.", "Sukces");
             GC.Collect();
             GC.WaitForPendingFinalizers();
         }
