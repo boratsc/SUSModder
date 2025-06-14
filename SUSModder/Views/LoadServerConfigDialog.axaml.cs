@@ -57,7 +57,8 @@ namespace SUSModder.Views
         public string? ResultHash { get; private set; }
         public bool DialogResult { get; private set; }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
+        public new event PropertyChangedEventHandler? PropertyChanged;
+
 
         public LoadServerConfigDialog()
         {

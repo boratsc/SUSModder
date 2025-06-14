@@ -55,6 +55,7 @@ namespace SUSModder.ViewModels
         private ObservableCollection<ModItem> _availableFullMods = new();
         private bool _isDllInstallDialogVisible = false;
         public ReactiveCommand<Unit, Unit> ShowAppSettingsCommand { get; }
+        public bool IsDeveloperMode => DeveloperModeSettings.IsEnabled;
 
         public ReactiveCommand<Unit, Unit> LobbySetCommand { get; }
         public ICommand ShowRolesCommand { get; }
@@ -178,6 +179,7 @@ namespace SUSModder.ViewModels
             UninstallDllFromModCommand = ReactiveCommand.CreateFromTask<ModItem>(UninstallDllFromMod);
             CloseDllDialogCommand = ReactiveCommand.Create(CloseDllDialog);
             ShowAppSettingsCommand = ReactiveCommand.Create(ShowAppSettings);
+            this.RaisePropertyChanged(nameof(IsDeveloperMode));
 
             LobbySetCommand = ReactiveCommand.CreateFromTask(ShowLobbySetDialog);
             FixBlackScreenCommand = ReactiveCommand.CreateFromTask(ExecuteFixBlackScreenAsync);
@@ -189,6 +191,7 @@ namespace SUSModder.ViewModels
             LoadSavedTheme();
             InitializeApplicationAsync();
             LoadAppVersion();
+            CheckForAppUpdatesOnStartup();
             ApplyTheme(IsDarkTheme);
         }
 
@@ -250,6 +253,46 @@ namespace SUSModder.ViewModels
             }
         }
 
+        private async void CheckForAppUpdatesOnStartup()
+        {
+            try
+            {
+                // Poczekaj chwilę żeby UI się załadował
+                await Task.Delay(2000);
+
+                var configBuilder = new ConfigurationBuilder()
+                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                var configuration = configBuilder.Build();
+
+                var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AppUpdate] {message}");
+                });
+
+                var updateService = new AppUpdateService(AppVersion, configuration, diagnosticsOutput);
+                var updateCheck = await updateService.CheckForUpdateAsync();
+
+                if (updateCheck.Success && updateCheck.IsUpdateAvailable)
+                {
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        var updateDialog = new AppUpdateDialog(updateCheck.CurrentVersion, updateCheck.LatestVersion);
+                        var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+                        if (mainWindow != null)
+                        {
+                            await updateDialog.ShowDialog(mainWindow);
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error checking for app updates: {ex.Message}");
+                // Nie pokazujemy błędu użytkownikowi - aktualizacje nie są krytyczne
+            }
+        }
         private void OpenFolder()
         {
             if (SelectedMod?.InstallPath != null && Directory.Exists(SelectedMod.InstallPath))
@@ -1809,10 +1852,16 @@ namespace SUSModder.ViewModels
                     // Wymuś przeładowanie ustawień ścieżki
                     PathSettings.RefreshSettings();
 
+                    // Wymuś przeładowanie ustawień deweloperskich
+                    DeveloperModeSettings.RefreshSettings();
+
                     // Przeładuj listę modów
                     await RefreshModsListAsync();
+                    this.RaisePropertyChanged(nameof(IsDeveloperMode));
 
-                    System.Diagnostics.Debug.WriteLine($"Application refreshed with new ModsInstallPath: {PathSettings.ModsInstallPath}");
+
+
+                    System.Diagnostics.Debug.WriteLine($"Application refreshed with new settings - ModsInstallPath: {PathSettings.ModsInstallPath}, DeveloperMode: {DeveloperModeSettings.IsEnabled}");
                 }
                 catch (Exception ex)
                 {

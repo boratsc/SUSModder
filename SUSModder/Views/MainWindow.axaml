@@ -492,28 +492,81 @@
 							</Panel.IsVisible>
 
 							<StackPanel DataContext="{Binding SelectedMod}">
-								<!-- Header z akcentem -->
+								<!-- Header z akcentem i developer menu -->
 								<Border Background="{DynamicResource AccentBrush}"
 										CornerRadius="8"
 										Padding="15"
 										Margin="0,0,0,20">
-									<StackPanel Orientation="Horizontal" Spacing="15">
-										<Image Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
-											   Width="64" Height="64"
-											   HorizontalAlignment="Center"/>
-										<StackPanel VerticalAlignment="Center">
-											<TextBlock Text="{Binding Name}"
-													   FontSize="20" FontWeight="Bold"
-													   Foreground="White"
-													   TextWrapping="Wrap"/>
-											<TextBlock Text="{Binding ModVersion, StringFormat='Wersja moda: {0}'}"
-													   FontSize="11"
-													   Foreground="#E0FFFFFF"/>
-											<TextBlock Text="{Binding AmongVersion, StringFormat='Wersja AmongUs: {0}'}"
-													   FontSize="11"
-													   Foreground="#E0FFFFFF"/>
+									<Grid>
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="*"/>
+											<ColumnDefinition Width="Auto"/>
+										</Grid.ColumnDefinitions>
+
+										<!-- Istniejący content headera moda -->
+										<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="15">
+											<Image Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
+												   Width="64" Height="64"
+												   HorizontalAlignment="Center"/>
+											<StackPanel VerticalAlignment="Center">
+												<TextBlock Text="{Binding Name}"
+														   FontSize="20" FontWeight="Bold"
+														   Foreground="White"
+														   TextWrapping="Wrap"/>
+												<TextBlock Text="{Binding ModVersion, StringFormat='Wersja moda: {0}'}"
+														   FontSize="11"
+														   Foreground="#E0FFFFFF"/>
+												<TextBlock Text="{Binding AmongVersion, StringFormat='Wersja AmongUs: {0}'}"
+														   FontSize="11"
+														   Foreground="#E0FFFFFF"/>
+											</StackPanel>
 										</StackPanel>
-									</StackPanel>
+
+										<!-- Developer menu dla konkretnego moda -->
+										<Button Grid.Column="1"
+												x:Name="ModDeveloperMenuButton"
+												Content="⋯"
+												FontSize="18"
+												FontWeight="Bold"
+												Width="32"
+												Height="32"
+												Background="Transparent"
+												BorderThickness="0"
+												HorizontalContentAlignment="Center"
+												VerticalContentAlignment="Center"
+												Foreground="White"
+												VerticalAlignment="Top"
+												HorizontalAlignment="Right"
+												IsVisible="{Binding $parent[local:MainWindow].DataContext.IsDeveloperMode}"
+												Click="ModDeveloperMenuButton_Click">
+											<Button.Styles>
+												<Style Selector="Button:pointerover">
+													<Setter Property="Background" Value="#40FFFFFF"/>
+													<Setter Property="CornerRadius" Value="4"/>
+												</Style>
+												<Style Selector="Button:pressed">
+													<Setter Property="Background" Value="#60FFFFFF"/>
+													<Setter Property="CornerRadius" Value="4"/>
+												</Style>
+											</Button.Styles>
+
+											<!-- Flyout menu -->
+											<Button.Flyout>
+												<MenuFlyout>
+													<MenuItem Header="Usuń SingleInstance">
+														<MenuItem.Command>
+															<Binding Path="$parent[local:MainWindow].RemoveSingleInstanceCommand"/>
+														</MenuItem.Command>
+													</MenuItem>
+													<MenuItem Header="Uruchom wybraną ilość instancji">
+														<MenuItem.Command>
+															<Binding Path="$parent[local:MainWindow].LaunchMultipleInstancesCommand"/>
+														</MenuItem.Command>
+													</MenuItem>
+												</MenuFlyout>
+											</Button.Flyout>
+										</Button>
+										</Grid>
 								</Border>
 
 								<ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto" Margin="0,0,0,20">

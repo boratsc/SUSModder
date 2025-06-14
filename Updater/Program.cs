@@ -28,7 +28,7 @@ namespace Updater
             {
                 try
                 {
-                    if (proc.MainModule.FileName.StartsWith(targetDir, StringComparison.OrdinalIgnoreCase))
+                    if (proc.MainModule?.FileName?.StartsWith(targetDir, StringComparison.OrdinalIgnoreCase) == true)
                     {
                         found = true;
                         Console.WriteLine("Czekam na zamknięcie SUSModder.exe...");

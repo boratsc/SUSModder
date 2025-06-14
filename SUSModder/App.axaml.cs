@@ -4,6 +4,7 @@ using Avalonia.Markup.Xaml;
 
 using SUSModder.ViewModels;
 using SUSModder.Views;
+using SUSModder.Services;
 
 namespace SUSModder;
 
@@ -16,6 +17,7 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        ConsoleLogger.Initialize();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow

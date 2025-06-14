@@ -80,4 +80,10 @@
 			<SubType>Designer</SubType>
 		</AvaloniaResource>
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Views\AppUpdateDialog.axaml.cs">
+	    <DependentUpon>AppUpdateDialog.axaml</DependentUpon>
+	  </Compile>
+	</ItemGroup>
 </Project>

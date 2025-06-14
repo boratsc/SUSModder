@@ -20,6 +20,19 @@ namespace SUSModder.Views
         private readonly int _modId; // Zmienione z _modName na _modId
         private readonly string _modName;
 
+        public RolesWindow()
+        {
+            InitializeComponent();
+            _rolesService = new RolesService();
+            _configId = 0;
+            _modId = 0;
+            _modName = string.Empty;
+
+            Title = "Role i Modyfikatory";
+            TitleText.Text = "Role i Modyfikatory";
+            SubtitleText.Text = "Ładowanie...";
+        }
+
         public RolesWindow(int configId, int modId, string modName) // Dodany parametr modId
         {
             InitializeComponent();

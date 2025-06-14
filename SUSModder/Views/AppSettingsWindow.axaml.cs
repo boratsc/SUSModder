@@ -1,5 +1,7 @@
 ﻿using Avalonia.Controls;
+using Avalonia.Interactivity;
 using SUSModder.ViewModels;
+using SUSModder.Views;
 
 namespace SUSModder.Views
 {
@@ -10,5 +12,20 @@ namespace SUSModder.Views
             InitializeComponent();
             DataContext = new AppSettingsViewModel(this);
         }
+        private void OnShowConsoleToggled(object? sender, RoutedEventArgs e)
+        {
+            if (sender is ToggleSwitch toggle)
+            {
+                if (toggle.IsChecked == true)
+                {
+                    ConsoleWindow.ShowConsole();
+                }
+                else
+                {
+                    ConsoleWindow.Instance?.Close();
+                }
+            }
+        }
     }
 }
+
