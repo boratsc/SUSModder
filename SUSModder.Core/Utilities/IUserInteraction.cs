@@ -17,5 +17,6 @@ namespace SUSModder.Core.Utilities
         Task<bool> ShowConfirmAsync(string message, string title = "");
         Task<string?> ShowPromptAsync(string message, string title = "");
         Task<string?> ShowSelectFileDialogAsync(string filter, string initialDirectory = "");
+
     }
 }

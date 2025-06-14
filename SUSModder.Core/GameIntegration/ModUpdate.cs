@@ -35,17 +35,28 @@ namespace SUSModder.Core.GameIntegration
                     string mode = configuration["Configuration:Mode"] ?? "steam";
 
                     // Wywołanie ModifyAsync z prawidłowym argumentem mode
+                    var callbacks = new ModManagerUserCallbacks
+                    {
+                        ConfirmAsync = userInteraction.ShowConfirmAsync,
+                        ShowErrorAsync = userInteraction.ShowErrorAsync,
+                        ShowInfoAsync = userInteraction.ShowInfoAsync
+                    };
+
                     await modManager.ModifyAsync(
                         modConfig,
                         modConfigs,
                         progress,
                         log,
-                        userInteraction,
+                        callbacks,
                         mode
                     );
 
                     progress.Report(100, "Mod zaktualizowany.");
-                    userInteraction.ShowInfo($"Mod '{modConfig.ModName}' został pomyślnie zaktualizowany.", "Sukces");
+
+                    // Pokazanie info przez callback (asynchronicznie)
+                    if (callbacks.ShowInfoAsync != null)
+                        await callbacks.ShowInfoAsync($"Mod '{modConfig.ModName}' został pomyślnie zaktualizowany.", "Sukces");
+
                 }
             }
             catch (Exception ex)

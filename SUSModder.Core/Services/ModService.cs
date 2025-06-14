@@ -42,13 +42,27 @@ namespace SUSModder.Core.Services
                     return;
                 }
                 var manager = new ModManager(configuration);
-                await manager.ModifyDllAsync(modConfig, selectedFullModsForDll, progress, log, userInteraction);
+                var callbacks = new ModManagerUserCallbacks
+                {
+                    ConfirmAsync = userInteraction.ShowConfirmAsync,
+                    ShowErrorAsync = userInteraction.ShowErrorAsync,
+                    ShowInfoAsync = userInteraction.ShowInfoAsync
+                };
+
+                await manager.ModifyDllAsync(modConfig, selectedFullModsForDll, progress, log, callbacks);
                 userInteraction.ShowInfo($"Instalacja moda {modConfig.ModName} zakończona pomyślnie.", "Sukces");
             }
             else if (modConfig.ModType == "full")
             {
                 var manager = new ModManager(configuration);
-                await manager.ModifyAsync(modConfig, modConfigs, progress, log, userInteraction, mode);
+                var callbacks = new ModManagerUserCallbacks
+                {
+                    ConfirmAsync = userInteraction.ShowConfirmAsync,
+                    ShowErrorAsync = userInteraction.ShowErrorAsync,
+                    ShowInfoAsync = userInteraction.ShowInfoAsync
+                };
+
+                await manager.ModifyAsync(modConfig, modConfigs, progress, log, callbacks, mode);
                 userInteraction.ShowInfo($"Instalacja moda {modConfig.ModName} zakończona pomyślnie.", "Sukces");
             }
             else
