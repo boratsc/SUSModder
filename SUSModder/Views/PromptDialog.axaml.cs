@@ -45,7 +45,7 @@ namespace SUSModder.Views
 
         public bool DialogResult { get; private set; } = false;
 
-        public event PropertyChangedEventHandler? PropertyChanged;
+        public new event PropertyChangedEventHandler? PropertyChanged;
 
         public PromptDialog()
         {

@@ -12,7 +12,8 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using System.Collections.Generic;
 using System.Linq;
-using SUSModder.Views; // Dodaj dla dialogów
+using SUSModder.Core.Configuration;
+using SUSModder.Views;
 
 namespace SUSModder.ViewModels
 {
@@ -20,7 +21,9 @@ namespace SUSModder.ViewModels
     {
         private readonly Window _window;
         private string _modsInstallPath = string.Empty;
+        private bool _developerMode = false;
         private string _originalModsInstallPath = string.Empty;
+        private bool _originalDeveloperMode = false;
         private bool _hasUnsavedChanges = false;
 
         // Dodaj event dla powiadomienia o zapisaniu
@@ -50,6 +53,16 @@ namespace SUSModder.ViewModels
             }
         }
 
+        public bool DeveloperMode
+        {
+            get => _developerMode;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _developerMode, value);
+                CheckForChanges();
+            }
+        }
+
         public bool HasUnsavedChanges
         {
             get => _hasUnsavedChanges;
@@ -67,21 +80,30 @@ namespace SUSModder.ViewModels
         {
             try
             {
+                // Załaduj ModsInstallPath
                 _modsInstallPath = PathSettings.ModsInstallPath;
                 _originalModsInstallPath = _modsInstallPath;
-                System.Diagnostics.Debug.WriteLine($"Loaded current ModsInstallPath: {_modsInstallPath}");
+
+                // Załaduj DeveloperMode
+                _developerMode = DeveloperModeSettings.IsEnabled;
+                _originalDeveloperMode = _developerMode;
+
+                System.Diagnostics.Debug.WriteLine($"Loaded current settings - ModsInstallPath: {_modsInstallPath}, DeveloperMode: {_developerMode}");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading settings: {ex.Message}");
                 _modsInstallPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Among Us - Mody");
                 _originalModsInstallPath = _modsInstallPath;
+                _developerMode = false;
+                _originalDeveloperMode = false;
             }
         }
 
         private void CheckForChanges()
         {
-            HasUnsavedChanges = !string.Equals(_modsInstallPath, _originalModsInstallPath, StringComparison.OrdinalIgnoreCase);
+            HasUnsavedChanges = !string.Equals(_modsInstallPath, _originalModsInstallPath, StringComparison.OrdinalIgnoreCase) ||
+                               _developerMode != _originalDeveloperMode;
             this.RaisePropertyChanged(nameof(WindowTitle));
         }
 
@@ -124,6 +146,7 @@ namespace SUSModder.ViewModels
             }
         }
 
+
         private async Task SaveSettings()
         {
             try
@@ -149,10 +172,14 @@ namespace SUSModder.ViewModels
                     return;
                 }
 
-                // Zapisz do appsettings.json
-                await SaveToAppSettings();
+                // Zapisz ModsInstallPath do appsettings.json
+                await SaveModsInstallPathToAppSettings();
+
+                // Zapisz DeveloperMode używając nowej klasy
+                DeveloperModeSettings.SetDeveloperMode(DeveloperMode);
 
                 _originalModsInstallPath = ModsInstallPath;
+                _originalDeveloperMode = DeveloperMode;
                 HasUnsavedChanges = false;
 
                 // Powiadom o zapisaniu ustawień
@@ -160,7 +187,7 @@ namespace SUSModder.ViewModels
 
                 await ShowInfoAsync("Sukces", "Ustawienia zostały zapisane pomyślnie.\n\nZmiany będą widoczne przy następnych operacjach.");
 
-                System.Diagnostics.Debug.WriteLine($"Settings saved successfully. New path: {ModsInstallPath}");
+                System.Diagnostics.Debug.WriteLine($"Settings saved successfully. ModsInstallPath: {ModsInstallPath}, DeveloperMode: {DeveloperMode}");
             }
             catch (Exception ex)
             {
@@ -169,7 +196,7 @@ namespace SUSModder.ViewModels
             }
         }
 
-        private async Task SaveToAppSettings()
+        private async Task SaveModsInstallPathToAppSettings()
         {
             try
             {

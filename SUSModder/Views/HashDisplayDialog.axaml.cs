@@ -32,7 +32,7 @@ namespace SUSModder.Views
             }
         }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
+        public new event PropertyChangedEventHandler? PropertyChanged;
 
         // Konstruktor bezparametrowy dla AXAML
         public HashDisplayDialog()
@@ -50,9 +50,10 @@ namespace SUSModder.Views
 
         private async void OnCopyClick(object? sender, RoutedEventArgs e)
         {
-            if (TopLevel.GetTopLevel(this)?.Clipboard != null)
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel?.Clipboard != null)
             {
-                await TopLevel.GetTopLevel(this)!.Clipboard.SetTextAsync(Hash);
+                await topLevel.Clipboard.SetTextAsync(Hash);
 
                 // Zmień tekst przycisku na chwilę
                 if (sender is Button button)
@@ -68,6 +69,7 @@ namespace SUSModder.Views
                 }
             }
         }
+
 
         private void OnCloseClick(object? sender, RoutedEventArgs e)
         {

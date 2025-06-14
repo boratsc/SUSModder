@@ -7,6 +7,11 @@ namespace SUSModder.Views
     {
         public bool Result { get; private set; }
 
+        public ConfirmDialog()
+        {
+            InitializeComponent();
+        }
+
         public ConfirmDialog(string title, string message)
         {
             InitializeComponent();

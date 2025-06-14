@@ -7,6 +7,10 @@ namespace SUSModder.Views
 {
     public partial class RoleDetailWindow : Window
     {
+        public RoleDetailWindow()
+        {
+            InitializeComponent();
+        }
         public RoleDetailWindow(Role role)
         {
             InitializeComponent();

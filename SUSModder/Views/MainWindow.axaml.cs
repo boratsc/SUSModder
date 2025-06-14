@@ -6,14 +6,30 @@ using SUSModder.ViewModels;
 using System;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.IO;
+using Avalonia.Interactivity;
+using System.Collections.Generic;
+using System.Reactive;
+using System.Linq;
+using Avalonia.Media;
+using SUSModder.Services;
 
 namespace SUSModder.Views;
 
 public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 {
+    // Dodaj komendy jako w³aœciwoœci
+    public ReactiveCommand<Unit, Unit> RemoveSingleInstanceCommand { get; }
+    public ReactiveCommand<Unit, Unit> LaunchMultipleInstancesCommand { get; }
+
     public MainWindow()
     {
         InitializeComponent();
+
+        // Inicjalizuj komendy
+        RemoveSingleInstanceCommand = ReactiveCommand.CreateFromTask(RemoveSingleInstanceAsync);
+        LaunchMultipleInstancesCommand = ReactiveCommand.CreateFromTask(LaunchMultipleInstancesAsync);
 
         // Nas³uchuj zmiany wybranego moda i aktualizuj opis
         this.WhenActivated(disposables =>
@@ -32,6 +48,304 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         });
     }
 
+    private void ModDeveloperMenuButton_Click(object sender, RoutedEventArgs e)
+    {
+        // Menu flyout otworzy siê automatycznie
+        // Tutaj mamy dostêp do wybranego moda przez DataContext
+        if (DataContext is MainWindowViewModel vm && vm.SelectedMod != null)
+        {
+            Debug.WriteLine($"Developer menu opened for mod: {vm.SelectedMod.Name}");
+        }
+    }
+
+    private async Task RemoveSingleInstanceAsync()
+    {
+        try
+        {
+            // SprawdŸ czy mamy wybrany mod
+            if (DataContext is not MainWindowViewModel vm || vm.SelectedMod == null)
+            {
+                await ShowErrorDialogAsync("B³¹d", "Nie wybrano moda.");
+                return;
+            }
+
+            var selectedMod = vm.SelectedMod;
+
+            // SprawdŸ czy mod jest zainstalowany
+            if (string.IsNullOrEmpty(selectedMod.InstallPath) || !Directory.Exists(selectedMod.InstallPath))
+            {
+                await ShowErrorDialogAsync("B³¹d", "Wybrany mod nie jest zainstalowany lub œcie¿ka instalacji nie istnieje.");
+                return;
+            }
+
+            // Poka¿ dialog potwierdzenia
+            var confirmResult = await ShowConfirmDialogAsync(
+                $"Czy na pewno chcesz usun¹æ ograniczenie SingleInstance z moda '{selectedMod.Name}'?\n\n" +
+                "Ta operacja pozwoli na uruchomienie wielu kopii tego moda jednoczeœnie.",
+                "Potwierdzenie");
+
+            if (!confirmResult)
+                return;
+
+            // Œcie¿ka do pliku boot.config
+            string bootConfigPath = Path.Combine(selectedMod.InstallPath, "Among Us_Data", "boot.config");
+
+            if (!File.Exists(bootConfigPath))
+            {
+                await ShowErrorDialogAsync("B³¹d", $"Nie znaleziono pliku boot.config w œcie¿ce:\n{bootConfigPath}");
+                return;
+            }
+
+            // Wczytaj zawartoœæ pliku
+            string[] lines = await File.ReadAllLinesAsync(bootConfigPath);
+
+            // Usuñ linijki zawieraj¹ce single-instance
+            var filteredLines = lines.Where(line =>
+                !line.Trim().StartsWith("single-instance=", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
+            // SprawdŸ czy coœ zosta³o usuniête
+            if (lines.Length == filteredLines.Length)
+            {
+                await ShowInfoDialogAsync("Informacja",
+                    "Nie znaleziono linijki 'single-instance=' w pliku boot.config.\n" +
+                    "Mod prawdopodobnie ju¿ nie ma ograniczenia SingleInstance.");
+                return;
+            }
+
+            // Zapisz zmodyfikowany plik
+            await File.WriteAllLinesAsync(bootConfigPath, filteredLines);
+
+            await ShowInfoDialogAsync("Sukces",
+                $"Pomyœlnie usuniêto ograniczenie SingleInstance z moda '{selectedMod.Name}'.\n\n" +
+                "Teraz mo¿esz uruchomiæ wiele kopii tego moda jednoczeœnie.");
+
+            Debug.WriteLine($"Successfully removed SingleInstance from mod: {selectedMod.Name}");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error removing SingleInstance: {ex.Message}");
+            await ShowErrorDialogAsync("B³¹d", $"Nie uda³o siê usun¹æ SingleInstance:\n{ex.Message}");
+        }
+    }
+
+    // Dodaj pomocnicze metody dla dialogów
+    private async Task<bool> ShowConfirmDialogAsync(string message, string title)
+    {
+        var dialog = new SUSModder.Views.ConfirmDialog(title, message);
+        await dialog.ShowDialog(this);
+        return dialog.Result;
+    }
+
+    private async Task ShowInfoDialogAsync(string title, string message)
+    {
+        var dialog = new SUSModder.Views.MessageDialog(title, message);
+        await dialog.ShowDialog(this);
+    }
+
+    private async Task ShowErrorDialogAsync(string title, string message)
+    {
+        var dialog = new SUSModder.Views.MessageDialog(title, message);
+        await dialog.ShowDialog(this);
+    }
+
+
+    private async Task LaunchMultipleInstancesAsync()
+    {
+        try
+        {
+            // SprawdŸ czy mamy wybrany mod
+            if (DataContext is not MainWindowViewModel vm || vm.SelectedMod == null)
+            {
+                await ShowErrorDialogAsync("B³¹d", "Nie wybrano moda.");
+                return;
+            }
+
+            var selectedMod = vm.SelectedMod;
+
+            // SprawdŸ czy mod jest zainstalowany
+            if (string.IsNullOrEmpty(selectedMod.InstallPath) || !Directory.Exists(selectedMod.InstallPath))
+            {
+                await ShowErrorDialogAsync("B³¹d", "Wybrany mod nie jest zainstalowany lub œcie¿ka instalacji nie istnieje.");
+                return;
+            }
+
+            // SprawdŸ czy plik Among Us.exe istnieje
+            string amongUsExePath = Path.Combine(selectedMod.InstallPath, "Among Us.exe");
+            if (!File.Exists(amongUsExePath))
+            {
+                await ShowErrorDialogAsync("B³¹d", $"Nie znaleziono pliku Among Us.exe w œcie¿ce:\n{amongUsExePath}");
+                return;
+            }
+
+            // Poka¿ dialog z wyborem iloœci instancji
+            var instanceCount = await ShowInstanceCountDialogAsync();
+            if (instanceCount <= 0)
+                return;
+
+            // Uruchom wybrane iloœci instancji
+            var launchedProcesses = new List<Process>();
+
+            for (int i = 0; i < instanceCount; i++)
+            {
+                try
+                {
+                    var process = Process.Start(new ProcessStartInfo
+                    {
+                        FileName = amongUsExePath,
+                        UseShellExecute = true,
+                        WorkingDirectory = selectedMod.InstallPath
+                    });
+
+                    if (process != null)
+                    {
+                        launchedProcesses.Add(process);
+                        Debug.WriteLine($"Launched instance {i + 1} of {selectedMod.Name}: PID {process.Id}");
+                    }
+
+                    // Pauza 1 sekunda miêdzy uruchomieniami (oprócz ostatniej instancji)
+                    if (i < instanceCount - 1)
+                    {
+                        await Task.Delay(1000);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to launch instance {i + 1} of {selectedMod.Name}: {ex.Message}");
+                }
+            }
+
+            await ShowInfoDialogAsync("Sukces",
+                $"Uruchomiono {launchedProcesses.Count} z {instanceCount} instancji moda '{selectedMod.Name}'.");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error launching multiple instances: {ex.Message}");
+            await ShowErrorDialogAsync("B³¹d", $"Nie uda³o siê uruchomiæ wielu instancji:\n{ex.Message}");
+        }
+    }
+
+    private async Task<int> ShowInstanceCountDialogAsync()
+    {
+        // Dialog z motywami aplikacji - zwiêkszone wymiary
+        var dialog = new Window
+        {
+            Title = "Iloœæ instancji",
+            Width = 400,  // Zwiêkszone z 350
+            Height = 280, // Zwiêkszone z 220
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            Background = this.FindResource("WindowBackgroundBrush") as IBrush
+        };
+
+        var mainBorder = new Border
+        {
+            Background = this.FindResource("SecondaryBackgroundBrush") as IBrush,
+            BorderBrush = this.FindResource("BorderBrush") as IBrush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Margin = new Thickness(20), // Zwiêkszone z 15
+            Padding = new Thickness(25)  // Zwiêkszone z 20
+        };
+
+        var stackPanel = new StackPanel { Spacing = 25 };
+
+        // Nag³ówek
+        var headerText = new TextBlock
+        {
+            Text = "Uruchom wiele instancji",
+            FontSize = 16,
+            FontWeight = Avalonia.Media.FontWeight.Bold,
+            Foreground = this.FindResource("TextPrimaryBrush") as IBrush,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 10)
+        };
+        stackPanel.Children.Add(headerText);
+
+        // Opis
+        var descriptionText = new TextBlock
+        {
+            Text = "Ile instancji chcesz uruchomiæ?",
+            FontSize = 12,
+            Foreground = this.FindResource("TextSecondaryBrush") as IBrush,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap
+        };
+        stackPanel.Children.Add(descriptionText);
+
+        // NumericUpDown z motywami
+        var numericUpDown = new NumericUpDown
+        {
+            Minimum = 1,
+            Maximum = 255,
+            Value = 2,
+            Increment = 1,  // Dodaj to - zwiêksza/zmniejsza o 1
+            FormatString = "F0",  // Dodaj to - format bez miejsc po przecinku
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            Width = 120,
+            Height = 32,
+            Background = this.FindResource("TertiaryBackgroundBrush") as IBrush,
+            Foreground = this.FindResource("TextPrimaryBrush") as IBrush,
+            BorderBrush = this.FindResource("BorderBrush") as IBrush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4)
+        };
+        stackPanel.Children.Add(numericUpDown);
+
+        // Panel przycisków
+        var buttonPanel = new StackPanel
+        {
+            Orientation = Avalonia.Layout.Orientation.Horizontal,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            Spacing = 15,
+            Margin = new Thickness(0, 10, 0, 0)
+        };
+
+        bool dialogResult = false;
+
+        // Przycisk OK z motywami
+        var okButton = new Button
+        {
+            Content = "OK",
+            Width = 90,
+            Height = 32,
+            Background = this.FindResource("AccentBrush") as IBrush,
+            Foreground = Avalonia.Media.Brushes.White,
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(4),
+            FontWeight = Avalonia.Media.FontWeight.SemiBold
+        };
+        okButton.Click += (s, e) => { dialogResult = true; dialog.Close(); };
+
+        // Przycisk Anuluj z motywami
+        var cancelButton = new Button
+        {
+            Content = "Anuluj",
+            Width = 90,
+            Height = 32,
+            Background = this.FindResource("SecondaryBackgroundBrush") as IBrush,
+            Foreground = this.FindResource("TextPrimaryBrush") as IBrush,
+            BorderBrush = this.FindResource("BorderBrush") as IBrush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4)
+        };
+        cancelButton.Click += (s, e) => { dialogResult = false; dialog.Close(); };
+
+        buttonPanel.Children.Add(okButton);
+        buttonPanel.Children.Add(cancelButton);
+        stackPanel.Children.Add(buttonPanel);
+
+        mainBorder.Child = stackPanel;
+        dialog.Content = mainBorder;
+
+        await dialog.ShowDialog(this);
+
+        return dialogResult ? (int)numericUpDown.Value : 0;
+    }
+
+
+
+    // Reszta istniej¹cych metod...
     /// <summary>
     /// Ustawia opis z klikalnymi linkami w DescriptionPanel (StackPanel).
     /// </summary>
@@ -94,5 +408,10 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 TextWrapping = Avalonia.Media.TextWrapping.Wrap
             });
         }
+    }
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        ConsoleLogger.Shutdown();
+        base.OnClosing(e);
     }
 }

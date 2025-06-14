@@ -5,6 +5,11 @@ namespace SUSModder.Views
 {
     public partial class MessageDialog : Window
     {
+        public MessageDialog()
+        {
+            InitializeComponent();
+
+        }
         public MessageDialog(string title, string message)
         {
             InitializeComponent();
