@@ -516,12 +516,9 @@
 									</StackPanel>
 								</Border>
 
-								<TextBlock Text="{Binding Description}"
-										   TextWrapping="Wrap"
-										   Margin="0,0,0,20"
-										   FontSize="13"
-										   LineHeight="18"
-										   Foreground="{DynamicResource TextSecondaryBrush}"/>
+								<ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto" Margin="0,0,0,20">
+									<StackPanel x:Name="DescriptionPanel" Orientation="Vertical"/>
+								</ScrollViewer>
 
 								<!-- PROGRESS BAR -->
 								<Border IsVisible="{Binding ShowProgress}"

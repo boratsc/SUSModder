@@ -284,14 +284,22 @@ namespace SUSModder.Core.GameIntegration
                     if (progress == null)
                         progress = new NullProgressReporter();
 
+                    var callbacks = new ModManagerUserCallbacks
+                    {
+                        ConfirmAsync = userInteraction.ShowConfirmAsync,
+                        ShowErrorAsync = userInteraction.ShowErrorAsync,
+                        ShowInfoAsync = userInteraction.ShowInfoAsync
+                    };
+
                     await modManager.ModifyAsync(
                         modToInstall,
                         updatedConfigs,
                         progress,
                         log,
-                        userInteraction,
+                        callbacks,
                         configuration["Configuration:Mode"] ?? "steam"
                     );
+
                 }
 
                 var modName = modUpdate.LocalMod?.ModName ?? "Nieznany";

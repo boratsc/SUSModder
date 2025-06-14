@@ -80,7 +80,6 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> CloseDllDialogCommand { get; }
         private ObservableCollection<ModItem> _modsWithDllInstalled = new();
         private ObservableCollection<ModItem> _modsWithoutDllInstalled = new();
-        public ICommand ShowPacmanCommand { get; }
 
         public ObservableCollection<ModItem> ModsWithDllInstalled
         {
@@ -745,12 +744,19 @@ namespace SUSModder.ViewModels
                         else
                         {
                             var modManager = new ModManager(configuration);
+                            var callbacks = new ModManagerUserCallbacks
+                            {
+                                ConfirmAsync = silentUserInteraction.ShowConfirmAsync,
+                                ShowErrorAsync = silentUserInteraction.ShowErrorAsync,
+                                ShowInfoAsync = silentUserInteraction.ShowInfoAsync
+                            };
+
                             await modManager.ModifyAsync(
                                 updatedConfig,
                                 updatedConfigs,
                                 progressReporter,
                                 diagnosticsOutput,
-                                silentUserInteraction,
+                                callbacks,
                                 "steam"
                             );
                         }
@@ -1377,14 +1383,22 @@ namespace SUSModder.ViewModels
 
                     try
                     {
+                        var callbacks = new ModManagerUserCallbacks
+                        {
+                            ConfirmAsync = _userInteractionService.ShowConfirmAsync,
+                            ShowErrorAsync = _userInteractionService.ShowErrorAsync,
+                            ShowInfoAsync = _userInteractionService.ShowInfoAsync
+                        };
+
                         await modManager.ModifyAsync(
                             modConfig,
                             allConfigs,
                             progressReporter,
                             diagnosticsOutput,
-                            _userInteractionService,
+                            callbacks,
                             "steam"
                         );
+
                         success = true;
                     }
                     catch (Exception ex)
@@ -1596,12 +1610,19 @@ namespace SUSModder.ViewModels
                         {
                             // Steam installation
                             var modManager = new ModManager(configuration);
+                            var callbacks = new ModManagerUserCallbacks
+                            {
+                                ConfirmAsync = silentUserInteraction.ShowConfirmAsync,
+                                ShowErrorAsync = silentUserInteraction.ShowErrorAsync,
+                                ShowInfoAsync = silentUserInteraction.ShowInfoAsync
+                            };
+
                             await modManager.ModifyAsync(
                                 updatedConfig,
                                 updatedConfigs,
                                 progressReporter,
                                 diagnosticsOutput,
-                                silentUserInteraction,
+                                callbacks,
                                 "steam"
                             );
                         }

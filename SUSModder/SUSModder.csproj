@@ -36,6 +36,9 @@
 			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 		</Content>
 	</ItemGroup>
+	<ItemGroup>
+	  <AvaloniaXaml Remove="styles\LinkButtonStyle.axaml" />
+	</ItemGroup>
 	<ItemGroup>		
 		<Content Include="tools\7z.exe">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -54,5 +57,10 @@
 	</ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SUSModder.Core\SUSModder.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Update="Styles\LinkButtonStyle.axaml">
+      <SubType>Designer</SubType>
+    </AvaloniaResource>
   </ItemGroup>
 </Project>

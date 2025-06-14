@@ -13,6 +13,13 @@ using Microsoft.Extensions.Configuration;
 
 namespace SUSModder.Core.GameIntegration
 {
+    public class ModManagerUserCallbacks
+    {
+        public Func<string, string, Task<bool>>? ConfirmAsync { get; set; }
+        public Func<string, string, Task>? ShowErrorAsync { get; set; }
+        public Func<string, string, Task>? ShowInfoAsync { get; set; }
+    }
+
     public class ModManager
     {
         private readonly IConfiguration configuration;
@@ -28,7 +35,7 @@ namespace SUSModder.Core.GameIntegration
             List<ModConfiguration> modConfigs,
             IProgressReporter progress,
             IDiagnosticsOutput log,
-            IUserInteraction userInteraction,
+            ModManagerUserCallbacks userCallbacks,
             string mode)
         {
             this.log = log; // Przypisz log do pola klasy
@@ -37,11 +44,12 @@ namespace SUSModder.Core.GameIntegration
             {
                 if (mode == "steam")
                 {
-                    await InstallSteamAsync(modConfig, modConfigs, progress, log, userInteraction);
+                    await InstallSteamAsync(modConfig, modConfigs, progress, log, userCallbacks);
                 }
                 else
                 {
-                    userInteraction.ShowInfo("Instalacja modów Epic obsługiwana jest przez EpicVersionManager.", "Informacja");
+                    if (userCallbacks.ShowInfoAsync != null)
+                        await userCallbacks.ShowInfoAsync("Instalacja modów Epic obsługiwana jest przez EpicVersionManager.", "Informacja");
                 }
             }
         }
@@ -51,7 +59,7 @@ namespace SUSModder.Core.GameIntegration
             List<ModConfiguration> modConfigs,
             IProgressReporter progress,
             IDiagnosticsOutput log,
-            IUserInteraction userInteraction)
+            ModManagerUserCallbacks userCallbacks)
         {
             string modsInstallPath = PathSettings.ModsInstallPath;
             Directory.CreateDirectory(modsInstallPath);
@@ -91,13 +99,17 @@ namespace SUSModder.Core.GameIntegration
 
                         if (!downloaded)
                         {
-                            bool retry = userInteraction.Confirm(
+                            if (userCallbacks.ConfirmAsync == null)
+                                throw new InvalidOperationException("Brak obsługi potwierdzenia (ConfirmAsync) w ModManagerUserCallbacks!");
+
+                            bool retry = await userCallbacks.ConfirmAsync(
                                 "Wystąpił błąd podczas pobierania pliku vanilla. Czy chcesz spróbować ponownie?",
                                 "Błąd pobierania");
 
                             if (!retry)
                             {
-                                userInteraction.ShowError("Przerwano instalację.", "Błąd");
+                                if (userCallbacks.ShowErrorAsync != null)
+                                    await userCallbacks.ShowErrorAsync("Przerwano instalację.", "Błąd");
                                 return;
                             }
                         }
@@ -112,7 +124,8 @@ namespace SUSModder.Core.GameIntegration
                 if (!File.Exists(vanilla7zPath) || new FileInfo(vanilla7zPath).Length < 1000)
                 {
                     log.Write("Pobrany plik vanilla jest nieprawidłowy lub pusty.");
-                    userInteraction.ShowError("Pobrany plik vanilla jest nieprawidłowy lub pusty. Sprawdź token i wersję.", "Błąd");
+                    if (userCallbacks.ShowErrorAsync != null)
+                        await userCallbacks.ShowErrorAsync("Pobrany plik vanilla jest nieprawidłowy lub pusty. Sprawdź token i wersję.", "Błąd");
                     return;
                 }
 
@@ -138,15 +151,20 @@ namespace SUSModder.Core.GameIntegration
 
                     if (!modDownloaded)
                     {
-                        retryMod = userInteraction.Confirm(
+                        if (userCallbacks.ConfirmAsync == null)
+                            throw new InvalidOperationException("Brak obsługi potwierdzenia (ConfirmAsync) w ModManagerUserCallbacks!");
+
+                        bool retry = await userCallbacks.ConfirmAsync(
                             $"Błąd pobierania moda: {modConfig.ModName}\nCzy chcesz spróbować ponownie?",
                             "Błąd pobierania");
 
-                        if (!retryMod)
+                        if (!retry)
                         {
-                            userInteraction.ShowError("Przerwano instalację moda.", "Błąd");
+                            if (userCallbacks.ShowErrorAsync != null)
+                                await userCallbacks.ShowErrorAsync("Przerwano instalację moda.", "Błąd");
                             return;
                         }
+                        retryMod = retry;
                     }
                 } while (retryMod);
 
@@ -155,7 +173,25 @@ namespace SUSModder.Core.GameIntegration
                 if (Directory.Exists(modFolderPath))
                 {
                     log.Write($"Usuwam istniejący katalog moda: {modFolderPath}");
-                    Directory.Delete(modFolderPath, true);
+                    try
+                    {
+                        Directory.Delete(modFolderPath, true);
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        log.Write($"[ERROR] Brak dostępu do katalogu: {modFolderPath} - {ex.Message}");
+                        if (userCallbacks.ShowErrorAsync != null)
+                            await userCallbacks.ShowErrorAsync(
+                                $"Nie można usunąć katalogu:\n{modFolderPath}\n\n" +
+                                $"Dostęp został zabroniony. Upewnij się, że:\n" +
+                                $"- Gra Among Us NIE jest uruchomiona\n" +
+                                $"- Żaden plik z tego folderu nie jest otwarty\n" +
+                                $"- Folder nie jest tylko do odczytu\n" +
+                                $"- Masz uprawnienia administratora\n\n" +
+                                $"Szczegóły: {ex.Message}",
+                                "Błąd dostępu");
+                        return;
+                    }
                 }
                 Directory.CreateDirectory(modFolderPath);
 
@@ -189,8 +225,10 @@ namespace SUSModder.Core.GameIntegration
                         }
                     }
 
-                    // Zapytaj użytkownika czy chce pobrać ponownie
-                    bool retryExtract = userInteraction.Confirm(
+                    if (userCallbacks.ConfirmAsync == null)
+                        throw new InvalidOperationException("Brak obsługi potwierdzenia (ConfirmAsync) w ModManagerUserCallbacks!");
+
+                    bool retryExtract = await userCallbacks.ConfirmAsync(
                         $"Błąd podczas rozpakowywania archiwum vanilla:\n{ex.Message}\n\nPlik może być uszkodzony. Czy chcesz pobrać go ponownie?",
                         "Błąd rozpakowywania");
 
@@ -201,7 +239,8 @@ namespace SUSModder.Core.GameIntegration
                     }
                     else
                     {
-                        userInteraction.ShowError("Przerwano instalację.", "Błąd");
+                        if (userCallbacks.ShowErrorAsync != null)
+                            await userCallbacks.ShowErrorAsync("Przerwano instalację.", "Błąd");
                         return;
                     }
                 }
@@ -223,7 +262,8 @@ namespace SUSModder.Core.GameIntegration
             catch (Exception ex)
             {
                 log.Write($"ERROR podczas rozpakowywania moda: {ex.Message}");
-                userInteraction.ShowError($"Błąd podczas rozpakowywania archiwum moda: {ex.Message}", "Błąd");
+                if (userCallbacks.ShowErrorAsync != null)
+                    await userCallbacks.ShowErrorAsync($"Błąd podczas rozpakowywania archiwum moda: {ex.Message}", "Błąd");
                 return;
             }
 
@@ -236,7 +276,8 @@ namespace SUSModder.Core.GameIntegration
             if (string.IsNullOrEmpty(sourcePath))
             {
                 log.Write("ERROR: Nie znaleziono plików do skopiowania");
-                userInteraction.ShowError("Nie znaleziono plików do skopiowania.", "Błąd");
+                if (userCallbacks.ShowErrorAsync != null)
+                    await userCallbacks.ShowErrorAsync("Nie znaleziono plików do skopiowania.", "Błąd");
                 return;
             }
 
@@ -275,7 +316,7 @@ namespace SUSModder.Core.GameIntegration
             List<ModConfiguration> selectedFullMods,
             IProgressReporter progress,
             IDiagnosticsOutput log,
-            IUserInteraction userInteraction)
+            ModManagerUserCallbacks userCallbacks)
         {
             string modsInstallPath = PathSettings.ModsInstallPath;
             string tempDir = Path.Combine(modsInstallPath, "temp");
@@ -309,10 +350,14 @@ namespace SUSModder.Core.GameIntegration
                 catch (Exception ex)
                 {
                     log.Write($"[ERROR] Błąd pobierania DLL: {ex}");
-                    retry = userInteraction.Confirm($"Błąd pobierania DLL moda: {ex.Message}\nCzy chcesz spróbować ponownie?", "Błąd pobierania");
+                    if (userCallbacks.ConfirmAsync == null)
+                        throw new InvalidOperationException("Brak obsługi potwierdzenia (ConfirmAsync) w ModManagerUserCallbacks!");
+
+                    retry = await userCallbacks.ConfirmAsync($"Błąd pobierania DLL moda: {ex.Message}\nCzy chcesz spróbować ponownie?", "Błąd pobierania");
                     if (!retry)
                     {
-                        userInteraction.ShowError("Przerwano instalację DLL moda.", "Błąd");
+                        if (userCallbacks.ShowErrorAsync != null)
+                            await userCallbacks.ShowErrorAsync("Przerwano instalację DLL moda.", "Błąd");
                         return;
                     }
                 }
@@ -338,7 +383,8 @@ namespace SUSModder.Core.GameIntegration
             progress.Report(100, "Zakończono instalację DLL moda.");
             log.Write($"SUCCESS: Instalacja DLL moda '{modConfig.ModName}' zakończona pomyślnie");
 
-            userInteraction.ShowInfo($"Instalacja DLL moda {modConfig.ModName} zakończona pomyślnie.", "Sukces");
+            if (userCallbacks.ShowInfoAsync != null)
+                await userCallbacks.ShowInfoAsync($"Instalacja DLL moda {modConfig.ModName} zakończona pomyślnie.", "Sukces");
             Directory.Delete(tempDir, true);
             GC.Collect();
             GC.WaitForPendingFinalizers();
@@ -532,7 +578,6 @@ namespace SUSModder.Core.GameIntegration
                     {
                         var percentage = (int)((downloadedBytes * 100) / totalBytes);
                         progress?.Report(percentage, $"Pobieranie {fileDescription}...");
-
                     }
 
                     // Wymuś GC co 50MB pobranych danych
@@ -570,6 +615,7 @@ namespace SUSModder.Core.GameIntegration
                 GC.Collect();
             }
         }
+
         private void ForceMemoryCleanup()
         {
             // Agresywne czyszczenie pamięci
