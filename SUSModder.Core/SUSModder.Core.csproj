@@ -7,6 +7,10 @@
 		<Nullable>enable</Nullable>
 		<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
 		<PublishDir>..\publish\</PublishDir>
+		<!-- Dodaj te właściwości dla self-contained -->
+		<SelfContained>true</SelfContained>
+		<PublishSingleFile>false</PublishSingleFile>
+		<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
 	</PropertyGroup>
 
 	<ItemGroup>
