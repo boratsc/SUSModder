@@ -23,7 +23,7 @@ namespace SUSModder.Services
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .Build();
 
-            _baseUrl = configuration["Configuration:BaseUrl"] ?? "https://susfuckr.boracik.pl/";
+            _baseUrl = configuration["Configuration:BaseUrl"] ?? "https://dev.susmodder/boracik.pl/";
             _rolesEndpoint = configuration["Configuration:RolesEndpoint"] ?? "/api/roles";
         }
 

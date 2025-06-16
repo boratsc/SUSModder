@@ -87,10 +87,11 @@
 							HorizontalContentAlignment="Left"
 							Padding="0,10"
 							Background="Transparent"
-							Foreground="{DynamicResource TextPrimaryBrush}">
+							Foreground="{DynamicResource TextPrimaryBrush}"
+							Command="{Binding OpenDonationPageCommand}">
 						<StackPanel Orientation="Horizontal" Spacing="10">
-							<TextBlock Text="🎬" FontSize="18"/>
-							<TextBlock Text="Poradniki video"
+							<TextBlock Text="💰" FontSize="18"/>
+							<TextBlock Text="Wspomóż projekt"
 									   VerticalAlignment="Center"
 									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
 						</StackPanel>

@@ -71,8 +71,8 @@ namespace SUSModder.Core.GameIntegration
             string vanilla7zName = $"{modConfig.AmongVersion.Replace("-", "").Replace(".", "")}";
             string vanilla7zPath = Path.Combine(vanillaDir, vanilla7zName + ".7z");
 
-            string baseUrl = configuration.GetSection("Configuration")["BaseUrl"] ?? "https://susfuckr.boracik.pl/";
-            string fileUrlAmongUs = $"{baseUrl}api/susfuckr-download-version?version={vanilla7zName}";
+            string baseUrl = configuration.GetSection("Configuration")["BaseUrl"] ?? "https://susmodder.boracik.pl/";
+            string fileUrlAmongUs = $"{baseUrl}api/susmodder-download-version?version={vanilla7zName}";
 
             string tempDir = Path.Combine(modsInstallPath, "temp");
             string modFolderPath = Path.Combine(modsInstallPath, modConfig.ModName);

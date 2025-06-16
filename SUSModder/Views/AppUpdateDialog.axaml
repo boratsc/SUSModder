@@ -6,7 +6,8 @@
         Height="300"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
-        ShowInTaskbar="False">
+        ShowInTaskbar="False"
+        Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}">
 
 	<Grid Margin="20">
 		<Grid.RowDefinitions>
@@ -20,11 +21,16 @@
 
 		<!-- Ikona i tytuł -->
 		<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
-			<TextBlock Text="🔄" FontSize="32" VerticalAlignment="Center" Margin="0,0,15,0"/>
+			<TextBlock Text="🔄"
+                       FontSize="32"
+                       VerticalAlignment="Center"
+                       Margin="0,0,15,0"
+                       Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 			<TextBlock Text="Dostępna jest nowa wersja!"
                        FontSize="18"
                        FontWeight="Bold"
-                       VerticalAlignment="Center"/>
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 		</StackPanel>
 
 		<!-- Informacje o wersji -->
@@ -32,18 +38,21 @@
 			<TextBlock x:Name="CurrentVersionText"
                        Text="Obecna wersja: 1.0.0"
                        FontSize="14"
-                       Margin="0,0,0,5"/>
+                       Margin="0,0,0,5"
+                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
 			<TextBlock x:Name="NewVersionText"
                        Text="Nowa wersja: 1.1.0"
                        FontSize="14"
-                       FontWeight="SemiBold"/>
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource SystemControlForegroundAccentBrush}"/>
 		</StackPanel>
 
 		<!-- Pytanie -->
 		<TextBlock Grid.Row="2"
                    Text="Czy chcesz pobrać i zainstalować aktualizację?"
                    FontSize="14"
-                   Margin="0,0,0,20"/>
+                   Margin="0,0,0,20"
+                   Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
 
 		<!-- Progress bar (ukryty domyślnie) -->
 		<StackPanel Grid.Row="3" x:Name="ProgressPanel" IsVisible="False">
@@ -51,12 +60,15 @@
                        Text="Pobieranie aktualizacji..."
                        FontSize="12"
                        Margin="0,0,0,10"
-                       HorizontalAlignment="Center"/>
+                       HorizontalAlignment="Center"
+                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
 			<ProgressBar x:Name="ProgressBar"
                          Height="20"
                          Minimum="0"
                          Maximum="100"
-                         Value="0"/>
+                         Value="0"
+                         Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                         Foreground="{DynamicResource SystemControlHighlightAccentBrush}"/>
 		</StackPanel>
 
 		<!-- Przyciski -->
@@ -69,7 +81,8 @@
                     Width="120"
                     Height="35"
                     Margin="0,0,10,0"
-                    Click="YesButton_Click"/>
+                    Click="YesButton_Click"
+                    Classes="accent"/>
 			<Button x:Name="NoButton"
                     Content="Nie teraz"
                     Width="100"
