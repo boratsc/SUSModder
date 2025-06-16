@@ -56,6 +56,7 @@ namespace SUSModder.ViewModels
         private bool _isDllInstallDialogVisible = false;
         public ReactiveCommand<Unit, Unit> ShowAppSettingsCommand { get; }
         public bool IsDeveloperMode => DeveloperModeSettings.IsEnabled;
+        public ReactiveCommand<Unit, Unit> OpenDonationPageCommand { get; }
 
         public ReactiveCommand<Unit, Unit> LobbySetCommand { get; }
         public ICommand ShowRolesCommand { get; }
@@ -180,6 +181,7 @@ namespace SUSModder.ViewModels
             CloseDllDialogCommand = ReactiveCommand.Create(CloseDllDialog);
             ShowAppSettingsCommand = ReactiveCommand.Create(ShowAppSettings);
             this.RaisePropertyChanged(nameof(IsDeveloperMode));
+            OpenDonationPageCommand = ReactiveCommand.Create(OpenDonationPage);
 
             LobbySetCommand = ReactiveCommand.CreateFromTask(ShowLobbySetDialog);
             FixBlackScreenCommand = ReactiveCommand.CreateFromTask(ExecuteFixBlackScreenAsync);
@@ -212,6 +214,25 @@ namespace SUSModder.ViewModels
             });
         }
 
+        private void OpenDonationPage()
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "https://liberapay.com/boracik/donate",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Nie udało się otworzyć strony dotacji: {ex.Message}");
+                Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await ShowErrorDialogAsync($"Nie udało się otworzyć strony dotacji: {ex.Message}", "Błąd");
+                });
+            }
+        }
         private async void InitializeApplicationAsync()
         {
             try

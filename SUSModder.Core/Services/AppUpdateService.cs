@@ -181,14 +181,14 @@ namespace SUSModder.Core.Services
 
         private string GetVersionCheckUrl()
         {
-            // Tutaj możesz skonfigurować URL do sprawdzania wersji
-            return "https://susfuckr.boracik.pl/api/susmodder-current-version";
+            var baseUrl = _configuration["Configuration:BaseUrl"]?.TrimEnd('/');
+            return $"{baseUrl}/api/susmodder-current-version";
         }
 
         private string GetDownloadUrl()
         {
-            // Tutaj możesz skonfigurować URL do pobierania
-            return "https://susfuckr.boracik.pl/api/download-susmodder-latest";
+            var baseUrl = _configuration["Configuration:BaseUrl"]?.TrimEnd('/');
+            return $"{baseUrl}/api/download-latest";
         }
     }
 
