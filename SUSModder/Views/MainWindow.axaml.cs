@@ -170,53 +170,76 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 return;
             }
 
-            // SprawdŸ czy plik Among Us.exe istnieje
-            string amongUsExePath = Path.Combine(selectedMod.InstallPath, "Among Us.exe");
-            if (!File.Exists(amongUsExePath))
-            {
-                await ShowErrorDialogAsync("B³¹d", $"Nie znaleziono pliku Among Us.exe w œcie¿ce:\n{amongUsExePath}");
-                return;
-            }
-
             // Poka¿ dialog z wyborem iloœci instancji
             var instanceCount = await ShowInstanceCountDialogAsync();
             if (instanceCount <= 0)
                 return;
 
+            // Poka¿ ostrze¿enie dla Epic Games (jeœli potrzebne)
+            var platform = vm.DeterminePlatform(); // U¿yj metody z ViewModel jeœli jest publiczna
+            if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
+            {
+                var confirmEpic = await ShowConfirmDialogAsync(
+                    $"Uruchamianie wielu instancji dla Epic Games mo¿e byæ niestabilne.\n\n" +
+                    $"Czy na pewno chcesz uruchomiæ {instanceCount} instancji moda '{selectedMod.Name}'?",
+                    "Ostrze¿enie - Epic Games");
+
+                if (!confirmEpic)
+                    return;
+            }
+
             // Uruchom wybrane iloœci instancji
-            var launchedProcesses = new List<Process>();
+            int successfulLaunches = 0;
+            var errors = new List<string>();
 
             for (int i = 0; i < instanceCount; i++)
             {
                 try
                 {
-                    var process = Process.Start(new ProcessStartInfo
-                    {
-                        FileName = amongUsExePath,
-                        UseShellExecute = true,
-                        WorkingDirectory = selectedMod.InstallPath
-                    });
+                    Debug.WriteLine($"Launching instance {i + 1} of {instanceCount} for mod: {selectedMod.Name}");
 
-                    if (process != null)
-                    {
-                        launchedProcesses.Add(process);
-                        Debug.WriteLine($"Launched instance {i + 1} of {selectedMod.Name}: PID {process.Id}");
-                    }
+                    // Wywo³aj bezpoœrednio metodê Launch z ViewModel
+                    await vm.LaunchAsync();
 
-                    // Pauza 1 sekunda miêdzy uruchomieniami (oprócz ostatniej instancji)
+                    successfulLaunches++;
+
+                    // Pauza miêdzy uruchomieniami (oprócz ostatniej instancji)
                     if (i < instanceCount - 1)
                     {
-                        await Task.Delay(1000);
+                        await Task.Delay(2000); // Pauza dla stabilnoœci
                     }
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine($"Failed to launch instance {i + 1} of {selectedMod.Name}: {ex.Message}");
+                    errors.Add($"Instancja {i + 1}: {ex.Message}");
                 }
             }
 
-            await ShowInfoDialogAsync("Sukces",
-                $"Uruchomiono {launchedProcesses.Count} z {instanceCount} instancji moda '{selectedMod.Name}'.");
+            // Poka¿ wyniki
+            if (successfulLaunches == instanceCount)
+            {
+                await ShowInfoDialogAsync("Sukces",
+                    $"Pomyœlnie uruchomiono wszystkie {instanceCount} instancji moda '{selectedMod.Name}'.");
+            }
+            else if (successfulLaunches > 0)
+            {
+                var errorMessage = $"Uruchomiono {successfulLaunches} z {instanceCount} instancji moda '{selectedMod.Name}'.";
+                if (errors.Any())
+                {
+                    errorMessage += $"\n\nB³êdy:\n{string.Join("\n", errors)}";
+                }
+                await ShowInfoDialogAsync("Czêœciowy sukces", errorMessage);
+            }
+            else
+            {
+                var errorMessage = $"Nie uda³o siê uruchomiæ ¿adnej instancji moda '{selectedMod.Name}'.";
+                if (errors.Any())
+                {
+                    errorMessage += $"\n\nB³êdy:\n{string.Join("\n", errors)}";
+                }
+                await ShowErrorDialogAsync("B³¹d", errorMessage);
+            }
         }
         catch (Exception ex)
         {
@@ -224,6 +247,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             await ShowErrorDialogAsync("B³¹d", $"Nie uda³o siê uruchomiæ wielu instancji:\n{ex.Message}");
         }
     }
+
 
     private async Task<int> ShowInstanceCountDialogAsync()
     {
