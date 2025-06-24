@@ -51,6 +51,7 @@
 
 	<ItemGroup>
 		<AvaloniaXaml Remove="styles\LinkButtonStyle.axaml" />
+		<AvaloniaXaml Remove="themes\PinkTheme.axaml" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -78,6 +79,9 @@
 	<ItemGroup>
 		<AvaloniaResource Update="Styles\LinkButtonStyle.axaml">
 			<SubType>Designer</SubType>
+		</AvaloniaResource>
+		<AvaloniaResource Update="Themes\PinkTheme.axaml">
+		  <SubType>Designer</SubType>
 		</AvaloniaResource>
 	</ItemGroup>
 

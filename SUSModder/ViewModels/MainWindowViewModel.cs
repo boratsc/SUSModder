@@ -37,10 +37,12 @@ namespace SUSModder.ViewModels
     {
         private bool _isPaneOpen;
         private ModItem? _selectedMod;
-        private bool _isDarkTheme = true;
+        private ThemeType _currentTheme = ThemeType.Dark;
         private ResourceDictionary? _currentThemeDictionary;
         private readonly Uri _darkThemeUri = new Uri("avares://SUSModder/Themes/DarkTheme.axaml");
         private readonly Uri _lightThemeUri = new Uri("avares://SUSModder/Themes/LightTheme.axaml");
+        private readonly Uri _pinkThemeUri = new Uri("avares://SUSModder/Themes/PinkTheme.axaml");
+
         private bool _isInfoPanelVisible = false;
         private string _appVersion = string.Empty;
         public bool IsModPanelVisible => IsModSelected && !IsInfoPanelVisible && !IsAdditionalActionsVisible;
@@ -82,6 +84,7 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> CloseDllDialogCommand { get; }
         private ObservableCollection<ModItem> _modsWithDllInstalled = new();
         private ObservableCollection<ModItem> _modsWithoutDllInstalled = new();
+        public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
 
         public ObservableCollection<ModItem> ModsWithDllInstalled
         {
@@ -135,7 +138,25 @@ namespace SUSModder.ViewModels
             get => _isDllInstallDialogVisible;
             set => this.RaiseAndSetIfChanged(ref _isDllInstallDialogVisible, value);
         }
-     
+
+        public enum ThemeType
+        {
+            Dark,
+            Light,
+            Pink
+        }
+        public ThemeType CurrentTheme
+        {
+            get => _currentTheme;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _currentTheme, value);
+                this.RaisePropertyChanged(nameof(ThemeButtonText));
+                this.RaisePropertyChanged(nameof(ThemeButtonIcon));
+                ApplyTheme(_currentTheme);
+            }
+        }
+
         public ReactiveCommand<Unit, Unit> ShowInfoCommand { get; }
 
         public ObservableCollection<ModItem> Mods { get; } = new();
@@ -182,6 +203,7 @@ namespace SUSModder.ViewModels
             ShowAppSettingsCommand = ReactiveCommand.Create(ShowAppSettings);
             this.RaisePropertyChanged(nameof(IsDeveloperMode));
             OpenDonationPageCommand = ReactiveCommand.Create(OpenDonationPage);
+            ShowRecommendedDiscordsCommand = ReactiveCommand.Create(ShowRecommendedDiscords);
 
             LobbySetCommand = ReactiveCommand.CreateFromTask(ShowLobbySetDialog);
             FixBlackScreenCommand = ReactiveCommand.CreateFromTask(ExecuteFixBlackScreenAsync);
@@ -194,7 +216,7 @@ namespace SUSModder.ViewModels
             InitializeApplicationAsync();
             LoadAppVersion();
             CheckForAppUpdatesOnStartup();
-            ApplyTheme(IsDarkTheme);
+            ApplyTheme(CurrentTheme);
         }
 
         private void HandleCommandError(Exception ex)
@@ -230,6 +252,31 @@ namespace SUSModder.ViewModels
                 Dispatcher.UIThread.InvokeAsync(async () =>
                 {
                     await ShowErrorDialogAsync($"Nie udało się otworzyć strony dotacji: {ex.Message}", "Błąd");
+                });
+            }
+        }
+        private void ShowRecommendedDiscords()
+        {
+            try
+            {
+                var discordsWindow = new RecommendedDiscordsWindow();
+                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+                if (mainWindow != null)
+                {
+                    discordsWindow.Show(mainWindow);
+                }
+                else
+                {
+                    discordsWindow.Show();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error opening Discord servers window: {ex.Message}");
+                Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await ShowErrorDialogAsync($"Nie udało się otworzyć okna Discord serwerów: {ex.Message}", "Błąd");
                 });
             }
         }
@@ -917,18 +964,24 @@ namespace SUSModder.ViewModels
             set => this.RaiseAndSetIfChanged(ref _isPaneOpen, value);
         }
 
-        public bool IsDarkTheme
-        {
-            get => _isDarkTheme;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _isDarkTheme, value);
-                this.RaisePropertyChanged(nameof(ThemeButtonText));
-                ApplyTheme(_isDarkTheme);
-            }
-        }
 
-        public string ThemeButtonText => IsDarkTheme ? "☀️ Motyw jasny" : "🌙 Motyw ciemny";
+        public string ThemeButtonText => CurrentTheme switch
+        {
+            ThemeType.Dark => "Motyw jasny",
+            ThemeType.Light => "Motyw różowy",
+            ThemeType.Pink => "Motyw ciemny",
+            _ => "Motyw ciemny"
+        };
+
+        public string ThemeButtonIcon => CurrentTheme switch
+        {
+            ThemeType.Dark => "☀️",
+            ThemeType.Light => "💖",
+            ThemeType.Pink => "🌙",
+            _ => "🌙"
+        };
+        public bool IsDarkTheme => CurrentTheme == ThemeType.Dark;
+
 
         public ModItem? SelectedMod
         {
@@ -968,24 +1021,41 @@ namespace SUSModder.ViewModels
             try
             {
                 var savedTheme = ConfigManager.GetThemeSetting();
-                _isDarkTheme = savedTheme == "dark";
-                System.Diagnostics.Debug.WriteLine($"Wczytano motyw: {savedTheme}");
+                _currentTheme = savedTheme switch
+                {
+                    "light" => ThemeType.Light,
+                    "pink" => ThemeType.Pink,
+                    _ => ThemeType.Dark
+                };
+                System.Diagnostics.Debug.WriteLine($"Wczytano motyw: {savedTheme} -> {_currentTheme}");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Błąd wczytywania motywu: {ex.Message}");
-                _isDarkTheme = true; // domyślnie ciemny
+                _currentTheme = ThemeType.Dark; // domyślnie ciemny
             }
         }
 
         private void ToggleTheme()
         {
-            IsDarkTheme = !IsDarkTheme;
+            // Przełącz między trzema motywami cyklicznie
+            CurrentTheme = CurrentTheme switch
+            {
+                ThemeType.Dark => ThemeType.Light,
+                ThemeType.Light => ThemeType.Pink,
+                ThemeType.Pink => ThemeType.Dark,
+                _ => ThemeType.Dark
+            };
 
             // Zapisz nowy motyw
             try
             {
-                var themeValue = IsDarkTheme ? "dark" : "light";
+                var themeValue = CurrentTheme switch
+                {
+                    ThemeType.Light => "light",
+                    ThemeType.Pink => "pink",
+                    _ => "dark"
+                };
                 ConfigManager.SaveThemeSetting(themeValue);
                 System.Diagnostics.Debug.WriteLine($"Zapisano motyw: {themeValue}");
             }
@@ -995,7 +1065,7 @@ namespace SUSModder.ViewModels
             }
         }
 
-        private void ApplyTheme(bool isDark)
+        private void ApplyTheme(ThemeType theme)
         {
             try
             {
@@ -1006,7 +1076,13 @@ namespace SUSModder.ViewModels
                 if (_currentThemeDictionary != null)
                     Application.Current.Resources.MergedDictionaries.Remove(_currentThemeDictionary);
 
-                var uri = isDark ? _darkThemeUri : _lightThemeUri;
+                var uri = theme switch
+                {
+                    ThemeType.Light => _lightThemeUri,
+                    ThemeType.Pink => _pinkThemeUri,
+                    _ => _darkThemeUri
+                };
+
                 var loaded = AvaloniaXamlLoader.Load(uri);
 
                 if (loaded is ResourceDictionary newDict)
@@ -1015,7 +1091,17 @@ namespace SUSModder.ViewModels
                     _currentThemeDictionary = newDict;
                 }
 
-                Application.Current.RequestedThemeVariant = isDark ? ThemeVariant.Dark : ThemeVariant.Light;
+                // Ustaw również systemowy motyw dla kompatybilności
+                var systemTheme = theme switch
+                {
+                    ThemeType.Light => ThemeVariant.Light,
+                    ThemeType.Pink => ThemeVariant.Light, // Różowy bazuje na jasnym
+                    _ => ThemeVariant.Dark
+                };
+
+                Application.Current.RequestedThemeVariant = systemTheme;
+
+                System.Diagnostics.Debug.WriteLine($"Applied theme: {theme}");
             }
             catch (Exception ex)
             {
@@ -1023,7 +1109,7 @@ namespace SUSModder.ViewModels
                 // Fallback - użyj domyślnego motywu
                 if (Application.Current != null)
                 {
-                    Application.Current.RequestedThemeVariant = isDark ? ThemeVariant.Dark : ThemeVariant.Light;
+                    Application.Current.RequestedThemeVariant = ThemeVariant.Dark;
                 }
             }
         }
