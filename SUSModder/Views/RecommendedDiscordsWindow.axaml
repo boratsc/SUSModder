@@ -1,0 +1,155 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SUSModder.ViewModels"
+        xmlns:converters="using:SUSModder.Converters"
+        x:Class="SUSModder.Views.RecommendedDiscordsWindow"
+        x:DataType="vm:RecommendedDiscordsViewModel"
+        Title="Polecane Discordy"
+        Width="800" Height="800"
+        MinWidth="600" MinHeight="400"
+        Icon="/Assets/icon.ico"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+	<Window.Styles>
+		<FluentTheme />
+	</Window.Styles>
+
+	<Design.DataContext>
+		<vm:RecommendedDiscordsViewModel/>
+	</Design.DataContext>
+
+	<Window.Resources>
+		<converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
+		<converters:AsyncUrlToBitmapConverter x:Key="AsyncUrlToBitmapConverter"/>
+	</Window.Resources>
+
+	<Grid RowDefinitions="Auto,*,Auto" Margin="20">
+
+		<Border Grid.Row="0"
+                Background="{DynamicResource AccentBrush}"
+                CornerRadius="8"
+                Padding="20"
+                Margin="0,0,0,20">
+			<StackPanel Orientation="Horizontal" Spacing="15">
+				<TextBlock Text="💬" FontSize="32" VerticalAlignment="Center"/>
+				<StackPanel VerticalAlignment="Center">
+					<TextBlock Text="Polecane Discordy"
+                               FontSize="24" FontWeight="Bold"
+                               Foreground="White"/>
+					<TextBlock Text="Dołącz do społeczności Among Us - sprawdź na jakie DC warto zajrzeć"
+                               FontSize="14"
+                               Foreground="#E0FFFFFF"/>
+				</StackPanel>
+			</StackPanel>
+		</Border>
+
+		<ScrollViewer Grid.Row="1">
+			<ItemsControl ItemsSource="{Binding DiscordServers}">
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+						<Border Background="{DynamicResource ModCardBackgroundBrush}"
+                                BorderBrush="{DynamicResource ModCardBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Margin="0,0,0,15"
+                                Padding="20">
+							<Grid ColumnDefinitions="Auto,*,Auto">
+
+								<Border Grid.Column="0"
+										Width="64" Height="64"
+										CornerRadius="32"
+										Background="{DynamicResource SecondaryBackgroundBrush}"
+										BorderBrush="{DynamicResource ModCardBorderBrush}"
+										BorderThickness="1"
+										Margin="0,0,20,0"
+										ClipToBounds="True">
+
+									<Panel>
+										<!-- Fallback tło z animacją ładowania -->
+										<Border Background="{DynamicResource AccentBrush}"
+												Width="64" Height="64"
+												CornerRadius="32">
+											<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+												<TextBlock Text="💬"
+														   FontSize="20"
+														   Foreground="White"
+														   HorizontalAlignment="Center"/>
+												<TextBlock Text="..."
+														   FontSize="8"
+														   Foreground="White"
+														   HorizontalAlignment="Center"
+														   Opacity="0.7"/>
+											</StackPanel>
+										</Border>
+
+										<!-- Prawdziwa ikona z URL -->
+										<Image Source="{Binding IconPath, Converter={StaticResource AsyncUrlToBitmapConverter}}"
+											   Width="64" Height="64"
+											   Stretch="UniformToFill"
+											   HorizontalAlignment="Center"
+											   VerticalAlignment="Center"/>
+									</Panel>
+								</Border>
+
+
+								<StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8">
+									<TextBlock Text="{Binding Name}"
+                                               FontSize="18" FontWeight="Bold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+									<TextBlock Text="{Binding Description}"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               TextWrapping="Wrap"
+                                               MaxWidth="400"/>
+
+									<TextBlock Text="{Binding InviteLink}"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               FontFamily="Consolas"/>
+								</StackPanel>
+
+								<Button Grid.Column="2"
+                                        Content="Dołącz"
+                                        Background="{DynamicResource AccentBrush}"
+                                        Foreground="White"
+                                        Padding="20,10"
+                                        CornerRadius="6"
+                                        FontSize="14"
+                                        FontWeight="SemiBold"
+                                        VerticalAlignment="Center"
+                                        Command="{Binding $parent[Window].DataContext.OpenDiscordLinkCommand}"
+                                        CommandParameter="{Binding InviteLink}">
+									<Button.Styles>
+										<Style Selector="Button:pointerover">
+											<Setter Property="Background" Value="{DynamicResource AccentBrushHover}"/>
+										</Style>
+									</Button.Styles>
+								</Button>
+							</Grid>
+						</Border>
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+		</ScrollViewer>
+
+		<Border Grid.Row="2"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="0,15,0,0"
+                Margin="0,20,0,0">
+			<Button Content="Zamknij"
+                    HorizontalAlignment="Right"
+                    Padding="20,10"
+                    CornerRadius="6"
+                    FontSize="14"
+                    Background="{DynamicResource ModCardBackgroundBrush}"
+                    Foreground="{DynamicResource TextPrimaryBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    BorderThickness="1"
+                    Command="{Binding CloseCommand}"
+                    Click="CloseButton_Click"/>
+		</Border>
+	</Grid>
+</Window>

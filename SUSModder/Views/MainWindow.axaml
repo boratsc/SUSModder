@@ -110,6 +110,19 @@
 						</StackPanel>
 					</Button>
 					<Button Margin="0,0,0,5"
+						HorizontalContentAlignment="Left"
+						Padding="0,10"
+						Background="Transparent"
+						Foreground="{DynamicResource TextPrimaryBrush}"
+						Command="{Binding ShowRecommendedDiscordsCommand}">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<TextBlock Text="👥" FontSize="18"/>
+							<TextBlock Text="Polecane Discordy"
+									   VerticalAlignment="Center"
+									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
+						</StackPanel>
+					</Button>
+					<Button Margin="0,0,0,5"
 							HorizontalContentAlignment="Left"
 							Padding="0,10"
 							Background="Transparent"
@@ -136,6 +149,7 @@
 						Foreground="{DynamicResource TextPrimaryBrush}"
 						DockPanel.Dock="Bottom">
 					<StackPanel Orientation="Horizontal" Spacing="10">
+						<TextBlock Text="{Binding ThemeButtonIcon}" FontSize="18"/>
 						<TextBlock Text="{Binding ThemeButtonText}"
 								   VerticalAlignment="Center"
 								   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
