@@ -59,6 +59,7 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> ShowAppSettingsCommand { get; }
         public bool IsDeveloperMode => DeveloperModeSettings.IsEnabled;
         public ReactiveCommand<Unit, Unit> OpenDonationPageCommand { get; }
+        public ReactiveCommand<Unit, Unit> ShowSUStatsConfigCommand { get; }
 
         public ReactiveCommand<Unit, Unit> LobbySetCommand { get; }
         public ICommand ShowRolesCommand { get; }
@@ -204,6 +205,7 @@ namespace SUSModder.ViewModels
             this.RaisePropertyChanged(nameof(IsDeveloperMode));
             OpenDonationPageCommand = ReactiveCommand.Create(OpenDonationPage);
             ShowRecommendedDiscordsCommand = ReactiveCommand.Create(ShowRecommendedDiscords);
+            ShowSUStatsConfigCommand = ReactiveCommand.Create(ShowSUStatsConfig);
 
             LobbySetCommand = ReactiveCommand.CreateFromTask(ShowLobbySetDialog);
             FixBlackScreenCommand = ReactiveCommand.CreateFromTask(ExecuteFixBlackScreenAsync);
@@ -211,12 +213,22 @@ namespace SUSModder.ViewModels
             FixBlackScreenCommand.ThrownExceptions.Subscribe(HandleCommandError);
             LobbySetCommand.ThrownExceptions.Subscribe(HandleCommandError);
 
+            System.Diagnostics.Debug.WriteLine("[MainWindowViewModel] Starting Discord icon preloader...");
+            _ = Task.Run(async () =>
+            {
+                System.Diagnostics.Debug.WriteLine("[MainWindowViewModel] Preloader task started");
+                await DiscordIconPreloader.PreloadDiscordIconsAsync();
+                System.Diagnostics.Debug.WriteLine("[MainWindowViewModel] Preloader task completed");
+            });
+
             ClearEpicLogsOnStartup();
             LoadSavedTheme();
             InitializeApplicationAsync();
             LoadAppVersion();
             CheckForAppUpdatesOnStartup();
             ApplyTheme(CurrentTheme);
+
+
         }
 
         private void HandleCommandError(Exception ex)
@@ -278,6 +290,25 @@ namespace SUSModder.ViewModels
                 {
                     await ShowErrorDialogAsync($"Nie udało się otworzyć okna Discord serwerów: {ex.Message}", "Błąd");
                 });
+            }
+        }
+
+        private async void ShowSUStatsConfig()
+        {
+            try
+            {
+                var suStatsWindow = new SUStatsConfigWindow();
+                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+                if (mainWindow != null)
+                {
+                    await suStatsWindow.ShowDialog(mainWindow);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error opening SUStats config window: {ex.Message}");
+                await ShowErrorDialogAsync($"Nie udało się otworzyć okna konfiguracji SUStats: {ex.Message}", "Błąd");
             }
         }
         private async void InitializeApplicationAsync()
@@ -1265,7 +1296,31 @@ namespace SUSModder.ViewModels
             var currentSelectedMod = SelectedMod;
             currentSelectedMod.ShowProgress = true;
             currentSelectedMod.IsInstalling = true; // Używamy tej flagi do wyłączenia przycisków
+            var statsChoice = await HandleSUStatsChoice(modConfig);
+            await RemoveApiSetFileIfExists(modConfig);
 
+            if (statsChoice == null)
+            {
+                // Użytkownik anulował - przerwij uruchamianie
+                
+                currentSelectedMod.ShowProgress = false;
+                currentSelectedMod.InstallProgress = 0;
+                currentSelectedMod.InstallStatusMessage = string.Empty;
+                currentSelectedMod.IsInstalling = false;
+                return;
+            }
+
+            if (statsChoice.Value)
+            {
+                // Użytkownik chce statystyki - utwórz plik
+                await CreateApiSetFileIfNeeded(modConfig);
+            }
+            else
+            {
+                // Użytkownik nie chce statystyk - usuń plik i wyczyść wybór
+                await RemoveApiSetFileIfExists(modConfig);
+                ClearSUStatsSelection();
+            }
             try
             {
                 // 3) Ustalamy tryb uruchomienia
@@ -2450,6 +2505,235 @@ namespace SUSModder.ViewModels
                 await ShowErrorDialogAsync($"Błąd podczas usuwania: {ex.Message}", "Błąd usuwania");
             }
         }
+
+        private async Task CreateApiSetFileIfNeeded(ModConfiguration modConfig)
+        {
+            try
+            {
+                // Sprawdź czy użytkownik wybrał jakiś serwer SUStats
+                if (!SUStatsConfigViewModel.HasSelectedServer)
+                {
+                    System.Diagnostics.Debug.WriteLine("[ApiSet] ⚠️ Brak wybranego serwera SUStats - pomijam tworzenie ApiSet.ini");
+                    return;
+                }
+
+                // Pobierz dane wybranego serwera
+                var serverData = SUStatsConfigViewModel.GetSelectedServerData();
+                if (!serverData.HasValue)
+                {
+                    System.Diagnostics.Debug.WriteLine("[ApiSet] ❌ Nie udało się pobrać danych wybranego serwera");
+                    return;
+                }
+
+                var (id, serverName, token, secret, endpoint) = serverData.Value;
+                System.Diagnostics.Debug.WriteLine($"[ApiSet] 📊 Tworzenie konfiguracji SUStats dla serwera: {serverName}");
+
+                // Sprawdź czy mod jest zainstalowany
+                if (string.IsNullOrEmpty(modConfig.InstallPath))
+                {
+                    System.Diagnostics.Debug.WriteLine("[ApiSet] ❌ Mod nie jest zainstalowany - brak ścieżki instalacji");
+                    return;
+                }
+
+                if (!Directory.Exists(modConfig.InstallPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ApiSet] ❌ Katalog moda nie istnieje: {modConfig.InstallPath}");
+                    return;
+                }
+
+                // Stwórz ścieżkę do BepInEx\plugins
+                string bepInExPluginsPath = Path.Combine(modConfig.InstallPath, "BepInEx", "plugins");
+                System.Diagnostics.Debug.WriteLine($"[ApiSet] 📁 Ścieżka BepInEx\\plugins: {bepInExPluginsPath}");
+
+                // Sprawdź czy katalog BepInEx\plugins istnieje
+                if (!Directory.Exists(bepInExPluginsPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ApiSet] ⚠️ Katalog BepInEx\\plugins nie istnieje: {bepInExPluginsPath}");
+                    System.Diagnostics.Debug.WriteLine("[ApiSet] 📁 Tworzenie katalogu BepInEx\\plugins...");
+
+                    try
+                    {
+                        Directory.CreateDirectory(bepInExPluginsPath);
+                        System.Diagnostics.Debug.WriteLine("[ApiSet] ✅ Katalog BepInEx\\plugins utworzony pomyślnie");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ApiSet] ❌ Nie udało się utworzyć katalogu BepInEx\\plugins: {ex.Message}");
+                        return;
+                    }
+                }
+
+                // Ścieżka do pliku ApiSet.ini
+                string apiSetPath = Path.Combine(bepInExPluginsPath, "ApiSet.ini");
+                System.Diagnostics.Debug.WriteLine($"[ApiSet] 📄 Ścieżka pliku ApiSet.ini: {apiSetPath}");
+
+                // Diagnostics output do logowania
+                var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ApiSet] {message}");
+                });
+
+                // Zapisz plik ApiSet.ini
+                bool success = await Task.Run(() =>
+                    SUSModder.Core.Configuration.ApiSetManager.SaveApiSetFile(
+                        apiSetPath,
+                        token,
+                        endpoint,
+                        secret,
+                        diagnosticsOutput
+                    )
+                );
+
+                if (success)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ApiSet] ✅ Konfiguracja SUStats zapisana pomyślnie");
+                    System.Diagnostics.Debug.WriteLine($"[ApiSet] 🎯 Serwer: {serverName}");
+                    System.Diagnostics.Debug.WriteLine($"[ApiSet] 📍 Lokalizacja: {apiSetPath}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ApiSet] ❌ Nie udało się zapisać konfiguracji SUStats");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ApiSet] ❌ BŁĄD podczas tworzenia ApiSet.ini: {ex.Message}");
+            }
+        }
+
+        // Dodaj tę metodę obok CreateApiSetFileIfNeeded:
+
+        private async Task RemoveApiSetFileIfExists(ModConfiguration modConfig)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[ApiSet] 🗑️ Sprawdzanie czy usunąć plik ApiSet.ini...");
+
+                // Sprawdź czy mod jest zainstalowany
+                if (string.IsNullOrEmpty(modConfig.InstallPath))
+                {
+                    System.Diagnostics.Debug.WriteLine("[ApiSet] ⚠️ Mod nie jest zainstalowany - brak ścieżki instalacji");
+                    return;
+                }
+
+                if (!Directory.Exists(modConfig.InstallPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ApiSet] ⚠️ Katalog moda nie istnieje: {modConfig.InstallPath}");
+                    return;
+                }
+
+                // Stwórz ścieżkę do BepInEx\plugins\ApiSet.ini
+                string bepInExPluginsPath = Path.Combine(modConfig.InstallPath, "BepInEx", "plugins");
+                string apiSetPath = Path.Combine(bepInExPluginsPath, "ApiSet.ini");
+
+                System.Diagnostics.Debug.WriteLine($"[ApiSet] 📄 Sprawdzanie pliku: {apiSetPath}");
+
+                // Diagnostics output do logowania
+                var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ApiSet] {message}");
+                });
+
+                // Usuń plik ApiSet.ini jeśli istnieje
+                bool success = await Task.Run(() =>
+                    SUSModder.Core.Configuration.ApiSetManager.RemoveApiSetFile(
+                        apiSetPath,
+                        diagnosticsOutput
+                    )
+                );
+
+                if (success)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ApiSet] ✅ Operacja usuwania zakończona pomyślnie");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ApiSet] ❌ Nie udało się usunąć pliku ApiSet.ini");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ApiSet] ❌ BŁĄD podczas usuwania ApiSet.ini: {ex.Message}");
+            }
+        }
+
+        private async Task<bool?> HandleSUStatsChoice(ModConfiguration modConfig)
+        {
+            try
+            {
+                // Sprawdź czy użytkownik wybrał jakiś serwer SUStats
+                if (!SUStatsConfigViewModel.HasSelectedServer)
+                {
+                    System.Diagnostics.Debug.WriteLine("[SUStats Choice] ⚠️ Brak wybranego serwera SUStats - pomijam dialog");
+                    return true; // Kontynuuj bez statystyk
+                }
+
+                // Pobierz dane wybranego serwera
+                var serverData = SUStatsConfigViewModel.GetSelectedServerData();
+                if (!serverData.HasValue)
+                {
+                    System.Diagnostics.Debug.WriteLine("[SUStats Choice] ❌ Nie udało się pobrać danych serwera");
+                    return true; // Kontynuuj bez statystyk
+                }
+
+                var (id, serverName, token, secret, endpoint) = serverData.Value;
+                System.Diagnostics.Debug.WriteLine($"[SUStats Choice] 🤔 Pokazuję dialog wyboru dla serwera: {serverName}");
+
+                // Pokaż dialog wyboru
+                var dialog = new SUStatsConfirmDialog(serverName);
+                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+                if (mainWindow != null)
+                {
+                    await dialog.ShowDialog(mainWindow);
+
+                    if (dialog.DialogResult == true)
+                    {
+                        if (dialog.UseStats)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[SUStats Choice] ✅ Użytkownik wybrał: TAK - uruchom z statystykami");
+                            return true;
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[SUStats Choice] 🗑️ Użytkownik wybrał: NIE - skasuj i uruchom");
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[SUStats Choice] ❌ Użytkownik anulował uruchamianie");
+                        return null; // Anulowano
+                    }
+                }
+
+                return true; // Fallback - kontynuuj
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SUStats Choice] ❌ BŁĄD podczas obsługi wyboru: {ex.Message}");
+                return true; // W przypadku błędu - kontynuuj bez statystyk
+            }
+        }
+
+        private void ClearSUStatsSelection()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[SUStats Choice] 🧹 Czyszczenie wyboru serwera SUStats...");
+
+                // Wyczyść globalny wybór
+                SUStatsConfigViewModel.ClearGlobalSelection();
+
+                System.Diagnostics.Debug.WriteLine("[SUStats Choice] ✅ Wybór serwera SUStats wyczyszczony");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SUStats Choice] ❌ BŁĄD podczas czyszczenia wyboru: {ex.Message}");
+            }
+        }
+
+
         private void RefreshModsSortingKeepSelection(ModItem selectedMod)
         {
             var currentMods = Mods.ToList();

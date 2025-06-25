@@ -75,6 +75,20 @@
 							Padding="0,10"
 							Background="Transparent"
 							Foreground="{DynamicResource TextPrimaryBrush}"
+							Command="{Binding ShowSUStatsConfigCommand}">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<TextBlock Text="📊" FontSize="18"/>
+							<TextBlock Text="SUStats - konfiguracje"
+									   VerticalAlignment="Center"
+									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
+						</StackPanel>
+					</Button>
+
+					<Button Margin="0,0,0,5"
+							HorizontalContentAlignment="Left"
+							Padding="0,10"
+							Background="Transparent"
+							Foreground="{DynamicResource TextPrimaryBrush}"
 							Command="{Binding FixBlackScreenCommand}">
 						<StackPanel Orientation="Horizontal" Spacing="10">
 							<TextBlock Text="🩹" FontSize="18"/>
