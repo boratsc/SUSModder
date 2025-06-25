@@ -40,4 +40,5 @@
 	<SolidColorBrush x:Key="GridSplitterBrush" Color="{StaticResource GridSplitterColor}"/>
 	<SolidColorBrush x:Key="ListBoxSelectionBrush" Color="{StaticResource ListBoxSelectionColor}"/>
 	<SolidColorBrush x:Key="InstallPathBorderBrush" Color="{StaticResource InstallPathBorderColor}"/>
+	<SolidColorBrush x:Key="HeartsBackgroundBrush" Color="{StaticResource WindowBackgroundColor}"/>
 </ResourceDictionary>

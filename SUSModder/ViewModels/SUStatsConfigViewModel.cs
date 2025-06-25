@@ -170,7 +170,7 @@ namespace SUSModder.ViewModels
             _ = LoadServersAsync();
         }
 
-        private async Task CheckPasswordAsync()
+        private Task CheckPasswordAsync()
         {
             try
             {
@@ -184,7 +184,7 @@ namespace SUSModder.ViewModels
                 {
                     PasswordStatusMessage = "❌ Wprowadź hasło";
                     PasswordStatusColor = Brushes.Red;
-                    return;
+                    return Task.CompletedTask;
                 }
 
                 // Znajdź serwer z pasującym secretem
@@ -235,6 +235,8 @@ namespace SUSModder.ViewModels
             {
                 IsCheckingPassword = false;
             }
+
+            return Task.CompletedTask;
         }
 
         private void OnStatsEnabledChanged(bool enabled)

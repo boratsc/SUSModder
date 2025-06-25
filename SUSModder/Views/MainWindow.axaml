@@ -172,7 +172,7 @@
 			</Grid>
 		</SplitView.Pane>
 
-		<Grid Background="{DynamicResource WindowBackgroundBrush}">
+		<Grid Background="{DynamicResource HeartsBackgroundBrush}">
 			<Grid ColumnDefinitions="*, Auto, Auto">
 
 				<ListBox Grid.Column="0" Margin="10"
