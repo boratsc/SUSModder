@@ -1,0 +1,119 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SUSModder.Views.SUStatsConfirmDialog"
+        Title="Statystyki SUStats"
+        Width="600" Height="355"
+        MinWidth="550" MinHeight="325"
+        MaxWidth="700" MaxHeight="425"
+        WindowStartupLocation="CenterOwner"
+        CanResize="false"
+        Icon="/Assets/icon.ico">
+
+	<Border Background="{DynamicResource WindowBackgroundBrush}" Padding="25">
+		<StackPanel Spacing="20">
+
+			<!-- Header z ikoną -->
+			<Border Background="{DynamicResource AccentBrush}"
+                    CornerRadius="8"
+                    Padding="15">
+				<StackPanel Orientation="Horizontal" Spacing="15">
+					<TextBlock Text="📊" FontSize="32" VerticalAlignment="Center"/>
+					<StackPanel VerticalAlignment="Center">
+						<TextBlock Text="Statystyki SUStats"
+                                   FontSize="18" FontWeight="Bold"
+                                   Foreground="White"/>
+						<TextBlock Text="Czy chcesz zapisywać statystyki gry?"
+                                   FontSize="12"
+                                   Foreground="#E0FFFFFF"/>
+					</StackPanel>
+				</StackPanel>
+			</Border>
+
+			<!-- Treść pytania -->
+			<StackPanel Spacing="10">
+				<TextBlock Text="Wykryto konfigurację serwera SUStats:"
+                           FontSize="14"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           TextAlignment="Center"/>
+
+				<Border Background="{DynamicResource SecondaryBackgroundBrush}"
+                        BorderBrush="{DynamicResource AccentBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="12">
+					<TextBlock x:Name="ServerNameText"
+                               Text="[Nazwa serwera]"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource AccentBrush}"
+                               TextAlignment="Center"/>
+				</Border>
+
+				<TextBlock Text="Czy chcesz uruchomić grę z zapisywaniem statystyk na tym serwerze?"
+                           FontSize="14"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"/>
+			</StackPanel>
+
+			<!-- Przyciski - wyśrodkowane -->
+			<StackPanel Orientation="Horizontal"
+                        Spacing="10"
+                        Margin="0,10,0,0"
+                        HorizontalAlignment="Center">
+
+				<!-- Tak - uruchom -->
+				<Button Content="✅ Tak - uruchom"
+                        Background="{DynamicResource SuccessBrush}"
+                        Foreground="White"
+                        Padding="15,12"
+                        CornerRadius="6"
+                        FontSize="12"
+                        FontWeight="SemiBold"
+                        MinWidth="140"
+                        Click="YesButton_Click">
+					<Button.Styles>
+						<Style Selector="Button:pointerover">
+							<Setter Property="Background" Value="{DynamicResource SuccessBrushHover}"/>
+						</Style>
+					</Button.Styles>
+				</Button>
+
+				<!-- Nie, skasuj i uruchom -->
+				<Button Content="🗑️ Skasuj i uruchom"
+                        Background="{DynamicResource DangerBrush}"
+                        Foreground="White"
+                        Padding="15,12"
+                        CornerRadius="6"
+                        FontSize="12"
+                        FontWeight="SemiBold"
+                        MinWidth="160"
+                        Click="NoButton_Click">
+					<Button.Styles>
+						<Style Selector="Button:pointerover">
+							<Setter Property="Background" Value="{DynamicResource DangerBrushHover}"/>
+						</Style>
+					</Button.Styles>
+				</Button>
+
+				<!-- Anuluj -->
+				<Button Content="❌ Anuluj"
+                        Background="{DynamicResource ModCardBackgroundBrush}"
+                        Foreground="{DynamicResource TextPrimaryBrush}"
+                        BorderBrush="{DynamicResource ModCardBorderBrush}"
+                        BorderThickness="1"
+                        Padding="15,12"
+                        CornerRadius="6"
+                        FontSize="12"
+                        FontWeight="SemiBold"
+                        MinWidth="100"
+                        Click="CancelButton_Click">
+					<Button.Styles>
+						<Style Selector="Button:pointerover">
+							<Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
+						</Style>
+					</Button.Styles>
+				</Button>
+			</StackPanel>
+		</StackPanel>
+	</Border>
+</Window>
