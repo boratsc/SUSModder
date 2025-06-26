@@ -7,6 +7,10 @@ namespace SUSModder.Views
     {
         public bool? DialogResult { get; private set; }
         public bool UseStats { get; private set; }
+        public SUStatsConfirmDialog()
+        {
+            InitializeComponent();
+        }
 
         public SUStatsConfirmDialog(string serverName)
         {

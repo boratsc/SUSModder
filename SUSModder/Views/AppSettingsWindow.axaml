@@ -104,6 +104,20 @@
 					</StackPanel>
 				</Border>
 
+				<!-- Sekcja resetowania aplikacji -->
+				<Border Classes="settings-section">
+					<StackPanel Spacing="15">
+						<TextBlock Text="Reset aplikacji"
+                                   Classes="section-header"/>
+						<TextBlock Text="Resetuje aplikację do ustawień fabrycznych i usuwa wszystkie zainstalowane mody. Ta operacja jest nieodwracalna!"
+                                   Classes="setting-description"/>
+						<Button Content="Resetuj"
+                                Command="{Binding FactoryResetCommand}"
+                                Classes="danger-button"
+                                HorizontalAlignment="Left"/>
+					</StackPanel>
+				</Border>
+
 				<!-- Placeholder dla przyszłych ustawień -->
 				<Border Classes="settings-section">
 					<StackPanel Spacing="15">
@@ -257,6 +271,20 @@
 
 		<Style Selector="Button.secondary-button:pointerover">
 			<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+		</Style>
+
+		<Style Selector="Button.danger-button">
+			<Setter Property="Background" Value="#D32F2F"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="BorderBrush" Value="#B71C1C"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="4"/>
+			<Setter Property="Padding" Value="16,8"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+		</Style>
+
+		<Style Selector="Button.danger-button:pointerover">
+			<Setter Property="Opacity" Value="0.9"/>
 		</Style>
 	</Window.Styles>
 </Window>

@@ -19,6 +19,17 @@ namespace SUSModder.Views
             TitleText.Text = title;
             MessageText.Text = message;
         }
+        public string OkButtonText
+{
+            get => YesButton.Content?.ToString() ?? "";
+            set => YesButton.Content = value;
+        }
+
+        public string CancelButtonText
+        {
+            get => NoButton.Content?.ToString() ?? "";
+            set => NoButton.Content = value;
+        }
 
         private void YesButton_Click(object? sender, RoutedEventArgs e)
         {
