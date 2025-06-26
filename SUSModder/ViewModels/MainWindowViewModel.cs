@@ -532,32 +532,72 @@ namespace SUSModder.ViewModels
 
         private async Task<bool> SetupVanillaGameAsync()
         {
-            try
+            while (true)
             {
-                System.Diagnostics.Debug.WriteLine("Starting Vanilla game setup...");
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine("Starting Vanilla game setup...");
 
-                // Stwórz IConfiguration z appsettings.json
-                var configBuilder = new ConfigurationBuilder()
-                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                    // Stwórz IConfiguration z appsettings.json
+                    var configBuilder = new ConfigurationBuilder()
+                        .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
-                var configuration = configBuilder.Build();
+                    var configuration = configBuilder.Build();
 
-                // Wywołaj asynchroniczną wersję z interfejsem użytkownika
-                bool success = await GameLocator.CheckAndSetupVanillaModAsync(
-                    _loadedConfigs,
-                    configuration,
-                    _userInteractionService
+                    // Wywołaj asynchroniczną wersję z interfejsem użytkownika
+                    bool success = await GameLocator.CheckAndSetupVanillaModAsync(
+                        _loadedConfigs,
+                        configuration,
+                        _userInteractionService
+                    );
+
+                    System.Diagnostics.Debug.WriteLine($"Vanilla game setup completed with result: {success}");
+
+                    if (success)
+                        return true;
+
+                    // Jeśli niepowodzenie, przejdź do obsługi poniżej
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error during Vanilla setup: {ex.Message}");
+                }
+
+                // Dialog z wyborem: Spróbuj ponownie / Zamknij
+                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+                var dialog = new ConfirmDialog(
+                    "Nie wybrano pliku Among Us.exe",
+                    "Nie udało się wykryć poprawnej instalacji gry Among Us. Wybierz poprawny plik Among Us.exe lub zamknij aplikację."
                 );
+                dialog.OkButtonText = "Spróbuj ponownie";
+                dialog.CancelButtonText = "Zamknij";
 
-                System.Diagnostics.Debug.WriteLine($"Vanilla game setup completed with result: {success}");
-                return success;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error during Vanilla setup: {ex.Message}");
-                await ShowErrorDialogAsync($"Błąd podczas konfiguracji gry: {ex.Message}", "Błąd");
-                return false;
+                if (mainWindow != null)
+                    await dialog.ShowDialog(mainWindow);
+
+                if (dialog.Result)
+                {
+                    // Spróbuj ponownie
+                    continue;
+                }
+                else
+                {
+                    // Usuń config.json i zamknij aplikację
+                    try
+                    {
+                        string exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+                        string configPath = Path.Combine(exeDir, "config.json");
+                        if (File.Exists(configPath))
+                            File.Delete(configPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Błąd podczas kasowania config.json: {ex.Message}");
+                    }
+                    Environment.Exit(0);
+                    return false;
+                }
             }
         }
 

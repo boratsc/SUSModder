@@ -35,14 +35,16 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Spacing="10">
-			<Button Content="Nie"
-                    Width="80" Height="30"
+			<Button x:Name="NoButton"
+                    Content="Nie"
+                    Width="140" Height="30"
                     Background="{DynamicResource ModCardBackgroundBrush}"
                     Foreground="{DynamicResource TextPrimaryBrush}"
                     BorderBrush="{DynamicResource ModCardBorderBrush}"
                     Click="NoButton_Click"/>
-			<Button Content="Tak"
-                    Width="80" Height="30"
+			<Button x:Name="YesButton"
+                    Content="Tak"
+                    Width="140" Height="30"
                     Background="{DynamicResource AccentBrush}"
                     Foreground="White"
                     Click="YesButton_Click"/>
