@@ -13,7 +13,7 @@ namespace SUSModder.Core.Utilities
         }
 
         /// <summary>
-        /// Ustawia liczbę graczy w pliku konfiguracyjnym ToU.
+        /// Ustawia liczbę graczy w plikach konfiguracyjnych ToU (obsługuje settings.amogus_TOU oraz settings.amogus_TOUMira).
         /// </summary>
         /// <param name="numPlayers">Liczba graczy (4-255)</param>
         /// <param name="errorMessage">Zwraca komunikat błędu jeśli wystąpił</param>
@@ -28,36 +28,58 @@ namespace SUSModder.Core.Utilities
             }
 
             string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            string filePath = Path.Combine(userProfile, @"AppData\LocalLow\Innersloth\Among Us\settings.amogus_TOU");
-
-            if (!File.Exists(filePath))
+            string[] fileNames = new[]
             {
-                errorMessage = "Brak pliku konfiguracyjnego ToU - uruchom grę z modem, zamknij i spróbuj ponownie.";
-                return false;
+                @"AppData\LocalLow\Innersloth\Among Us\settings.amogus_TOU",
+                @"AppData\LocalLow\Innersloth\Among Us\settings.amogus_TOUMira"
+            };
+
+            bool anyFileProcessed = false;
+            foreach (var relativePath in fileNames)
+            {
+                string filePath = Path.Combine(userProfile, relativePath);
+                if (!File.Exists(filePath))
+                    continue;
+
+                try
+                {
+                    string jsonContent = File.ReadAllText(filePath);
+                    dynamic? settings = JsonConvert.DeserializeObject(jsonContent);
+                    if (settings == null)
+                    {
+                        errorMessage = $"Błąd podczas odczytu pliku konfiguracyjnego: {relativePath}";
+                        continue;
+                    }
+
+                    string customCode = GenerateCustomCode(numPlayers);
+
+                    string normalHostOptions = settings.multiplayer.normalHostOptions;
+                    if (normalHostOptions.Length < 12)
+                    {
+                        errorMessage = $"Plik konfiguracyjny {relativePath} ma nieprawidłowy format.";
+                        continue;
+                    }
+
+                    string updatedNormalHostOptions = $"{normalHostOptions.Substring(0, 8)}{customCode}{normalHostOptions.Substring(12)}";
+                    settings.multiplayer.normalHostOptions = updatedNormalHostOptions;
+
+                    string updatedJsonContent = JsonConvert.SerializeObject(settings, Formatting.Indented);
+                    File.WriteAllText(filePath, updatedJsonContent);
+
+                    anyFileProcessed = true;
+                }
+                catch (Exception ex)
+                {
+                    errorMessage = $"Błąd podczas przetwarzania pliku {relativePath}: {ex.Message}";
+                }
             }
 
-            string jsonContent = File.ReadAllText(filePath);
-            dynamic? settings = JsonConvert.DeserializeObject(jsonContent);
-            if (settings == null)
+            if (!anyFileProcessed)
             {
-                errorMessage = "Błąd podczas odczytu pliku konfiguracyjnego.";
+                if (string.IsNullOrEmpty(errorMessage))
+                    errorMessage = "Brak pliku konfiguracyjnego ToU - uruchom grę z modem, zamknij i spróbuj ponownie.";
                 return false;
             }
-
-            string customCode = GenerateCustomCode(numPlayers);
-
-            string normalHostOptions = settings.multiplayer.normalHostOptions;
-            if (normalHostOptions.Length < 12)
-            {
-                errorMessage = "Plik konfiguracyjny ma nieprawidłowy format.";
-                return false;
-            }
-
-            string updatedNormalHostOptions = $"{normalHostOptions.Substring(0, 8)}{customCode}{normalHostOptions.Substring(12)}";
-            settings.multiplayer.normalHostOptions = updatedNormalHostOptions;
-
-            string updatedJsonContent = JsonConvert.SerializeObject(settings, Formatting.Indented);
-            File.WriteAllText(filePath, updatedJsonContent);
 
             return true;
         }
