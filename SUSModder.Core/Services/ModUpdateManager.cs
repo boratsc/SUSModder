@@ -35,8 +35,7 @@ namespace SUSModder.Core.Services
                 var uninstalledConfigs = currentConfigs.Where(c => string.IsNullOrEmpty(c.InstallPath)).ToList();
 
                 // 1. Sprawdź aktualizacje dla zainstalowanych modów
-                var availableUpdates = await CheckInstalledModUpdatesAsync(installedConfigs);
-
+                var availableUpdates = await CheckInstalledModUpdatesAsync(currentConfigs);
                 // 2. Aktualizuj konfigurację dla niezainstalowanych modów (cicho)
                 bool configUpdated = await UpdateUninstalledModsConfigAsync(uninstalledConfigs);
 
@@ -58,34 +57,38 @@ namespace SUSModder.Core.Services
             }
         }
 
-        private async Task<List<ModUpdateInfo>> CheckInstalledModUpdatesAsync(List<ModConfiguration> installedConfigs)
+        private async Task<List<ModUpdateInfo>> CheckInstalledModUpdatesAsync(List<ModConfiguration> currentConfigs)
         {
             var availableUpdates = new List<ModUpdateInfo>();
             bool configChanged = false;
 
-            foreach (var config in installedConfigs)
+            var remoteConfigs = await _configRepository.LoadConfigFromApiAsync();
+
+            foreach (var config in currentConfigs.Where(c => !string.IsNullOrEmpty(c.InstallPath)))
             {
-                var updatedConfig = await _configService.CheckSingleModUpdateAsync(config.ModName);
+                var updatedConfig = remoteConfigs.FirstOrDefault(r => r.Id == config.Id);
                 if (updatedConfig != null)
                 {
-                    // Uzupełnij brakujące pola, nawet jeśli wersja się nie zmienia
                     bool updated = false;
+
+                    System.Diagnostics.Debug.WriteLine($"[DEBUG] {config.ModName} (ID: {config.Id}) - Local PngFileName: '{config.PngFileName}', Remote PngFileName: '{updatedConfig.PngFileName}'");
+
                     if (string.IsNullOrEmpty(config.PngFileName) && !string.IsNullOrEmpty(updatedConfig.PngFileName))
                     {
+                        System.Diagnostics.Debug.WriteLine($"[DEBUG] UZUPEŁNIAM PngFileName dla {config.ModName} (ID: {config.Id}) z '{config.PngFileName}' na '{updatedConfig.PngFileName}'");
                         config.PngFileName = updatedConfig.PngFileName;
                         updated = true;
                     }
                     if (string.IsNullOrEmpty(config.DllInstallPath) && !string.IsNullOrEmpty(updatedConfig.DllInstallPath))
                     {
+                        System.Diagnostics.Debug.WriteLine($"[DEBUG] UZUPEŁNIAM DllInstallPath dla {config.ModName} (ID: {config.Id}) z '{config.DllInstallPath}' na '{updatedConfig.DllInstallPath}'");
                         config.DllInstallPath = updatedConfig.DllInstallPath;
                         updated = true;
                     }
-                    // Dodaj inne pola jeśli trzeba
 
                     if (updated)
                         configChanged = true;
 
-                    // Dodaj do listy update tylko jeśli wersja się różni
                     if (!string.Equals(config.ModVersion, updatedConfig.ModVersion, StringComparison.OrdinalIgnoreCase))
                     {
                         availableUpdates.Add(new ModUpdateInfo
@@ -100,13 +103,22 @@ namespace SUSModder.Core.Services
                         });
                     }
                 }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DEBUG] Brak remoteConfig dla {config.ModName} (ID: {config.Id})");
+                }
             }
 
-            // Zapisz config jeśli coś się zmieniło
             if (configChanged)
             {
-                var allConfigs = _configService.LoadConfig();
-                ConfigManager.SaveConfig(allConfigs);
+                System.Diagnostics.Debug.WriteLine("[DEBUG] Zapisuję config po uzupełnieniu PngFileName/DllInstallPath dla zainstalowanych modów");
+                ConfigManager.SaveConfig(currentConfigs);
+
+                System.Diagnostics.Debug.WriteLine("[DEBUG] Zapisano config. Sprawdzam zawartość:");
+                var checkConfigs = _configService.LoadConfig();
+                var syzyf = checkConfigs.FirstOrDefault(c => c.Id == 14);
+                if (syzyf != null)
+                    System.Diagnostics.Debug.WriteLine($"[DEBUG] Po zapisie: Syzyfowa Beta PngFileName = '{syzyf.PngFileName}'");
             }
 
             System.Diagnostics.Debug.WriteLine($"Found {availableUpdates.Count} updates for installed mods");
@@ -263,6 +275,12 @@ namespace SUSModder.Core.Services
             target.EpicGitHubRepoOrLink = source.EpicGitHubRepoOrLink;
             target.AmongVersion = source.AmongVersion;
             target.ModType = source.ModType;
+
+            // UZUPEŁNIJ BRAKUJĄCE POLA
+            if (string.IsNullOrEmpty(target.PngFileName) && !string.IsNullOrEmpty(source.PngFileName))
+                target.PngFileName = source.PngFileName;
+            if (string.IsNullOrEmpty(target.DllInstallPath) && !string.IsNullOrEmpty(source.DllInstallPath))
+                target.DllInstallPath = source.DllInstallPath;
 
             // Zachowaj oryginalną ścieżkę instalacji
             target.InstallPath = originalInstallPath;
