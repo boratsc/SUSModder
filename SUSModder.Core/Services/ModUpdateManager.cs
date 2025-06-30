@@ -64,9 +64,15 @@ namespace SUSModder.Core.Services
 
             var remoteConfigs = await _configRepository.LoadConfigFromApiAsync();
 
+            if (remoteConfigs == null)
+            {
+                System.Diagnostics.Debug.WriteLine("❌ remoteConfigs is NULL!");
+                return availableUpdates;
+            }
+
             foreach (var config in currentConfigs.Where(c => !string.IsNullOrEmpty(c.InstallPath)))
             {
-                var updatedConfig = remoteConfigs.FirstOrDefault(r => r.Id == config.Id);
+                ModConfiguration? updatedConfig = remoteConfigs.FirstOrDefault(r => r.Id == config.Id);
                 if (updatedConfig != null)
                 {
                     bool updated = false;
