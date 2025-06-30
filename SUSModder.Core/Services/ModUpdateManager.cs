@@ -61,23 +61,52 @@ namespace SUSModder.Core.Services
         private async Task<List<ModUpdateInfo>> CheckInstalledModUpdatesAsync(List<ModConfiguration> installedConfigs)
         {
             var availableUpdates = new List<ModUpdateInfo>();
+            bool configChanged = false;
 
             foreach (var config in installedConfigs)
             {
                 var updatedConfig = await _configService.CheckSingleModUpdateAsync(config.ModName);
                 if (updatedConfig != null)
                 {
-                    availableUpdates.Add(new ModUpdateInfo
+                    // Uzupełnij brakujące pola, nawet jeśli wersja się nie zmienia
+                    bool updated = false;
+                    if (string.IsNullOrEmpty(config.PngFileName) && !string.IsNullOrEmpty(updatedConfig.PngFileName))
                     {
-                        ModName = config.ModName,
-                        CurrentVersion = config.ModVersion ?? "Nieznana",
-                        NewVersion = updatedConfig.ModVersion ?? "Nieznana",
-                        Description = updatedConfig.Description ?? "",
-                        IsSelected = true,
-                        LocalMod = config,
-                        RemoteMod = updatedConfig
-                    });
+                        config.PngFileName = updatedConfig.PngFileName;
+                        updated = true;
+                    }
+                    if (string.IsNullOrEmpty(config.DllInstallPath) && !string.IsNullOrEmpty(updatedConfig.DllInstallPath))
+                    {
+                        config.DllInstallPath = updatedConfig.DllInstallPath;
+                        updated = true;
+                    }
+                    // Dodaj inne pola jeśli trzeba
+
+                    if (updated)
+                        configChanged = true;
+
+                    // Dodaj do listy update tylko jeśli wersja się różni
+                    if (!string.Equals(config.ModVersion, updatedConfig.ModVersion, StringComparison.OrdinalIgnoreCase))
+                    {
+                        availableUpdates.Add(new ModUpdateInfo
+                        {
+                            ModName = config.ModName,
+                            CurrentVersion = config.ModVersion ?? "Nieznana",
+                            NewVersion = updatedConfig.ModVersion ?? "Nieznana",
+                            Description = updatedConfig.Description ?? "",
+                            IsSelected = true,
+                            LocalMod = config,
+                            RemoteMod = updatedConfig
+                        });
+                    }
                 }
+            }
+
+            // Zapisz config jeśli coś się zmieniło
+            if (configChanged)
+            {
+                var allConfigs = _configService.LoadConfig();
+                ConfigManager.SaveConfig(allConfigs);
             }
 
             System.Diagnostics.Debug.WriteLine($"Found {availableUpdates.Count} updates for installed mods");
@@ -197,7 +226,11 @@ namespace SUSModder.Core.Services
             bool githubChanged = !string.Equals(local.GitHubRepoOrLink, remote.GitHubRepoOrLink, StringComparison.OrdinalIgnoreCase);
             bool epicChanged = !string.Equals(local.EpicGitHubRepoOrLink, remote.EpicGitHubRepoOrLink, StringComparison.OrdinalIgnoreCase);
 
-            bool hasChanged = nameChanged || versionChanged || descChanged || githubChanged || epicChanged;
+            // Nowe: sprawdź czy są puste pola do uzupełnienia
+            bool pngChanged = string.IsNullOrEmpty(local.PngFileName) && !string.IsNullOrEmpty(remote.PngFileName);
+            bool dllPathChanged = string.IsNullOrEmpty(local.DllInstallPath) && !string.IsNullOrEmpty(remote.DllInstallPath);
+
+            bool hasChanged = nameChanged || versionChanged || descChanged || githubChanged || epicChanged || pngChanged || dllPathChanged;
 
             // DEBUGUJ KONKRETNE ZMIANY
             if (hasChanged)
@@ -208,6 +241,8 @@ namespace SUSModder.Core.Services
                 if (descChanged) System.Diagnostics.Debug.WriteLine($"  Description changed");
                 if (githubChanged) System.Diagnostics.Debug.WriteLine($"  GitHub link changed");
                 if (epicChanged) System.Diagnostics.Debug.WriteLine($"  Epic link changed");
+                if (pngChanged) System.Diagnostics.Debug.WriteLine($"  PngFileName uzupełnione z API");
+                if (dllPathChanged) System.Diagnostics.Debug.WriteLine($"  DllInstallPath uzupełnione z API");
             }
 
             return hasChanged;
@@ -282,7 +317,9 @@ namespace SUSModder.Core.Services
                         EpicGitHubRepoOrLink = remoteMod.EpicGitHubRepoOrLink,
                         AmongVersion = remoteMod.AmongVersion,
                         ModType = remoteMod.ModType,
-                        InstallPath = string.Empty
+                        InstallPath = string.Empty,
+                        PngFileName = remoteMod.PngFileName,           // <-- dodano
+                        DllInstallPath = remoteMod.DllInstallPath      // <-- dodano
                     };
 
                     currentConfigs.Add(newMod);
