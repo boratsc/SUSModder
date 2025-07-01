@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SUSModder.Views.MessageDialog"
+        Width="350" Height="180"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+	<Window.Styles>
+		<FluentTheme />
+	</Window.Styles>
+
+	<StackPanel Margin="20" Spacing="15">
+		<TextBlock x:Name="MessageText"
+                   TextWrapping="Wrap"
+                   FontSize="14"
+                   Foreground="{DynamicResource TextPrimaryBrush}"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"/>
+
+		<Button Content="OK"
+                HorizontalAlignment="Center"
+                Width="80" Height="32"
+                Margin="0,10,0,0"
+                Background="{DynamicResource AccentBrush}"
+                Foreground="White"
+                Click="OkButton_Click"/>
+	</StackPanel>
+</Window>

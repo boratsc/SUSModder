@@ -1,0 +1,95 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:SUSModder.Views"
+        x:Class="SUSModder.Views.HashDisplayDialog"
+        x:DataType="views:HashDisplayDialog"
+        Title="Kod konfiguracji"
+        Width="500" Height="300"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+	<Window.Styles>
+		<FluentTheme />
+	</Window.Styles>
+
+	<Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto,Auto">
+
+		<!-- Ikona sukcesu i komunikat -->
+		<StackPanel Grid.Row="0"
+                    Orientation="Horizontal"
+                    Spacing="15"
+                    Margin="0,0,0,20"
+                    HorizontalAlignment="Center">
+			<TextBlock Text="✅" FontSize="32" VerticalAlignment="Center"/>
+			<TextBlock Text="{Binding Message}"
+                       FontSize="16" FontWeight="Bold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center"/>
+		</StackPanel>
+
+		<!-- Instrukcja -->
+		<TextBlock Grid.Row="1"
+                   Text="Twój kod konfiguracji:"
+                   FontSize="14"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   Margin="0,0,0,10"/>
+
+		<!-- Hash z możliwością zaznaczenia -->
+		<Border Grid.Row="2"
+                Background="{DynamicResource SecondaryBackgroundBrush}"
+                BorderBrush="{DynamicResource AccentBrush}"
+                BorderThickness="2"
+                CornerRadius="8"
+                Padding="15"
+                Margin="0,0,0,20">
+			<TextBox x:Name="HashTextBox"
+                     Text="{Binding Hash}"
+                     IsReadOnly="True"
+                     FontFamily="Consolas"
+                     FontSize="16"
+                     FontWeight="Bold"
+                     TextAlignment="Center"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     Foreground="{DynamicResource AccentBrush}"
+                     SelectionBrush="{DynamicResource AccentBrush}"
+                     SelectionForegroundBrush="White"/>
+		</Border>
+
+		<!-- Instrukcja dodatkowa -->
+		<TextBlock Grid.Row="3"
+                   Text="Możesz skopiować ten kod i wysłać go innym osobom, aby mogły pobrać Twoją konfigurację."
+                   FontSize="12"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   Margin="0,0,0,20"/>
+
+		<!-- Przyciski -->
+		<StackPanel Grid.Row="4"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Spacing="15">
+			<Button Content="📋 Skopiuj kod"
+                    Click="OnCopyClick"
+                    Background="{DynamicResource AccentBrush}"
+                    Foreground="White"
+                    Padding="20,10"
+                    CornerRadius="6"
+                    FontSize="14"
+                    FontWeight="SemiBold"
+                    MinWidth="140"/>
+			<Button Content="Zamknij"
+                    Click="OnCloseClick"
+                    Background="{DynamicResource ModCardBackgroundBrush}"
+                    Foreground="{DynamicResource TextPrimaryBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    BorderThickness="1"
+                    Padding="20,10"
+                    CornerRadius="6"
+                    FontSize="14"
+                    MinWidth="140"/>
+		</StackPanel>
+	</Grid>
+</Window>

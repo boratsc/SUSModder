@@ -1,0 +1,151 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:SUSModder.Views"
+        x:Class="SUSModder.Views.ChangePresetNamesDialog"
+        x:DataType="views:ChangePresetNamesDialog"
+        Title="Zmień nazwy presetów lobby"
+        Width="600" Height="700"
+        MinWidth="500" MinHeight="500"
+        MaxHeight="800"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+	<Window.Styles>
+		<FluentTheme />
+	</Window.Styles>
+
+	<Grid Margin="20" RowDefinitions="Auto,*,Auto">
+
+		<!-- Header - stała wysokość -->
+		<StackPanel Grid.Row="0" Margin="0,0,0,20">
+			<StackPanel Orientation="Horizontal" Spacing="15" HorizontalAlignment="Center" Margin="0,0,0,15">
+				<TextBlock Text="📝" FontSize="32" VerticalAlignment="Center"/>
+				<TextBlock Text="Zmień nazwy presetów lobby"
+                           FontSize="18" FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"/>
+			</StackPanel>
+
+			<TextBlock Text="Zmień nazwy plików konfiguracyjnych Among Us:"
+                       FontSize="14"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       TextAlignment="Center"/>
+		</StackPanel>
+
+		<!-- Lista plików - elastyczna wysokość -->
+		<Border Grid.Row="1"
+                Background="{DynamicResource ModCardBackgroundBrush}"
+                BorderBrush="{DynamicResource ModCardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="15"
+                Margin="0,0,0,20">
+
+			<Grid RowDefinitions="Auto,*">
+				<!-- Nagłówek listy -->
+				<TextBlock Grid.Row="0"
+                           Text="Pliki konfiguracyjne:"
+                           FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Margin="0,0,0,10"/>
+
+				<!-- Zawartość listy -->
+				<Panel Grid.Row="1">
+					<!-- Komunikat o braku plików -->
+					<TextBlock Text="Brak plików .txt w katalogu Among Us"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontStyle="Italic"
+                               TextAlignment="Center"
+                               VerticalAlignment="Center"
+                               IsVisible="{Binding PresetFiles.Count, Converter={x:Static BoolConverters.Not}}"/>
+
+					<!-- ScrollViewer z listą plików -->
+					<ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  IsVisible="{Binding PresetFiles.Count}">
+						<ItemsControl ItemsSource="{Binding PresetFiles}">
+							<ItemsControl.ItemTemplate>
+								<DataTemplate>
+									<Border Background="{DynamicResource SecondaryBackgroundBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            Padding="12"
+                                            Margin="0,0,0,8">
+										<Grid ColumnDefinitions="*,Auto,*">
+											<!-- Oryginalna nazwa -->
+											<TextBlock Grid.Column="0"
+                                                       Text="{Binding OriginalName}"
+                                                       FontSize="13"
+                                                       FontFamily="Consolas"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip.Tip="{Binding OriginalName}"/>
+
+											<!-- Strzałka -->
+											<TextBlock Grid.Column="1"
+                                                       Text=" → "
+                                                       FontSize="16"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       VerticalAlignment="Center"
+                                                       Margin="10,0"/>
+
+											<!-- Nowa nazwa (edytowalna) -->
+											<TextBox Grid.Column="2"
+                                                     Text="{Binding NewName}"
+                                                     FontSize="13"
+                                                     FontFamily="Consolas"
+                                                     Padding="8"
+                                                     MaxLength="30"
+                                                     VerticalAlignment="Center"
+                                                     Background="{DynamicResource WindowBackgroundBrush}"
+                                                     BorderThickness="1"/>
+										</Grid>
+									</Border>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+					</ScrollViewer>
+				</Panel>
+			</Grid>
+		</Border>
+
+		<!-- Przyciski - stała wysokość -->
+		<StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Spacing="15">
+			<Button Content="🔄 Resetuj"
+                    Click="OnResetClick"
+                    Background="{DynamicResource ModCardBackgroundBrush}"
+                    Foreground="{DynamicResource TextPrimaryBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    BorderThickness="1"
+                    Padding="15,10"
+                    CornerRadius="6"
+                    FontSize="14"
+                    MinWidth="100"/>
+			<Button Content="💾 Zapisz zmiany"
+                    Click="OnSaveClick"
+                    Background="{DynamicResource AccentBrush}"
+                    Foreground="White"
+                    Padding="15,10"
+                    CornerRadius="6"
+                    FontSize="14"
+                    FontWeight="SemiBold"
+                    MinWidth="140"/>
+			<Button Content="Anuluj"
+                    Click="OnCancelClick"
+                    Background="{DynamicResource ModCardBackgroundBrush}"
+                    Foreground="{DynamicResource TextPrimaryBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    BorderThickness="1"
+                    Padding="15,10"
+                    CornerRadius="6"
+                    FontSize="14"
+                    MinWidth="100"/>
+		</StackPanel>
+	</Grid>
+</Window>

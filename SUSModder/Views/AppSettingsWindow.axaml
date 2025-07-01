@@ -1,0 +1,290 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SUSModder.ViewModels"
+        x:Class="SUSModder.Views.AppSettingsWindow"
+        x:DataType="vm:AppSettingsViewModel"
+        Title="{Binding WindowTitle}"
+        Width="600" Height="600"
+        MinWidth="500" MinHeight="350"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+	<Grid Margin="20">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- Nagłówek -->
+		<TextBlock Grid.Row="0"
+                   Text="Ustawienia aplikacji"
+                   Classes="header-text"
+                   Margin="0,0,0,20"/>
+
+		<!-- Główna zawartość -->
+		<ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto">
+			<StackPanel Spacing="20">
+
+				<!-- Sekcja ścieżek -->
+				<Border Classes="settings-section">
+					<StackPanel Spacing="15">
+						<TextBlock Text="Ścieżki instalacji"
+                                   Classes="section-header"/>
+
+						<!-- ModsInstallPath -->
+						<StackPanel Spacing="8">
+							<TextBlock Text="Katalog instalacji modów:"
+                                       Classes="setting-label"/>
+							<TextBlock Text="Tutaj będą instalowane wszystkie mody Among Us"
+                                       Classes="setting-description"/>
+
+							<Grid ColumnDefinitions="*,Auto">
+								<TextBox Grid.Column="0"
+                                         Text="{Binding ModsInstallPath}"
+                                         Classes="path-textbox"
+                                         Watermark="Wybierz katalog instalacji modów..."/>
+								<Button Grid.Column="1"
+                                        Content="Przeglądaj..."
+                                        Command="{Binding BrowseFolderCommand}"
+                                        Classes="browse-button"
+                                        Margin="8,0,0,0"/>
+							</Grid>
+
+							<Button Content="Przywróć domyślną ścieżkę"
+                                    Command="{Binding ResetToDefaultCommand}"
+                                    Classes="reset-button"
+                                    HorizontalAlignment="Left"/>
+						</StackPanel>
+
+					</StackPanel>
+				</Border>
+
+				<!-- Sekcja ustawień deweloperskich -->
+				<Border Classes="settings-section">
+					<StackPanel Spacing="15">
+						<TextBlock Text="Ustawienia deweloperskie"
+                                   Classes="section-header"/>
+
+						<!-- DeveloperMode -->
+						<StackPanel Spacing="8">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0">
+									<TextBlock Text="Mod Developer"
+                                               Classes="setting-label"/>
+									<TextBlock Text="Włącza dodatkowe opcje dla deweloperów modów"
+                                               Classes="setting-description"/>
+								</StackPanel>
+								<ToggleSwitch Grid.Column="1"
+                                              IsChecked="{Binding DeveloperMode}"
+                                              Classes="developer-switch"
+                                              VerticalAlignment="Center"/>
+							</Grid>
+						</StackPanel>
+
+						<!-- ShowConsole -->
+						<StackPanel Spacing="8">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0">
+									<TextBlock Text="Konsola deweloperska"
+											   Classes="setting-label"/>
+									<TextBlock Text="Pokazuje okno konsoli z logami aplikacji i informacjami debugowania (tylko dla tej sesji)"
+											   Classes="setting-description"/>
+								</StackPanel>
+								<ToggleSwitch Grid.Column="1"
+											  x:Name="ShowConsoleToggle"
+											  Classes="developer-switch"
+											  VerticalAlignment="Center"
+											  Click="OnShowConsoleToggled"/>
+							</Grid>
+						</StackPanel>
+
+					</StackPanel>
+				</Border>
+
+				<!-- Sekcja resetowania aplikacji -->
+				<Border Classes="settings-section">
+					<StackPanel Spacing="15">
+						<TextBlock Text="Reset aplikacji"
+                                   Classes="section-header"/>
+						<TextBlock Text="Resetuje aplikację do ustawień fabrycznych i usuwa wszystkie zainstalowane mody. Ta operacja jest nieodwracalna!"
+                                   Classes="setting-description"/>
+						<Button Content="Resetuj"
+                                Command="{Binding FactoryResetCommand}"
+                                Classes="danger-button"
+                                HorizontalAlignment="Left"/>
+					</StackPanel>
+				</Border>
+
+				<!-- Placeholder dla przyszłych ustawień -->
+				<Border Classes="settings-section">
+					<StackPanel Spacing="15">
+						<TextBlock Text="Inne ustawienia"
+                                   Classes="section-header"/>
+						<TextBlock Text="Więcej opcji konfiguracyjnych będzie dostępnych w przyszłych wersjach."
+                                   Classes="placeholder-text"/>
+					</StackPanel>
+				</Border>
+
+			</StackPanel>
+		</ScrollViewer>
+
+		<!-- Przyciski -->
+		<Border Grid.Row="2"
+                Classes="button-panel"
+                Margin="0,20,0,0">
+			<StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="10">
+				<Button Content="Anuluj"
+                        Command="{Binding CancelCommand}"
+                        Classes="secondary-button"/>
+				<Button Content="Zapisz"
+                        Command="{Binding SaveCommand}"
+                        Classes="primary-button"
+                        IsEnabled="{Binding HasUnsavedChanges}"/>
+			</StackPanel>
+		</Border>
+	</Grid>
+
+	<!-- Style pozostają bez zmian -->
+	<Window.Styles>
+		<Style Selector="TextBlock.header-text">
+			<Setter Property="FontSize" Value="18"/>
+			<Setter Property="FontWeight" Value="Bold"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		</Style>
+
+		<Style Selector="Border.settings-section">
+			<Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="6"/>
+			<Setter Property="Padding" Value="16"/>
+		</Style>
+
+		<Style Selector="TextBlock.section-header">
+			<Setter Property="FontSize" Value="14"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		</Style>
+
+		<Style Selector="TextBlock.setting-label">
+			<Setter Property="FontWeight" Value="Medium"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		</Style>
+
+		<Style Selector="TextBlock.setting-description">
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+			<Setter Property="TextWrapping" Value="Wrap"/>
+		</Style>
+
+		<Style Selector="TextBox.path-textbox">
+			<Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="4"/>
+			<Setter Property="Padding" Value="8"/>
+			<Setter Property="MinHeight" Value="32"/>
+		</Style>
+
+		<Style Selector="TextBox.path-textbox:focus">
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+
+		<Style Selector="Button.browse-button">
+			<Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="4"/>
+			<Setter Property="Padding" Value="12,6"/>
+			<Setter Property="MinHeight" Value="32"/>
+		</Style>
+
+		<Style Selector="Button.browse-button:pointerover">
+			<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+		</Style>
+
+		<Style Selector="Button.reset-button">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Padding" Value="8,4"/>
+			<Setter Property="FontSize" Value="12"/>
+		</Style>
+
+		<Style Selector="Button.reset-button:pointerover">
+			<Setter Property="Opacity" Value="0.8"/>
+		</Style>
+
+		<Style Selector="ToggleSwitch.developer-switch">
+			<Setter Property="OnContent" Value="Włączony"/>
+			<Setter Property="OffContent" Value="Wyłączony"/>
+		</Style>
+
+		<Style Selector="TextBlock.placeholder-text">
+			<Setter Property="FontStyle" Value="Italic"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+			<Setter Property="TextWrapping" Value="Wrap"/>
+		</Style>
+
+		<Style Selector="Border.button-panel">
+			<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+			<Setter Property="BorderThickness" Value="0,1,0,0"/>
+			<Setter Property="Padding" Value="0,15,0,0"/>
+		</Style>
+
+		<Style Selector="Button.primary-button">
+			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="4"/>
+			<Setter Property="Padding" Value="16,8"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+		</Style>
+
+		<Style Selector="Button.primary-button:pointerover">
+			<Setter Property="Opacity" Value="0.9"/>
+		</Style>
+
+		<Style Selector="Button.primary-button:disabled">
+			<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+			<Setter Property="Opacity" Value="0.6"/>
+		</Style>
+
+		<Style Selector="Button.secondary-button">
+			<Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="4"/>
+			<Setter Property="Padding" Value="16,8"/>
+		</Style>
+
+		<Style Selector="Button.secondary-button:pointerover">
+			<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+		</Style>
+
+		<Style Selector="Button.danger-button">
+			<Setter Property="Background" Value="#D32F2F"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="BorderBrush" Value="#B71C1C"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="4"/>
+			<Setter Property="Padding" Value="16,8"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+		</Style>
+
+		<Style Selector="Button.danger-button:pointerover">
+			<Setter Property="Opacity" Value="0.9"/>
+		</Style>
+	</Window.Styles>
+</Window>

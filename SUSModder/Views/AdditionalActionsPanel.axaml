@@ -1,0 +1,88 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             x:Class="SUSModder.Views.AdditionalActionsPanel"
+             x:DataType="vm:MainWindowViewModel">
+
+	<ScrollViewer MaxWidth="300">
+		<StackPanel Spacing="15">
+			<TextBlock Text="Narzędzia dla TownOfUs"
+                       FontSize="24" FontWeight="Bold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,4"/>
+			<Border Background="{DynamicResource ModCardBackgroundBrush}"
+					BorderBrush="{DynamicResource ModCardBorderBrush}"
+					BorderThickness="1"
+					CornerRadius="8"
+					Padding="15"
+					Margin="0,0,0,20">
+				<TextBlock Text="Możesz tutaj zarządzać rzeczami związanymi z modami opartymi na Town Of Us (ToU, Syzyf, Edited itd)"
+						   FontSize="12" FontStyle="Italic"
+						   Foreground="{DynamicResource TextSecondaryBrush}"
+						   HorizontalAlignment="Center"
+						   TextAlignment="Center"
+						   TextWrapping="Wrap"/>
+			</Border>
+			<!-- Sekcja Konfiguracje ToU -->
+			<StackPanel>
+				<TextBlock Text="Toolkit"
+		           FontSize="18" FontWeight="Bold"
+		           Foreground="{DynamicResource TextPrimaryBrush}"
+		           Margin="10,5,0,10"/>
+				<Button Content="Ustaw ilość osób w Lobby"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,0,0,5" Padding="10"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White"
+                        Click="OnLobbySetClick"/>
+				<TextBlock Text="Konfiguracje ToU"
+		           FontSize="18" FontWeight="Bold"
+		           Foreground="{DynamicResource TextPrimaryBrush}"
+		           Margin="10,5,0,10"/>
+				<Button Content="Zapisz konfiguracje lokalnie"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,0,0,5" Padding="10"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White"
+                        Click="OnSaveLocalConfigClick"/>
+
+				<Button Content="Wczytaj konfiguracje lokalne"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,0,0,5" Padding="10"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White"
+                        Click="OnLoadLocalConfigClick"/>
+
+				<Button Content="Zapisz konfiguracje na serwerze"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,0,0,5" Padding="10"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White"
+                        Click="OnSaveServerConfigClick"/>
+
+				<Button Content="Wczytaj konfiguracje z serwera"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,0,0,5" Padding="10"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White"
+                        Click="OnLoadServerConfigClick"/>
+
+				<Button Content="Wczytaj konfigurację z pliku .txt"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,0,0,5" Padding="10"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White"
+                        Click="OnLoadLocalTxtConfigClick"/>
+
+				<Button Content="Zmień nazwy presetów lobby"
+						HorizontalAlignment="Stretch"
+						Margin="0,0,0,5" Padding="10"
+						Background="{DynamicResource AccentBrush}"
+						Foreground="White"
+						Click="OnChangePresetNamesClick"/>
+
+			</StackPanel>
+		</StackPanel>
+	</ScrollViewer>
+</UserControl>

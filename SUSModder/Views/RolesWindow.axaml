@@ -1,0 +1,288 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="using:SUSModder.Models"
+        xmlns:converters="using:SUSModder.Converters"
+        x:Class="SUSModder.Views.RolesWindow"
+        Title="Role i Modyfikatory"
+        Width="1200" Height="800"
+        MinWidth="800" MinHeight="600"
+        Icon="/Assets/icon.ico"
+        Background="{DynamicResource PrimaryBackgroundBrush}">
+
+	<Window.Styles>
+		<FluentTheme />
+
+		<!-- Style dla kategorii ról - używają dynamicznych zasobów -->
+		<Style Selector="Border.category-crewmate">
+			<Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+		</Style>
+		<Style Selector="Border.category-impostor">
+			<Setter Property="Background" Value="{DynamicResource DangerBrush}"/>
+		</Style>
+		<Style Selector="Border.category-neutral">
+			<Setter Property="Background" Value="#FFFF9800"/>
+		</Style>
+		<Style Selector="Border.category-modifier">
+			<Setter Property="Background" Value="#FF9C27B0"/>
+		</Style>
+
+		<!-- Style dla Tag-based selektorów -->
+		<Style Selector="Border[Tag=Crewmate]">
+			<Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+		</Style>
+		<Style Selector="Border[Tag=Impostor]">
+			<Setter Property="Background" Value="{DynamicResource DangerBrush}"/>
+		</Style>
+		<Style Selector="Border[Tag=Neutral]">
+			<Setter Property="Background" Value="#FFFF9800"/>
+		</Style>
+		<Style Selector="Border[Tag=Modifier]">
+			<Setter Property="Background" Value="#FF9C27B0"/>
+		</Style>
+
+		<Style Selector="Border.role-card">
+			<Setter Property="Transitions">
+				<Transitions>
+					<DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
+				</Transitions>
+			</Setter>
+		</Style>
+		<Style Selector="Border.role-card:pointerover">
+			<Setter Property="Opacity" Value="0.8"/>
+		</Style>
+	</Window.Styles>
+
+	<Grid RowDefinitions="Auto,*" Margin="20" Background="{DynamicResource PrimaryBackgroundBrush}">
+		<!-- Header -->
+		<Border Grid.Row="0"
+                Background="{DynamicResource AccentBrush}"
+                CornerRadius="12"
+                Padding="20"
+                Margin="0,0,0,20">
+			<Grid ColumnDefinitions="Auto,*,Auto,Auto">
+				<!-- Tytuł -->
+				<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="15" VerticalAlignment="Center">
+					<TextBlock Text="🎭" FontSize="32"/>
+					<StackPanel>
+						<TextBlock x:Name="TitleText"
+                                   Text="Role i Modyfikatory"
+                                   FontSize="24" FontWeight="Bold"
+                                   Foreground="White"/>
+						<TextBlock x:Name="SubtitleText"
+                                   Text="Ładowanie..."
+                                   FontSize="12"
+                                   Foreground="#E0FFFFFF"/>
+					</StackPanel>
+				</StackPanel>
+
+				<!-- Wyszukiwarka -->
+				<TextBox Grid.Column="1"
+                         x:Name="SearchBox"
+                         Watermark="Wyszukaj role..."
+                         Margin="20,0"
+                         VerticalAlignment="Center"
+                         FontSize="14"
+                         Background="{DynamicResource SecondaryBackgroundBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         TextChanged="OnSearchTextChanged"/>
+
+				<!-- Filtr kategorii -->
+				<ComboBox Grid.Column="2"
+                          x:Name="CategoryFilter"
+                          PlaceholderText="Wszystkie kategorie"
+                          MinWidth="150"
+                          Margin="0,0,10,0"
+                          VerticalAlignment="Center"
+                          Background="{DynamicResource SecondaryBackgroundBrush}"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
+                          SelectionChanged="OnCategoryFilterChanged">
+					<ComboBoxItem Content="Wszystkie kategorie"/>
+					<ComboBoxItem Content="Crewmate"/>
+					<ComboBoxItem Content="Impostor"/>
+					<ComboBoxItem Content="Neutral"/>
+					<ComboBoxItem Content="Modifier"/>
+				</ComboBox>
+
+				<!-- Filtr typu -->
+				<ComboBox Grid.Column="3"
+                          x:Name="TypeFilter"
+                          PlaceholderText="Wszystkie typy"
+                          MinWidth="120"
+                          VerticalAlignment="Center"
+                          Background="{DynamicResource SecondaryBackgroundBrush}"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
+                          SelectionChanged="OnTypeFilterChanged">
+					<ComboBoxItem Content="Wszystkie typy"/>
+					<ComboBoxItem Content="Role"/>
+					<ComboBoxItem Content="Modifier"/>
+				</ComboBox>
+			</Grid>
+		</Border>
+
+		<!-- Zawartość -->
+		<ScrollViewer Grid.Row="1">
+			<StackPanel>
+				<!-- Loading -->
+				<Border x:Name="LoadingPanel"
+                        Background="{DynamicResource SecondaryBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="40"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+					<StackPanel HorizontalAlignment="Center" Spacing="15">
+						<TextBlock Text="⏳" FontSize="48" HorizontalAlignment="Center"/>
+						<TextBlock Text="Ładowanie ról..."
+                                   FontSize="16"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Center"/>
+					</StackPanel>
+				</Border>
+
+				<!-- Error -->
+				<Border x:Name="ErrorPanel"
+                        Background="{DynamicResource DangerBrush}"
+                        CornerRadius="8"
+                        Padding="20"
+                        IsVisible="False">
+					<StackPanel HorizontalAlignment="Center" Spacing="10">
+						<TextBlock Text="❌" FontSize="32" HorizontalAlignment="Center"/>
+						<TextBlock Text="Błąd podczas ładowania ról"
+                                   FontSize="16"
+                                   Foreground="White"
+                                   HorizontalAlignment="Center"/>
+						<Button Content="Spróbuj ponownie"
+                                HorizontalAlignment="Center"
+                                Background="{DynamicResource SecondaryBackgroundBrush}"
+                                Foreground="{DynamicResource TextPrimaryBrush}"
+                                Click="OnRetryClick"/>
+					</StackPanel>
+				</Border>
+
+				<!-- Role -->
+				<ItemsControl x:Name="RolesItemsControl" IsVisible="False">
+					<ItemsControl.ItemsPanel>
+						<ItemsPanelTemplate>
+							<WrapPanel Orientation="Horizontal" />
+						</ItemsPanelTemplate>
+					</ItemsControl.ItemsPanel>
+					<ItemsControl.ItemTemplate>
+						<DataTemplate DataType="models:Role">
+							<Border Classes="role-card"
+                                    Width="350"
+                                    Height="280"
+                                    Margin="10"
+                                    Background="{DynamicResource ModCardBackgroundBrush}"
+                                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="12"
+                                    Padding="0"
+                                    Cursor="Hand"
+                                    PointerPressed="OnRoleCardClick">
+								<Grid RowDefinitions="Auto,*,Auto">
+									<!-- Header -->
+									<Border Grid.Row="0"
+                                            CornerRadius="12,12,0,0"
+                                            Padding="15,10"
+                                            Tag="{Binding Category}">
+										<Grid ColumnDefinitions="*,Auto">
+											<TextBlock Grid.Column="0"
+                                                       Text="{Binding Name}"
+                                                       FontSize="16" FontWeight="Bold"
+                                                       Foreground="White"
+                                                       TextTrimming="CharacterEllipsis"/>
+											<Border Grid.Column="1"
+                                                    Background="rgba(255,255,255,0.2)"
+                                                    CornerRadius="12"
+                                                    Padding="8,4">
+												<TextBlock Text="{Binding Type}"
+                                                           FontSize="10"
+                                                           Foreground="White"
+                                                           FontWeight="SemiBold"/>
+											</Border>
+										</Grid>
+									</Border>
+
+									<!-- Opis z scrollem -->
+									<ScrollViewer Grid.Row="1"
+                                                  Padding="15"
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled">
+										<TextBlock Text="{Binding Description}"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="12"
+                                                   LineHeight="16"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+									</ScrollViewer>
+
+									<!-- Footer -->
+									<Border Grid.Row="2"
+                                            Background="{DynamicResource TertiaryBackgroundBrush}"
+                                            CornerRadius="0,0,12,12"
+                                            Padding="15,10">
+										<Grid RowDefinitions="Auto,Auto">
+											<!-- Abilities -->
+											<ItemsControl Grid.Row="0"
+                                                          ItemsSource="{Binding Abilities}"
+                                                          IsVisible="{Binding Abilities.Count, Converter={x:Static ObjectConverters.IsNotNull}}">
+												<ItemsControl.ItemsPanel>
+													<ItemsPanelTemplate>
+														<WrapPanel Orientation="Horizontal"/>
+													</ItemsPanelTemplate>
+												</ItemsControl.ItemsPanel>
+												<ItemsControl.ItemTemplate>
+													<DataTemplate DataType="models:Ability">
+														<Border Background="{DynamicResource AccentBrush}"
+                                                                CornerRadius="8"
+                                                                Padding="6,3"
+                                                                Margin="0,0,5,5">
+															<TextBlock Text="{Binding Name}"
+                                                                       FontSize="10"
+                                                                       Foreground="White"
+                                                                       FontWeight="SemiBold"/>
+														</Border>
+													</DataTemplate>
+												</ItemsControl.ItemTemplate>
+											</ItemsControl>
+
+											<!-- Mod name -->
+											<TextBlock Grid.Row="1"
+                                                       Text="{Binding ModName}"
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontStyle="Italic"
+                                                       Margin="0,5,0,0"/>
+										</Grid>
+									</Border>
+								</Grid>
+							</Border>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+
+				<!-- No results -->
+				<Border x:Name="NoResultsPanel"
+                        Background="{DynamicResource SecondaryBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="40"
+                        HorizontalAlignment="Center"
+                        IsVisible="False">
+					<StackPanel HorizontalAlignment="Center" Spacing="15">
+						<TextBlock Text="🔍" FontSize="48" HorizontalAlignment="Center"/>
+						<TextBlock Text="Brak wyników"
+                                   FontSize="16"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Center"/>
+						<TextBlock Text="Spróbuj zmienić kryteria wyszukiwania"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"/>
+					</StackPanel>
+				</Border>
+			</StackPanel>
+		</ScrollViewer>
+	</Grid>
+</Window>

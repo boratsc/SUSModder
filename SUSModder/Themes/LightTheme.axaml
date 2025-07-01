@@ -1,0 +1,43 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<!-- Kolory -->
+	<Color x:Key="PrimaryBackgroundColor">#FFFFFF</Color>
+	<Color x:Key="SecondaryBackgroundColor">#F8F9FA</Color>
+	<Color x:Key="TertiaryBackgroundColor">#E9ECEF</Color>
+	<Color x:Key="MenuBackgroundColor">#F1F3F4</Color>
+	<Color x:Key="CardBackgroundColor">#FFFFFF</Color>
+	<Color x:Key="BorderColor">#DEE2E6</Color>
+	<Color x:Key="TextPrimaryColor">#212529</Color>
+	<Color x:Key="TextSecondaryColor">#6C757D</Color>
+	<Color x:Key="AccentColor">#0D6EFD</Color>
+	<Color x:Key="DangerColor">#DC3545</Color>
+	<Color x:Key="SuccessColor">#198754</Color>
+	<Color x:Key="WindowBackgroundColor">#F5F5F5</Color>
+	<Color x:Key="PaneBackgroundColor">#E8E8E8</Color>
+	<Color x:Key="ModCardBackgroundColor">#FFFFFF</Color>
+	<Color x:Key="ModCardBorderColor">#CCCCCC</Color>
+	<Color x:Key="GridSplitterColor">#DDDDDD</Color>
+	<Color x:Key="ListBoxSelectionColor">#0D6EFD</Color>
+	<Color x:Key="InstallPathBorderColor">#0D6EFD</Color>
+
+	<!-- Brushes -->
+	<SolidColorBrush x:Key="PrimaryBackgroundBrush" Color="{StaticResource PrimaryBackgroundColor}"/>
+	<SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="{StaticResource SecondaryBackgroundColor}"/>
+	<SolidColorBrush x:Key="TertiaryBackgroundBrush" Color="{StaticResource TertiaryBackgroundColor}"/>
+	<SolidColorBrush x:Key="MenuBackgroundBrush" Color="{StaticResource MenuBackgroundColor}"/>
+	<SolidColorBrush x:Key="CardBackgroundBrush" Color="{StaticResource CardBackgroundColor}"/>
+	<SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}"/>
+	<SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}"/>
+	<SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
+	<SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+	<SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
+	<SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+	<SolidColorBrush x:Key="WindowBackgroundBrush" Color="{StaticResource WindowBackgroundColor}"/>
+	<SolidColorBrush x:Key="PaneBackgroundBrush" Color="{StaticResource PaneBackgroundColor}"/>
+	<SolidColorBrush x:Key="ModCardBackgroundBrush" Color="{StaticResource ModCardBackgroundColor}"/>
+	<SolidColorBrush x:Key="ModCardBorderBrush" Color="{StaticResource ModCardBorderColor}"/>
+	<SolidColorBrush x:Key="GridSplitterBrush" Color="{StaticResource GridSplitterColor}"/>
+	<SolidColorBrush x:Key="ListBoxSelectionBrush" Color="{StaticResource ListBoxSelectionColor}"/>
+	<SolidColorBrush x:Key="InstallPathBorderBrush" Color="{StaticResource InstallPathBorderColor}"/>
+</ResourceDictionary>

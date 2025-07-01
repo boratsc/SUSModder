@@ -1,0 +1,53 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SUSModder.Views.ConfirmDialog"
+        Width="400" Height="200"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+	<Window.Styles>
+		<FluentTheme />
+	</Window.Styles>
+
+	<Grid Margin="20" RowDefinitions="Auto,*,Auto">
+
+		<!-- Nagłówek -->
+		<TextBlock Grid.Row="0"
+                   x:Name="TitleText"
+                   FontSize="18" FontWeight="Bold"
+                   Foreground="{DynamicResource TextPrimaryBrush}"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,20"/>
+
+		<!-- Zawartość -->
+		<TextBlock Grid.Row="1"
+                   x:Name="MessageText"
+                   FontSize="14"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   TextWrapping="Wrap"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"
+                   VerticalAlignment="Center"/>
+
+		<!-- Przyciski -->
+		<StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Spacing="10">
+			<Button x:Name="NoButton"
+                    Content="Nie"
+                    Width="140" Height="30"
+                    Background="{DynamicResource ModCardBackgroundBrush}"
+                    Foreground="{DynamicResource TextPrimaryBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    Click="NoButton_Click"/>
+			<Button x:Name="YesButton"
+                    Content="Tak"
+                    Width="140" Height="30"
+                    Background="{DynamicResource AccentBrush}"
+                    Foreground="White"
+                    Click="YesButton_Click"/>
+		</StackPanel>
+	</Grid>
+</Window>

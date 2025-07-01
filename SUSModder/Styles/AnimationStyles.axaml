@@ -1,0 +1,52 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<!-- Fade-in animacja dla paneli -->
+	<Style Selector="Panel.fade-in-panel">
+		<Setter Property="Opacity" Value="0"/>
+		<Setter Property="Transitions">
+			<Transitions>
+				<DoubleTransition Property="Opacity" Duration="0:0:0.4" Easing="CubicEaseOut"/>
+			</Transitions>
+		</Setter>
+	</Style>
+
+	<Style Selector="Panel.fade-in-panel[IsVisible=True]">
+		<Setter Property="Opacity" Value="1"/>
+	</Style>
+
+	<!-- Fade-in z slide od prawej -->
+	<Style Selector="Panel.slide-in-right">
+		<Setter Property="Opacity" Value="0"/>
+		<Setter Property="Margin" Value="30,0,0,0"/>
+		<Setter Property="Transitions">
+			<Transitions>
+				<DoubleTransition Property="Opacity" Duration="0:0:0.4" Easing="CubicEaseOut"/>
+				<ThicknessTransition Property="Margin" Duration="0:0:0.4" Easing="CubicEaseOut"/>
+			</Transitions>
+		</Setter>
+	</Style>
+
+	<Style Selector="Panel.slide-in-right[IsVisible=True]">
+		<Setter Property="Opacity" Value="1"/>
+		<Setter Property="Margin" Value="0,0,0,0"/>
+	</Style>
+
+	<!-- Fade-in z slide od lewej -->
+	<Style Selector="Panel.slide-in-left">
+		<Setter Property="Opacity" Value="0"/>
+		<Setter Property="Margin" Value="-30,0,0,0"/>
+		<Setter Property="Transitions">
+			<Transitions>
+				<DoubleTransition Property="Opacity" Duration="0:0:0.4" Easing="CubicEaseOut"/>
+				<ThicknessTransition Property="Margin" Duration="0:0:0.4" Easing="CubicEaseOut"/>
+			</Transitions>
+		</Setter>
+	</Style>
+
+	<Style Selector="Panel.slide-in-left[IsVisible=True]">
+		<Setter Property="Opacity" Value="1"/>
+		<Setter Property="Margin" Value="0,0,0,0"/>
+	</Style>
+
+</Styles>
