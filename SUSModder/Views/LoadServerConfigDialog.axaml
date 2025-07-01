@@ -1,0 +1,155 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:SUSModder.Views"
+        x:Class="SUSModder.Views.LoadServerConfigDialog"
+        x:DataType="views:LoadServerConfigDialog"
+        Title="Wczytaj konfigurację z serwera"
+        Width="600" Height="600"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+	<Window.Styles>
+		<FluentTheme />
+	</Window.Styles>
+
+	<Grid Margin="20" RowDefinitions="Auto,*,Auto">
+
+		<!-- Header -->
+		<StackPanel Grid.Row="0" Margin="0,0,0,20">
+			<StackPanel Orientation="Horizontal" Spacing="15" HorizontalAlignment="Center" Margin="0,0,0,15">
+				<TextBlock Text="📥" FontSize="32" VerticalAlignment="Center"/>
+				<TextBlock Text="Wczytaj konfigurację z serwera"
+                           FontSize="18" FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"/>
+			</StackPanel>
+
+			<TextBlock Text="Wybierz sposób wczytania konfiguracji:"
+                       FontSize="14"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       TextAlignment="Center"/>
+		</StackPanel>
+
+		<!-- Content - bez ScrollViewer tutaj -->
+		<StackPanel Grid.Row="1" Margin="0,0,0,20" Spacing="20">
+
+			<!-- Opcja 1: Wpisz hash ręcznie -->
+			<Border Background="{DynamicResource ModCardBackgroundBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="20">
+				<StackPanel Spacing="15">
+					<RadioButton x:Name="ManualHashRadio"
+                                 Content="Wpisz kod ręcznie"
+                                 FontSize="16" FontWeight="SemiBold"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 IsChecked="{Binding UseManualHash}"
+                                 Checked="OnManualHashRadioChecked"/>
+
+					<TextBlock Text="Wpisz kod konfiguracji otrzymany od innej osoby:"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               IsVisible="{Binding UseManualHash}"/>
+
+					<TextBox Text="{Binding ManualHash}"
+                             Watermark="Wklej tutaj kod konfiguracji..."
+                             FontFamily="Consolas"
+                             FontSize="14"
+                             Padding="12"
+                             IsEnabled="{Binding UseManualHash}"
+                             IsVisible="{Binding UseManualHash}"/>
+				</StackPanel>
+			</Border>
+
+			<!-- Opcja 2: Wybierz z zapisanych -->
+			<Border Background="{DynamicResource ModCardBackgroundBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="20">
+				<StackPanel Spacing="15">
+					<RadioButton x:Name="SavedConfigRadio"
+                                 Content="Wybierz z zapisanych konfiguracji"
+                                 FontSize="16" FontWeight="SemiBold"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 IsChecked="{Binding UseManualHash, Converter={x:Static BoolConverters.Not}}"
+                                 Checked="OnSavedConfigRadioChecked"/>
+
+					<StackPanel IsVisible="{Binding UseManualHash, Converter={x:Static BoolConverters.Not}}"
+                                Spacing="10">
+
+						<TextBlock Text="Twoje zapisane konfiguracje:"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   IsVisible="{Binding SavedConfigs.Count}"/>
+
+						<TextBlock Text="Brak zapisanych konfiguracji"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   FontStyle="Italic"
+                                   IsVisible="{Binding SavedConfigs.Count, Converter={x:Static BoolConverters.Not}}"/>
+
+						<!-- ScrollViewer TYLKO dla listy -->
+						<ScrollViewer MaxHeight="250"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      IsVisible="{Binding SavedConfigs.Count}">
+							<ListBox ItemsSource="{Binding SavedConfigs}"
+                                     SelectedItem="{Binding SelectedConfig}"
+                                     Background="Transparent"
+                                     BorderThickness="1"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     CornerRadius="4">
+								<ListBox.ItemTemplate>
+									<DataTemplate>
+										<Border Padding="10,8"
+                                                Background="Transparent">
+											<StackPanel>
+												<TextBlock Text="{Binding Date}"
+                                                           FontSize="13" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+												<TextBlock Text="{Binding Hash}"
+                                                           FontSize="11"
+                                                           FontFamily="Consolas"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+											</StackPanel>
+										</Border>
+									</DataTemplate>
+								</ListBox.ItemTemplate>
+							</ListBox>
+						</ScrollViewer>
+					</StackPanel>
+				</StackPanel>
+			</Border>
+		</StackPanel>
+
+		<!-- Przyciski -->
+		<StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Spacing="15">
+			<Button Content="📥 Wczytaj konfigurację"
+                    Click="OnLoadClick"
+                    Background="{DynamicResource AccentBrush}"
+                    Foreground="White"
+                    Padding="20,10"
+                    CornerRadius="6"
+                    FontSize="14"
+                    FontWeight="SemiBold"
+                    MinWidth="180"
+                    IsEnabled="{Binding CanLoad}"/>
+			<Button Content="Anuluj"
+                    Click="OnCancelClick"
+                    Background="{DynamicResource ModCardBackgroundBrush}"
+                    Foreground="{DynamicResource TextPrimaryBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    BorderThickness="1"
+                    Padding="20,10"
+                    CornerRadius="6"
+                    FontSize="14"
+                    MinWidth="120"/>
+		</StackPanel>
+	</Grid>
+</Window>

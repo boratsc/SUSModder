@@ -1,0 +1,15 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:SUSModder"
+             x:Class="SUSModder.App"
+             RequestedThemeVariant="Dark">
+	<Application.DataTemplates>
+		<local:ViewLocator/>
+	</Application.DataTemplates>
+	<Application.Styles>
+		<FluentTheme />
+		<StyleInclude Source="/Styles/AnimationStyles.axaml"/>
+		<StyleInclude Source="/Styles/ListBoxStyles.axaml"/>
+		<StyleInclude Source="/Styles/LinkButtonStyle.axaml"/>
+	</Application.Styles>
+</Application>

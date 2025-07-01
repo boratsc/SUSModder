@@ -1,0 +1,178 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="using:SUSModder.Models"
+        x:Class="SUSModder.Views.RoleDetailWindow"
+        x:DataType="models:Role"
+        Title="Szczegóły roli"
+        Width="600" Height="800"
+        MinWidth="500" MinHeight="400"
+        Icon="/Assets/icon.ico"
+        Background="{DynamicResource PrimaryBackgroundBrush}">
+
+	<Window.Styles>
+		<FluentTheme />
+
+		<!-- Style dla różnych kategorii używając Tag -->
+		<Style Selector="Border[Tag=Crewmate]">
+			<Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+		</Style>
+		<Style Selector="Border[Tag=Impostor]">
+			<Setter Property="Background" Value="{DynamicResource DangerBrush}"/>
+		</Style>
+		<Style Selector="Border[Tag=Neutral]">
+			<Setter Property="Background" Value="#FFFF9800"/>
+		</Style>
+		<Style Selector="Border[Tag=Modifier]">
+			<Setter Property="Background" Value="#FF9C27B0"/>
+		</Style>
+	</Window.Styles>
+
+	<ScrollViewer Padding="20" Background="{DynamicResource PrimaryBackgroundBrush}">
+		<StackPanel Spacing="20">
+			<!-- Header -->
+			<Border CornerRadius="12" Padding="20"
+                    Tag="{Binding Category}">
+				<Grid ColumnDefinitions="*,Auto">
+					<StackPanel Grid.Column="0">
+						<TextBlock x:Name="RoleName"
+                                   Text="{Binding Name}"
+                                   FontSize="28" FontWeight="Bold"
+                                   Foreground="White"/>
+						<TextBlock x:Name="RoleCategory"
+                                   Text="{Binding Category}"
+                                   FontSize="16"
+                                   Foreground="#E0FFFFFF"
+                                   Margin="0,5,0,0"/>
+					</StackPanel>
+					<Border Grid.Column="1"
+							Background="rgba(255,255,255,0.2)"
+							CornerRadius="16"
+							Padding="12,6">
+						<TextBlock x:Name="RoleType"
+								   Text="{Binding Category}"
+								   FontSize="14"
+								   Foreground="White"
+								   FontWeight="SemiBold"/>
+					</Border>
+				</Grid>
+			</Border>
+
+			<!-- Opis -->
+			<Border Background="{DynamicResource ModCardBackgroundBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="20">
+				<StackPanel>
+					<TextBlock Text="📝 Opis"
+                               FontSize="18" FontWeight="Bold"
+                               Foreground="{DynamicResource AccentBrush}"
+                               Margin="0,0,0,15"/>
+					<ScrollViewer MaxHeight="300"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+						<TextBlock x:Name="RoleDescription"
+                                   Text="{Binding Description}"
+                                   TextWrapping="Wrap"
+                                   FontSize="14"
+                                   LineHeight="20"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+					</ScrollViewer>
+				</StackPanel>
+			</Border>
+
+			<!-- Abilities -->
+			<Border x:Name="AbilitiesPanel"
+                    Background="{DynamicResource ModCardBackgroundBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="20"
+                    IsVisible="{Binding Abilities.Count, Converter={x:Static ObjectConverters.IsNotNull}}">
+				<StackPanel>
+					<TextBlock Text="⚡ Zdolności"
+                               FontSize="18" FontWeight="Bold"
+                               Foreground="{DynamicResource AccentBrush}"
+                               Margin="0,0,0,15"/>
+					<ScrollViewer MaxHeight="400"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+						<ItemsControl x:Name="AbilitiesItemsControl" ItemsSource="{Binding Abilities}">
+							<ItemsControl.ItemTemplate>
+								<DataTemplate DataType="models:Ability">
+									<Border Background="{DynamicResource SecondaryBackgroundBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Margin="0,0,0,10"
+                                            Padding="15">
+										<Grid ColumnDefinitions="Auto,*">
+											<Border Grid.Column="0"
+                                                    Background="{DynamicResource AccentBrush}"
+                                                    CornerRadius="20"
+                                                    Width="40" Height="40"
+                                                    Margin="0,0,15,0">
+												<TextBlock Text="⚡"
+                                                           FontSize="20"
+                                                           Foreground="White"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+											</Border>
+
+											<StackPanel Grid.Column="1">
+												<TextBlock Text="{Binding Name}"
+                                                           FontSize="16" FontWeight="Bold"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+												<TextBlock Text="{Binding Description}"
+                                                           FontSize="12"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           TextWrapping="Wrap"
+                                                           Margin="0,5,0,0"
+                                                           IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+											</StackPanel>
+										</Grid>
+									</Border>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+					</ScrollViewer>
+				</StackPanel>
+			</Border>
+
+			<!-- Mod info -->
+			<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="15">
+				<Grid ColumnDefinitions="Auto,*">
+					<TextBlock Grid.Column="0"
+                               Text="🧩"
+                               FontSize="20"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"/>
+					<StackPanel Grid.Column="1">
+						<TextBlock Text="Mod:"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+						<TextBlock x:Name="ModName"
+                                   Text="{Binding ModName}"
+                                   FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+					</StackPanel>
+				</Grid>
+			</Border>
+
+			<!-- Przycisk zamknij -->
+			<Button Content="Zamknij"
+                    HorizontalAlignment="Center"
+                    Padding="20,10"
+                    CornerRadius="8"
+                    FontSize="14"
+                    FontWeight="SemiBold"
+                    Background="{DynamicResource AccentBrush}"
+                    Foreground="White"
+                    Click="OnCloseClick"/>
+		</StackPanel>
+	</ScrollViewer>
+</Window>
