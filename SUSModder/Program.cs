@@ -1,20 +1,25 @@
 ﻿using Avalonia;
 using Avalonia.ReactiveUI;
 using System;
-using SUSModder; // <-- DODAJ TĘ LINIĘ
+using System.IO;
+using SUSModder.Core.Services; 
 
-namespace SUSModder; // Ta nazwa może się różnić, to nie jest kluczowe
+namespace SUSModder;
 
 class Program
 {
-    // ... reszta kodu
     [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    public static void Main(string[] args)
+    {
+        // Przywracanie ustawień użytkownika po aktualizacji
+        var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+        AppUpdateService.RestoreUserSettingsIfNeeded(appSettingsPath, null);
 
-    // Tutaj używana jest klasa "App"
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    }
+
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>() // <-- Błąd pojawia się tutaj
+        => AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
             .LogToTrace()
