@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using SUSModder.Core.Diagnostics;
+using System.Text.Json.Nodes;
 
 namespace SUSModder.Core.Services
 {
@@ -146,7 +147,8 @@ namespace SUSModder.Core.Services
                 {
                     throw new FileNotFoundException($"Nie znaleziono updatera w ścieżce: {updaterPath}");
                 }
-
+                string appSettingsPath = Path.Combine(appDirPath, "appsettings.json");
+                SaveUserSettingsBackup(appSettingsPath);
                 _diagnosticsOutput.Write($"Uruchamianie updatera: {updaterPath}");
 
                 Process.Start(new ProcessStartInfo
@@ -189,6 +191,72 @@ namespace SUSModder.Core.Services
         {
             var baseUrl = _configuration["Configuration:BaseUrl"]?.TrimEnd('/');
             return $"{baseUrl}/api/download-latest";
+        }
+
+        public void SaveUserSettingsBackup(string appSettingsPath)
+        {
+            try
+            {
+                var json = File.ReadAllText(appSettingsPath);
+                var root = JsonNode.Parse(json)?.AsObject();
+                if (root == null) return;
+
+                var config = root["Configuration"]?.AsObject();
+                var appSettings = root["AppSettings"]?.AsObject();
+
+                var userSettings = new Dictionary<string, object?>
+                {
+                    ["Mode"] = config?["Mode"]?.ToString(),
+                    ["lastLaunchId"] = config?["lastLaunchId"]?.ToString(),
+                    ["Theme"] = config?["Theme"]?.ToString(),
+                    ["ModsInstallPath"] = appSettings?["ModsInstallPath"]?.ToString()
+                };
+
+                var backupPath = Path.Combine(Path.GetTempPath(), "SUSModder_user_settings.json");
+                File.WriteAllText(backupPath, JsonSerializer.Serialize(userSettings));
+                _diagnosticsOutput.Write($"Zapisano kopię ustawień do {backupPath}");
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput.Write($"Błąd podczas zapisywania kopii ustawień: {ex.Message}");
+            }
+        }
+
+        public static void RestoreUserSettingsIfNeeded(string appSettingsPath, IDiagnosticsOutput? diagnostics = null)
+        {
+            string backupPath = Path.Combine(Path.GetTempPath(), "SUSModder_user_settings.json");
+            if (!File.Exists(backupPath) || !File.Exists(appSettingsPath))
+                return;
+
+            try
+            {
+                var userSettings = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(backupPath));
+                var json = File.ReadAllText(appSettingsPath);
+                var root = JsonNode.Parse(json)?.AsObject();
+                if (root == null || userSettings == null) return;
+
+                var config = root["Configuration"]?.AsObject();
+                var appSettings = root["AppSettings"]?.AsObject();
+
+                if (config != null)
+                {
+                    if (userSettings.TryGetValue("Mode", out var mode)) config["Mode"] = mode;
+                    if (userSettings.TryGetValue("lastLaunchId", out var lastLaunchId)) config["lastLaunchId"] = int.TryParse(lastLaunchId, out var id) ? id : 0;
+                    if (userSettings.TryGetValue("Theme", out var theme)) config["Theme"] = theme;
+                }
+                if (appSettings != null && userSettings.TryGetValue("ModsInstallPath", out var modsPath))
+                {
+                    appSettings["ModsInstallPath"] = modsPath;
+                }
+
+                File.WriteAllText(appSettingsPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+                File.Delete(backupPath);
+                diagnostics?.Write("Przywrócono ustawienia użytkownika po aktualizacji.");
+            }
+            catch (Exception ex)
+            {
+                diagnostics?.Write($"Błąd podczas przywracania ustawień użytkownika: {ex.Message}");
+            }
         }
     }
 
