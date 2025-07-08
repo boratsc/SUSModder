@@ -44,6 +44,7 @@ namespace SUSModder.Core.Services
             catch (Exception ex)
             {
                 _diagnosticsOutput.Write($"Błąd podczas sprawdzania aktualizacji: {ex.Message}");
+                _diagnosticsOutput.Write($"Szczegóły: {ex.InnerException?.Message}");
                 return new UpdateCheckResult
                 {
                     IsUpdateAvailable = false,
