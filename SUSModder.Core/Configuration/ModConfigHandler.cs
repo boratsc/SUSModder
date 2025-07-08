@@ -160,7 +160,7 @@ namespace SUSModder.Core.Configuration
                     throw new InvalidOperationException("Konfiguracja serwera jest niepełna. Sprawdź BaseUrl, ApiPort i UploadEndpoint w appsettings.json.");
                 }
 
-                string serverUrl = $"{baseUrl.TrimEnd('/')}" + $":{apiPort}/" + $"{uploadEndpoint.TrimStart('/')}";
+                string serverUrl = $"{baseUrl.TrimEnd('/')}/{uploadEndpoint.TrimStart('/')}";
 
                 System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Próba połączenia z: {serverUrl}");
                 System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] BaseUrl: {baseUrl}");
@@ -202,7 +202,7 @@ namespace SUSModder.Core.Configuration
                     };
 
                     // Dodatkowe opcje SSL
-                    handler.SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13;
+                    //handler.SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13;
                     System.Diagnostics.Debug.WriteLine($"[SSL] Ustawiono protokoły: TLS 1.2 i TLS 1.3");
                 }
 
@@ -365,7 +365,7 @@ namespace SUSModder.Core.Configuration
                 throw new InvalidOperationException("Konfiguracja serwera jest niepełna. Sprawdź BaseUrl, ApiPort i DownloadEndpoint w appsettings.json.");
             }
 
-            string serverUrl = $"{baseUrl.TrimEnd('/')}" + $":{apiPort}/" + $"{downloadEndpoint.TrimStart('/')}/{hash}.zip";
+            string serverUrl = $"{baseUrl.TrimEnd('/')}/{downloadEndpoint.TrimStart('/')}/{hash}.zip";
             string tempFilePath = Path.Combine(Path.GetTempPath(), $"{hash}.zip");
 
             System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Próba pobrania z: {serverUrl}");
