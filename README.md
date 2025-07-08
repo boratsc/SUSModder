@@ -70,8 +70,8 @@ The primary goal of this project is to make modding accessible for everyone — 
 
 ## Licencja / License
 
-Ten projekt jest udostępniany na licencji **MIT**.
+Ten projekt jest udostępniany na licencji **lGPL v3**.
 
-This project is licensed under the **MIT License**.
+This project is licensed under the **lGPL v3 License**.
 
 Treść licencji znajduje się w pliku [`LICENSE`](./LICENSE).
