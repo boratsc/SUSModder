@@ -7,8 +7,8 @@
         Title="SUSModder"
         x:Class="SUSModder.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Width="1000" Height="650"
-        MinWidth="800" MinHeight="600">
+        Width="1000" Height="750"
+        MinWidth="800" MinHeight="700">
 	<Window.Resources>
 		<converters:StringNotNullOrEmptyToBoolConverter x:Key="StringNotNullOrEmptyToBoolConverter"/>
 		<converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
@@ -707,6 +707,17 @@
 											Foreground="White"
 											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 											Command="{Binding $parent[local:MainWindow].DataContext.UninstallCommand}"/>
+
+									<Button Content="Dodaj DLL"
+											HorizontalAlignment="Stretch"
+											Padding="12"
+											CornerRadius="8"
+											FontSize="14"
+											FontWeight="SemiBold"
+											Background="{DynamicResource DllButtonBrush}"
+											Foreground="White"
+											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+											Command="{Binding $parent[local:MainWindow].DataContext.ShowDllSelectionCommand}"/>
 								</StackPanel>
 
 								<!-- Przycisk Role - zawsze widoczny (NIE dla Vanilla) -->
