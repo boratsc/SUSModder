@@ -86,6 +86,7 @@ namespace SUSModder.ViewModels
         private ObservableCollection<ModItem> _modsWithDllInstalled = new();
         private ObservableCollection<ModItem> _modsWithoutDllInstalled = new();
         public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
+        public ReactiveCommand<Unit, Unit> ShowDllSelectionCommand { get; }
 
         public ObservableCollection<ModItem> ModsWithDllInstalled
         {
@@ -228,6 +229,32 @@ namespace SUSModder.ViewModels
             CheckForAppUpdatesOnStartup();
             ApplyTheme(CurrentTheme);
 
+            ShowDllSelectionCommand = ReactiveCommand.Create(() => {
+                if (SelectedMod == null || string.IsNullOrEmpty(SelectedMod.InstallPath))
+                    return;
+                    
+                // Zamiast używać właściwości IsEpic, użyj funkcji DeterminePlatform
+                string platform = DeterminePlatform().ToLower(); // ToLower() żeby było zgodne z wartościami "epic" i "steam"
+                
+                // Tworzymy nowe okno DllModSelectionView
+                var dllSelectionWindow = new Window
+                {
+                    Title = $"Dodatkowe modyfikacje DLL dla {SelectedMod.Name}",
+                    Width = 650,
+                    Height = 600,
+                    Content = new DllModSelectionView
+                    {
+                        DataContext = new DllModSelectionViewModel(
+                            _dllModificationService, 
+                            ModItemAdapter.ToConfig(SelectedMod),
+                            platform // Użyj zmiennej platform zamiast SelectedMod.IsEpic
+                        )
+                    }
+                };
+                
+                System.Diagnostics.Debug.WriteLine($"DEBUG: Otwieranie okna DLL dla platformy: {platform}");
+                dllSelectionWindow.Show();
+            });
 
         }
 
@@ -1605,6 +1632,27 @@ namespace SUSModder.ViewModels
                         // Przekaż null zamiast epicProgressCallback
                         await epicManager.ModifyEpicAsync(modConfig, null, null);
                         System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync returned successfully");
+                        var dllSelectionWindow = new Window
+                        {
+                            Title = $"Dodatkowe modyfikacje DLL dla {currentSelectedMod.Name}",
+                            Width = 650,
+                            Height = 600,
+                            Content = new DllModSelectionView
+                            {
+                                DataContext = new DllModSelectionViewModel(
+                                    _dllModificationService, 
+                                    new ModConfiguration 
+                                    {
+                                        ModName = currentSelectedMod.Name,
+                                        Description = currentSelectedMod.Description,
+                                        InstallPath = currentSelectedMod.InstallPath ?? ""
+                                    }, 
+                                    "epic"
+                                )
+                            }
+                        };
+                        System.Diagnostics.Debug.WriteLine($"DEBUG Epic Path: {currentSelectedMod.InstallPath}");
+                        dllSelectionWindow.Show();
                         success = true;
                     }
                     catch (Exception ex)
@@ -1671,6 +1719,21 @@ namespace SUSModder.ViewModels
                     if (success)
                     {
                         RefreshModsSortingKeepSelection(currentSelectedMod);
+                        var dllSelectionWindow = new Window
+                        {
+                            Title = $"Dodatkowe modyfikacje DLL dla {currentSelectedMod.Name}",
+                            Width = 650,
+                            Height = 600,
+                            Content = new DllModSelectionView
+                            {
+                                DataContext = new DllModSelectionViewModel(
+                                    _dllModificationService, 
+                                    ModItemAdapter.ToConfig(currentSelectedMod),
+                                    "steam" // Jawnie przekaż "steam"
+                                )
+                            }
+                        };
+                        dllSelectionWindow.Show();
                     }
                 }
             }
