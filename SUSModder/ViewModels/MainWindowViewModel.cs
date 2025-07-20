@@ -45,6 +45,7 @@ namespace SUSModder.ViewModels
 
         private bool _isInfoPanelVisible = false;
         private string _appVersion = string.Empty;
+        private string _windowTitle = "SUSModder";
         public bool IsModPanelVisible => IsModSelected && !IsInfoPanelVisible && !IsAdditionalActionsVisible;
         private readonly ToUConfigService _touConfigService;
         private bool _isAdditionalActionsVisible = false;
@@ -109,6 +110,12 @@ namespace SUSModder.ViewModels
         {
             get => _appVersion;
             set => this.RaiseAndSetIfChanged(ref _appVersion, value);
+        }
+
+        public string WindowTitle
+        {
+            get => _windowTitle;
+            set => this.RaiseAndSetIfChanged(ref _windowTitle, value);
         }
 
         public bool IsDllModificationsVisible
@@ -226,8 +233,12 @@ namespace SUSModder.ViewModels
             LoadSavedTheme();
             InitializeApplicationAsync();
             LoadAppVersion();
+            LoadWindowTitle();
             CheckForAppUpdatesOnStartup();
             ApplyTheme(CurrentTheme);
+
+            // Subskrybuj do zmiany trybu gry
+            AppSettingsViewModel.GameModeChanged += LoadWindowTitle;
 
             ShowDllSelectionCommand = ReactiveCommand.Create(() => {
                 if (SelectedMod == null || string.IsNullOrEmpty(SelectedMod.InstallPath))
@@ -1217,6 +1228,21 @@ namespace SUSModder.ViewModels
         {
             var configService = new ConfigService();
             AppVersion = configService.GetAppVersion();
+        }
+
+        private void LoadWindowTitle()
+        {
+            try
+            {
+                string platform = DeterminePlatform();
+                WindowTitle = $"SUSModder | {platform}";
+                System.Diagnostics.Debug.WriteLine($"Window title set to: {WindowTitle}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading window title: {ex.Message}");
+                WindowTitle = "SUSModder"; // Fallback
+            }
         }
 
         private void ShowAdditionalActions()

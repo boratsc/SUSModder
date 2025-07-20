@@ -4,7 +4,7 @@
         xmlns:local="using:SUSModder.Views"
         xmlns:converters="using:SUSModder.Converters"
         Icon="/Assets/icon.ico"
-        Title="SUSModder"
+        Title="{Binding WindowTitle}"
         x:Class="SUSModder.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Width="1000" Height="750"
