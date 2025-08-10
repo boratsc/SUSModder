@@ -71,6 +71,8 @@
 						   Foreground="{DynamicResource TextSecondaryBrush}"/>
 				<TextBlock Text=" Sheep aka Syzyf"
 						   Foreground="{DynamicResource TextSecondaryBrush}"/>
+				<TextBlock Text=" tumcio13"
+						   Foreground="{DynamicResource TextSecondaryBrush}"/>
 			</StackPanel>
 
 			<!-- Social Media -->
