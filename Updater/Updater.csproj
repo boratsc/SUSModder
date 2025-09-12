@@ -6,10 +6,16 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+		<PublishDir>..\publish\updater\</PublishDir>
+	</PropertyGroup>
+
+	<!-- Konfiguracja tylko dla Release/Publish -->
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
 		<SelfContained>true</SelfContained>
 		<PublishSingleFile>true</PublishSingleFile>
 		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
 		<PublishTrimmed>true</PublishTrimmed>
-		<PublishDir>..\publish\updater\</PublishDir>
+		<DebugType>none</DebugType>
+		<DebugSymbols>false</DebugSymbols>
 	</PropertyGroup>
 </Project>

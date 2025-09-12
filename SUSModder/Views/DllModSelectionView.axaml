@@ -1,0 +1,199 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:SUSModder.Core.Configuration;assembly=SUSModder.Core"
+             xmlns:vm="clr-namespace:SUSModder.ViewModels"
+             xmlns:local="clr-namespace:SUSModder.Converters;assembly=SUSModder"
+             x:DataType="vm:DllModSelectionViewModel"
+             x:Class="SUSModder.Views.DllModSelectionView"
+             
+             Background="{DynamicResource PrimaryBackgroundBrush}">
+    <UserControl.Resources>
+        <local:GreaterThanConverter x:Key="GreaterThanConverter"/>
+    </UserControl.Resources>
+    
+    <Grid Margin="30">
+        <!-- Główny panel -->
+        <Border Background="{DynamicResource PrimaryBackgroundBrush}" 
+                CornerRadius="12"
+                BoxShadow="0 2 10 0 #10000000">
+            <Grid RowDefinitions="Auto,*,Auto">
+                <!-- Nagłówek z akcentem i przyciskiem zamknij -->
+                <Border Grid.Row="0"
+                        Background="{DynamicResource AccentBrush}" 
+                        CornerRadius="12"
+                        Height="70">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" 
+                                   Text="🧩" 
+                                   FontSize="32" 
+                                   VerticalAlignment="Center"
+                                   Margin="15,0,0,0"/>
+                        <StackPanel Grid.Column="1" 
+                                    VerticalAlignment="Center"
+                                    Margin="15,0,0,0">
+                            <TextBlock Text="Modyfikacje DLL" 
+                                       FontSize="20" 
+                                       FontWeight="Bold" 
+                                       Foreground="White"/>
+                            <TextBlock Text="Wybierz modyfikacje DLL do zainstalowania" 
+                                       FontSize="12" 
+                                       Foreground="#E0FFFFFF"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Lista modów DLL -->
+                <ScrollViewer Grid.Row="1" Margin="0">
+                    <ItemsControl ItemsSource="{Binding DllMods}"
+                                  Margin="15">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:ModConfiguration">
+                                <Border Background="{DynamicResource ModCardBackgroundBrush}"
+                                        BorderBrush="{DynamicResource ModCardBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Margin="0,0,0,10"
+                                        Padding="15">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <CheckBox Grid.Column="0"
+                                                  IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                  Margin="0,0,15,0"
+                                                  VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding ModName}"
+                                                       FontSize="16" FontWeight="Bold"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                            <TextBlock Text="{Binding Description}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       TextWrapping="Wrap"
+                                                       MaxWidth="300"/>
+                                            <TextBlock Text="{Binding ModVersion, StringFormat='Wersja: {0}'}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Stopka z przyciskiem instalacji -->
+                <Border Grid.Row="2"
+                        Background="{DynamicResource SecondaryBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="0,1,0,0"
+                        Padding="15"
+                        Height="70">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding SelectedDllMods.Count, StringFormat='Wybrano: {0}'}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <Button Grid.Column="1"
+                                Content="Zainstaluj wybrane"
+                                Command="{Binding InstallSelectedDllsCommand}"
+                                Background="{DynamicResource AccentBrush}"
+                                Foreground="White"
+                                Padding="15,10"
+                                CornerRadius="6"
+                                FontWeight="SemiBold"
+                                IsEnabled="{Binding SelectedDllMods.Count, Converter={StaticResource GreaterThanConverter}, ConverterParameter=0}"/>
+                    </Grid>
+                </Border>
+
+                <!-- Komunikat gdy brak modów -->
+                <Border Grid.Row="1"
+                        Background="{DynamicResource ModCardBackgroundBrush}"
+                        BorderBrush="{DynamicResource ModCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        Margin="20"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        IsVisible="{Binding !DllMods.Count}">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="🤷‍♂️"
+                                   FontSize="32"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,10"/>
+                        <TextBlock Text="Brak dostępnych modyfikacji DLL"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextAlignment="Center"/>
+                        <TextBlock Text="Sprawdź połączenie internetowe lub konfigurację repozytoriów"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+        
+        <!-- Panel potwierdzenia instalacji - na samym końcu -->
+        <Grid IsVisible="{Binding IsInstallationComplete}"
+              Background="{DynamicResource PrimaryBackgroundBrush}"
+              ZIndex="100">
+            <Border Background="{DynamicResource CardBackgroundBrush}"
+                    BorderBrush="{DynamicResource AccentBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    BoxShadow="0 4 16 0 #20000000"
+                    Width="500"
+                    Height="300"
+                    Padding="20">
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <TextBlock Grid.Row="0"
+                               Text="Instalacja zakończona"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,20"/>
+                    
+                    <Border Grid.Row="1"
+                            Background="{DynamicResource ModCardBackgroundBrush}"
+                            BorderBrush="{DynamicResource ModCardBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="15">
+                        <ScrollViewer>
+                            <TextBlock Text="{Binding InstallationSummary}"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        </ScrollViewer>
+                    </Border>
+                    
+                    <StackPanel Grid.Row="2"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Margin="0,15,0,0">
+                        <Button Content="OK"
+                                Command="{Binding OkCommand}"
+                                Background="{DynamicResource AccentBrush}"
+                                Foreground="White"
+                                Padding="20,10"
+                                CornerRadius="6"
+                                Margin="0,0,10,0"/>
+                        <Button Content="Zamknij"
+                                Command="{Binding CloseCommand}"
+                                Background="Transparent"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                Foreground="{DynamicResource TextPrimaryBrush}"
+                                Padding="20,10"
+                                CornerRadius="6"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
