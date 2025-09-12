@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
@@ -10,8 +11,23 @@ using SUSModder.Core.Repositories;
 
 namespace SUSModder.Core.Configuration
 {
-    public class ModConfiguration
+    public class ModConfiguration : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+                }
+            }
+        }
+
         [JsonPropertyName("Id")]
         public int Id { get; set; }
 

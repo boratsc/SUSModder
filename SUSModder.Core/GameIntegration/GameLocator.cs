@@ -97,7 +97,10 @@ namespace SUSModder.Core.GameIntegration
                         foundPath = Path.GetDirectoryName(userSelectedPath);
 
                         // Sprawdź czy to Steam czy Epic na podstawie struktury folderów
-                        if (foundPath != null && Directory.Exists(Path.Combine(foundPath, ".egstore")))
+                        if (foundPath != null && (
+                            Directory.Exists(Path.Combine(foundPath, ".egstore")) ||
+                            Directory.Exists(Path.Combine(foundPath, "Among Us_Data", "StreamingAssets", "aa", "EGS"))
+                        ))
                         {
                             detectedMode = "epic";
                         }

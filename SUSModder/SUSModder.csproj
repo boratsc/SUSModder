@@ -18,6 +18,8 @@
 		<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
 		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
 		<PublishTrimmed>false</PublishTrimmed>
+		<DebugType>none</DebugType>
+		<DebugSymbols>false</DebugSymbols>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -43,9 +45,10 @@
 
 	<!-- Pliki które mają być wyodrębnione z single-file (zewnętrzne zależności) -->
 	<ItemGroup>
-		<Content Include="updater\**\*.*">
+		<Content Include="..\publish\updater\**\*.*">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+			<TargetPath>updater\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
 		</Content>
 	</ItemGroup>
 

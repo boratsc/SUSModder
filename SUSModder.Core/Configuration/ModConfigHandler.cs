@@ -36,6 +36,15 @@ namespace SUSModder.Core.Configuration
                 Directory.CreateDirectory(configDir);
             }
 
+            var filesToZip = Directory.GetFiles(sourceDir, "*.txt");
+            string miraPresetsPath = Path.Combine(sourceDir, "mira_presets");
+            bool hasMiraPresets = Directory.Exists(miraPresetsPath) && Directory.GetFiles(miraPresetsPath, "*", SearchOption.AllDirectories).Length > 0;
+            
+            if (filesToZip.Length == 0 && !hasMiraPresets)
+            {
+                throw new FileNotFoundException("Brak plików konfiguracyjnych do zapisania. Nie znaleziono plików .txt ani folderu mira_presets z plikami.");
+            }
+
             string zipFileName = string.IsNullOrWhiteSpace(configName)
                 ? $"Konfiguracja z dnia - {DateTime.Now:yyyyMMddHHmmss}.zip"
                 : $"{configName}.zip";
@@ -44,9 +53,16 @@ namespace SUSModder.Core.Configuration
             using (var zipStream = new FileStream(destinationPath, FileMode.Create))
             using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create))
             {
-                foreach (var filePath in Directory.GetFiles(sourceDir, "*.txt"))
+                // Dodaj wszystkie pliki .txt
+                foreach (var filePath in filesToZip)
                 {
                     archive.CreateEntryFromFile(filePath, Path.GetFileName(filePath));
+                }
+
+                // Dodaj folder mira_presets jeśli istnieje i zawiera pliki
+                if (hasMiraPresets)
+                {
+                    AddDirectoryToZip(archive, miraPresetsPath, "mira_presets");
                 }
             }
         }
@@ -61,6 +77,15 @@ namespace SUSModder.Core.Configuration
                 Directory.CreateDirectory(configDir);
             }
 
+            var filesToZip = Directory.GetFiles(sourceDir, "*.txt");
+            string miraPresetsPath = Path.Combine(sourceDir, "mira_presets");
+            bool hasMiraPresets = Directory.Exists(miraPresetsPath) && Directory.GetFiles(miraPresetsPath, "*", SearchOption.AllDirectories).Length > 0;
+            
+            if (filesToZip.Length == 0 && !hasMiraPresets)
+            {
+                throw new FileNotFoundException("Brak plików konfiguracyjnych do zapisania. Nie znaleziono plików .txt ani folderu mira_presets z plikami.");
+            }
+
             string zipFileName = string.IsNullOrWhiteSpace(configName)
                 ? $"Konfiguracja z dnia - {DateTime.Now:yyyyMMddHHmmss}.zip"
                 : $"{configName}.zip";
@@ -69,9 +94,16 @@ namespace SUSModder.Core.Configuration
             using (var zipStream = new FileStream(destinationPath, FileMode.Create))
             using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create))
             {
-                foreach (var filePath in Directory.GetFiles(sourceDir, "*.txt"))
+                // Dodaj wszystkie pliki .txt
+                foreach (var filePath in filesToZip)
                 {
                     archive.CreateEntryFromFile(filePath, Path.GetFileName(filePath));
+                }
+
+                // Dodaj folder mira_presets jeśli istnieje i zawiera pliki
+                if (hasMiraPresets)
+                {
+                    AddDirectoryToZip(archive, miraPresetsPath, "mira_presets");
                 }
             }
         }
@@ -121,17 +153,27 @@ namespace SUSModder.Core.Configuration
             try
             {
                 var filesToZip = Directory.GetFiles(sourceDir, "*.txt");
-                if (filesToZip.Length == 0)
+                string miraPresetsPath = Path.Combine(sourceDir, "mira_presets");
+                bool hasMiraPresets = Directory.Exists(miraPresetsPath) && Directory.GetFiles(miraPresetsPath, "*", SearchOption.AllDirectories).Length > 0;
+                
+                if (filesToZip.Length == 0 && !hasMiraPresets)
                 {
-                    throw new FileNotFoundException("Brak plików konfiguracyjnych do wysłania.");
+                    throw new FileNotFoundException("Brak plików konfiguracyjnych do wysłania. Nie znaleziono plików .txt ani folderu mira_presets z plikami.");
                 }
 
                 using (var zipStream = new FileStream(tempFilePath, FileMode.Create))
                 using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create))
                 {
+                    // Dodaj wszystkie pliki .txt
                     foreach (var filePath in filesToZip)
                     {
                         archive.CreateEntryFromFile(filePath, Path.GetFileName(filePath));
+                    }
+
+                    // Dodaj folder mira_presets jeśli istnieje i zawiera pliki
+                    if (hasMiraPresets)
+                    {
+                        AddDirectoryToZip(archive, miraPresetsPath, "mira_presets");
                     }
                 }
 
@@ -160,7 +202,7 @@ namespace SUSModder.Core.Configuration
                     throw new InvalidOperationException("Konfiguracja serwera jest niepełna. Sprawdź BaseUrl, ApiPort i UploadEndpoint w appsettings.json.");
                 }
 
-                string serverUrl = $"{baseUrl.TrimEnd('/')}" + $":{apiPort}/" + $"{uploadEndpoint.TrimStart('/')}";
+                string serverUrl = $"{baseUrl.TrimEnd('/')}/{uploadEndpoint.TrimStart('/')}";
 
                 System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Próba połączenia z: {serverUrl}");
                 System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] BaseUrl: {baseUrl}");
@@ -202,7 +244,7 @@ namespace SUSModder.Core.Configuration
                     };
 
                     // Dodatkowe opcje SSL
-                    handler.SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13;
+                    //handler.SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13;
                     System.Diagnostics.Debug.WriteLine($"[SSL] Ustawiono protokoły: TLS 1.2 i TLS 1.3");
                 }
 
@@ -365,7 +407,7 @@ namespace SUSModder.Core.Configuration
                 throw new InvalidOperationException("Konfiguracja serwera jest niepełna. Sprawdź BaseUrl, ApiPort i DownloadEndpoint w appsettings.json.");
             }
 
-            string serverUrl = $"{baseUrl.TrimEnd('/')}" + $":{apiPort}/" + $"{downloadEndpoint.TrimStart('/')}/{hash}.zip";
+            string serverUrl = $"{baseUrl.TrimEnd('/')}/{downloadEndpoint.TrimStart('/')}/{hash}.zip";
             string tempFilePath = Path.Combine(Path.GetTempPath(), $"{hash}.zip");
 
             System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Próba pobrania z: {serverUrl}");
@@ -527,6 +569,18 @@ namespace SUSModder.Core.Configuration
         }
 
 
+        private static void AddDirectoryToZip(ZipArchive archive, string directoryPath, string entryPrefix)
+        {
+            var directoryInfo = new DirectoryInfo(directoryPath);
+            
+            foreach (var file in directoryInfo.GetFiles("*", SearchOption.AllDirectories))
+            {
+                string relativePath = Path.GetRelativePath(directoryPath, file.FullName);
+                string entryName = Path.Combine(entryPrefix, relativePath).Replace('\\', '/');
+                archive.CreateEntryFromFile(file.FullName, entryName);
+            }
+        }
+
         private static void LoadConfigFromFile(string filePath)
         {
             string destinationDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), @"AppData\LocalLow\Innersloth\Among Us");
@@ -537,6 +591,21 @@ namespace SUSModder.Core.Configuration
                     if (entry.Name.EndsWith(".txt"))
                     {
                         entry.ExtractToFile(Path.Combine(destinationDir, entry.Name), true);
+                    }
+                    else if (entry.FullName.StartsWith("mira_presets/"))
+                    {
+                        // Obsługa plików z folderu mira_presets
+                        string relativePath = entry.FullName;
+                        string destinationPath = Path.Combine(destinationDir, relativePath);
+                        
+                        // Utwórz katalog jeśli nie istnieje
+                        Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+                        
+                        // Wyodrębnij plik tylko jeśli to nie jest katalog
+                        if (!string.IsNullOrEmpty(entry.Name))
+                        {
+                            entry.ExtractToFile(destinationPath, true);
+                        }
                     }
                 }
             }

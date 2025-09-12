@@ -20,6 +20,7 @@
 	<Color x:Key="GridSplitterColor">#FFB6C1</Color>
 	<Color x:Key="ListBoxSelectionColor">#FF1493</Color>
 	<Color x:Key="InstallPathBorderColor">#FF1493</Color>
+	<Color x:Key="DllButtonColor">#FFB347</Color> <!-- pastelowy pomarańcz -->
 
 	<!-- Brushes -->
 	<SolidColorBrush x:Key="PrimaryBackgroundBrush" Color="{StaticResource PrimaryBackgroundColor}"/>
@@ -40,6 +41,7 @@
 	<SolidColorBrush x:Key="GridSplitterBrush" Color="{StaticResource GridSplitterColor}"/>
 	<SolidColorBrush x:Key="ListBoxSelectionBrush" Color="{StaticResource ListBoxSelectionColor}"/>
 	<SolidColorBrush x:Key="InstallPathBorderBrush" Color="{StaticResource InstallPathBorderColor}"/>
+	<SolidColorBrush x:Key="DllButtonBrush" Color="{StaticResource DllButtonColor}"/>
 
 	<DrawingBrush x:Key="HeartsBackgroundBrush" TileMode="Tile" SourceRect="0,0,100,100" DestinationRect="0,0,100,100">
     <DrawingBrush.Drawing>

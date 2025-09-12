@@ -23,12 +23,17 @@ namespace SUSModder.ViewModels
         private readonly Window _window;
         private string _modsInstallPath = string.Empty;
         private bool _developerMode = false;
+        private string _gameMode = "steam";
         private string _originalModsInstallPath = string.Empty;
         private bool _originalDeveloperMode = false;
+        private string _originalGameMode = "steam";
         private bool _hasUnsavedChanges = false;
 
         // Dodaj event dla powiadomienia o zapisaniu
         public event Action? SettingsSaved;
+        
+        // Dodaj event dla powiadomienia o zmianie trybu gry
+        public static event Action? GameModeChanged;
 
         public AppSettingsViewModel(Window window)
         {
@@ -65,6 +70,42 @@ namespace SUSModder.ViewModels
             }
         }
 
+        public string GameMode
+        {
+            get => _gameMode;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _gameMode, value);
+                CheckForChanges();
+            }
+        }
+
+        public bool IsSteamMode
+        {
+            get => _gameMode == "steam";
+            set
+            {
+                if (value && _gameMode != "steam")
+                {
+                    GameMode = "steam";
+                    this.RaisePropertyChanged(nameof(IsEpicMode));
+                }
+            }
+        }
+
+        public bool IsEpicMode
+        {
+            get => _gameMode == "epic";
+            set
+            {
+                if (value && _gameMode != "epic")
+                {
+                    GameMode = "epic";
+                    this.RaisePropertyChanged(nameof(IsSteamMode));
+                }
+            }
+        }
+
         public bool HasUnsavedChanges
         {
             get => _hasUnsavedChanges;
@@ -91,7 +132,10 @@ namespace SUSModder.ViewModels
                 _developerMode = DeveloperModeSettings.IsEnabled;
                 _originalDeveloperMode = _developerMode;
 
-                System.Diagnostics.Debug.WriteLine($"Loaded current settings - ModsInstallPath: {_modsInstallPath}, DeveloperMode: {_developerMode}");
+                // Załaduj GameMode z appsettings.json
+                LoadGameModeFromAppSettings();
+
+                System.Diagnostics.Debug.WriteLine($"Loaded current settings - ModsInstallPath: {_modsInstallPath}, DeveloperMode: {_developerMode}, GameMode: {_gameMode}");
             }
             catch (Exception ex)
             {
@@ -100,13 +144,61 @@ namespace SUSModder.ViewModels
                 _originalModsInstallPath = _modsInstallPath;
                 _developerMode = false;
                 _originalDeveloperMode = false;
+                _gameMode = "steam";
+                _originalGameMode = "steam";
+            }
+        }
+
+        private void LoadGameModeFromAppSettings()
+        {
+            try
+            {
+                string exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+                string appSettingsPath = Path.Combine(exeDir, "appsettings.json");
+
+                if (File.Exists(appSettingsPath))
+                {
+                    string jsonContent = File.ReadAllText(appSettingsPath);
+                    var jsonDocument = JsonDocument.Parse(jsonContent);
+                    var root = jsonDocument.RootElement;
+
+                    if (root.TryGetProperty("Configuration", out var config) && 
+                        config.TryGetProperty("Mode", out var mode))
+                    {
+                        _gameMode = mode.GetString() ?? "steam";
+                        _originalGameMode = _gameMode;
+                    }
+                    else
+                    {
+                        _gameMode = "steam";
+                        _originalGameMode = "steam";
+                    }
+                }
+                else
+                {
+                    _gameMode = "steam";
+                    _originalGameMode = "steam";
+                }
+
+                // Powiadom o zmianie właściwości radio buttonów
+                this.RaisePropertyChanged(nameof(IsSteamMode));
+                this.RaisePropertyChanged(nameof(IsEpicMode));
+
+                System.Diagnostics.Debug.WriteLine($"Loaded GameMode: {_gameMode}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading GameMode: {ex.Message}");
+                _gameMode = "steam";
+                _originalGameMode = "steam";
             }
         }
 
         private void CheckForChanges()
         {
             HasUnsavedChanges = !string.Equals(_modsInstallPath, _originalModsInstallPath, StringComparison.OrdinalIgnoreCase) ||
-                               _developerMode != _originalDeveloperMode;
+                               _developerMode != _originalDeveloperMode ||
+                               _gameMode != _originalGameMode;
             this.RaisePropertyChanged(nameof(WindowTitle));
         }
 
@@ -175,22 +267,52 @@ namespace SUSModder.ViewModels
                     return;
                 }
 
-                // Zapisz ModsInstallPath do appsettings.json
-                await SaveModsInstallPathToAppSettings();
+                // Sprawdź czy tryb gry się zmienił
+                bool gameModeChanged = _gameMode != _originalGameMode;
+
+                // Zapisz wszystkie ustawienia do appsettings.json
+                await SaveAllSettingsToAppSettings();
 
                 // Zapisz DeveloperMode używając nowej klasy
                 DeveloperModeSettings.SetDeveloperMode(DeveloperMode);
 
                 _originalModsInstallPath = ModsInstallPath;
                 _originalDeveloperMode = DeveloperMode;
+                _originalGameMode = GameMode;
                 HasUnsavedChanges = false;
 
                 // Powiadom o zapisaniu ustawień
                 SettingsSaved?.Invoke();
 
-                await ShowInfoAsync("Sukces", "Ustawienia zostały zapisane pomyślnie.\n\nZmiany będą widoczne przy następnych operacjach.");
+                // Jeśli tryb gry się zmienił, pokaż komunikat o restarcie i restartuj aplikację
+                if (gameModeChanged)
+                {
+                    // Powiadom o zmianie trybu gry przed restartem
+                    GameModeChanged?.Invoke();
+                    
+                    await ShowInfoAsync("Restart wymagany", 
+                        "Zmiana trybu gry wymaga restartu aplikacji.\n\nAplikacja zostanie zrestartowana automatycznie.");
 
-                System.Diagnostics.Debug.WriteLine($"Settings saved successfully. ModsInstallPath: {ModsInstallPath}, DeveloperMode: {DeveloperMode}");
+                    // Restart aplikacji
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = Environment.ProcessPath!,
+                        UseShellExecute = true
+                    });
+                    Environment.Exit(0);
+                }
+                else
+                {
+                    // Jeśli zmienił się tylko tryb bez restartu, powiadom o zmianie
+                    if (_gameMode != _originalGameMode)
+                    {
+                        GameModeChanged?.Invoke();
+                    }
+                    
+                    await ShowInfoAsync("Sukces", "Ustawienia zostały zapisane pomyślnie.\n\nZmiany będą widoczne przy następnych operacjach.");
+                }
+
+                System.Diagnostics.Debug.WriteLine($"Settings saved successfully. ModsInstallPath: {ModsInstallPath}, DeveloperMode: {DeveloperMode}, GameMode: {GameMode}");
             }
             catch (Exception ex)
             {
@@ -199,7 +321,7 @@ namespace SUSModder.ViewModels
             }
         }
 
-        private async Task SaveModsInstallPathToAppSettings()
+        private async Task SaveAllSettingsToAppSettings()
         {
             try
             {
@@ -234,6 +356,24 @@ namespace SUSModder.ViewModels
 
                         updatedSettings[property.Name] = appSettings;
                     }
+                    else if (property.Name == "Configuration")
+                    {
+                        var configuration = new Dictionary<string, object>();
+
+                        foreach (var configProperty in property.Value.EnumerateObject())
+                        {
+                            if (configProperty.Name == "Mode")
+                            {
+                                configuration[configProperty.Name] = GameMode;
+                            }
+                            else
+                            {
+                                configuration[configProperty.Name] = GetJsonValue(configProperty.Value);
+                            }
+                        }
+
+                        updatedSettings[property.Name] = configuration;
+                    }
                     else
                     {
                         updatedSettings[property.Name] = GetJsonValue(property.Value);
@@ -245,7 +385,7 @@ namespace SUSModder.ViewModels
                 string updatedJson = JsonSerializer.Serialize(updatedSettings, options);
                 await File.WriteAllTextAsync(appSettingsPath, updatedJson);
 
-                System.Diagnostics.Debug.WriteLine($"Updated appsettings.json with ModsInstallPath: {ModsInstallPath}");
+                System.Diagnostics.Debug.WriteLine($"Updated appsettings.json with ModsInstallPath: {ModsInstallPath} and GameMode: {GameMode}");
             }
             catch (Exception ex)
             {

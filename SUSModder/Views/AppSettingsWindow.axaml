@@ -28,6 +28,33 @@
                       VerticalScrollBarVisibility="Auto">
 			<StackPanel Spacing="20">
 
+				<!-- Sekcja wyboru trybu gry -->
+				<Border Classes="settings-section">
+					<StackPanel Spacing="15">
+						<TextBlock Text="Tryb gry"
+                                   Classes="section-header"/>
+
+						<StackPanel Spacing="12">
+							<TextBlock Text="Wybierz platformę gry Among Us:"
+                                       Classes="setting-label"/>
+							<TextBlock Text="Zmiana tego ustawienia wymaga restartu aplikacji"
+                                       Classes="setting-description"/>
+
+							<StackPanel Spacing="8">
+								<RadioButton x:Name="SteamRadioButton"
+                                             Content="Steam"
+                                             IsChecked="{Binding IsSteamMode}"
+                                             Classes="mode-radio"/>
+								<RadioButton x:Name="EpicRadioButton"
+                                             Content="Epic Games Store"
+                                             IsChecked="{Binding IsEpicMode}"
+                                             Classes="mode-radio"/>
+							</StackPanel>
+						</StackPanel>
+
+					</StackPanel>
+				</Border>
+
 				<!-- Sekcja ścieżek -->
 				<Border Classes="settings-section">
 					<StackPanel Spacing="15">
@@ -285,6 +312,16 @@
 
 		<Style Selector="Button.danger-button:pointerover">
 			<Setter Property="Opacity" Value="0.9"/>
+		</Style>
+
+		<Style Selector="RadioButton.mode-radio">
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+			<Setter Property="FontWeight" Value="Medium"/>
+			<Setter Property="Padding" Value="8,4"/>
+		</Style>
+
+		<Style Selector="RadioButton.mode-radio:checked">
+			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
 		</Style>
 	</Window.Styles>
 </Window>

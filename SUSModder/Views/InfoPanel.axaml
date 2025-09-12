@@ -67,7 +67,11 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
 				<TextBlock Text=" Pacia"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-				<TextBlock Text=" Anonimowy darczyńca"
+				<TextBlock Text=" Hefe"
+						   Foreground="{DynamicResource TextSecondaryBrush}"/>
+				<TextBlock Text=" Sheep aka Syzyf"
+						   Foreground="{DynamicResource TextSecondaryBrush}"/>
+				<TextBlock Text=" tumcio13"
 						   Foreground="{DynamicResource TextSecondaryBrush}"/>
 			</StackPanel>
 
