@@ -4,8 +4,10 @@
 1. [Wprowadzenie](#wprowadzenie)
 2. [ViewModelBase](#viewmodelbase)
 3. [Główne ViewModels](#główne-viewmodels)
-4. [Adaptery i pomocnicze klasy](#adaptery-i-pomocnicze-klasy)
-5. [Wzorce i best practices](#wzorce-i-best-practices)
+4. [Helpers - Klasy pomocnicze UI](#helpers---klasy-pomocnicze-ui)
+5. [Adaptery i pomocnicze klasy](#adaptery-i-pomocnicze-klasy)
+6. [Wzorce i best practices](#wzorce-i-best-practices)
+7. [Refaktoryzacja 2025](#refaktoryzacja-2025)
 
 ---
 
@@ -17,6 +19,8 @@ ViewModels w aplikacji SUSModder stanowią warstwę **logiki prezentacji** w arc
 - **Komendy** (`ReactiveCommand`) obsługujące akcje użytkownika
 - **Reaktywne właściwości** z automatyczną notyfikacją o zmianach (`RaiseAndSetIfChanged`)
 - **Obserwowalne kolekcje** (`ObservableCollection<T>`) do dynamicznych list
+
+> **Uwaga:** Po refaktoryzacji w 2025, MainWindowViewModel został podzielony na partial classes i helper classes dla lepszej organizacji kodu. Zobacz sekcję [Refaktoryzacja 2025](#refaktoryzacja-2025).
 
 ---
 
@@ -47,7 +51,11 @@ namespace SUSModder.ViewModels
 
 ### 1. MainWindowViewModel 🌟
 
-**Plik:** `SUSModder/ViewModels/MainWindowViewModel.cs`  
+**Pliki:**
+- `SUSModder/ViewModels/MainWindowViewModel.cs` (główny plik, partial class)
+- `SUSModder/ViewModels/MainWindowViewModel.Helpers.cs` (metody pomocnicze)
+
+> **Uwaga:** MainWindowViewModel jest teraz partial class. Metody pomocnicze zostały przeniesione do osobnych plików dla lepszej organizacji.  
 **Rozmiar:** **3081 linii** (!) – główny ViewModel całej aplikacji  
 **View:** `MainWindow.axaml`
 
@@ -735,9 +743,12 @@ viewModelA.SomethingChanged += OnSomethingChanged;
 
 ## Statystyki ViewModels
 
+> **Uwaga:** Po refaktoryzacji w 2025, rozmiary niektórych ViewModels uległy zmniejszeniu.
+
 | ViewModel | Rozmiar | Główne odpowiedzialności |
 |-----------|---------|---------------------------|
-| **MainWindowViewModel** | 3081 linii | Główny ViewModel, zarządza całą aplikacją |
+| **MainWindowViewModel** | 2405 linii | Główny ViewModel, zarządza całą aplikacją (partial class) |
+| **MainWindowViewModel.Helpers** | 144 linie | Metody pomocnicze (DeterminePlatform, RefreshMods) |
 | **DllModSelectionViewModel** | 338 linii | Wybór i instalacja DLL do modów full |
 | **AppSettingsViewModel** | 582 linie | Ustawienia aplikacji (ścieżki, tryb gry, dev mode) |
 | **SUStatsConfigViewModel** | ? linii | Konfiguracja SUStats (serwery) |
@@ -750,6 +761,206 @@ viewModelA.SomethingChanged += OnSomethingChanged;
 | **PresetFileItem** | ~30 linii | Plik presetu ToU |
 | **SavedConfigItem** | ~30 linii | Zapisana konfiguracja |
 | **ViewModelBase** | ~10 linii | Bazowa klasa (ReactiveObject) |
+
+**Helpers (nowy folder):**
+- **UIProgressReporter** | ~27 linii | Reporter postępu dla UI thread
+- **UIDiagnosticsOutput** | ~23 linie | Wyjście diagnostyczne dla UI
+- **SilentUserInteractionWrapper** | ~35 linii | Wrapper z pomijaniem info messages
+- **EpicUserInteractionAdapter** | ~30 linii | Adapter dla Epic operations
+
+---
+
+## Refaktoryzacja 2025
+
+### Zmiany w strukturze MainWindowViewModel
+
+**Problem:** MainWindowViewModel miał 3081 linii, co utrudniało nawigację i utrzymanie kodu.
+
+**Rozwiązanie:**
+1. ✅ Przekształcenie w **partial class**
+2. ✅ Wydzielenie **ViewModels/Helpers/** folder dla klas pomocniczych UI
+3. ✅ Utworzenie **MainWindowViewModel.Helpers.cs** dla metod pomocniczych
+4. ✅ Usunięcie ~676 linii duplikatów
+
+**Rezultat:** Redukcja z 3081 → 2405 linii (22% zmniejszenie)
+
+### Nowa struktura
+
+```
+ViewModels/
+├── MainWindowViewModel.cs (2405 linii, partial)
+├── MainWindowViewModel.Helpers.cs (144 linie)
+├── Helpers/
+│   ├── UIProgressReporter.cs
+│   ├── UIDiagnosticsOutput.cs
+│   ├── SilentUserInteractionWrapper.cs
+│   └── EpicUserInteractionAdapter.cs
+└── [pozostałe ViewModels...]
+```
+
+### Metody w MainWindowViewModel.Helpers.cs
+
+#### `DeterminePlatform(): string`
+Określa platformę gry (Steam/Epic) na podstawie konfiguracji Among Us.
+
+```csharp
+public string DeterminePlatform()
+{
+    // Sprawdza ścieżkę instalacji Among Us
+    // Zwraca "epic" lub "steam"
+}
+```
+
+#### `RefreshModsSortingKeepSelection(ModItem)`
+Odświeża listę modów z zachowaniem bieżącego wyboru.
+
+```csharp
+private void RefreshModsSortingKeepSelection(ModItem selectedMod)
+{
+    // Sortowanie: Vanilla → zainstalowane → niezainstalowane
+    // Przywraca wybór użytkownika
+}
+```
+
+#### `RefreshModsListAsync(): Task`
+Asynchronicznie odświeża listę modów z konfiguracji.
+
+```csharp
+private async Task RefreshModsListAsync()
+{
+    // Ładuje konfigurację
+    // Używa ModItemAdapter.FromConfig()
+    // Aktualizuje UI przez Dispatcher
+}
+```
+
+#### `DebugDiagnosticsOutput` (helper class)
+Wewnętrzna klasa do diagnostyki operacji aktualizacji modów.
+
+### Helpers - Klasy pomocnicze UI
+
+Szczegóły w sekcji [Helpers - Klasy pomocnicze UI](#helpers---klasy-pomocnicze-ui) poniżej.
+
+---
+
+## Helpers - Klasy pomocnicze UI
+
+**Lokalizacja:** `SUSModder/ViewModels/Helpers/`
+
+Folder zawiera klasy pomocnicze używane przez ViewModels do komunikacji z warstwą Core i operacji UI.
+
+### 1. UIProgressReporter
+
+**Plik:** `Helpers/UIProgressReporter.cs`  
+**Interfejs:** `IProgressReporter` (z Core.Utilities)
+
+Reporter postępu przekazujący aktualizacje do UI thread przez Dispatcher.
+
+```csharp
+public class UIProgressReporter : IProgressReporter
+{
+    private readonly Action<int, string> _progressCallback;
+    
+    public void Report(int percentage, string? message = null)
+    {
+        var safeMessage = message ?? "Przetwarzanie...";
+        Dispatcher.UIThread.InvokeAsync(() => 
+            _progressCallback(percentage, safeMessage));
+    }
+}
+```
+
+**Użycie:**
+```csharp
+var progressReporter = new UIProgressReporter((progress, msg) => {
+    modItem.InstallProgress = progress;
+    modItem.InstallStatusMessage = msg;
+});
+```
+
+---
+
+### 2. UIDiagnosticsOutput
+
+**Plik:** `Helpers/UIDiagnosticsOutput.cs`  
+**Interfejs:** `IDiagnosticsOutput` (z Core.Diagnostics)
+
+Wyjście diagnostyczne przekazujące komunikaty debug do UI thread.
+
+```csharp
+public class UIDiagnosticsOutput : IDiagnosticsOutput
+{
+    private readonly Action<string> _messageCallback;
+    
+    public void Write(string message)
+    {
+        Dispatcher.UIThread.InvokeAsync(() => 
+            _messageCallback(message));
+    }
+}
+```
+
+**Użycie:**
+```csharp
+var diagnosticsOutput = new UIDiagnosticsOutput((message) => {
+    System.Diagnostics.Debug.WriteLine($"[Install] {message}");
+});
+```
+
+---
+
+### 3. SilentUserInteractionWrapper
+
+**Plik:** `Helpers/SilentUserInteractionWrapper.cs`  
+**Interfejs:** `IUserInteraction` (z Core.Utilities)
+
+Wrapper dla `UserInteractionService` - pomija niektóre komunikaty informacyjne (loguje je tylko do debug).
+
+```csharp
+public class SilentUserInteractionWrapper : IUserInteraction
+{
+    private readonly UserInteractionService _inner;
+    
+    public void ShowInfo(string message, string title = "")
+    {
+        // Pomija UI dialog, tylko loguje
+        System.Diagnostics.Debug.WriteLine($"[Silent] Info: {message}");
+    }
+    
+    // Pozostałe metody delegują do _inner
+}
+```
+
+**Użycie:** Podczas operacji które nie powinny przerywać użytkownika wieloma dialogami.
+
+---
+
+### 4. EpicUserInteractionAdapter
+
+**Plik:** `Helpers/EpicUserInteractionAdapter.cs`  
+**Interfejs:** `IEpicUserInteraction` (z Core.GameIntegration)
+
+Adapter dla interakcji użytkownika w kontekście operacji Epic Games.
+
+```csharp
+public class EpicUserInteractionAdapter : IEpicUserInteraction
+{
+    public bool Confirm(string message)
+    {
+        // Auto-confirm dla operacji Epic
+        System.Diagnostics.Debug.WriteLine($"[Epic] Auto-confirm: {message}");
+        return true;
+    }
+    
+    public void ShowError(string message)
+    {
+        // Loguje błędy Epic
+        System.Diagnostics.Debug.WriteLine($"[Epic] Error: {message}");
+    }
+}
+```
+
+**Użycie:** Przekazywany do `EpicVersionManager` podczas instalacji modów Epic.
 
 ---
 

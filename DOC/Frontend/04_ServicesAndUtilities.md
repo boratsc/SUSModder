@@ -4,7 +4,8 @@
 1. [Wprowadzenie](#wprowadzenie)
 2. [Services](#services)
 3. [Utilities](#utilities)
-4. [Wzorce i architektura](#wzorce-i-architektura)
+4. [Refaktoryzacja 2025 - Nowe Services](#refaktoryzacja-2025---nowe-services)
+5. [Wzorce i architektura](#wzorce-i-architektura)
 
 ---
 
@@ -13,8 +14,10 @@
 Ten dokument opisuje **serwisy pomocnicze** frontendu oraz **narzędzia utility** wspierające działanie interfejsu użytkownika SUSModder.
 
 **Różnica między Services a Core.Services:**
-- **`SUSModder/Services/`** – serwisy specyficzne dla warstwy UI (preloadowanie, logowanie debug, komunikacja z API dla UI)
+- **`SUSModder/Services/`** – serwisy specyficzne dla warstwy UI (preloadowanie, logowanie debug, komunikacja z API dla UI, zarządzanie motywami)
 - **`SUSModder.Core/Services/`** – serwisy logiki biznesowej (instalacja modów, konfiguracja, aktualizacje)
+
+> **Uwaga:** Po refaktoryzacji w 2025 dodano nowe serwisy: `ThemeManager` i `FileSystemHelper`. Zobacz sekcję [Refaktoryzacja 2025](#refaktoryzacja-2025---nowe-services).
 
 ---
 
@@ -604,6 +607,208 @@ _ = Task.Run(async () =>
 
 ---
 
+## Refaktoryzacja 2025 - Nowe Services
+
+### 5. ThemeManager 🎨
+
+**Plik:** `Services/ThemeManager.cs`  
+**Odpowiedzialności:** Centralne zarządzanie motywami aplikacji (Dark, Light, Pink)
+
+#### Enum ThemeType
+
+```csharp
+public enum ThemeType
+{
+    Dark,
+    Light,
+    Pink
+}
+```
+
+#### Właściwości
+
+```csharp
+private readonly Uri _darkThemeUri = new Uri("avares://SUSModder/Themes/DarkTheme.axaml");
+private readonly Uri _lightThemeUri = new Uri("avares://SUSModder/Themes/LightTheme.axaml");
+private readonly Uri _pinkThemeUri = new Uri("avares://SUSModder/Themes/PinkTheme.axaml");
+private ResourceDictionary? _currentThemeDictionary;
+```
+
+#### Kluczowe metody
+
+##### `LoadSavedTheme(): ThemeType`
+Wczytuje zapisany motyw z `ConfigManager.GetThemeSetting()`.
+
+```csharp
+public ThemeType LoadSavedTheme()
+{
+    var savedTheme = ConfigManager.GetThemeSetting(); // "dark", "light", "pink"
+    return savedTheme switch {
+        "light" => ThemeType.Light,
+        "pink" => ThemeType.Pink,
+        _ => ThemeType.Dark
+    };
+}
+```
+
+##### `ApplyTheme(ThemeType theme): void`
+Aplikuje wybrany motyw do aplikacji, ładując odpowiedni AXAML.
+
+```csharp
+public void ApplyTheme(ThemeType theme)
+{
+    // Usuwa poprzedni ResourceDictionary
+    // Ładuje nowy przez AvaloniaXamlLoader
+    // Ustawia Application.RequestedThemeVariant
+}
+```
+
+##### `ToggleTheme(ThemeType currentTheme): ThemeType`
+Przełącza na następny motyw w kolejności (Dark → Light → Pink → Dark).
+
+```csharp
+public ThemeType ToggleTheme(ThemeType currentTheme)
+{
+    var newTheme = currentTheme switch {
+        ThemeType.Dark => ThemeType.Light,
+        ThemeType.Light => ThemeType.Pink,
+        ThemeType.Pink => ThemeType.Dark,
+        _ => ThemeType.Dark
+    };
+    SaveTheme(newTheme);
+    return newTheme;
+}
+```
+
+##### `SaveTheme(ThemeType theme): void`
+Zapisuje wybrany motyw do `appsettings.json` przez `ConfigManager`.
+
+##### Helper metody
+
+```csharp
+public string GetThemeButtonText(ThemeType theme) // "Motyw jasny", "Motyw różowy", etc.
+public string GetThemeButtonIcon(ThemeType theme) // "☀️", "💖", "🌙"
+```
+
+#### Integracja
+
+```csharp
+// W MainWindowViewModel:
+private readonly ThemeManager _themeManager = new();
+
+private void LoadSavedTheme()
+{
+    _currentTheme = _themeManager.LoadSavedTheme();
+    _themeManager.ApplyTheme(_currentTheme);
+}
+
+private void ToggleTheme()
+{
+    _currentTheme = _themeManager.ToggleTheme(_currentTheme);
+    _themeManager.ApplyTheme(_currentTheme);
+    this.RaisePropertyChanged(nameof(ThemeButtonText));
+    this.RaisePropertyChanged(nameof(ThemeButtonIcon));
+}
+```
+
+**Korzyści:** Separacja logiki motywów od MainWindowViewModel, łatwiejsze testowanie, reużywalność.
+
+---
+
+### 6. FileSystemHelper 📁
+
+**Plik:** `Services/FileSystemHelper.cs`  
+**Odpowiedzialności:** Zaawansowane operacje na systemie plików (usuwanie z retry, elevated permissions)
+
+#### Kluczowe metody
+
+##### `SafeDeleteDirectoryAsync(string directoryPath, string modName, Func<...>? confirmCallback): Task<bool>`
+
+Próbuje usunąć katalog używając wielu strategii:
+
+1. **Standardowe usunięcie** - `Directory.Delete(path, true)`
+2. **Force delete** - usuwa atrybuty read-only, zamyka procesy
+3. **Elevated permissions** - uruchamia PowerShell/CMD jako admin (z UAC)
+
+```csharp
+public async Task<bool> SafeDeleteDirectoryAsync(
+    string directoryPath, 
+    string modName = "", 
+    Func<string, string, Task<bool>>? confirmElevatedCallback = null)
+{
+    if (!Directory.Exists(directoryPath)) return true;
+    
+    // Strategia 1: Standardowe
+    try { Directory.Delete(directoryPath, true); return true; }
+    catch { /* fallback */ }
+    
+    // Strategia 2: Force delete
+    if (await ForceDeleteDirectoryAsync(directoryPath)) return true;
+    
+    // Strategia 3: Elevated
+    if (confirmElevatedCallback != null)
+        return await TryDeleteWithElevatedPermissionsAsync(...);
+    
+    return false;
+}
+```
+
+##### `ForceDeleteDirectoryAsync(string directoryPath): Task<bool>`
+
+```csharp
+private async Task<bool> ForceDeleteDirectoryAsync(string directoryPath)
+{
+    // 1. Usuń atrybuty ReadOnly ze wszystkich plików/folderów
+    await Task.Run(() => RemoveReadOnlyAttributes(directoryPath));
+    
+    // 2. Zabij procesy używające plików (Among Us, AmongUs, Among_Us)
+    await Task.Run(() => KillProcessesUsingDirectory(directoryPath));
+    
+    // 3. Poczekaj na zwolnienie zasobów
+    await Task.Delay(1000);
+    
+    // 4. Spróbuj usunąć
+    Directory.Delete(directoryPath, true);
+    return !Directory.Exists(directoryPath);
+}
+```
+
+##### `TryDeleteWithElevatedPermissionsAsync(...): Task<bool>`
+
+Pyta użytkownika (przez callback), czy chce użyć uprawnień administratora, następnie:
+
+```csharp
+[SupportedOSPlatform("windows")]
+private async Task<bool> DeleteWithElevatedPermissionsWindows(string directoryPath)
+{
+    // Uruchamia PowerShell z Verb = "runas" (UAC prompt)
+    var processInfo = new ProcessStartInfo {
+        FileName = "powershell.exe",
+        Arguments = $"-Command \"Remove-Item -Path '{directoryPath}' -Recurse -Force\"",
+        UseShellExecute = true,
+        Verb = "runas"
+    };
+    // Jeśli PowerShell zawiedzie, fallback do CMD
+}
+```
+
+#### Integracja
+
+```csharp
+// W MainWindowViewModel (Uninstall):
+private readonly FileSystemHelper _fileSystemHelper = new();
+
+bool success = await _fileSystemHelper.SafeDeleteDirectoryAsync(
+    modConfig.InstallPath,
+    modConfig.ModName,
+    ShowConfirmDialogAsync  // callback do pokazania UAC confirm dialog
+);
+```
+
+**Korzyści:** Wydzielona logika file operations, łatwiejsze testowanie, obsługa edge cases.
+
+---
+
 ## Statystyki
 
 | Serwis/Utility | Linie kodu | Typ | Główne funkcje |
@@ -611,17 +816,19 @@ _ = Task.Run(async () =>
 | **RolesService** | ~60 | Service | Pobieranie ról z API |
 | **DiscordIconPreloader** | ~80 | Service | Preload ikon Discord (cache) |
 | **ConsoleLogger** | ~140 | Service | Przechwytywanie logów debug |
-| **InstallationSilentUserInteraction** | ~25 | Service | Ciche instalacje (bez dialogów) |
+| **InstallationSilentUserInteraction** | ~110 | Service | Ciche instalacje z retry logic |
+| **ThemeManager** | ~160 | Service | Zarządzanie motywami (nowy 2025) |
+| **FileSystemHelper** | ~300 | Service | Zaawansowane operacje na plikach (nowy 2025) |
 | **ViewLocator** | ~30 | Utility | Automatyczne mapowanie ViewModel → View |
 
 ---
 
-## Problemy do naprawy
+## Problemy naprawione w 2025
 
-Zobacz [REFACTOR.md](REFACTOR.md):
-
-1. **Duplikat `InstallationSilentUserInteraction`** – w `Services/` i na końcu `MainWindowViewModel.cs` (linia ~2980) ⚠️
-2. **ConsoleLogger** – małe użycie (tylko `Initialize()` w `App.cs`), rozważ rozszerzenie lub usunięcie
+✅ **Duplikat `InstallationSilentUserInteraction`** – usunięto z `MainWindowViewModel.cs`, pozostawiono tylko w `Services/` z rozszerzoną retry logic  
+✅ **Duplikaty klas helper** – przeniesiono do `ViewModels/Helpers/`  
+✅ **Brak separacji theme logic** – utworzono `ThemeManager`  
+✅ **Brak separacji file operations** – utworzono `FileSystemHelper`
 
 ---
 
@@ -632,14 +839,18 @@ Zobacz [REFACTOR.md](REFACTOR.md):
 - Preloaduj dane w tle (`Task.Run`) dla lepszej responsywności UI
 - Cache'uj wyniki kosztownych operacji (np. ikony Discord)
 - Używaj async/await dla operacji I/O
+- **Wydzielaj logikę do osobnych serwisów** (ThemeManager, FileSystemHelper)
+- **Unikaj duplikacji kodu** - jedna implementacja, wiele użyć
 
 ### ❌ NIE:
 - Nie twórz zbyt wielu static serwisów (trudne testowanie)
 - Nie blokuj UI thread w serwisach (używaj async)
 - Nie duplikuj kodu serwisów (DRY principle)
+- Nie umieszczaj logiki biznesowej w ViewModels (przenieś do Services)
 
 ---
 
 **Autor dokumentacji:** AI Assistant  
+**Ostatnia aktualizacja:** 2025-10-19 (Refaktoryzacja MainWindowViewModel)  
 **Data utworzenia:** 2025-10-19  
 **Status:** Wersja robocza – zakończenie dokumentacji frontendu
