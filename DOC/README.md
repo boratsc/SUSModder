@@ -10,8 +10,11 @@ Ta dokumentacja została stworzona w celu:
 
 **Data utworzenia:** 2025-10-19  
 **Stan:** ✅ **100% UKOŃCZONE!** 🎉  
+**Ostatnia aktualizacja:** 2025-10-19 (Refaktoryzacja MainWindowViewModel)  
 **Zakres:** SUSModder.Core (39 plików) + SUSModder Frontend (67 plików) + Updater (1 plik)  
 **Łączna analiza:** 107 plików źródłowych
+
+> **Nowe:** Zobacz [REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md) dla szczegółów refaktoryzacji MainWindowViewModel (redukcja o 676 linii / 22%)
 
 ---
 
@@ -20,6 +23,10 @@ Ta dokumentacja została stworzona w celu:
 ```
 SUSModder/
 ├─ SUSModder/              # Frontend (Avalonia UI + ReactiveUI)
+│  ├─ ViewModels/          # ViewModels + Helpers (po refaktoryzacji 2025)
+│  ├─ Views/               # Widoki AXAML
+│  ├─ Services/            # ThemeManager, FileSystemHelper, etc.
+│  └─ ...
 ├─ SUSModder.Core/         # Logika biznesowa
 └─ Updater/                # Aplikacja auto-update
 ```
@@ -39,23 +46,47 @@ SUSModder/
 | **Models & inne** | [05_ModelsAndOthers.md](Core/05_ModelsAndOthers.md) | ✅ Gotowe | 7 | 7 (100%) | 0 (0%) |
 | **RAZEM** | | ✅ **100%** | **39** | **32 (82%)** | **5 (13%)** |
 
-### ✅ SUSModder Frontend (UKOŃCZONE!)
+### ✅ SUSModder Frontend (UKOŃCZONE! + Refaktoryzacja 2025)
 
-| Moduł | Plik | Status | Elementy | Aktywnych | Do usunięcia |
-|-------|------|--------|----------|-----------|--------------|
+| Moduł | Plik | Status | Elementy | Aktywnych | Notatki |
+|-------|------|--------|----------|-----------|---------|
 | **README** | [Frontend/README.md](Frontend/README.md) | ✅ Gotowe | Architektura, punkt wejścia | - | - |
-| **ViewModels** | [Frontend/01_ViewModels.md](Frontend/01_ViewModels.md) | ✅ Gotowe | 13 | 13 (100%) | 0 (0%) |
+| **ViewModels** | [Frontend/01_ViewModels.md](Frontend/01_ViewModels.md) | ✅ **Zaktualizowane 2025** | 13 + Helpers | 13 (100%) | MainWindowViewModel: partial class |
 | **Views** | [Frontend/02_Views.md](Frontend/02_Views.md) | ✅ Gotowe | 40 plików AXAML | 40 (100%) | 0 (0%) |
 | **Converters** | [Frontend/03_Converters.md](Frontend/03_Converters.md) | ✅ Gotowe | 9 | 8 (89%) | 1 (11%) |
-| **Services & Utilities** | [Frontend/04_ServicesAndUtilities.md](Frontend/04_ServicesAndUtilities.md) | ✅ Gotowe | 5 | 4 (80%) | 1 duplikat |
-| **Refaktory** | [Frontend/REFACTOR.md](Frontend/REFACTOR.md) | ✅ Gotowe | Lista 4 problemów | - | - |
-| **RAZEM** | | ✅ **100%** | **67 plików** | **65 (97%)** | **2 + 1 duplikat** |
+| **Services & Utilities** | [Frontend/04_ServicesAndUtilities.md](Frontend/04_ServicesAndUtilities.md) | ✅ **Zaktualizowane 2025** | 7 (5+2 nowe) | 6 (86%) | +ThemeManager, +FileSystemHelper |
+| **Refaktory** | [Frontend/REFACTOR.md](Frontend/REFACTOR.md) | ✅ Gotowe | Lista problemów | - | Większość naprawiona |
+| **Refaktoryzacja 2025** | [REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md) | ✅ **NOWY** | Szczegóły refaktoryzacji | - | MainWindowViewModel: -676 linii |
+| **RAZEM** | | ✅ **100%** | **67→71 plików** | **69 (97%)** | **+4 nowe, duplikaty usunięte** |
 
 ### ✅ Updater (UKOŃCZONE!)
 
 | Moduł | Plik | Status | Plików | Opis |
 |-------|------|--------|--------|------|
 | **Updater** | [Updater/README.md](Updater/README.md) | ✅ Gotowe | 1 (`Program.cs`) | Aplikacja auto-update (~200 linii) |
+
+---
+
+## 🎉 Refaktoryzacja 2025 - Główne osiągnięcia
+
+### MainWindowViewModel - Redukcja o 22%
+- ✅ **3081 → 2405 linii** (redukcja o **676 linii**)
+- ✅ Przekształcone w **partial class**
+- ✅ Utworzono `ViewModels/Helpers/` folder (4 klasy)
+- ✅ Utworzono `MainWindowViewModel.Helpers.cs` (144 linie)
+- ✅ Usunięto wszystkie duplikaty
+
+### Nowe Services
+- ✅ **ThemeManager** - centralne zarządzanie motywami (Dark/Light/Pink)
+- ✅ **FileSystemHelper** - zaawansowane operacje na plikach (SafeDelete z retry, elevated permissions)
+
+### Helpers - Nowy folder
+- ✅ **UIProgressReporter** - reporter postępu dla UI thread
+- ✅ **UIDiagnosticsOutput** - wyjście diagnostyczne
+- ✅ **SilentUserInteractionWrapper** - wrapper pomijający dialogi info
+- ✅ **EpicUserInteractionAdapter** - adapter dla operacji Epic
+
+**Zobacz pełną dokumentację:** [REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md)
 
 ---
 
@@ -78,16 +109,16 @@ SUSModder/
 
 **Razem do usunięcia (Core):** ~386 linii kodu martwego + 2 pliki do refaktoringu
 
-### SUSModder Frontend 🆕
+### SUSModder Frontend
 
-| Plik | Powód | Rozmiar | Priorytet |
-|------|-------|---------|-----------|
+| Plik | Powód | Rozmiar | Status |
+|------|-------|---------|--------|
 | `Models/Mod.cs` | Całkowicie nieużywany, zastąpiony ModItem+ModConfiguration | ~11 linii | ⚠️ WYSOKI |
 | `Converters/CategoryToClassConverter.cs` | Brak użyć w XAML | ~33 linie | ⚠️ WYSOKI |
-| `ViewModels/MainWindowViewModel.cs` (linia ~2980) | Duplikat klasy InstallationSilentUserInteraction | ~25 linii | ⚠️ ŚREDNI |
+| ~~`ViewModels/MainWindowViewModel.cs` (linia ~2980)~~ | ~~Duplikat InstallationSilentUserInteraction~~ | ~~25 linii~~ | ✅ **NAPRAWIONE 2025** |
 | `ViewModels/FileName.cs` | Błędna nazwa pliku (zawiera EpicErrorDialogViewModel) | - | ⚠️ NISKI (rename) |
 
-**Razem do usunięcia (Frontend):** ~69 linii kodu martwego + 1 rename + 1 duplikat
+**Razem do usunięcia (Frontend):** ~44 linii + 1 rename ~~+ 1 duplikat (naprawiony)~~
 
 ---
 

@@ -74,7 +74,13 @@ SUSModder/
 ├── ViewLocator.cs                     # Lokalizacja View na podstawie ViewModel
 │
 ├── ViewModels/                        # Warstwa logiki prezentacji
-│   ├── MainWindowViewModel.cs        # Główny ViewModel aplikacji (3081 linii!)
+│   ├── MainWindowViewModel.cs        # Główny ViewModel (2405 linii, partial class)
+│   ├── MainWindowViewModel.Helpers.cs # Metody pomocnicze (144 linie)
+│   ├── Helpers/                       # 🆕 Klasy pomocnicze UI (2025)
+│   │   ├── UIProgressReporter.cs      # Reporter postępu dla UI
+│   │   ├── UIDiagnosticsOutput.cs     # Wyjście diagnostyczne
+│   │   ├── SilentUserInteractionWrapper.cs
+│   │   └── EpicUserInteractionAdapter.cs
 │   ├── AppSettingsViewModel.cs       # Ustawienia aplikacji
 │   ├── DllModSelectionViewModel.cs   # Selekcja modów DLL
 │   ├── SUStatsConfigViewModel.cs     # Konfiguracja SUStats
@@ -137,7 +143,9 @@ SUSModder/
 │   ├── RolesService.cs                # Pobieranie ról z API
 │   ├── DiscordIconPreloader.cs        # Preloadowanie ikon Discord
 │   ├── ConsoleLogger.cs               # Logger do okna konsoli (dev mode)
-│   └── InstallationSilentUserInteraction.cs # ⚠️ ZDUPLIKOWANY (również w MainWindowViewModel)
+│   ├── InstallationSilentUserInteraction.cs # Ciche instalacje z retry logic
+│   ├── ThemeManager.cs                # 🆕 Zarządzanie motywami (2025)
+│   └── FileSystemHelper.cs            # 🆕 Zaawansowane operacje na plikach (2025)
 │
 ├── Models/                            # Modele danych UI
 │   ├── Role.cs                        # Model roli i umiejętności

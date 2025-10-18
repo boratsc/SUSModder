@@ -29,11 +29,12 @@ using Avalonia.Platform.Storage;
 using System.Diagnostics;
 using SUSModder.Services;
 using System.Windows.Input;
+using SUSModder.ViewModels.Helpers;
 
 
 namespace SUSModder.ViewModels
 {
-    public class MainWindowViewModel : ViewModelBase
+    public partial class MainWindowViewModel : ViewModelBase
     {
         private bool _isPaneOpen;
         private ModItem? _selectedMod;
@@ -1028,44 +1029,6 @@ namespace SUSModder.ViewModels
             }
         }
 
-        private async Task RefreshModsListAsync()
-        {
-            await Task.Run(() =>
-            {
-                // Przeładuj konfigurację - może się zmieniła po dodaniu Vanilla
-                var configService = new ConfigService();
-                var configs = configService.LoadConfig();
-
-                var filtered = configs
-                    .Where(m => m.ModType == "full" || m.ModType == "Vanilla")
-                    .ToList();
-
-                var modItems = filtered.Select(ModItemAdapter.FromConfig).ToList();
-
-                var vanilla = modItems.FirstOrDefault(m => m.Name.Equals("Vanilla", StringComparison.OrdinalIgnoreCase));
-                var installed = modItems.Where(m => !string.IsNullOrEmpty(m.InstallPath) && !m.Name.Equals("Vanilla", StringComparison.OrdinalIgnoreCase)).OrderBy(m => m.Name);
-                var notInstalled = modItems.Where(m => string.IsNullOrEmpty(m.InstallPath) && !m.Name.Equals("Vanilla", StringComparison.OrdinalIgnoreCase)).OrderBy(m => m.Name);
-
-                // Aktualizuj UI
-                Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    Mods.Clear();
-
-                    if (vanilla != null)
-                        Mods.Add(vanilla);
-
-                    foreach (var mod in installed)
-                        Mods.Add(mod);
-
-                    foreach (var mod in notInstalled)
-                        Mods.Add(mod);
-
-                    System.Diagnostics.Debug.WriteLine($"UI updated with {Mods.Count} mods");
-                });
-            });
-        }
-
-
 
         public bool IsPaneOpen
         {
@@ -1777,34 +1740,6 @@ namespace SUSModder.ViewModels
                     currentSelectedMod.InstallStatusMessage = string.Empty;
                     currentSelectedMod.IsInstalling = false;
                 });
-            }
-        }
-
-
-        public string DeterminePlatform()
-        {
-            try
-            {
-                // Użyj ConfigManager który już istnieje
-                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                var configRepo = new ConfigRepository(exeDir);
-                var appSettings = configRepo.LoadAppSettings();
-
-                if (appSettings != null &&
-                    appSettings.TryGetValue("Configuration", out var configObj) &&
-                    configObj is JsonElement configElement &&
-                    configElement.TryGetProperty("Mode", out var modeElement))
-                {
-                    string mode = modeElement.GetString() ?? "steam";
-                    return mode.Equals("epic", StringComparison.OrdinalIgnoreCase) ? "Epic" : "Steam";
-                }
-
-                return "Steam"; // Fallback
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in DeterminePlatform: {ex.Message}");
-                return "Steam"; // Fallback
             }
         }
 
@@ -2862,220 +2797,5 @@ namespace SUSModder.ViewModels
             }
         }
 
-
-        private void RefreshModsSortingKeepSelection(ModItem selectedMod)
-        {
-            var currentMods = Mods.ToList();
-
-            var sorted = currentMods
-                .OrderBy(m => !m.Name.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
-                .ThenBy(m => string.IsNullOrEmpty(m.InstallPath) ? 1 : 0)
-                .ThenBy(m => m.Name)
-                .ToList();
-
-            Mods.Clear();
-            foreach (var mod in sorted)
-            {
-                Mods.Add(mod);
-            }
-
-            // Przywróć zaznaczenie
-            SelectedMod = Mods.FirstOrDefault(m => m.Name == selectedMod.Name);
-        }
-
-        // Dodaj klasę DebugDiagnosticsOutput
-        private class DebugDiagnosticsOutput : IDiagnosticsOutput
-        {
-            public void Write(string message)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ModUpdater] {message}");
-            }
-        }
-    }
-}
-public class UIProgressReporter : IProgressReporter
-{
-    private readonly Action<int, string> _progressCallback;
-
-    public UIProgressReporter(Action<int, string> progressCallback)
-    {
-        _progressCallback = progressCallback;
-    }
-
-    public void Report(int percentage, string? message = null)
-    {
-        var safeMessage = message ?? "Przetwarzanie...";
-        Dispatcher.UIThread.InvokeAsync(() => _progressCallback(percentage, safeMessage));
-    }
-}
-
-public class UIDiagnosticsOutput : IDiagnosticsOutput
-{
-    private readonly Action<string> _messageCallback;
-
-    public UIDiagnosticsOutput(Action<string> messageCallback)
-    {
-        _messageCallback = messageCallback;
-    }
-
-    public void Write(string message)
-    {
-        Dispatcher.UIThread.InvokeAsync(() => _messageCallback(message));
-    }
-}
-
-public class SilentUserInteractionWrapper : IUserInteraction
-{
-    private readonly UserInteractionService _inner;
-
-    public SilentUserInteractionWrapper(UserInteractionService inner)
-    {
-        _inner = inner;
-    }
-
-    public bool Confirm(string message, string title = "") => _inner.Confirm(message, title);
-    public void ShowInfo(string message, string title = "") => System.Diagnostics.Debug.WriteLine($"[Silent] Info: {message}");
-    public void ShowError(string message, string title = "") => _inner.ShowError(message, title);
-    public string? Prompt(string message, string title = "") => _inner.Prompt(message, title);
-    public string? SelectFile(string filter, string initialDirectory = "") => _inner.SelectFile(filter, initialDirectory);
-
-    public Task ShowInfoAsync(string message, string title = "")
-    {
-        System.Diagnostics.Debug.WriteLine($"[Silent] InfoAsync: {message}");
-        return Task.CompletedTask;
-    }
-    public async Task ShowErrorAsync(string message, string title = "") => await _inner.ShowErrorAsync(message, title);
-    public async Task<bool> ShowConfirmAsync(string message, string title = "") => await _inner.ShowConfirmAsync(message, title);
-    public async Task<string?> ShowPromptAsync(string message, string title = "") => await _inner.ShowPromptAsync(message, title);
-    public async Task<string?> ShowSelectFileDialogAsync(string filter, string initialDirectory = "") => await _inner.ShowSelectFileDialogAsync(filter, initialDirectory);
-}
-
-public class EpicUserInteractionAdapter : IEpicUserInteraction
-{
-    private readonly UserInteractionService _userInteractionService;
-
-    public EpicUserInteractionAdapter(UserInteractionService userInteractionService)
-    {
-        _userInteractionService = userInteractionService;
-    }
-
-    public bool Confirm(string message)
-    {
-        System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: EpicUserInteractionAdapter.Confirm called with: {message}");
-        System.Diagnostics.Debug.WriteLine($"[EpicUserInteractionAdapter] Auto-confirm: {message}");
-        return true;
-    }
-
-    public void ShowError(string message)
-    {
-        System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: EpicUserInteractionAdapter.ShowError called with: {message}");
-
-        System.Diagnostics.Debug.WriteLine($"[EpicUserInteractionAdapter] Error: {message}");
-
-        // Rzuć wyjątek który zostanie obsłużony w MainWindowViewModel
-        //throw new InvalidOperationException(message);
-    }
-}
-
-public class InstallationSilentUserInteraction : IUserInteraction
-{
-    private readonly Dictionary<string, int> _retryCounters = new();
-    private const int MAX_RETRIES = 3;
-
-    public bool Confirm(string message, string title = "")
-    {
-        System.Diagnostics.Debug.WriteLine($"[Installation] Confirm request: {message}");
-
-        // Sprawdź czy to pytanie o retry
-        if (message.Contains("spróbować ponownie") || message.Contains("Czy chcesz spróbować"))
-        {
-            // Stwórz klucz na podstawie typu błędu
-            string errorKey = GetErrorKey(message);
-
-            if (!_retryCounters.ContainsKey(errorKey))
-                _retryCounters[errorKey] = 0;
-
-            _retryCounters[errorKey]++;
-
-            if (_retryCounters[errorKey] <= MAX_RETRIES)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Installation] Auto-retry {_retryCounters[errorKey]}/{MAX_RETRIES} for: {errorKey}");
-                return true; // Spróbuj ponownie
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[Installation] Max retries reached for: {errorKey}");
-                // Rzuć wyjątek żeby przerwać instalację i pokazać błąd użytkownikowi
-                throw new InvalidOperationException($"Przekroczono maksymalną liczbę prób ({MAX_RETRIES}) dla: {GetUserFriendlyError(message)}");
-            }
-        }
-
-        // Dla innych pytań - zawsze potwierdź
-        return true;
-    }
-
-    private string GetErrorKey(string message)
-    {
-        if (message.Contains("vanilla")) return "vanilla_download";
-        if (message.Contains("moda")) return "mod_download";
-        if (message.Contains("rozpakowywania")) return "extract_error";
-        return "unknown_error";
-    }
-
-    private string GetUserFriendlyError(string message)
-    {
-        if (message.Contains("vanilla")) return "pobierania pliku gry vanilla";
-        if (message.Contains("moda")) return "pobierania pliku moda";
-        if (message.Contains("rozpakowywania")) return "rozpakowywania archiwum";
-        return "nieznanego błędu";
-    }
-
-    public void ShowInfo(string message, string title = "")
-    {
-        System.Diagnostics.Debug.WriteLine($"[Installation] Info: {message}");
-    }
-
-    public void ShowError(string message, string title = "")
-    {
-        System.Diagnostics.Debug.WriteLine($"[Installation] Error: {message}");
-        // Rzuć wyjątek żeby błąd został obsłużony w głównym try/catch
-        throw new InvalidOperationException(message);
-    }
-
-    public string? Prompt(string message, string title = "") => null;
-    public string? SelectFile(string filter, string initialDirectory = "") => null;
-
-    public Task ShowInfoAsync(string message, string title = "")
-    {
-        ShowInfo(message, title);
-        return Task.CompletedTask;
-    }
-
-    public Task ShowErrorAsync(string message, string title = "")
-    {
-        ShowError(message, title);
-        return Task.CompletedTask;
-    }
-
-    public Task<bool> ShowConfirmAsync(string message, string title = "")
-    {
-        return Task.FromResult(Confirm(message, title));
-    }
-
-    public Task<string?> ShowPromptAsync(string message, string title = "")
-    {
-        return Task.FromResult<string?>(null);
-    }
-
-    public Task<string?> ShowSelectFileDialogAsync(string filter, string initialDirectory = "")
-    {
-        return Task.FromResult<string?>(null);
-    }
-
-
-    // Metoda do resetowania liczników (wywołaj przed nową instalacją)
-    public void ResetRetryCounters()
-    {
-        _retryCounters.Clear();
     }
 }
