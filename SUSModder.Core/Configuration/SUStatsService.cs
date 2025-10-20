@@ -47,7 +47,7 @@ namespace SUSModder.Core.Configuration
 
                 // Pobierz token
                 var token = SecretProvider.GetDownloadToken();
-                _diagnosticsOutput.Write($"Token retrieved, length: {token?.Length ?? 0}");
+                _diagnosticsOutput.Write("Download token retrieved.");
 
                 if (string.IsNullOrEmpty(token))
                 {
@@ -60,7 +60,7 @@ namespace SUSModder.Core.Configuration
                 _httpClient.DefaultRequestHeaders.Add("Authorization", token);
                 _httpClient.DefaultRequestHeaders.Add("User-Agent", "SUSModder/1.0");
 
-                _diagnosticsOutput.Write($"Headers configured - Authorization: {token.Substring(0, 10)}...");
+                _diagnosticsOutput.Write("Authorization header configured.");
 
                 // Wykonaj żądanie
                 var response = await _httpClient.GetAsync(fullUrl);

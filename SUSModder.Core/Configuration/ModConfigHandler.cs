@@ -263,7 +263,7 @@ namespace SUSModder.Core.Configuration
 
                 System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Wysyłanie pliku: {tempFilePath}");
                 System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Rozmiar pliku: {new FileInfo(tempFilePath).Length} bytes");
-                System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Authorization header: {downloadToken}");
+                System.Diagnostics.Debug.WriteLine("[SaveServerConfig] Authorization header configured.");
 
                 try
                 {
@@ -450,7 +450,7 @@ namespace SUSModder.Core.Configuration
                 client.DefaultRequestHeaders.Add("User-Agent", "SUSModder/1.0");
 
                 System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Rozpoczynam GET request...");
-                System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Authorization header: {downloadToken}");
+                System.Diagnostics.Debug.WriteLine("[LoadServerConfig] Authorization header configured.");
 
                 var response = await client.GetAsync(serverUrl);
 
