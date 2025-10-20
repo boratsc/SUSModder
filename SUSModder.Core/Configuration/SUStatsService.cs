@@ -7,9 +7,13 @@ using System.Threading.Tasks;
 
 namespace SUSModder.Core.Configuration
 {
-    public class SUStatsService : IDisposable
+    public class SUStatsService
     {
-        private readonly HttpClient _httpClient;
+        // Statyczny HttpClient współdzielony przez wszystkie instancje (best practice)
+        private static readonly HttpClient _httpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(30)
+        };
         private readonly IConfiguration _configuration;
         private readonly IDiagnosticsOutput _diagnosticsOutput;
 
@@ -17,8 +21,6 @@ namespace SUSModder.Core.Configuration
         {
             _configuration = configuration;
             _diagnosticsOutput = diagnosticsOutput;
-            _httpClient = new HttpClient();
-            _httpClient.Timeout = TimeSpan.FromSeconds(30);
         }
 
         public async Task<List<AmongToken>> GetSUStatsServersAsync()
@@ -123,9 +125,5 @@ namespace SUSModder.Core.Configuration
             }
         }
 
-        public void Dispose()
-        {
-            _httpClient?.Dispose();
-        }
     }
 }

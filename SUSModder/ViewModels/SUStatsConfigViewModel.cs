@@ -334,7 +334,7 @@ namespace SUSModder.ViewModels
                 });
 
                 // Pobierz dane z API
-                using var suStatsService = new SUStatsService(configuration, diagnosticsOutput);
+                var suStatsService = new SUStatsService(configuration, diagnosticsOutput);
                 var serverDataList = await suStatsService.GetSUStatsServersAsync();
 
                 // Aktualizuj UI na głównym wątku

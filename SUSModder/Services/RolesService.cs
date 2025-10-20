@@ -8,16 +8,15 @@ using SUSModder.Models;
 
 namespace SUSModder.Services
 {
-    public class RolesService : IDisposable
+    public class RolesService
     {
-        private readonly HttpClient _httpClient;
+        // Statyczny HttpClient współdzielony przez wszystkie instancje (best practice)
+        private static readonly HttpClient _httpClient = new HttpClient();
         private readonly string _baseUrl;
         private readonly string _rolesEndpoint;
 
         public RolesService()
         {
-            _httpClient = new HttpClient();
-
             // Wczytaj konfigurację
             var configuration = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -51,9 +50,5 @@ namespace SUSModder.Services
             }
         }
 
-        public void Dispose()
-        {
-            _httpClient?.Dispose();
-        }
     }
 }

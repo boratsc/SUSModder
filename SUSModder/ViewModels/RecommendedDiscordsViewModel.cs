@@ -86,7 +86,7 @@ namespace SUSModder.ViewModels
                         System.Diagnostics.Debug.WriteLine($"[Discord Service] {message}");
                     });
 
-                    using var discordService = new DiscordFavoritesService(configuration, diagnosticsOutput);
+                    var discordService = new DiscordFavoritesService(configuration, diagnosticsOutput);
                     var serverDataList = await discordService.GetDiscordFavoritesAsync();
                     var discordServers = DiscordServerAdapter.FromServerDataList(serverDataList);
 

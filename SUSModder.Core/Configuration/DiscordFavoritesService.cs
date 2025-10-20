@@ -7,19 +7,20 @@ using SUSModder.Core.Diagnostics;
 
 namespace SUSModder.Core.Configuration
 {
-    public class DiscordFavoritesService : IDisposable
+    public class DiscordFavoritesService
     {
-        private readonly HttpClient _httpClient;
+        // Statyczny HttpClient współdzielony przez wszystkie instancje (best practice)
+        private static readonly HttpClient _httpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(30)
+        };
         private readonly IConfiguration _configuration;
         private readonly IDiagnosticsOutput _diagnosticsOutput;
-        private bool _disposed = false;
 
         public DiscordFavoritesService(IConfiguration configuration, IDiagnosticsOutput diagnosticsOutput)
         {
             _configuration = configuration;
             _diagnosticsOutput = diagnosticsOutput;
-            _httpClient = new HttpClient();
-            _httpClient.Timeout = TimeSpan.FromSeconds(30);
         }
 
         public async Task<List<DiscordServerData>> GetDiscordFavoritesAsync()
@@ -127,25 +128,6 @@ namespace SUSModder.Core.Configuration
             {
                 _diagnosticsOutput.Write($"Unexpected Error: {ex.Message}");
                 return new List<DiscordServerData>();
-            }
-        }
-
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    _httpClient?.Dispose();
-                }
-                _disposed = true;
             }
         }
     }

@@ -19,19 +19,22 @@ namespace SUSModder.Views;
 
 public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 {
-    // Dodaj komendy jako w³aœciwoœci
+    // Dodaj komendy jako wï¿½aï¿½ciwoï¿½ci
     public ReactiveCommand<Unit, Unit> RemoveSingleInstanceCommand { get; }
     public ReactiveCommand<Unit, Unit> LaunchMultipleInstancesCommand { get; }
 
     public MainWindow()
     {
+        // Ustaw DataContext PRZED InitializeComponent, aby bindingi mogÅ‚y siÄ™ poprawnie poÅ‚Ä…czyÄ‡
+        DataContext = new MainWindowViewModel();
+        
         InitializeComponent();
 
         // Inicjalizuj komendy
         RemoveSingleInstanceCommand = ReactiveCommand.CreateFromTask(RemoveSingleInstanceAsync);
         LaunchMultipleInstancesCommand = ReactiveCommand.CreateFromTask(LaunchMultipleInstancesAsync);
 
-        // Nas³uchuj zmiany wybranego moda i aktualizuj opis
+        // Nasï¿½uchuj zmiany wybranego moda i aktualizuj opis
         this.WhenActivated(disposables =>
         {
             if (DataContext is MainWindowViewModel vm)
@@ -50,8 +53,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
     private void ModDeveloperMenuButton_Click(object sender, RoutedEventArgs e)
     {
-        // Menu flyout otworzy siê automatycznie
-        // Tutaj mamy dostêp do wybranego moda przez DataContext
+        // Menu flyout otworzy siï¿½ automatycznie
+        // Tutaj mamy dostï¿½p do wybranego moda przez DataContext
         if (DataContext is MainWindowViewModel vm && vm.SelectedMod != null)
         {
             Debug.WriteLine($"Developer menu opened for mod: {vm.SelectedMod.Name}");
@@ -62,54 +65,54 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     {
         try
         {
-            // SprawdŸ czy mamy wybrany mod
+            // Sprawdï¿½ czy mamy wybrany mod
             if (DataContext is not MainWindowViewModel vm || vm.SelectedMod == null)
             {
-                await ShowErrorDialogAsync("B³¹d", "Nie wybrano moda.");
+                await ShowErrorDialogAsync("Bï¿½ï¿½d", "Nie wybrano moda.");
                 return;
             }
 
             var selectedMod = vm.SelectedMod;
 
-            // SprawdŸ czy mod jest zainstalowany
+            // Sprawdï¿½ czy mod jest zainstalowany
             if (string.IsNullOrEmpty(selectedMod.InstallPath) || !Directory.Exists(selectedMod.InstallPath))
             {
-                await ShowErrorDialogAsync("B³¹d", "Wybrany mod nie jest zainstalowany lub œcie¿ka instalacji nie istnieje.");
+                await ShowErrorDialogAsync("Bï¿½ï¿½d", "Wybrany mod nie jest zainstalowany lub ï¿½cieï¿½ka instalacji nie istnieje.");
                 return;
             }
 
-            // Poka¿ dialog potwierdzenia
+            // Pokaï¿½ dialog potwierdzenia
             var confirmResult = await ShowConfirmDialogAsync(
-                $"Czy na pewno chcesz usun¹æ ograniczenie SingleInstance z moda '{selectedMod.Name}'?\n\n" +
-                "Ta operacja pozwoli na uruchomienie wielu kopii tego moda jednoczeœnie.",
+                $"Czy na pewno chcesz usunï¿½ï¿½ ograniczenie SingleInstance z moda '{selectedMod.Name}'?\n\n" +
+                "Ta operacja pozwoli na uruchomienie wielu kopii tego moda jednoczeï¿½nie.",
                 "Potwierdzenie");
 
             if (!confirmResult)
                 return;
 
-            // Œcie¿ka do pliku boot.config
+            // ï¿½cieï¿½ka do pliku boot.config
             string bootConfigPath = Path.Combine(selectedMod.InstallPath, "Among Us_Data", "boot.config");
 
             if (!File.Exists(bootConfigPath))
             {
-                await ShowErrorDialogAsync("B³¹d", $"Nie znaleziono pliku boot.config w œcie¿ce:\n{bootConfigPath}");
+                await ShowErrorDialogAsync("Bï¿½ï¿½d", $"Nie znaleziono pliku boot.config w ï¿½cieï¿½ce:\n{bootConfigPath}");
                 return;
             }
 
-            // Wczytaj zawartoœæ pliku
+            // Wczytaj zawartoï¿½ï¿½ pliku
             string[] lines = await File.ReadAllLinesAsync(bootConfigPath);
 
-            // Usuñ linijki zawieraj¹ce single-instance
+            // Usuï¿½ linijki zawierajï¿½ce single-instance
             var filteredLines = lines.Where(line =>
                 !line.Trim().StartsWith("single-instance=", StringComparison.OrdinalIgnoreCase))
                 .ToArray();
 
-            // SprawdŸ czy coœ zosta³o usuniête
+            // Sprawdï¿½ czy coï¿½ zostaï¿½o usuniï¿½te
             if (lines.Length == filteredLines.Length)
             {
                 await ShowInfoDialogAsync("Informacja",
                     "Nie znaleziono linijki 'single-instance=' w pliku boot.config.\n" +
-                    "Mod prawdopodobnie ju¿ nie ma ograniczenia SingleInstance.");
+                    "Mod prawdopodobnie juï¿½ nie ma ograniczenia SingleInstance.");
                 return;
             }
 
@@ -117,19 +120,19 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             await File.WriteAllLinesAsync(bootConfigPath, filteredLines);
 
             await ShowInfoDialogAsync("Sukces",
-                $"Pomyœlnie usuniêto ograniczenie SingleInstance z moda '{selectedMod.Name}'.\n\n" +
-                "Teraz mo¿esz uruchomiæ wiele kopii tego moda jednoczeœnie.");
+                $"Pomyï¿½lnie usuniï¿½to ograniczenie SingleInstance z moda '{selectedMod.Name}'.\n\n" +
+                "Teraz moï¿½esz uruchomiï¿½ wiele kopii tego moda jednoczeï¿½nie.");
 
             Debug.WriteLine($"Successfully removed SingleInstance from mod: {selectedMod.Name}");
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Error removing SingleInstance: {ex.Message}");
-            await ShowErrorDialogAsync("B³¹d", $"Nie uda³o siê usun¹æ SingleInstance:\n{ex.Message}");
+            await ShowErrorDialogAsync("Bï¿½ï¿½d", $"Nie udaï¿½o siï¿½ usunï¿½ï¿½ SingleInstance:\n{ex.Message}");
         }
     }
 
-    // Dodaj pomocnicze metody dla dialogów
+    // Dodaj pomocnicze metody dla dialogï¿½w
     private async Task<bool> ShowConfirmDialogAsync(string message, string title)
     {
         var dialog = new SUSModder.Views.ConfirmDialog(title, message);
@@ -154,41 +157,41 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     {
         try
         {
-            // SprawdŸ czy mamy wybrany mod
+            // Sprawdï¿½ czy mamy wybrany mod
             if (DataContext is not MainWindowViewModel vm || vm.SelectedMod == null)
             {
-                await ShowErrorDialogAsync("B³¹d", "Nie wybrano moda.");
+                await ShowErrorDialogAsync("Bï¿½ï¿½d", "Nie wybrano moda.");
                 return;
             }
 
             var selectedMod = vm.SelectedMod;
 
-            // SprawdŸ czy mod jest zainstalowany
+            // Sprawdï¿½ czy mod jest zainstalowany
             if (string.IsNullOrEmpty(selectedMod.InstallPath) || !Directory.Exists(selectedMod.InstallPath))
             {
-                await ShowErrorDialogAsync("B³¹d", "Wybrany mod nie jest zainstalowany lub œcie¿ka instalacji nie istnieje.");
+                await ShowErrorDialogAsync("Bï¿½ï¿½d", "Wybrany mod nie jest zainstalowany lub ï¿½cieï¿½ka instalacji nie istnieje.");
                 return;
             }
 
-            // Poka¿ dialog z wyborem iloœci instancji
+            // Pokaï¿½ dialog z wyborem iloï¿½ci instancji
             var instanceCount = await ShowInstanceCountDialogAsync();
             if (instanceCount <= 0)
                 return;
 
-            // Poka¿ ostrze¿enie dla Epic Games (jeœli potrzebne)
-            var platform = vm.DeterminePlatform(); // U¿yj metody z ViewModel jeœli jest publiczna
+            // Pokaï¿½ ostrzeï¿½enie dla Epic Games (jeï¿½li potrzebne)
+            var platform = vm.DeterminePlatform(); // Uï¿½yj metody z ViewModel jeï¿½li jest publiczna
             if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
             {
                 var confirmEpic = await ShowConfirmDialogAsync(
-                    $"Uruchamianie wielu instancji dla Epic Games mo¿e byæ niestabilne.\n\n" +
-                    $"Czy na pewno chcesz uruchomiæ {instanceCount} instancji moda '{selectedMod.Name}'?",
-                    "Ostrze¿enie - Epic Games");
+                    $"Uruchamianie wielu instancji dla Epic Games moï¿½e byï¿½ niestabilne.\n\n" +
+                    $"Czy na pewno chcesz uruchomiï¿½ {instanceCount} instancji moda '{selectedMod.Name}'?",
+                    "Ostrzeï¿½enie - Epic Games");
 
                 if (!confirmEpic)
                     return;
             }
 
-            // Uruchom wybrane iloœci instancji
+            // Uruchom wybrane iloï¿½ci instancji
             int successfulLaunches = 0;
             var errors = new List<string>();
 
@@ -198,15 +201,15 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 {
                     Debug.WriteLine($"Launching instance {i + 1} of {instanceCount} for mod: {selectedMod.Name}");
 
-                    // Wywo³aj bezpoœrednio metodê Launch z ViewModel
+                    // Wywoï¿½aj bezpoï¿½rednio metodï¿½ Launch z ViewModel
                     await vm.LaunchAsync();
 
                     successfulLaunches++;
 
-                    // Pauza miêdzy uruchomieniami (oprócz ostatniej instancji)
+                    // Pauza miï¿½dzy uruchomieniami (oprï¿½cz ostatniej instancji)
                     if (i < instanceCount - 1)
                     {
-                        await Task.Delay(2000); // Pauza dla stabilnoœci
+                        await Task.Delay(2000); // Pauza dla stabilnoï¿½ci
                     }
                 }
                 catch (Exception ex)
@@ -216,47 +219,47 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 }
             }
 
-            // Poka¿ wyniki
+            // Pokaï¿½ wyniki
             if (successfulLaunches == instanceCount)
             {
                 await ShowInfoDialogAsync("Sukces",
-                    $"Pomyœlnie uruchomiono wszystkie {instanceCount} instancji moda '{selectedMod.Name}'.");
+                    $"Pomyï¿½lnie uruchomiono wszystkie {instanceCount} instancji moda '{selectedMod.Name}'.");
             }
             else if (successfulLaunches > 0)
             {
                 var errorMessage = $"Uruchomiono {successfulLaunches} z {instanceCount} instancji moda '{selectedMod.Name}'.";
                 if (errors.Any())
                 {
-                    errorMessage += $"\n\nB³êdy:\n{string.Join("\n", errors)}";
+                    errorMessage += $"\n\nBï¿½ï¿½dy:\n{string.Join("\n", errors)}";
                 }
-                await ShowInfoDialogAsync("Czêœciowy sukces", errorMessage);
+                await ShowInfoDialogAsync("Czï¿½ciowy sukces", errorMessage);
             }
             else
             {
-                var errorMessage = $"Nie uda³o siê uruchomiæ ¿adnej instancji moda '{selectedMod.Name}'.";
+                var errorMessage = $"Nie udaï¿½o siï¿½ uruchomiï¿½ ï¿½adnej instancji moda '{selectedMod.Name}'.";
                 if (errors.Any())
                 {
-                    errorMessage += $"\n\nB³êdy:\n{string.Join("\n", errors)}";
+                    errorMessage += $"\n\nBï¿½ï¿½dy:\n{string.Join("\n", errors)}";
                 }
-                await ShowErrorDialogAsync("B³¹d", errorMessage);
+                await ShowErrorDialogAsync("Bï¿½ï¿½d", errorMessage);
             }
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Error launching multiple instances: {ex.Message}");
-            await ShowErrorDialogAsync("B³¹d", $"Nie uda³o siê uruchomiæ wielu instancji:\n{ex.Message}");
+            await ShowErrorDialogAsync("Bï¿½ï¿½d", $"Nie udaï¿½o siï¿½ uruchomiï¿½ wielu instancji:\n{ex.Message}");
         }
     }
 
 
     private async Task<int> ShowInstanceCountDialogAsync()
     {
-        // Dialog z motywami aplikacji - zwiêkszone wymiary
+        // Dialog z motywami aplikacji - zwiï¿½kszone wymiary
         var dialog = new Window
         {
-            Title = "Iloœæ instancji",
-            Width = 400,  // Zwiêkszone z 350
-            Height = 280, // Zwiêkszone z 220
+            Title = "Iloï¿½ï¿½ instancji",
+            Width = 400,  // Zwiï¿½kszone z 350
+            Height = 280, // Zwiï¿½kszone z 220
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,
             Background = this.FindResource("WindowBackgroundBrush") as IBrush
@@ -268,13 +271,13 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             BorderBrush = this.FindResource("BorderBrush") as IBrush,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
-            Margin = new Thickness(20), // Zwiêkszone z 15
-            Padding = new Thickness(25)  // Zwiêkszone z 20
+            Margin = new Thickness(20), // Zwiï¿½kszone z 15
+            Padding = new Thickness(25)  // Zwiï¿½kszone z 20
         };
 
         var stackPanel = new StackPanel { Spacing = 25 };
 
-        // Nag³ówek
+        // Nagï¿½ï¿½wek
         var headerText = new TextBlock
         {
             Text = "Uruchom wiele instancji",
@@ -289,7 +292,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         // Opis
         var descriptionText = new TextBlock
         {
-            Text = "Ile instancji chcesz uruchomiæ?",
+            Text = "Ile instancji chcesz uruchomiï¿½?",
             FontSize = 12,
             Foreground = this.FindResource("TextSecondaryBrush") as IBrush,
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
@@ -303,7 +306,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             Minimum = 1,
             Maximum = 255,
             Value = 2,
-            Increment = 1,  // Dodaj to - zwiêksza/zmniejsza o 1
+            Increment = 1,  // Dodaj to - zwiï¿½ksza/zmniejsza o 1
             FormatString = "F0",  // Dodaj to - format bez miejsc po przecinku
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
             Width = 120,
@@ -316,7 +319,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         };
         stackPanel.Children.Add(numericUpDown);
 
-        // Panel przycisków
+        // Panel przyciskï¿½w
         var buttonPanel = new StackPanel
         {
             Orientation = Avalonia.Layout.Orientation.Horizontal,
@@ -369,7 +372,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
 
 
-    // Reszta istniej¹cych metod...
+    // Reszta istniejï¿½cych metod...
     /// <summary>
     /// Ustawia opis z klikalnymi linkami w DescriptionPanel (StackPanel).
     /// </summary>

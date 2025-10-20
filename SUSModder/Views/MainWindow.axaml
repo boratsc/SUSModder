@@ -21,6 +21,10 @@
 
 	<Window.Styles>
 		<FluentTheme />
+		<!-- Importowane style -->
+		<StyleInclude Source="/Styles/ModCardStyle.axaml"/>
+		<StyleInclude Source="/Styles/MenuButtonStyle.axaml"/>
+		<StyleInclude Source="/Styles/PanelStyles.axaml"/>
 	</Window.Styles>
 
 	<SplitView x:Name="MainSplitView"
@@ -35,25 +39,20 @@
 				<StackPanel Grid.Row="0">
 
 					<!-- Hamburger menu button -->
-					<Button Command="{Binding TogglePaneCommand}"
-							Padding="5,0"
-							Background="Transparent" BorderThickness="0"
-							Foreground="{DynamicResource TextPrimaryBrush}">
-						<TextBlock Text="☰" FontSize="18"/>
+					<Button Classes="hamburger-button"
+							Command="{Binding TogglePaneCommand}">
+						<TextBlock Text="☰" Classes="menu-icon"/>
 					</Button>
 
 
 					<!-- Menu options with icons and text -->
-					<Button Margin="0,15,0,5"
-							HorizontalContentAlignment="Left"
-							Padding="0,10"
-							Background="Transparent"
-							Foreground="{DynamicResource TextPrimaryBrush}"
+					<Button Classes="menu-button"
+							Margin="0,15,0,0"
 							Command="{Binding ShowAdditionalActionsCommand}">
-						<StackPanel Orientation="Horizontal" Spacing="10">
-							<TextBlock Text="🛠️" FontSize="18"/>
+						<StackPanel Classes="menu-item">
+							<TextBlock Text="🛠️" Classes="menu-icon"/>
 							<TextBlock Text="Konfiguracje ToU"
-									   VerticalAlignment="Center"
+									   Classes="menu-text"
 									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
 						</StackPanel>
 					</Button>
@@ -64,7 +63,7 @@
 							Foreground="{DynamicResource TextPrimaryBrush}"
 							Command="{Binding ShowDllModificationsCommand}">
 						<StackPanel Orientation="Horizontal" Spacing="10">
-							<TextBlock Text="🧩" FontSize="18"/>
+							<TextBlock Text="🔧" FontSize="18"/>
 							<TextBlock Text="Modyfikacje DLL"
 									   VerticalAlignment="Center"
 									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
@@ -91,21 +90,8 @@
 							Foreground="{DynamicResource TextPrimaryBrush}"
 							Command="{Binding FixBlackScreenCommand}">
 						<StackPanel Orientation="Horizontal" Spacing="10">
-							<TextBlock Text="🩹" FontSize="18"/>
+							<TextBlock Text="🔨" FontSize="18"/>
 							<TextBlock Text="Napraw Amonga"
-									   VerticalAlignment="Center"
-									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
-						</StackPanel>
-					</Button>
-					<Button Margin="0,0,0,5"
-							HorizontalContentAlignment="Left"
-							Padding="0,10"
-							Background="Transparent"
-							Foreground="{DynamicResource TextPrimaryBrush}"
-							Command="{Binding OpenDonationPageCommand}">
-						<StackPanel Orientation="Horizontal" Spacing="10">
-							<TextBlock Text="💰" FontSize="18"/>
-							<TextBlock Text="Wspomóż projekt"
 									   VerticalAlignment="Center"
 									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
 						</StackPanel>
@@ -187,22 +173,14 @@
 					</ListBox.ItemsPanel>
 					<ListBox.ItemTemplate>
 						<DataTemplate>
-							<Border Width="140" Height="140" Margin="10" Padding="10"
-									Background="{DynamicResource ModCardBackgroundBrush}"
-									CornerRadius="8"
-									BorderBrush="{DynamicResource ModCardBorderBrush}"
-									BorderThickness="1">
+							<Border Classes="mod-card">
 								<StackPanel>
-									<Image Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
-										   Width="64" Height="64"
-										   HorizontalAlignment="Center"
+									<Image Classes="mod-icon"
+										   Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
 										   Opacity="{Binding InstallPath, Converter={StaticResource InstallStatusToOpacityConverter}}"/>
-									<TextBlock Text="{Binding Name}"
-											   FontWeight="Bold" FontSize="16"
-											   Foreground="{DynamicResource TextPrimaryBrush}"
-											   TextAlignment="Center" TextWrapping="Wrap"
-											   Opacity="{Binding InstallPath, Converter={StaticResource InstallStatusToOpacityConverter}}"
-											   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+									<TextBlock Classes="mod-name"
+											   Text="{Binding Name}"
+											   Opacity="{Binding InstallPath, Converter={StaticResource InstallStatusToOpacityConverter}}"/>
 								</StackPanel>
 							</Border>
 						</DataTemplate>

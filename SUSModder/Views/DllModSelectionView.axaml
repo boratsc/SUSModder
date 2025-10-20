@@ -176,19 +176,19 @@
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Right"
                                 Margin="0,15,0,0">
-                        <Button Content="OK"
+                        <Button Content="Wróć"
                                 Command="{Binding OkCommand}"
-                                Background="{DynamicResource AccentBrush}"
-                                Foreground="White"
+                                Background="Transparent"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                Foreground="{DynamicResource TextPrimaryBrush}"
                                 Padding="20,10"
                                 CornerRadius="6"
                                 Margin="0,0,10,0"/>
                         <Button Content="Zamknij"
                                 Command="{Binding CloseCommand}"
-                                Background="Transparent"
-                                BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="1"
-                                Foreground="{DynamicResource TextPrimaryBrush}"
+                                Background="{DynamicResource AccentBrush}"
+                                Foreground="White"
                                 Padding="20,10"
                                 CornerRadius="6"/>
                     </StackPanel>

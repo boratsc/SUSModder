@@ -20,10 +20,8 @@ public partial class App : Application
         ConsoleLogger.Initialize();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = new MainWindowViewModel(),
-            };
+            // DataContext jest teraz ustawiany w konstruktorze MainWindow
+            desktop.MainWindow = new MainWindow();
         }
 
         base.OnFrameworkInitializationCompleted();

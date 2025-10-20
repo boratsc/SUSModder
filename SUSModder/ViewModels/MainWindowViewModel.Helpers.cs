@@ -95,8 +95,13 @@ namespace SUSModder.ViewModels
 
                     Mods.Clear();
 
+                    // Filtruj tylko mody typu "full" i "Vanilla" (bez DLL)
+                    var fullMods = configs
+                        .Where(c => c.ModType.Equals("full", StringComparison.OrdinalIgnoreCase) || 
+                                    c.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase));
+
                     // Sortuj: Vanilla na górze, potem zainstalowane, potem reszta
-                    var sortedConfigs = configs
+                    var sortedConfigs = fullMods
                         .OrderBy(c => !c.ModName.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
                         .ThenBy(c => string.IsNullOrEmpty(c.InstallPath) ? 1 : 0)
                         .ThenBy(c => c.ModName);
