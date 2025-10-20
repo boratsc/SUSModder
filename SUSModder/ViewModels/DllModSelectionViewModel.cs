@@ -240,23 +240,18 @@ namespace SUSModder.ViewModels
             foreach (var dllMod in SelectedDllMods)
             {
                 System.Diagnostics.Debug.WriteLine($"⏱️ Rozpoczynanie instalacji: {dllMod.ModName}...");
-                bool success = await _dllModificationService.InstallDllToModAsync(dllMod, targetModWithCorrectPath, platform);
+                string? installedPath = await _dllModificationService.InstallDllToModAsync(dllMod, targetModWithCorrectPath, platform);
                 
-                if (success)
+                if (!string.IsNullOrEmpty(installedPath))
                 {
                     System.Diagnostics.Debug.WriteLine($"✅ Instalacja {dllMod.ModName} zakończona sukcesem");
                     
                     // Sprawdź czy plik faktycznie istnieje
-                    string expectedPath = Path.Combine(
-                        targetModWithCorrectPath.InstallPath, 
-                        dllMod.DllInstallPath ?? "BepInEx\\plugins",
-                        dllMod.ModName + ".dll");
-                    
-                    bool fileExists = File.Exists(expectedPath);
-                    System.Diagnostics.Debug.WriteLine($"   └── Sprawdzenie pliku {expectedPath}: {(fileExists ? "ISTNIEJE" : "NIE ISTNIEJE")}");
+                    bool fileExists = File.Exists(installedPath);
+                    System.Diagnostics.Debug.WriteLine($"   └── Sprawdzenie pliku {installedPath}: {(fileExists ? "ISTNIEJE" : "NIE ISTNIEJE")}");
                     
                     if (fileExists)
-                        installedFiles.Add(expectedPath);
+                        installedFiles.Add(installedPath);
                 }
                 else
                 {

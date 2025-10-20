@@ -115,9 +115,9 @@ namespace SUSModder.ViewModels
 
                 string platform = DeterminePlatform();
 
-                bool success = await _dllModificationService.InstallDllToModAsync(dllConfig, targetConfig, platform);
+                string? installedPath = await _dllModificationService.InstallDllToModAsync(dllConfig, targetConfig, platform);
 
-                if (success)
+                if (!string.IsNullOrEmpty(installedPath))
                 {
                     LoadAvailableFullMods(); // Odśwież listę
                 }

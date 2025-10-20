@@ -99,7 +99,7 @@ namespace SUSModder.Core.Services
                 return new List<ModConfiguration>();
             }
         }
-        public async Task<bool> InstallDllToModAsync(ModConfiguration dllMod, ModConfiguration targetMod, string platform)
+        public async Task<string?> InstallDllToModAsync(ModConfiguration dllMod, ModConfiguration targetMod, string platform)
         {
             try
             {
@@ -109,7 +109,7 @@ namespace SUSModder.Core.Services
                 if (string.IsNullOrEmpty(targetMod.InstallPath))
                 {
                     _diagnosticsOutput.Write("Target mod has no install path");
-                    return false;
+                    return null;
                 }
 
                 // Wybierz odpowiedni link do pobrania
@@ -117,7 +117,7 @@ namespace SUSModder.Core.Services
                 if (string.IsNullOrEmpty(downloadUrl))
                 {
                     _diagnosticsOutput.Write("No download URL available for this platform");
-                    return false;
+                    return null;
                 }
 
                 // Wyciągnij nazwę pliku z URL
@@ -132,7 +132,7 @@ namespace SUSModder.Core.Services
                 if (string.IsNullOrEmpty(targetDirectoryNullable))
                 {
                     _diagnosticsOutput.Write("Could not determine target directory");
-                    return false;
+                    return null;
                 }
 
                 string targetDirectory = targetDirectoryNullable;
@@ -161,12 +161,12 @@ namespace SUSModder.Core.Services
                 await File.WriteAllBytesAsync(targetPath, content);
 
                 _diagnosticsOutput.Write($"DLL installation completed successfully");
-                return true;
+                return targetPath;
             }
             catch (Exception ex)
             {
                 _diagnosticsOutput.Write($"Error installing DLL: {ex.Message}");
-                return false;
+                return null;
             }
         }
 

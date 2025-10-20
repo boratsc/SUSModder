@@ -5,30 +5,6 @@ Moduł `Configuration` zawiera klasy odpowiedzialne za zarządzanie konfiguracj�
 
 ## Struktura plików
 
-### ✅ **AmongTokensService.cs** ❌ [NIEUŻYWANY - DO USUNIĘCIA]
-**Status:** Klasa nie jest używana w żadnym miejscu projektu  
-**Opis:** Serwis do pobierania tokenów Among Us z API  
-**Analiza użycia:** 0 użyć
-
-**Funkcjonalność:**
-- Pobiera tokeny Among Us z API serwera
-- Deserializuje odpowiedź JSON do listy `AmongToken`
-- Używa autoryzacji przez token z `SecretProvider`
-- Implementuje `IDisposable` dla `HttpClient`
-
-**Zależności:**
-- `HttpClient` - komunikacja HTTP
-- `IConfiguration` - dostęp do konfiguracji (BaseUrl, ApiConfig)
-- `IDiagnosticsOutput` - logowanie diagnostyczne
-- `SecretProvider` - token autoryzacji
-
-**Publiczne metody:**
-- `GetAmongTokensAsync()` → `Task<List<AmongToken>>` - pobiera tokeny z API
-
-**Rekomendacja:** ⚠️ **USUNĄĆ** - Klasa nie jest używana w projekcie. Prawdopodobnie została zastąpiona przez `SUStatsService`.
-
----
-
 ### ✅ **ApiSetManager.cs** ✔️ [W UŻYCIU]
 **Status:** Aktywnie używany w `MainWindowViewModel`  
 **Opis:** Manager do zarządzania plikami konfiguracyjnymi ApiSet.ini dla SUStats  
@@ -63,30 +39,6 @@ Secret={secret}
 ```
 
 **Rekomendacja:** ✅ **ZACHOWAĆ** - Aktywnie używany do konfiguracji SUStats.
-
----
-
-### ✅ **ConfigUpdater.cs** ❌ [NIEUŻYWANY - DO USUNIĘCIA]
-**Status:** Klasa nie jest używana w żadnym miejscu projektu  
-**Opis:** Narzędzie do porównywania i scalania konfiguracji modów  
-**Analiza użycia:** 0 użyć (tylko definicja klasy)
-
-**Funkcjonalność:**
-- Porównuje nową konfigurację z istniejącą
-- Usuwa konfiguracje których ID zniknęło
-- Aktualizuje istniejące konfiguracje
-- Dodaje nowe konfiguracje
-- Zachowuje `InstallPath` z lokalnej konfiguracji
-
-**Publiczne metody:**
-```csharp
-static void CompareAndMergeConfigurations(string tempFilePath)
-private static void UpdateExistingConfig(ModConfiguration existingConfig, ModConfiguration newConfig)
-```
-
-**Rekomendacja:** ⚠️ **USUNĄĆ** - Funkcjonalność prawdopodobnie została przeniesiona do `ConfigService` lub `ConfigRepository`.
-
----
 
 ### ✅ **DeveloperModeSettings.cs** ✔️ [W UŻYCIU]
 **Status:** Aktywnie używany  
@@ -302,7 +254,6 @@ Konfiguracja.zip
 - Deserializuje do `List<AmongToken>`
 - Używa autoryzacji przez token
 - Implementuje `IDisposable`
-- Bardzo podobna struktura do `AmongTokensService` (który NIE jest używany)
 
 **Publiczne metody:**
 ```csharp
@@ -320,11 +271,7 @@ Task<List<AmongToken>> GetSUStatsServersAsync()
 
 ## Podsumowanie analizy
 
-### ❌ Kandydaci do usunięcia:
-1. **AmongTokensService.cs** - nieużywany, duplikat funkcjonalności SUStatsService
-2. **ConfigUpdater.cs** - nieużywany, funkcjonalność przeniesiona gdzie indziej
-
-### ✅ Klasy do zachowania (w użyciu):
+### ✅ Klasy w aktywnym użyciu:
 1. **ApiSetManager.cs** - zarządzanie ApiSet.ini dla SUStats
 2. **DeveloperModeSettings.cs** - tryb deweloperski
 3. **DiscordFavoritesService.cs** - pobieranie serwerów Discord
@@ -334,9 +281,9 @@ Task<List<AmongToken>> GetSUStatsServersAsync()
 7. **SUStatsService.cs** - pobieranie serwerów SUStats
 
 ### Statystyki:
-- **Pliki ogółem:** 9
-- **Aktywne:** 7 (77.8%)
-- **Do usunięcia:** 2 (22.2%)
+- **Pliki ogółem:** 7
+- **Aktywne:** 7 (100%)
+- **Do usunięcia:** 0
 
 ---
 
@@ -360,9 +307,7 @@ Configuration/
 │  ├─ DeveloperModeSettings
 │  └─ DiscordServerAdapter
 │
-└─ [DEPRECATED]
-   ├─ AmongTokensService ❌
-   └─ ConfigUpdater ❌
+└─ (brak nieużywanych plików)
 ```
 
 ### Zależności zewnętrzne:
@@ -378,10 +323,8 @@ Configuration/
 
 ## Następne kroki refaktoringu
 
-1. ✅ Usunąć `AmongTokensService.cs`
-2. ✅ Usunąć `ConfigUpdater.cs`
-3. ⚠️ Rozważyć dodanie interfejsów dla serwisów API (IDiscordService, ISUStatsService)
-4. ⚠️ Rozważyć wydzielenie ConfigManager do osobnego pliku (obecnie w ModConfig.cs)
+1. ⚠️ Rozważyć dodanie interfejsów dla serwisów API (IDiscordService, ISUStatsService)
+2. ⚠️ Rozważyć wydzielenie ConfigManager do osobnego pliku (obecnie w ModConfig.cs)
 
 ---
 

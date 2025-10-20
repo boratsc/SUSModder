@@ -33,7 +33,7 @@ namespace SUSModder.Core.Services
 
         public void ShowInfo(string message, string title = "")
         {
-            _infoDialog(message, title).ConfigureAwait(false).GetAwaiter().GetResult();
+            _infoDialog(title, message).ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         public void ShowError(string message, string title = "")
