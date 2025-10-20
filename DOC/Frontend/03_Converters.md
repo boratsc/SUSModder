@@ -112,8 +112,10 @@ public class AsyncUrlToBitmapConverter : IValueConverter
 
                 var bitmap = new Bitmap(memoryStream);
                 _cache[url] = bitmap;
-                
-                // TODO: Powiadom UI o załadowaniu (ReactiveUI PropertyChanged)
+
+                // UWAGA: Ten konwerter nie jest używany w projekcie.
+                // Zamiast tego, DiscordServerViewModel używa właściwości IconBitmap
+                // z ReactiveUI (RaiseAndSetIfChanged), co prawidłowo powiadamia UI.
             }
         }
         catch (Exception ex)
