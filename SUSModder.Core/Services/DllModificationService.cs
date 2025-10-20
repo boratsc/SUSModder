@@ -12,15 +12,15 @@ namespace SUSModder.Core.Services
     public class DllModificationService
     {
         private readonly ConfigService _configService;
-        private readonly HttpClient _httpClient;
+        // Statyczny HttpClient współdzielony przez wszystkie instancje (best practice)
+        private static readonly HttpClient _httpClient = new HttpClient();
         private readonly IDiagnosticsOutput _diagnosticsOutput;
-  
+
 
 
         public DllModificationService(ConfigService configService, IDiagnosticsOutput diagnosticsOutput)
         {
             _configService = configService;
-            _httpClient = new HttpClient();
             _diagnosticsOutput = diagnosticsOutput;
         }
 

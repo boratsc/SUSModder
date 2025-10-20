@@ -162,18 +162,6 @@ namespace SUSModder.Core.GameIntegration
             return false;
         }
 
-
-        // Zachowaj starą metodę dla kompatybilności wstecznej
-        public static void CheckAndSetupVanillaMod(
-            System.Collections.Generic.List<ModConfiguration> modConfigs,
-            IConfiguration configuration,
-            IUserInteraction? userInteraction = null)
-        {
-            // Wywołaj asynchroniczną wersję synchronicznie (nie zalecane, ale dla kompatybilności)
-            var task = CheckAndSetupVanillaModAsync(modConfigs, configuration, userInteraction);
-            task.Wait();
-        }
-
         private static string GetGameVersion(string path)
         {
             try

@@ -61,7 +61,7 @@ namespace SUSModder.Views
 
         private void OnWindowClosing(object? sender, WindowClosingEventArgs e)
         {
-            _rolesService?.Dispose();
+            // RolesService używa statycznego HttpClient, więc nie wymaga Dispose
         }
 
         private async Task LoadRolesAsync()

@@ -91,7 +91,8 @@ namespace SUSModder.Core.Configuration
 
             try
             {
-                var apiConfigs = FetchConfigFromApiAsync().GetAwaiter().GetResult();
+                // Użyj Task.Run aby uniknąć deadlocka z kontekstem synchronizacji
+                var apiConfigs = Task.Run(async () => await FetchConfigFromApiAsync()).GetAwaiter().GetResult();
                 System.Diagnostics.Debug.WriteLine($"API returned {apiConfigs.Count} configs");
 
                 if (apiConfigs.Count > 0)
@@ -106,6 +107,7 @@ namespace SUSModder.Core.Configuration
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"API fetch failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                 return new List<ModConfiguration>();
             }
         }
@@ -116,19 +118,34 @@ namespace SUSModder.Core.Configuration
             {
                 try
                 {
+                    // Ustaw timeout na 15 sekund
+                    httpClient.Timeout = TimeSpan.FromSeconds(15);
+
                     // Pobierz URL z appsettings.json
                     string configApiUrl = GetUpdateServerUrl();
+                    System.Diagnostics.Debug.WriteLine($"Fetching config from: {configApiUrl}");
 
                     // Dodaj token autoryzacji tak jak w UpdateConfigMenuItem_Click
                     string downloadToken = SecretProvider.GetDownloadToken();
                     httpClient.DefaultRequestHeaders.Add("Authorization", downloadToken);
 
                     var response = await httpClient.GetStringAsync(configApiUrl);
-                    return JsonSerializer.Deserialize<List<ModConfiguration>>(response) ?? new List<ModConfiguration>();
+                    System.Diagnostics.Debug.WriteLine($"API response received, length: {response.Length}");
+                    
+                    var configs = JsonSerializer.Deserialize<List<ModConfiguration>>(response) ?? new List<ModConfiguration>();
+                    System.Diagnostics.Debug.WriteLine($"Deserialized {configs.Count} configurations");
+                    
+                    return configs;
+                }
+                catch (TaskCanceledException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"API request timeout: {ex.Message}");
+                    return new List<ModConfiguration>();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error fetching config from API: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Error fetching config from API: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                     return new List<ModConfiguration>();
                 }
             }
