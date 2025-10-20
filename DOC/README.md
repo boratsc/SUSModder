@@ -8,13 +8,18 @@ Ta dokumentacja została stworzona w celu:
 - Ułatwienia onboardingu nowych deweloperów
 - Dokumentacji kluczowych przepływów danych
 
-**Data utworzenia:** 2025-10-19  
-**Stan:** ✅ **100% UKOŃCZONE!** 🎉  
-**Ostatnia aktualizacja:** 2025-10-19 (Refaktoryzacja MainWindowViewModel)  
-**Zakres:** SUSModder.Core (39 plików) + SUSModder Frontend (67 plików) + Updater (1 plik)  
-**Łączna analiza:** 107 plików źródłowych
+**Data utworzenia:** 2025-10-19
+**Stan:** ✅ **100% UKOŃCZONE + ZOPTYMALIZOWANE!** 🎉
+**Ostatnia aktualizacja:** 2025-10-21 (Optymalizacje Frontend + HttpClient Fix)
+**Zakres:** SUSModder.Core (32 plików aktywnych) + SUSModder Frontend (71 plików) + Updater (1 plik)
+**Łączna analiza:** 104 pliki źródłowe
 
-> **Nowe:** Zobacz [REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md) dla szczegółów refaktoryzacji MainWindowViewModel (redukcja o 676 linii / 22%)
+> **Najnowsze (2025-10-21):**
+> - ✅ Usunięto martwy kod (10 plików, ~500 linii)
+> - ✅ HttpClient Anti-pattern Fix (4 serwisy)
+> - ✅ MainWindowViewModel: 2799 → 371 linii (-86.7%)
+> - ✅ Nowe style XAML (3 pliki, 158 linii)
+> - Zobacz [CORE_REFACTORING_SUMMARY.md](CORE_REFACTORING_SUMMARY.md) i [FRONTEND_REFACTORING_SUMMARY.md](FRONTEND_REFACTORING_SUMMARY.md)
 
 ---
 
@@ -69,73 +74,117 @@ SUSModder/
 
 ## 🎉 Refaktoryzacja 2025 - Główne osiągnięcia
 
-### MainWindowViewModel - Redukcja o 22%
-- ✅ **3081 → 2405 linii** (redukcja o **676 linii**)
-- ✅ Przekształcone w **partial class**
+### MainWindowViewModel - Redukcja o 86.7%! 🚀
+- ✅ **2799 → 371 linii** (redukcja o **2428 linii / 86.7%**)
+- ✅ Podzielone na **11 partial classes**
+- ✅ Separated Concerns - każda klasa ma jasno określoną odpowiedzialność
 - ✅ Utworzono `ViewModels/Helpers/` folder (4 klasy)
-- ✅ Utworzono `MainWindowViewModel.Helpers.cs` (144 linie)
 - ✅ Usunięto wszystkie duplikaty
 
-### Nowe Services
-- ✅ **ThemeManager** - centralne zarządzanie motywami (Dark/Light/Pink)
-- ✅ **FileSystemHelper** - zaawansowane operacje na plikach (SafeDelete z retry, elevated permissions)
+**Partial classes:**
+1. `MainWindowViewModel.cs` - główna klasa (properties, commands)
+2. `MainWindowViewModel.AppSettings.cs` - zarządzanie ustawieniami
+3. `MainWindowViewModel.Dialogs.cs` - okna dialogowe
+4. `MainWindowViewModel.DllManagement.cs` - zarządzanie DLL modami
+5. `MainWindowViewModel.ExternalActions.cs` - akcje zewnętrzne
+6. `MainWindowViewModel.GameLaunch.cs` - uruchamianie gry
+7. `MainWindowViewModel.Helpers.cs` - metody pomocnicze
+8. `MainWindowViewModel.Initialization.cs` - inicjalizacja
+9. `MainWindowViewModel.ModOperations.cs` - operacje na modach
+10. `MainWindowViewModel.ThemeManagement.cs` - zarządzanie motywami
+11. `MainWindowViewModel.Updates.cs` - aktualizacje modów
 
-### Helpers - Nowy folder
-- ✅ **UIProgressReporter** - reporter postępu dla UI thread
-- ✅ **UIDiagnosticsOutput** - wyjście diagnostyczne
-- ✅ **SilentUserInteractionWrapper** - wrapper pomijający dialogi info
-- ✅ **EpicUserInteractionAdapter** - adapter dla operacji Epic
+### HttpClient Anti-pattern Fix
+- ✅ **RolesService** - HttpClient instance → static readonly
+- ✅ **DllModificationService** - HttpClient instance → static readonly
+- ✅ **SUStatsService** - HttpClient instance → static readonly + usunięto IDisposable
+- ✅ **DiscordFavoritesService** - HttpClient instance → static readonly + usunięto IDisposable
+- ✅ Zgodne z Microsoft best practices
+- ✅ Brak socket exhaustion
 
-**Zobacz pełną dokumentację:** [REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md)
+### Usunięty martwy kod
+- ✅ **Core:** 8 plików usunięte (~500 linii)
+  - AmongTokensService.cs, ConfigUpdater.cs, DialogService.cs
+  - GameService.cs, ModService.cs, ToUConfigService.cs
+  - UserInteractionAsyncService.cs, IUserInteractionAsync.cs
+- ✅ **Frontend:** 2 pliki usunięte (44 linie)
+  - Models/Mod.cs, Converters/CategoryToClassConverter.cs
+- ✅ **Rename:** FileName.cs → EpicErrorDialogViewModel.cs
+
+### Nowe Style XAML (158 linii)
+- ✅ **ModCardStyle.axaml** - style kart modów + selected state + hover
+- ✅ **MenuButtonStyle.axaml** - style przycisków menu
+- ✅ **PanelStyles.axaml** - style paneli szczegółów
+
+### Nowe Utility (Core)
+- ✅ **FileSystemUtilities** - zaawansowane operacje na plikach (SafeDelete z elevated permissions, retry logic)
+
+**Zobacz pełną dokumentację:**
+- [CORE_REFACTORING_SUMMARY.md](CORE_REFACTORING_SUMMARY.md)
+- [FRONTEND_REFACTORING_SUMMARY.md](FRONTEND_REFACTORING_SUMMARY.md)
 
 ---
 
-## 🗑️ Identyfikowane elementy do usunięcia
+## 🗑️ ~~Identyfikowane elementy do usunięcia~~ ✅ USUNIĘTE (2025-10-21)
 
-### SUSModder.Core/Configuration
-
-| Plik | Powód | Rozmiar | Priorytet |
-|------|-------|---------|-----------|
-| `AmongTokensService.cs` | Nieużywany, duplikat SUStatsService | ~130 linii | ⚠️ WYSOKI |
-| `ConfigUpdater.cs` | Nieużywany, funkcjonalność przeniesiona | ~50 linii | ⚠️ WYSOKI |
-
-### SUSModder.Core/Services
-
-| Plik | Powód | Rozmiar | Priorytet |
-|------|-------|---------|-----------|
-| `DialogService.cs` | Puste placeholder-y, zastąpione przez UserInteraction | ~28 linii | ⚠️ WYSOKI |
-| `GameService.cs` | Kompletny duplikat GameLocator, zero użyć | ~130 linii | ⚠️ WYSOKI |
-| `UserInteractionAsyncService.cs` | Duplikacja UserInteractionService | ~48 linii | ⚠️ ŚREDNI |
-
-**Razem do usunięcia (Core):** ~386 linii kodu martwego + 2 pliki do refaktoringu
-
-### SUSModder Frontend
+### ✅ SUSModder.Core/Configuration - USUNIĘTE
 
 | Plik | Powód | Rozmiar | Status |
 |------|-------|---------|--------|
-| `Models/Mod.cs` | Całkowicie nieużywany, zastąpiony ModItem+ModConfiguration | ~11 linii | ⚠️ WYSOKI |
-| `Converters/CategoryToClassConverter.cs` | Brak użyć w XAML | ~33 linie | ⚠️ WYSOKI |
-| ~~`ViewModels/MainWindowViewModel.cs` (linia ~2980)~~ | ~~Duplikat InstallationSilentUserInteraction~~ | ~~25 linii~~ | ✅ **NAPRAWIONE 2025** |
-| `ViewModels/FileName.cs` | Błędna nazwa pliku (zawiera EpicErrorDialogViewModel) | - | ⚠️ NISKI (rename) |
+| ~~`AmongTokensService.cs`~~ | ~~Nieużywany, duplikat SUStatsService~~ | ~~~130 linii~~ | ✅ **USUNIĘTY** |
+| ~~`ConfigUpdater.cs`~~ | ~~Nieużywany, funkcjonalność przeniesiona~~ | ~~~50 linii~~ | ✅ **USUNIĘTY** |
 
-**Razem do usunięcia (Frontend):** ~44 linii + 1 rename ~~+ 1 duplikat (naprawiony)~~
+### ✅ SUSModder.Core/Services - USUNIĘTE
+
+| Plik | Powód | Rozmiar | Status |
+|------|-------|---------|--------|
+| ~~`DialogService.cs`~~ | ~~Puste placeholder-y, zastąpione przez UserInteraction~~ | ~~~28 linii~~ | ✅ **USUNIĘTY** |
+| ~~`GameService.cs`~~ | ~~Kompletny duplikat GameLocator, zero użyć~~ | ~~~130 linii~~ | ✅ **USUNIĘTY** |
+| ~~`ModService.cs`~~ | ~~Duplikacja logiki, przeniesione do ViewModels~~ | ~~~200 linii~~ | ✅ **USUNIĘTY** |
+| ~~`ToUConfigService.cs`~~ | ~~Przeniesione do ViewModels~~ | ~~~100 linii~~ | ✅ **USUNIĘTY** |
+| ~~`UserInteractionAsyncService.cs`~~ | ~~Duplikacja UserInteractionService~~ | ~~~48 linii~~ | ✅ **USUNIĘTY** |
+
+### ✅ SUSModder.Core/Utilities - USUNIĘTE
+
+| Plik | Powód | Rozmiar | Status |
+|------|-------|---------|--------|
+| ~~`IUserInteractionAsync.cs`~~ | ~~Nieużywany interface~~ | ~~~15 linii~~ | ✅ **USUNIĘTY** |
+
+**Usunięte (Core):** ~700 linii martwego kodu ✅
+
+### ✅ SUSModder Frontend - USUNIĘTE
+
+| Plik | Powód | Rozmiar | Status |
+|------|-------|---------|--------|
+| ~~`Models/Mod.cs`~~ | ~~Całkowicie nieużywany, zastąpiony ModItem+ModConfiguration~~ | ~~~11 linii~~ | ✅ **USUNIĘTY** |
+| ~~`Converters/CategoryToClassConverter.cs`~~ | ~~Brak użyć w XAML~~ | ~~~33 linie~~ | ✅ **USUNIĘTY** |
+| ~~`ViewModels/FileName.cs`~~ | ~~Błędna nazwa pliku~~ | - | ✅ **ZMIENIONO → EpicErrorDialogViewModel.cs** |
+
+**Usunięte (Frontend):** ~44 linii + 1 rename ✅
 
 ---
 
 ## 📊 Statystyki
 
-### ✅ SUSModder.Core (UKOŃCZONE - 100%)
+### ✅ SUSModder.Core (UKOŃCZONE + ZOPTYMALIZOWANE - 100%)
 
 - **Moduły przeanalizowane:** 5/5 (100%)
 - **Plików przeanalizowanych:** 39
 - **Plików aktywnych:** 32 (82%)
-- **Plików do usunięcia:** 5 (13%)
-- **Plików do refaktoringu:** 2 (5%)
-- **Zaoszczędzone linie kodu:** ~386 linii
+- **Plików usunięte:** 8 (21%) ✅
+- **Nowe pliki:** 1 (FileSystemUtilities.cs)
+- **Zaoszczędzone linie kodu:** ~700 linii ✅
+- **HttpClient Anti-pattern:** Naprawiono 3 serwisy ✅
 
-### ✅ SUSModder Frontend (UKOŃCZONE - 100%) 🆕
+### ✅ SUSModder Frontend (UKOŃCZONE + ZOPTYMALIZOWANE - 100%) 🆕
 
 - **Moduły przeanalizowane:** 5/5 (100%)
+- **MainWindowViewModel:** 2799 → 371 linii (-86.7%) ✅
+- **Partial classes:** 11 ✅
+- **Plików usunięte:** 2 ✅
+- **Pliki zmienione nazwy:** 1 ✅
+- **Nowe pliki stylów:** 3 (158 linii) ✅
+- **HttpClient Anti-pattern:** Naprawiono 1 serwis ✅
 - **Plików przeanalizowanych:** 67
   - ViewModels: 13 (wszystkie aktywne)
   - Views: 40 (wszystkie aktywne)
