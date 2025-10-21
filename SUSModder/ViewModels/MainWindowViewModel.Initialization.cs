@@ -76,6 +76,19 @@ namespace SUSModder.ViewModels
 
                 // KROK 8: Pierwsze sprawdzenie aktualizacji modów
                 await CheckForModUpdatesForStatusBarAsync();
+
+                // KROK 9: Auto-logowanie SUStats w tle (asynchronicznie, nie blokujemy UI)
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await SUStatsConfigViewModel.TryAutoLoginOnStartupAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[SUStats] Błąd podczas auto-logowania w tle: {ex.Message}");
+                    }
+                });
             }
             catch (Exception ex)
             {

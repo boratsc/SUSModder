@@ -11,6 +11,7 @@ using SUSModder.Core.Diagnostics;
 using Avalonia.Threading;
 using System.Linq;
 using Avalonia.Media;
+using SUSModder.Services;
 
 namespace SUSModder.ViewModels
 {
@@ -25,6 +26,7 @@ namespace SUSModder.ViewModels
         private string _passwordStatusMessage = string.Empty;
         private IBrush _passwordStatusColor = Brushes.Gray;
         private bool _isPasswordValid = false;
+        private bool _rememberLogin = false;
 
         // Właściwości dla serwera
         private string _validatedServerName = string.Empty;
@@ -71,6 +73,12 @@ namespace SUSModder.ViewModels
         {
             get => _isPasswordValid;
             set => this.RaiseAndSetIfChanged(ref _isPasswordValid, value);
+        }
+
+        public bool RememberLogin
+        {
+            get => _rememberLogin;
+            set => this.RaiseAndSetIfChanged(ref _rememberLogin, value);
         }
 
         // Właściwości dla serwera
@@ -168,6 +176,77 @@ namespace SUSModder.ViewModels
 
             // Załaduj serwery przy inicjalizacji
             _ = LoadServersAsync();
+
+            // Synchronizuj stan z GlobalSelectedServer i zapisaną sesją
+            _ = SyncWithSavedSessionAsync();
+        }
+
+        /// <summary>
+        /// Synchronizuje stan UI z zapisaną sesją przy otwieraniu okna
+        /// </summary>
+        private async Task SyncWithSavedSessionAsync()
+        {
+            try
+            {
+                // Sprawdź czy istnieje zapisana sesja
+                var session = SUStatsSessionManager.LoadSession();
+                if (session == null)
+                {
+                    return;
+                }
+
+                // Poczekaj na załadowanie serwerów (max 3 sekundy)
+                var timeout = DateTime.Now.AddSeconds(3);
+                while (!Servers.Any() && DateTime.Now < timeout)
+                {
+                    await Task.Delay(100);
+                }
+
+                if (!Servers.Any())
+                {
+                    return;
+                }
+
+                // Znajdź serwer o zapisanym ID
+                var savedServer = Servers.FirstOrDefault(s => s.Id == session.ServerId);
+                if (savedServer == null)
+                {
+                    return;
+                }
+
+                // Wypełnij pola z zapisanej sesji
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    EnteredPassword = session.Password;
+                    RememberLogin = true;
+                    
+                    // Ustaw stan jako zalogowany
+                    IsPasswordValid = true;
+                    _validatedServerData = savedServer;
+                    ValidatedServerName = savedServer.ServerName;
+                    ValidatedServerEndpoint = savedServer.Endpoint;
+                    PasswordStatusMessage = "✅ Hasło poprawne (z zapisanej sesji)";
+                    PasswordStatusColor = Brushes.Green;
+
+                    // Przywróć stan IsStatsEnabled
+                    IsStatsEnabled = session.IsStatsEnabled;
+                    
+                    if (session.IsStatsEnabled)
+                    {
+                        UpdateStatsStatus(true, "Rejestrowanie wyników jest włączone");
+                    }
+                    else
+                    {
+                        UpdateStatsStatus(false, "Rejestrowanie wyników jest wyłączone");
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"[SUStats] ✅ Zsynchronizowano UI z zapisaną sesją: {savedServer.ServerName}");
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SUStats] Błąd podczas synchronizacji z sesją: {ex.Message}");
+            }
         }
 
         private Task CheckPasswordAsync()
@@ -211,6 +290,13 @@ namespace SUSModder.ViewModels
                     {
                         IsStatsEnabled = false;
                         UpdateStatsStatus(false, "Rejestrowanie wyników jest wyłączone");
+                    }
+
+                    // Zapisz sesję jeśli checkbox jest zaznaczony
+                    if (RememberLogin)
+                    {
+                        SUStatsSessionManager.SaveSession(matchingServer.Id, EnteredPassword, IsStatsEnabled);
+                        System.Diagnostics.Debug.WriteLine($"[SUStats] 💾 Zapisano sesję dla serwera: {matchingServer.ServerName} (Stats: {IsStatsEnabled})");
                     }
 
                     System.Diagnostics.Debug.WriteLine($"[SUStats] ✅ Hasło poprawne dla serwera: {matchingServer.ServerName}");
@@ -259,6 +345,13 @@ namespace SUSModder.ViewModels
                     UpdateStatsStatus(false, "Rejestrowanie wyników zostało wyłączone");
                     System.Diagnostics.Debug.WriteLine("[SUStats] ❌ Wyłączono statystyki");
                 }
+
+                // Aktualizuj zapisaną sesję jeśli RememberLogin jest włączone
+                if (RememberLogin)
+                {
+                    SUStatsSessionManager.SaveSession(_validatedServerData.Id, EnteredPassword, enabled);
+                    System.Diagnostics.Debug.WriteLine($"[SUStats] 💾 Zaktualizowano sesję - Stats: {enabled}");
+                }
             }
             catch (Exception ex)
             {
@@ -292,7 +385,10 @@ namespace SUSModder.ViewModels
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("[SUStats] 🔄 Resetowanie konfiguracji...");
+                System.Diagnostics.Debug.WriteLine("[SUStats] � Wylogowywanie...");
+
+                // Usuń zapisaną sesję
+                SUStatsSessionManager.ClearSession();
 
                 // Wyczyść wszystkie pola
                 EnteredPassword = string.Empty;
@@ -302,16 +398,89 @@ namespace SUSModder.ViewModels
                 PasswordStatusMessage = string.Empty;
                 ValidatedServerName = string.Empty;
                 ValidatedServerEndpoint = string.Empty;
+                RememberLogin = false;
                 _validatedServerData = null;
 
                 // Wyczyść globalny wybór
                 GlobalSelectedServer = null;
 
-                System.Diagnostics.Debug.WriteLine("[SUStats] ✅ Konfiguracja została zresetowana");
+                System.Diagnostics.Debug.WriteLine("[SUStats] ✅ Wylogowano pomyślnie i usunięto zapisaną sesję");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[SUStats] Błąd podczas resetowania: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[SUStats] Błąd podczas wylogowania: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Statyczna metoda do auto-logowania SUStats przy starcie aplikacji
+        /// </summary>
+        public static async Task TryAutoLoginOnStartupAsync()
+        {
+            try
+            {
+                // Sprawdź czy istnieje zapisana sesja
+                var session = SUStatsSessionManager.LoadSession();
+                if (session == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[SUStats] Brak zapisanej sesji - auto-logowanie pominięte");
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[SUStats] Znaleziono zapisaną sesję dla serwera ID: {session.ServerId}");
+
+                // Załaduj serwery
+                var configBuilder = new ConfigurationBuilder()
+                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                var configuration = configBuilder.Build();
+
+                var diagnosticsOutput = new SUStatsDiagnosticsOutput((message) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SUStats Service] {message}");
+                });
+
+                var suStatsService = new SUStatsService(configuration, diagnosticsOutput);
+                var serverDataList = await suStatsService.GetSUStatsServersAsync();
+
+                if (!serverDataList.Any())
+                {
+                    System.Diagnostics.Debug.WriteLine("[SUStats] ⚠️ Nie udało się załadować serwerów - auto-logowanie anulowane");
+                    return;
+                }
+
+                // Znajdź serwer o zapisanym ID
+                var savedServer = serverDataList.FirstOrDefault(s => s.Id == session.ServerId);
+                if (savedServer == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SUStats] ⚠️ Nie znaleziono serwera o ID: {session.ServerId}");
+                    // Usuń nieważną sesję
+                    SUStatsSessionManager.ClearSession();
+                    return;
+                }
+
+                // Sprawdź hasło
+                if (!savedServer.Secret.Equals(session.Password, StringComparison.Ordinal))
+                {
+                    System.Diagnostics.Debug.WriteLine("[SUStats] ⚠️ Hasło w sesji nie pasuje do serwera");
+                    SUStatsSessionManager.ClearSession();
+                    return;
+                }
+
+                // Ustaw GlobalSelectedServer jeśli IsStatsEnabled był włączony
+                if (session.IsStatsEnabled)
+                {
+                    GlobalSelectedServer = savedServer;
+                    System.Diagnostics.Debug.WriteLine($"[SUStats] ✅ Auto-logowanie zakończone pomyślnie - serwer: {savedServer.ServerName}, Stats włączone: {session.IsStatsEnabled}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SUStats] ✅ Auto-logowanie zakończone pomyślnie - serwer: {savedServer.ServerName}, Stats wyłączone");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SUStats] Błąd podczas auto-logowania: {ex.Message}");
             }
         }
 
