@@ -63,6 +63,9 @@ namespace SUSModder.Core.Configuration
 
         [JsonPropertyName("Description")]
         public string Description { get; set; } = string.Empty;
+
+        [JsonPropertyName("HasRoles")]
+        public bool? HasRoles { get; set; }
     }
 
     public static class ConfigManager

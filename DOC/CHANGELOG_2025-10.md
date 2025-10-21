@@ -5,15 +5,59 @@
 
 ---
 
-## 📊 Statystyki Globalne
+## � Najnowsze Zmiany (2025-10-21)
 
-- **Pliki zmodyfikowane:** 81
-- **Linie dodane:** 11,690
-- **Linie usunięte:** 4,008
-- **Bilans netto:** +7,682 linii
-- **Commity:** 7
+### 🐛 Naprawiono: Konflikty przy równoczesnej instalacji modów
+
+**Problem:**
+- Przy instalacji dwóch modów jednocześnie występował błąd `IOException`: "The process cannot access the file because it is being used by another process"
+- Wszystkie instalacje używały tego samego pliku tymczasowego `temp\mod.zip`
+- Dialogi z sugestiami instalacji DLL pokazywały się w tle lub nakładały się na siebie
+
+**Rozwiązanie:**
+
+1. **Unikalne katalogi tymczasowe** (`ModManager.cs`, `EpicVersionManager.cs`):
+   ```csharp
+   // Przed:
+   string tempDir = Path.Combine(modsInstallPath, "temp");
+   
+   // Po:
+   string uniqueTempId = Guid.NewGuid().ToString("N");
+   string tempDir = Path.Combine(modsInstallPath, "temp", uniqueTempId);
+   ```
+   - Każda instalacja otrzymuje unikalny podfolder w `temp\{GUID}\`
+   - Eliminuje konflikty dostępu do plików `mod.zip`, `mod.dll`
+
+2. **Inteligentne zarządzanie dialogami DLL** (`MainWindowViewModel.cs`, `MainWindowViewModel.ModOperations.cs`):
+   - Dodano licznik aktywnych instalacji `_activeInstallationsCount`
+   - Wprowadzono kolejkę oczekujących dialogów `_pendingDllDialogs`
+   - Dialogi DLL są odkładane, jeśli trwa inna instalacja
+   - Po zakończeniu wszystkich instalacji, dialogi pokazują się sekwencyjnie z małym opóźnieniem (100ms)
+
+**Zmodyfikowane pliki:**
+- `SUSModder.Core/GameIntegration/ModManager.cs`
+- `SUSModder.Core/GameIntegration/EpicVersionManager.cs`
+- `SUSModder/ViewModels/MainWindowViewModel.cs`
+- `SUSModder/ViewModels/MainWindowViewModel.ModOperations.cs`
+
+**Korzyści:**
+- ✅ Możliwość instalacji wielu modów jednocześnie bez błędów
+- ✅ Brak konfliktów dostępu do plików tymczasowych
+- ✅ Uporządkowane wyświetlanie dialogów DLL po zakończeniu wszystkich instalacji
+- ✅ Lepsza kontrola nad stanem aplikacji podczas równoległych operacji
+
+---
+
+## �📊 Statystyki Globalne
+
+- **Pliki zmodyfikowane:** 85
+- **Linie dodane:** 11,850
+- **Linie usunięte:** 4,100
+- **Bilans netto:** +7,750 linii
+- **Commity:** 8
 - **Refaktory:** 2 duże (backend + frontend)
 - **Nowe funkcje:** 5
+- **Naprawione bugi:** 1 (race condition)
 
 ---
 

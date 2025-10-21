@@ -68,6 +68,13 @@ namespace SUSModder.ViewModels
         private ObservableCollection<ModItem> _modsWithDllInstalled = new();
         private ObservableCollection<ModItem> _modsWithoutDllInstalled = new();
         private bool _isModContentVisible = false;
+        private bool _isSUStatsConfigVisible = false;
+        private bool _isAppSettingsVisible = false;
+
+        // Zarządzanie wielokrotnymi instalacjami i dialogami DLL
+        private int _activeInstallationsCount = 0;
+        private readonly object _installationLock = new object();
+        private readonly List<(ModItem mod, string platform)> _pendingDllDialogs = new List<(ModItem, string)>();
 
         #endregion
 
@@ -110,6 +117,18 @@ namespace SUSModder.ViewModels
         {
             get => _isDllModificationsVisible;
             set => this.RaiseAndSetIfChanged(ref _isDllModificationsVisible, value);
+        }
+
+        public bool IsSUStatsConfigVisible
+        {
+            get => _isSUStatsConfigVisible;
+            set => this.RaiseAndSetIfChanged(ref _isSUStatsConfigVisible, value);
+        }
+
+        public bool IsAppSettingsVisible
+        {
+            get => _isAppSettingsVisible;
+            set => this.RaiseAndSetIfChanged(ref _isAppSettingsVisible, value);
         }
 
         public ObservableCollection<ModItem> DllMods
@@ -218,6 +237,8 @@ namespace SUSModder.ViewModels
                             IsInfoPanelVisible = false;
                             IsAdditionalActionsVisible = false;
                             IsDllModificationsVisible = false;
+                            IsSUStatsConfigVisible = false;
+                            IsAppSettingsVisible = false;
                             IsDllInstallDialogVisible = false;
                             
                             // Pokaż nową zawartość (fade in)
@@ -239,6 +260,8 @@ namespace SUSModder.ViewModels
                     IsInfoPanelVisible = false;
                     IsAdditionalActionsVisible = false;
                     IsDllModificationsVisible = false;
+                    IsSUStatsConfigVisible = false;
+                    IsAppSettingsVisible = false;
                     IsDllInstallDialogVisible = false;
                     
                     Task.Delay(50).ContinueWith(_ =>

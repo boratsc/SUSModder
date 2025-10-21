@@ -19,33 +19,19 @@ namespace SUSModder.ViewModels
         {
             try
             {
-                var settingsWindow = new AppSettingsWindow();
-
-                // Bezpieczne rzutowanie z sprawdzeniem null
-                if (settingsWindow.DataContext is not AppSettingsViewModel settingsViewModel)
-                {
-                    System.Diagnostics.Debug.WriteLine("Error: AppSettingsWindow DataContext is not AppSettingsViewModel");
-                    await ShowErrorDialogAsync("Błąd inicjalizacji okna ustawień.", "Błąd");
-                    return;
-                }
-
-                // Subskrybuj event zapisania ustawień
-                settingsViewModel.SettingsSaved += OnSettingsSaved;
-
-                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-
-                if (mainWindow != null)
-                {
-                    await settingsWindow.ShowDialog(mainWindow);
-                }
-
-                // Odsubskrybuj po zamknięciu okna
-                settingsViewModel.SettingsSaved -= OnSettingsSaved;
+                IsPaneOpen = false;
+                // Zamknij inne panele i pokaż panel ustawień
+                IsInfoPanelVisible = false;
+                IsAdditionalActionsVisible = false;
+                IsDllModificationsVisible = false;
+                IsSUStatsConfigVisible = false;
+                IsAppSettingsVisible = true;
+                SelectedMod = null;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error opening settings window: {ex.Message}");
-                await ShowErrorDialogAsync($"Nie udało się otworzyć okna ustawień: {ex.Message}", "Błąd");
+                System.Diagnostics.Debug.WriteLine($"Error opening app settings panel: {ex.Message}");
+                await ShowErrorDialogAsync($"Nie udało się otworzyć ustawień: {ex.Message}", "Błąd");
             }
         }
 
@@ -78,12 +64,15 @@ namespace SUSModder.ViewModels
 
         private void ShowAdditionalActions()
         {
+            IsPaneOpen = false;
             IsAdditionalActionsVisible = !IsAdditionalActionsVisible;
 
             if (IsAdditionalActionsVisible)
             {
                 IsInfoPanelVisible = false;
                 IsDllModificationsVisible = false;
+                IsSUStatsConfigVisible = false;
+                IsAppSettingsVisible = false;
                 IsDllInstallDialogVisible = false;
                 SelectedMod = null;
             }
@@ -93,12 +82,15 @@ namespace SUSModder.ViewModels
 
         private void ShowInfo()
         {
+            IsPaneOpen = false;
             IsInfoPanelVisible = !IsInfoPanelVisible;
 
             if (IsInfoPanelVisible)
             {
                 IsAdditionalActionsVisible = false;
                 IsDllModificationsVisible = false;
+                IsSUStatsConfigVisible = false;
+                IsAppSettingsVisible = false;
                 IsDllInstallDialogVisible = false;
                 SelectedMod = null;
             }

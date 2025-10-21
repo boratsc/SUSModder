@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using ReactiveUI;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Services;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Utilities;
 using SUSModder.ViewModels.Helpers;
+using SUSModder.Services;
 
 namespace SUSModder.ViewModels
 {
@@ -119,12 +122,71 @@ namespace SUSModder.ViewModels
                     }
                 });
 
+                // Sprawdź dostępność ról dla wszystkich modów w tle (nie blokuj UI)
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var rolesService = new RolesService();
+                        
+                        foreach (var mod in Mods.ToList())
+                        {
+                            // Pomiń Vanilla - nie ma ról
+                            if (mod.IsVanilla)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[Roles Check] {mod.Name} - Vanilla, HasRoles = false");
+                                await Dispatcher.UIThread.InvokeAsync(() =>
+                                {
+                                    mod.HasRoles = false;
+                                });
+                                continue;
+                            }
+
+                            // Sprawdź czy mod ma role w API
+                            System.Diagnostics.Debug.WriteLine($"[Roles Check] Checking roles for {mod.Name} (ID: {mod.Id})...");
+                            bool hasRoles = await rolesService.CheckIfHasRolesAsync(mod.Id);
+                            System.Diagnostics.Debug.WriteLine($"[Roles Check] {mod.Name} (ID: {mod.Id}) - HasRoles = {hasRoles}");
+                            
+                            await Dispatcher.UIThread.InvokeAsync(() =>
+                            {
+                                mod.HasRoles = hasRoles;
+                            });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Błąd podczas sprawdzania dostępności ról: {ex.Message}");
+                    }
+                });
+
                 // Odśwież licznik dostępnych aktualizacji
                 await CheckForModUpdatesForStatusBarAsync();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Błąd podczas odświeżania listy modów: {ex.Message}");
+            }
+        }
+
+        public async Task RefreshAfterSettingsChangeAsync()
+        {
+            try
+            {
+                // Wymuś przeładowanie ustawień ścieżki
+                PathSettings.RefreshSettings();
+
+                // Wymuś przeładowanie ustawień deweloperskich
+                DeveloperModeSettings.RefreshSettings();
+
+                // Przeładuj listę modów
+                await RefreshModsListAsync();
+                this.RaisePropertyChanged(nameof(IsDeveloperMode));
+
+                System.Diagnostics.Debug.WriteLine($"Application refreshed with new settings - ModsInstallPath: {PathSettings.ModsInstallPath}, DeveloperMode: {DeveloperModeSettings.IsEnabled}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error refreshing after settings change: {ex.Message}");
             }
         }
 

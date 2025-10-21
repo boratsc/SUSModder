@@ -1,0 +1,226 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="using:Avalonia.Xaml.Interactivity"
+        xmlns:ia="using:Avalonia.Xaml.Interactions.Core"
+        xmlns:behaviors="using:SUSModder.Behaviors"
+        x:Class="SUSModder.Views.FactoryResetConfirmDialog"
+        Width="500" Height="410"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="True">
+
+	<Window.Styles>
+		<FluentTheme />
+		
+		<!-- Animacja fade-in dla całego okna -->
+		<Style Selector="Window">
+			<Style.Animations>
+				<Animation Duration="0:0:0.3" FillMode="Forward">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+		
+		<!-- Animacja dla ikony resetu -->
+		<Style Selector="Border.reset-icon">
+			<Style.Animations>
+				<Animation Duration="0:0:0.5" FillMode="Forward" Delay="0:0:0.1">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0"/>
+						<Setter Property="(TranslateTransform.Y)" Value="-20"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1"/>
+						<Setter Property="(TranslateTransform.Y)" Value="0"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+		
+		<!-- Animacja dla contentu -->
+		<Style Selector="StackPanel.content-panel">
+			<Style.Animations>
+				<Animation Duration="0:0:0.4" FillMode="Forward" Delay="0:0:0.2">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0"/>
+						<Setter Property="(TranslateTransform.Y)" Value="10"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1"/>
+						<Setter Property="(TranslateTransform.Y)" Value="0"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+		
+		<!-- Hover effect dla przycisku resetu -->
+		<Style Selector="Button.reset-button:pointerover">
+			<Setter Property="Background" Value="#E53E3E"/>
+			<Setter Property="BorderBrush" Value="#C53030"/>
+		</Style>
+		
+		<Style Selector="Button.reset-button:pressed">
+			<Setter Property="Background" Value="#C53030"/>
+		</Style>
+		
+		<!-- Hover effect dla przycisku anuluj -->
+		<Style Selector="Button.cancel-button:pointerover">
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+	</Window.Styles>
+
+	<Border Margin="0,30,0,0">
+		<Grid Margin="30,10,30,30" RowDefinitions="Auto,Auto,Auto">
+
+			<!-- Ikona resetu z tłem -->
+			<Border Grid.Row="0"
+					Classes="reset-icon"
+					Width="80" Height="80"
+					CornerRadius="40"
+					Background="#20DC2626"
+					BorderBrush="#DC2626"
+					BorderThickness="2"
+					HorizontalAlignment="Center"
+					Margin="0,0,0,20">
+				<Border.RenderTransform>
+					<TranslateTransform/>
+				</Border.RenderTransform>
+				<TextBlock Text="⚙️" 
+						   FontSize="40"
+						   HorizontalAlignment="Center"
+						   VerticalAlignment="Center"/>
+			</Border>
+
+			<!-- Zawartość -->
+			<StackPanel Grid.Row="1"
+						Classes="content-panel"
+						Spacing="12"
+						MinHeight="130">
+				<StackPanel.RenderTransform>
+					<TranslateTransform/>
+				</StackPanel.RenderTransform>
+				
+				<!-- Tytuł -->
+				<TextBlock x:Name="TitleText"
+						   Text="Reset do ustawień fabrycznych"
+						   FontSize="20" 
+						   FontWeight="Bold"
+						   Foreground="{DynamicResource TextPrimaryBrush}"
+						   HorizontalAlignment="Center"
+						   TextAlignment="Center"/>
+
+				<!-- Wiadomość główna -->
+				<TextBlock x:Name="MessageText"
+						   Text="Ta operacja usunie WSZYSTKIE mody oraz przywróci ustawienia fabryczne aplikacji. Kontynuować?"
+						   FontSize="14"
+						   Foreground="{DynamicResource TextSecondaryBrush}"
+						   TextWrapping="Wrap"
+						   HorizontalAlignment="Center"
+						   TextAlignment="Center"
+						   MaxWidth="420"
+						   Margin="0,0,0,8"/>
+
+				<!-- Ostrzeżenie -->
+				<Border Background="#20EF4444"
+						BorderBrush="#EF4444"
+						BorderThickness="1"
+						CornerRadius="6"
+						Padding="12,10"
+						Margin="0,4,0,8"
+						HorizontalAlignment="Center"
+						MaxWidth="420">
+					<StackPanel Orientation="Horizontal" Spacing="8">
+						<TextBlock Text="⚠️" FontSize="16" VerticalAlignment="Center"/>
+						<TextBlock Text="Operacja jest nieodwracalna!"
+								   FontSize="13"
+								   FontWeight="SemiBold"
+								   Foreground="#EF4444"
+								   VerticalAlignment="Center"/>
+					</StackPanel>
+				</Border>
+				
+				<!-- Info o rozmiarze (opcjonalne) -->
+				<Border x:Name="SizeInfoBorder"
+						Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="6"
+						Padding="12,8"
+						Margin="0,0,0,0"
+						HorizontalAlignment="Center"
+						IsVisible="False">
+					<StackPanel Orientation="Horizontal" Spacing="8">
+						<TextBlock Text="📦" FontSize="14"/>
+						<TextBlock x:Name="SizeInfoText"
+								   FontSize="13"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+					</StackPanel>
+				</Border>
+			</StackPanel>
+
+			<!-- Przyciski -->
+			<StackPanel Grid.Row="2"
+						Orientation="Horizontal"
+						HorizontalAlignment="Center"
+						Spacing="12"
+						Margin="0,20,0,0">
+
+				<!-- Przycisk Anuluj -->
+				<Button x:Name="CancelButton"
+						Click="CancelButton_Click"
+						Classes="cancel-button"
+						Width="140"
+						Height="40"
+						Background="Transparent"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8">
+					<TextBlock Text="Anuluj"
+							   FontSize="14"
+							   Foreground="{DynamicResource TextPrimaryBrush}"
+							   VerticalAlignment="Center"
+							   HorizontalAlignment="Center"/>
+				</Button>
+
+				<!-- Przycisk Resetuj -->
+				<Button x:Name="ResetButton"
+						Click="ResetButton_Click"
+						Classes="reset-button"
+						Width="140"
+						Height="40"
+						Background="#DC2626"
+						BorderBrush="#B91C1C"
+						BorderThickness="1"
+						CornerRadius="8">
+					<i:Interaction.Behaviors>
+						<behaviors:ShakeOnLoadBehavior 
+							Intensity="6" 
+							RepeatCount="2" 
+							Delay="0:0:0.6" />
+					</i:Interaction.Behaviors>
+					<Button.RenderTransform>
+						<TranslateTransform/>
+					</Button.RenderTransform>
+					<StackPanel Orientation="Horizontal" Spacing="8">
+						<TextBlock Text="⚠️" FontSize="16" VerticalAlignment="Center"/>
+						<TextBlock Text="Resetuj"
+								   FontSize="14"
+								   FontWeight="SemiBold"
+								   Foreground="White"
+								   VerticalAlignment="Center"/>
+					</StackPanel>
+				</Button>
+
+			</StackPanel>
+
+		</Grid>
+	</Border>
+
+</Window>

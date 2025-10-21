@@ -14,12 +14,15 @@ namespace SUSModder.ViewModels
     {
         private void ShowDllModifications()
         {
+            IsPaneOpen = false;
             IsDllModificationsVisible = !IsDllModificationsVisible;
 
             if (IsDllModificationsVisible)
             {
                 IsInfoPanelVisible = false;
                 IsAdditionalActionsVisible = false;
+                IsSUStatsConfigVisible = false;
+                IsAppSettingsVisible = false;
                 SelectedMod = null;
                 IsDllInstallDialogVisible = false;
 

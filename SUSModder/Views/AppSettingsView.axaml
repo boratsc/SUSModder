@@ -1,0 +1,239 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             x:Class="SUSModder.Views.AppSettingsView"
+             x:DataType="vm:AppSettingsViewModel">
+
+	<Design.DataContext>
+		<vm:AppSettingsViewModel/>
+	</Design.DataContext>
+
+	<ScrollViewer>
+		<Grid RowDefinitions="Auto,*,Auto" Margin="0">
+
+			<!-- Header -->
+			<Border Grid.Row="0"
+					Background="{DynamicResource AccentBrush}"
+					CornerRadius="8"
+					Padding="15"
+					Margin="0,0,0,20">
+				<StackPanel Orientation="Horizontal" Spacing="15">
+					<TextBlock Text="⚙️" FontSize="32" VerticalAlignment="Center"/>
+					<StackPanel VerticalAlignment="Center">
+						<TextBlock Text="Ustawienia aplikacji"
+								   FontSize="20" FontWeight="Bold"
+								   Foreground="White"/>
+						<TextBlock Text="Konfiguracja aplikacji SUSModder"
+								   FontSize="12"
+								   Foreground="#E0FFFFFF"/>
+					</StackPanel>
+				</StackPanel>
+			</Border>
+
+			<!-- Główna zawartość -->
+			<StackPanel Grid.Row="1" Spacing="15">
+
+				<!-- Sekcja wyboru trybu gry -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="12">
+						<TextBlock Text="Tryb gry"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+						<TextBlock Text="Wybierz platformę gry Among Us:"
+								   FontSize="12"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+						<TextBlock Text="Zmiana tego ustawienia wymaga restartu aplikacji"
+								   FontSize="11"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   FontStyle="Italic"/>
+
+						<StackPanel Spacing="6">
+							<RadioButton x:Name="SteamRadioButton"
+										 Content="Steam"
+										 IsChecked="{Binding IsSteamMode}"
+										 Foreground="{DynamicResource TextPrimaryBrush}"/>
+							<RadioButton x:Name="EpicRadioButton"
+										 Content="Epic Games Store"
+										 IsChecked="{Binding IsEpicMode}"
+										 Foreground="{DynamicResource TextPrimaryBrush}"/>
+						</StackPanel>
+					</StackPanel>
+				</Border>
+
+				<!-- Sekcja ścieżek -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="12">
+						<TextBlock Text="Ścieżki instalacji"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+						<TextBlock Text="Katalog instalacji modów:"
+								   FontSize="12" FontWeight="Medium"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="Tutaj będą instalowane wszystkie mody Among Us"
+								   FontSize="11"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+						<TextBox Text="{Binding ModsInstallPath}"
+								 Watermark="Wybierz katalog instalacji modów..."
+								 FontSize="12"
+								 Padding="8"
+								 Background="{DynamicResource SecondaryBackgroundBrush}"
+								 BorderBrush="{DynamicResource BorderBrush}"
+								 BorderThickness="1"
+								 CornerRadius="4"/>
+
+						<StackPanel Orientation="Horizontal" Spacing="8">
+							<Button Content="Przeglądaj..."
+									Command="{Binding BrowseFolderCommand}"
+									Background="{DynamicResource SecondaryBackgroundBrush}"
+									Foreground="{DynamicResource TextPrimaryBrush}"
+									BorderBrush="{DynamicResource BorderBrush}"
+									BorderThickness="1"
+									CornerRadius="4"
+									Padding="10,6"
+									FontSize="12"/>
+							<Button Content="Przywróć domyślną"
+									Command="{Binding ResetToDefaultCommand}"
+									Background="Transparent"
+									Foreground="{DynamicResource AccentBrush}"
+									BorderThickness="0"
+									Padding="10,6"
+									FontSize="11"/>
+						</StackPanel>
+					</StackPanel>
+				</Border>
+
+				<!-- Sekcja ustawień deweloperskich -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="12">
+						<TextBlock Text="Ustawienia deweloperskie"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+						<!-- DeveloperMode -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="12">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0" VerticalAlignment="Center">
+									<TextBlock Text="Mod Developer"
+											   FontSize="13" FontWeight="Medium"
+											   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<TextBlock Text="Włącza dodatkowe opcje dla deweloperów modów"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"/>
+								</StackPanel>
+								<ToggleSwitch Grid.Column="1"
+											  IsChecked="{Binding DeveloperMode}"
+											  OnContent="Włączony"
+											  OffContent="Wyłączony"
+											  VerticalAlignment="Center"
+											  Margin="10,0,0,0"/>
+							</Grid>
+						</Border>
+
+						<!-- ShowConsole -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="12">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0" VerticalAlignment="Center">
+									<TextBlock Text="Konsola deweloperska"
+											   FontSize="13" FontWeight="Medium"
+											   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<TextBlock Text="Pokazuje okno konsoli z logami (tylko dla tej sesji)"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"/>
+								</StackPanel>
+								<ToggleSwitch Grid.Column="1"
+											  x:Name="ShowConsoleToggle"
+											  OnContent="Włączony"
+											  OffContent="Wyłączony"
+											  VerticalAlignment="Center"
+											  Margin="10,0,0,0"
+											  Click="OnShowConsoleToggled"/>
+							</Grid>
+						</Border>
+					</StackPanel>
+				</Border>
+
+				<!-- Sekcja resetowania aplikacji -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="10">
+						<TextBlock Text="Reset aplikacji"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="Resetuje aplikację do ustawień fabrycznych i usuwa wszystkie zainstalowane mody. Ta operacja jest nieodwracalna!"
+								   FontSize="11"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   TextWrapping="Wrap"/>
+						<Button Content="Resetuj"
+								Command="{Binding FactoryResetCommand}"
+								Background="#D32F2F"
+								Foreground="White"
+								BorderBrush="#B71C1C"
+								BorderThickness="1"
+								CornerRadius="4"
+								Padding="12,6"
+								FontSize="12"
+								FontWeight="SemiBold"
+								HorizontalAlignment="Left"/>
+					</StackPanel>
+				</Border>
+
+			</StackPanel>
+
+			<!-- Footer z przyciskami -->
+			<Border Grid.Row="2"
+					BorderBrush="{DynamicResource BorderBrush}"
+					BorderThickness="0,1,0,0"
+					Padding="0,15,0,0"
+				Margin="0,20,0,0">
+			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+				<Button Content="Zamknij"
+						Click="CancelButton_Click"
+						Background="{DynamicResource ModCardBackgroundBrush}"
+							Foreground="{DynamicResource TextPrimaryBrush}"
+							BorderBrush="{DynamicResource ModCardBorderBrush}"
+							BorderThickness="1"
+							CornerRadius="6"
+							Padding="15,8"
+							FontSize="13"/>
+					<Button Content="Zapisz"
+							Command="{Binding SaveCommand}"
+							Background="{DynamicResource AccentBrush}"
+							Foreground="White"
+							BorderBrush="{DynamicResource AccentBrush}"
+							BorderThickness="1"
+							CornerRadius="6"
+							Padding="15,8"
+							FontSize="13"
+							FontWeight="SemiBold"
+							IsEnabled="{Binding HasUnsavedChanges}"/>
+				</StackPanel>
+			</Border>
+		</Grid>
+	</ScrollViewer>
+</UserControl>

@@ -14,6 +14,9 @@ using System.Reactive;
 using System.Linq;
 using Avalonia.Media;
 using SUSModder.Services;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
+using Avalonia.Input;
 
 namespace SUSModder.Views;
 
@@ -30,11 +33,38 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         
         InitializeComponent();
 
+        _fabButton = this.FindControl<Button>("FabButton");
+        _fabMenuPanel = this.FindControl<Border>("FabMenuPanel");
+        _fabHost = this.FindControl<Canvas>("FabHost");
+        _statusBar = this.FindControl<Border>("StatusBar");
+
         // Inicjalizuj komendy
         RemoveSingleInstanceCommand = ReactiveCommand.CreateFromTask(RemoveSingleInstanceAsync);
         LaunchMultipleInstancesCommand = ReactiveCommand.CreateFromTask(LaunchMultipleInstancesAsync);
 
-        // Nas�uchuj zmiany wybranego moda i aktualizuj opis
+        // Ustaw początkową pozycję FAB po załadowaniu okna
+        this.Opened += (_, _) =>
+        {
+            _fabInitialPlacementDone = false;
+            InitializeFabPosition();
+        };
+
+        if (_fabMenuPanel != null)
+        {
+            _fabMenuPanel.GetObservable(Visual.BoundsProperty)
+                         .Subscribe(_ => UpdateFabMenuPosition(_fabCurrentPosition.X, _fabCurrentPosition.Y));
+        }
+
+        if (_fabHost != null)
+        {
+            _fabHost.GetObservable(Visual.BoundsProperty)
+                    .Subscribe(_ => EnsureFabWithinBounds());
+        }
+
+        this.GetObservable(Visual.BoundsProperty)
+            .Subscribe(_ => EnsureFabWithinBounds());
+
+        // Nasłuchuj zmiany wybranego moda i aktualizuj opis
         this.WhenActivated(disposables =>
         {
             if (DataContext is MainWindowViewModel vm)
@@ -46,9 +76,37 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                           SetDescriptionWithLinks(mod.Description ?? "");
                       else
                           SetDescriptionWithLinks("");
-                  });
+                  })
+                  .DisposeWith(disposables);
+
+                vm.WhenAnyValue(x => x.IsPaneOpen)
+                  .Subscribe(_ => UpdateFabMenuPosition(_fabCurrentPosition.X, _fabCurrentPosition.Y))
+                  .DisposeWith(disposables);
             }
         });
+    }
+
+    private void InitializeFabPosition()
+    {
+        if (_fabButton == null)
+            return;
+
+        var hostHeight = GetHostHeight();
+        var hostWidth = GetHostWidth();
+        var buttonHeight = _fabButton.Bounds.Height > 0 ? _fabButton.Bounds.Height : _fabButton.Height;
+
+        if (hostHeight <= 0 || buttonHeight <= 0)
+            return;
+
+        var initialLeft = FabEdgePadding;
+        var initialTop = CalculateMaxTop(hostHeight, buttonHeight);
+
+        UpdateFabVisuals(initialLeft, initialTop);
+        
+        // Zapisz offset od dołu (początkowo FAB jest na maxTop, więc offset = 0)
+        _fabOffsetFromBottom = 0;
+        
+        _fabInitialPlacementDone = true;
     }
 
     private void ModDeveloperMenuButton_Click(object sender, RoutedEventArgs e)
@@ -436,6 +494,345 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             });
         }
     }
+
+    // FAB Button overlay click handler - zamyka menu po kliknięciu w tło
+    private void OnOverlayPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.IsPaneOpen = false;
+        }
+    }
+
+    // FAB Button drag & drop functionality
+    private const double FabEdgePadding = 24d;
+    private const double FabPanelSpacing = 16d;
+
+    private Button? _fabButton;
+    private Border? _fabMenuPanel;
+    private Canvas? _fabHost;
+    private Border? _statusBar;
+
+    private bool _isDraggingFab;
+    private Point _fabDragStartPoint;
+    private bool _wasDragged;
+    private Point _fabOriginalPosition;
+    private Point _fabCurrentPosition = new Point(FabEdgePadding, FabEdgePadding);
+    private bool _fabInitialPlacementDone;
+    private IPointer? _fabActivePointer;
+    
+    // Przechowujemy offset od dolnej krawędzi, aby FAB "trzymał się" dołu przy zmianie rozmiaru
+    private double _fabOffsetFromBottom;
+
+    private void OnFabPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (_fabButton == null)
+            return;
+
+        var properties = e.GetCurrentPoint(this).Properties;
+        if (properties.IsLeftButtonPressed)
+        {
+            _isDraggingFab = true;
+            _wasDragged = false;
+            _fabDragStartPoint = e.GetPosition(this); // Pozycja względem okna
+            _fabOriginalPosition = _fabCurrentPosition;
+
+            // Przechwyć wskaźnik, aby otrzymywać zdarzenia nawet poza przyciskiem
+            _fabActivePointer = e.Pointer;
+            _fabActivePointer.Capture(this); // Przechwytujemy na poziomie okna
+            e.Handled = true;
+        }
+    }
+
+    private void OnFabPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (!_isDraggingFab || !ReferenceEquals(e.Pointer, _fabActivePointer))
+            return;
+
+        var currentPoint = e.GetPosition(this);
+        var delta = currentPoint - _fabDragStartPoint;
+
+        if (!_wasDragged && (Math.Abs(delta.X) > 3 || Math.Abs(delta.Y) > 3))
+        {
+            _wasDragged = true;
+        }
+
+        if (_wasDragged)
+        {
+            var newLeft = _fabOriginalPosition.X + delta.X;
+            var newTop = _fabOriginalPosition.Y + delta.Y;
+            UpdateFabVisuals(newLeft, newTop);
+        }
+        e.Handled = true;
+    }
+
+    private void OnFabPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (!_isDraggingFab || !ReferenceEquals(e.Pointer, _fabActivePointer))
+            return;
+
+        if (_wasDragged && _fabButton != null)
+        {
+            // Zapisz ostatnią pozycję
+            _fabCurrentPosition = new Point(Canvas.GetLeft(_fabButton), Canvas.GetTop(_fabButton));
+            e.Handled = true;
+        }
+        else
+        {
+            // Jeśli nie było przeciągnięcia, potraktuj to jako kliknięcie
+            if (DataContext is MainWindowViewModel vm)
+            {
+                vm.TogglePaneCommand.Execute(Unit.Default);
+            }
+        }
+
+        // Zawsze zwalniaj zasoby przeciągania
+        _isDraggingFab = false;
+        _fabActivePointer?.Capture(null);
+        _fabActivePointer = null;
+    }
+
+    private void UpdateFabVisuals(double desiredLeft, double desiredTop)
+    {
+        if (_fabButton == null)
+            return;
+
+        var hostWidth = GetHostWidth();
+        var hostHeight = GetHostHeight();
+
+        if (hostWidth <= 0)
+        {
+            hostWidth = _fabButton.Width + (FabEdgePadding * 2);
+        }
+
+        if (hostHeight <= 0)
+        {
+            hostHeight = _fabButton.Height + (FabEdgePadding * 2);
+        }
+
+        var buttonWidth = _fabButton.Bounds.Width > 0 ? _fabButton.Bounds.Width : _fabButton.Width;
+    var buttonHeight = _fabButton.Bounds.Height > 0 ? _fabButton.Bounds.Height : _fabButton.Height;
+
+    var maxLeft = hostWidth - buttonWidth - FabEdgePadding;
+    var maxTop = CalculateMaxTop(hostHeight, buttonHeight);
+
+        if (maxLeft < FabEdgePadding)
+        {
+            maxLeft = FabEdgePadding;
+        }
+
+        if (maxTop < FabEdgePadding)
+        {
+            maxTop = FabEdgePadding;
+        }
+
+        var clampedLeft = ClampToBounds(desiredLeft, FabEdgePadding, maxLeft);
+        var clampedTop = ClampToBounds(desiredTop, FabEdgePadding, maxTop);
+
+        Canvas.SetLeft(_fabButton, clampedLeft);
+        Canvas.SetTop(_fabButton, clampedTop);
+
+        _fabCurrentPosition = new Point(clampedLeft, clampedTop);
+        
+        // Zapisz offset od dolnej krawędzi (maxTop to pozycja przy samym dole)
+        _fabOffsetFromBottom = maxTop - clampedTop;
+
+        UpdateFabMenuPosition(clampedLeft, clampedTop);
+    }
+
+    private void UpdateFabMenuPosition(double buttonLeft, double buttonTop)
+    {
+        if (_fabMenuPanel == null || _fabButton == null)
+            return;
+
+    var hostWidth = GetHostWidth();
+    var hostHeight = GetHostHeight();
+
+        if (hostWidth <= 0)
+        {
+            hostWidth = _fabButton.Width + (FabEdgePadding * 2);
+        }
+
+        if (hostHeight <= 0)
+        {
+            hostHeight = _fabButton.Height + (FabEdgePadding * 2);
+        }
+
+        var panelWidth = _fabMenuPanel.Bounds.Width;
+        if (panelWidth <= 0)
+        {
+            panelWidth = _fabMenuPanel.DesiredSize.Width;
+        }
+        if (panelWidth <= 0)
+        {
+            panelWidth = Math.Max(_fabMenuPanel.MinWidth, 200);
+        }
+
+        var panelHeight = _fabMenuPanel.Bounds.Height;
+        if (panelHeight <= 0)
+        {
+            panelHeight = _fabMenuPanel.DesiredSize.Height;
+        }
+        if (panelHeight <= 0)
+        {
+            panelHeight = 320;
+        }
+
+        var buttonHeight = _fabButton.Bounds.Height > 0 ? _fabButton.Bounds.Height : _fabButton.Height;
+
+        var left = buttonLeft;
+        var top = buttonTop - panelHeight - FabPanelSpacing;
+
+        if (left + panelWidth > hostWidth - FabEdgePadding)
+        {
+            left = hostWidth - panelWidth - FabEdgePadding;
+        }
+        if (left < FabEdgePadding)
+        {
+            left = FabEdgePadding;
+        }
+
+        if (top < FabEdgePadding)
+        {
+            top = buttonTop + buttonHeight + FabPanelSpacing;
+
+            if (top + panelHeight > hostHeight - FabEdgePadding)
+            {
+                top = hostHeight - panelHeight - FabEdgePadding;
+            }
+
+            if (top < FabEdgePadding)
+            {
+                top = FabEdgePadding;
+            }
+        }
+
+        Canvas.SetLeft(_fabMenuPanel, left);
+        Canvas.SetTop(_fabMenuPanel, top);
+    }
+
+    private void EnsureFabWithinBounds()
+    {
+        if (!_fabInitialPlacementDone)
+        {
+            InitializeFabPosition();
+            if (!_fabInitialPlacementDone)
+                return;
+        }
+
+        // Oblicz nową pozycję Y na podstawie offsetu od dołu
+        var hostHeight = GetHostHeight();
+        var buttonHeight = _fabButton?.Bounds.Height > 0 ? _fabButton.Bounds.Height : (_fabButton?.Height ?? 56);
+        var maxTop = CalculateMaxTop(hostHeight, buttonHeight);
+        
+        // FAB powinien pozostać w tej samej odległości od dolnej krawędzi
+        var newTop = maxTop - _fabOffsetFromBottom;
+        
+        // Zachowaj poprzednią pozycję X
+        UpdateFabVisuals(_fabCurrentPosition.X, newTop);
+    }
+
+    private static double ClampToBounds(double value, double min, double max)
+    {
+        if (!double.IsFinite(value))
+        {
+            return min;
+        }
+
+        var upper = max < min ? min : max;
+
+        if (value < min)
+            return min;
+
+        if (value > upper)
+            return upper;
+
+        return value;
+    }
+
+    private double CalculateMaxTop(double hostHeight, double buttonHeight)
+    {
+        var statusBarHeight = GetStatusBarHeight();
+        
+        // FAB powinien być zawsze tuż nad status barem (niebieską linią)
+        // hostHeight zawiera całą wysokość Canvas (z status barem)
+        // Więc odejmujemy wysokość status bara i dodatkowy padding
+        var maxTop = hostHeight - statusBarHeight - buttonHeight - FabEdgePadding;
+
+        // Zabezpieczenie przed ujemnymi wartościami
+        if (maxTop < FabEdgePadding)
+        {
+            maxTop = FabEdgePadding;
+        }
+
+        return maxTop;
+    }
+
+    private double GetStatusBarHeight()
+    {
+        if (_statusBar == null)
+            return 0;
+
+        var height = _statusBar.Bounds.Height;
+
+        if (height <= 0 && _statusBar.DesiredSize.Height > 0)
+        {
+            height = _statusBar.DesiredSize.Height;
+        }
+
+        return height > 0 ? height : 0;
+    }
+
+    private double GetHostWidth()
+    {
+        double width = _fabHost?.Bounds.Width ?? 0;
+
+        if (!(width > 0))
+        {
+            width = this.Bounds.Width;
+        }
+
+        if (!(width > 0))
+        {
+            width = this.ClientSize.Width;
+        }
+
+        if (!(width > 0) && _fabButton != null)
+        {
+            width = _fabButton.Width + (FabEdgePadding * 2);
+        }
+
+        return width > 0 ? width : (_fabButton?.Width ?? 0) + (FabEdgePadding * 2);
+    }
+
+    private double GetHostHeight()
+    {
+        double height = _fabHost?.Bounds.Height ?? 0;
+
+        if (!(height > 0))
+        {
+            height = this.Bounds.Height;
+        }
+
+        if (!(height > 0))
+        {
+            height = this.ClientSize.Height;
+        }
+
+        if (!(height > 0) && _fabButton != null)
+        {
+            height = _fabButton.Height + (FabEdgePadding * 2);
+        }
+
+        return height > 0 ? height : (_fabButton?.Height ?? 0) + (FabEdgePadding * 2);
+    }
+
+    private void OnMenuPanelPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+    {
+        // Zapobiega zamykaniu menu podczas klikania w panel (ale nie w overlay)
+        e.Handled = true;
+    }
+
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         ConsoleLogger.Shutdown();

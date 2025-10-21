@@ -42,6 +42,7 @@
 			<PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
 		</PackageReference>
 		<PackageReference Include="Avalonia.ReactiveUI" Version="11.3.7" />
+		<PackageReference Include="FluentIcons.Avalonia" Version="1.1.312" />
 		<PackageReference Include="Xaml.Behaviors.Avalonia" Version="11.3.6.5" />
 	</ItemGroup>
 
