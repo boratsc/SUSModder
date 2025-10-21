@@ -118,6 +118,9 @@ namespace SUSModder.ViewModels
                         SelectedMod = Mods.FirstOrDefault(m => m.Name == selectedModName);
                     }
                 });
+
+                // Odśwież licznik dostępnych aktualizacji
+                await CheckForModUpdatesForStatusBarAsync();
             }
             catch (Exception ex)
             {

@@ -1,8 +1,8 @@
 ﻿using Avalonia.Data.Converters;
 using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 using System;
 using System.Globalization;
+using SUSModder.Services;
 
 namespace SUSModder.Converters
 {
@@ -14,17 +14,8 @@ namespace SUSModder.Converters
         {
             if (value is string fileName && !string.IsNullOrWhiteSpace(fileName))
             {
-                try
-                {
-                    var uri = new Uri($"avares://SUSModder/Assets/{fileName}");
-                    var asset = AssetLoader.Open(uri);
-                    return new Bitmap(asset);
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[BitmapConverter] ERROR loading {fileName}: {ex.Message}");
-                    return null;
-                }
+                // Użyj serwisu preloadingu z cache
+                return ModIconPreloader.GetIcon(fileName);
             }
             return null;
         }

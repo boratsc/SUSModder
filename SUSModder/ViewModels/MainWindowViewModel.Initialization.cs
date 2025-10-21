@@ -55,11 +55,27 @@ namespace SUSModder.ViewModels
                 // KROK 5: Odświeżenie interfejsu (zawsze, niezależnie od sukcesu Vanilla)
                 await RefreshModsListAsync();
 
+                // KROK 5.5: Preload ikon modów w tle
+                _ = Task.Run(async () =>
+                {
+                    var iconFileNames = _loadedConfigs
+                        .Select(c => c.PngFileName)
+                        .Where(f => !string.IsNullOrWhiteSpace(f))
+                        .Distinct()
+                        .ToList();
+                    
+                    await ModIconPreloader.PreloadIconsAsync(iconFileNames);
+                });
+
                 // KROK 6: Odświeżenie panelu statusu
                 await RefreshStatusBarAsync();
 
-                // KROK 7: Uruchom auto-refresh statusu API w tle
+                // KROK 7: Uruchom auto-refresh statusu API i aktualizacji modów w tle
                 StartApiStatusAutoRefresh();
+                StartModUpdatesAutoRefresh();
+
+                // KROK 8: Pierwsze sprawdzenie aktualizacji modów
+                await CheckForModUpdatesForStatusBarAsync();
             }
             catch (Exception ex)
             {

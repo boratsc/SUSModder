@@ -221,6 +221,9 @@ namespace SUSModder.ViewModels
                 return;
 
             var currentSelectedMod = SelectedMod;
+            bool showNoUpdateMessage = false;
+            bool updateSuccessful = false;
+            string? successMessage = null;
 
             try
             {
@@ -238,24 +241,12 @@ namespace SUSModder.ViewModels
                 {
                     currentSelectedMod.InstallStatusMessage = "Brak dostępnych aktualizacji";
                     currentSelectedMod.InstallProgress = 100;
-
-                    await Task.Delay(2000);
-                    await ShowMessageAsync("Informacja", $"Mod '{currentSelectedMod.Name}' jest już w najnowszej wersji.");
+                    await Task.Delay(1500);
+                    showNoUpdateMessage = true;
                     return;
                 }
 
-                // 2. Potwierdź aktualizację z użytkownikiem
-                bool confirmed = await ShowConfirmDialogAsync(
-                    $"Dostępna jest nowa wersja moda '{currentSelectedMod.Name}':\n\n" +
-                    $"Obecna wersja: {currentSelectedMod.ModVersion}\n" +
-                    $"Nowa wersja: {updatedModConfig.ModVersion}\n\n" +
-                    $"Czy chcesz zaktualizować mod?",
-                    "Dostępna aktualizacja"
-                );
-
-                if (!confirmed)
-                    return;
-
+                // 2. Rozpocznij aktualizację bez potwierdzenia (ręczna akcja użytkownika)
                 currentSelectedMod.InstallProgress = 20;
 
                 // 3. Aktualizuj konfigurację w pliku
@@ -304,7 +295,8 @@ namespace SUSModder.ViewModels
                 RefreshModsSortingKeepSelection(currentSelectedMod);
 
                 await Task.Delay(1500);
-                await ShowMessageAsync("Sukces", $"Mod '{currentSelectedMod.Name}' został pomyślnie zaktualizowany do wersji {updatedModConfig.ModVersion}.");
+                updateSuccessful = true;
+                successMessage = $"Mod '{currentSelectedMod.Name}' został pomyślnie zaktualizowany do wersji {updatedModConfig.ModVersion}.";
             }
             catch (Exception ex)
             {
@@ -321,6 +313,19 @@ namespace SUSModder.ViewModels
 
                 // Odśwież statystyki status bara
                 await RefreshStatusBarAsync();
+                
+                // Odśwież natychmiastowo status dostępnych aktualizacji w status barze
+                await CheckForModUpdatesForStatusBarAsync();
+            }
+
+            // Pokaż komunikaty po zakończeniu finally (poza blokiem try-finally)
+            if (showNoUpdateMessage)
+            {
+                await ShowMessageAsync("Informacja", $"Mod '{currentSelectedMod.Name}' jest już w najnowszej wersji.");
+            }
+            else if (updateSuccessful && successMessage != null)
+            {
+                await ShowMessageAsync("Sukces", successMessage);
             }
         }
 
