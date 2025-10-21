@@ -92,6 +92,13 @@
                                FontSize="12"
                                Margin="0,5,0,0"
                                IsVisible="{Binding PasswordStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+					<!-- Checkbox zapamiętaj logowanie -->
+					<CheckBox IsChecked="{Binding RememberLogin}"
+                              Content="Zapamiętaj logowanie"
+                              FontSize="13"
+                              Margin="0,8,0,0"
+                              Foreground="{DynamicResource TextPrimaryBrush}"/>
 				</StackPanel>
 
 				<!-- Separator -->
@@ -175,8 +182,8 @@
                 Margin="0,25,0,0">
 			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
 
-				<!-- Przycisk resetowania (widoczny tylko gdy hasło jest poprawne) -->
-				<Button Content="🔄 Resetuj"
+				<!-- Przycisk wylogowania (widoczny tylko gdy hasło jest poprawne) -->
+				<Button Content="� Wyloguj"
                         Padding="15,10"
                         CornerRadius="6"
                         FontSize="14"
