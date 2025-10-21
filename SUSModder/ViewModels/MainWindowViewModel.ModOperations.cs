@@ -440,17 +440,31 @@ namespace SUSModder.ViewModels
                 // Pokaż progress bar
                 currentSelectedMod.ShowProgress = true;
                 currentSelectedMod.IsInstalling = true;
-                currentSelectedMod.InstallProgress = 0;
+                currentSelectedMod.InstallProgress = 25;
                 currentSelectedMod.InstallStatusMessage = "Rozpoczynanie odinstalowywania...";
 
-                // Sprawdź czy użytkownik potwierdza
-                bool confirmed = await _userInteractionService.ShowConfirmAsync(
-                    $"Czy na pewno chcesz odinstalować mod '{currentSelectedMod.Name}'?",
-                    "Potwierdzenie odinstalowania"
-                );
+                // Pokaż ładny dialog potwierdzenia usunięcia
+                bool confirmed = false;
+                await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    var dialog = new UninstallConfirmDialog(currentSelectedMod.Name, currentSelectedMod.InstallPath);
+                    
+                    if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop 
+                        && desktop.MainWindow != null)
+                    {
+                        await dialog.ShowDialog(desktop.MainWindow);
+                        confirmed = dialog.Result;
+                    }
+                });
 
                 if (!confirmed)
+                {
+                    currentSelectedMod.ShowProgress = false;
+                    currentSelectedMod.IsInstalling = false;
+                    currentSelectedMod.InstallProgress = 0;
+                    currentSelectedMod.InstallStatusMessage = string.Empty;
                     return;
+                }
 
                 currentSelectedMod.InstallProgress = 25;
                 currentSelectedMod.InstallStatusMessage = "Usuwanie plików...";
