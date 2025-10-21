@@ -1,5 +1,6 @@
 using ReactiveUI;
 using SUSModder.Core.Utilities;
+using SUSModder.Core.Services;
 using SUSModder.Models;
 using System;
 using System.Collections.Generic;
@@ -135,6 +136,29 @@ namespace SUSModder.ViewModels
         };
 
         public bool IsApiOnline => ApiStatus == ApiConnectionStatus.Online;
+
+        // Dostępne aktualizacje modów
+        private int _availableUpdatesCount;
+        private List<string> _availableUpdatesList = new();
+        private string _availableUpdatesTooltip = string.Empty;
+
+        public int AvailableUpdatesCount
+        {
+            get => _availableUpdatesCount;
+            set => this.RaiseAndSetIfChanged(ref _availableUpdatesCount, value);
+        }
+
+        public List<string> AvailableUpdatesList
+        {
+            get => _availableUpdatesList;
+            set => this.RaiseAndSetIfChanged(ref _availableUpdatesList, value);
+        }
+
+        public string AvailableUpdatesTooltip
+        {
+            get => _availableUpdatesTooltip;
+            set => this.RaiseAndSetIfChanged(ref _availableUpdatesTooltip, value);
+        }
 
         #endregion
 
@@ -346,6 +370,71 @@ namespace SUSModder.ViewModels
                     catch (Exception ex)
                     {
                         System.Diagnostics.Debug.WriteLine($"Auto-refresh API status error: {ex.Message}");
+                    }
+                }
+            });
+        }
+
+        /// <summary>
+        /// Sprawdza dostępne aktualizacje modów (bez wyświetlania dialogu)
+        /// </summary>
+        private async Task CheckForModUpdatesForStatusBarAsync()
+        {
+            try
+            {
+                var updateManager = new ModUpdateManager();
+                var result = await updateManager.CheckForUpdatesAsync();
+
+                if (result.Success && result.InstalledModUpdates.Any())
+                {
+                    AvailableUpdatesCount = result.InstalledModUpdates.Count;
+                    AvailableUpdatesList = result.InstalledModUpdates
+                        .Select(u => $"{u.ModName} ({u.CurrentVersion} → {u.NewVersion})")
+                        .ToList();
+
+                    // Stwórz tooltip
+                    var tooltipBuilder = new System.Text.StringBuilder();
+                    tooltipBuilder.AppendLine("Dostępne aktualizacje modów:");
+                    foreach (var update in result.InstalledModUpdates)
+                    {
+                        tooltipBuilder.AppendLine($"• {update.ModName}");
+                    }
+                    AvailableUpdatesTooltip = tooltipBuilder.ToString().TrimEnd();
+                }
+                else
+                {
+                    AvailableUpdatesCount = 0;
+                    AvailableUpdatesList.Clear();
+                    AvailableUpdatesTooltip = string.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error checking for mod updates in status bar: {ex.Message}");
+                AvailableUpdatesCount = 0;
+                AvailableUpdatesList.Clear();
+                AvailableUpdatesTooltip = string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Timer do auto-refresh dostępnych aktualizacji modów (co 30 sekund)
+        /// </summary>
+        private void StartModUpdatesAutoRefresh()
+        {
+            Task.Run(async () =>
+            {
+                while (true)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(30));
+                    
+                    try
+                    {
+                        await CheckForModUpdatesForStatusBarAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Auto-refresh mod updates error: {ex.Message}");
                     }
                 }
             });

@@ -617,36 +617,34 @@
 									<StackPanel x:Name="DescriptionPanel" Orientation="Vertical"/>
 								</ScrollViewer>
 
-								<!-- PROGRESS BAR -->
-								<Border IsVisible="{Binding ShowProgress}"
-										Background="{DynamicResource TertiaryBackgroundBrush}"
-										BorderBrush="{DynamicResource BorderBrush}"
-										BorderThickness="1"
-										CornerRadius="8"
-										Padding="15"
-										Margin="0,0,0,20">
-									<StackPanel>
-										<TextBlock Text="{Binding InstallStatusMessage}"
-												   FontSize="12"
-												   Foreground="{DynamicResource TextPrimaryBrush}"
-												   TextAlignment="Center"
-												   Margin="0,0,0,8"/>
-										<ProgressBar Value="{Binding InstallProgress}"
-													 Minimum="0"
-													 Maximum="100"
-													 Height="24"
-													 CornerRadius="12"
-													 Background="{DynamicResource WindowBackgroundBrush}"
-													 Foreground="{DynamicResource AccentBrush}"/>
-										<TextBlock Text="{Binding InstallProgress, StringFormat='{}{0}%'}"
-												   FontSize="11"
-												   Foreground="{DynamicResource TextSecondaryBrush}"
-												   TextAlignment="Center"
-												   Margin="0,5,0,0"/>
-									</StackPanel>
-								</Border>
-
-								<!-- Przyciski dla Vanilla - tylko Uruchom -->
+							<!-- PROGRESS BAR -->
+							<Border IsVisible="{Binding ShowProgress}"
+									Background="{DynamicResource TertiaryBackgroundBrush}"
+									BorderBrush="{DynamicResource BorderBrush}"
+									BorderThickness="1"
+									CornerRadius="8"
+									Padding="15"
+									Margin="0,0,0,10">
+								<StackPanel>
+									<TextBlock Text="{Binding InstallStatusMessage}"
+											   FontSize="12"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   TextAlignment="Center"
+											   Margin="0,0,0,8"/>
+									<ProgressBar Value="{Binding InstallProgress}"
+												 Minimum="0"
+												 Maximum="100"
+												 Height="24"
+												 CornerRadius="12"
+												 Background="{DynamicResource WindowBackgroundBrush}"
+												 Foreground="{DynamicResource AccentBrush}"/>
+									<TextBlock Text="{Binding InstallProgress, StringFormat='{}{0}%'}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"
+											   TextAlignment="Center"
+											   Margin="0,5,0,0"/>
+								</StackPanel>
+							</Border>								<!-- Przyciski dla Vanilla - tylko Uruchom -->
 								<StackPanel IsVisible="{Binding IsVanilla}" Spacing="10">
 									<Button Content="Uruchom"
 											HorizontalAlignment="Stretch"
@@ -754,8 +752,15 @@
 									</Button.IsVisible>
 								</Button>
 
-								<StackPanel IsVisible="{Binding InstallPath, Converter={StaticResource StringNotNullOrEmptyToBoolConverter}}"
-											Margin="0,25,0,0">
+								<!-- Sekcja "Zainstalowano w:" - ukrywana podczas operacji -->
+								<StackPanel Margin="0,25,0,0">
+									<StackPanel.IsVisible>
+										<MultiBinding Converter="{x:Static BoolConverters.And}">
+											<Binding Path="InstallPath" Converter="{StaticResource StringNotNullOrEmptyToBoolConverter}"/>
+											<Binding Path="ShowProgress" Converter="{x:Static BoolConverters.Not}"/>
+										</MultiBinding>
+									</StackPanel.IsVisible>
+									
 									<TextBlock Text="Zainstalowano w:"
 											   FontSize="11"
 											   Foreground="{DynamicResource TextSecondaryBrush}"
@@ -809,121 +814,143 @@
 
 			<!-- STATUS BAR - Panel statusu na dole -->
 			<Border Grid.Row="1" 
-					Classes="status-bar"
-					Height="70">
+					Classes="status-bar">
 				
-				<Grid ColumnDefinitions="2*,2*,1*" Margin="20,0">
+				<StackPanel Spacing="5">
+					<!-- Górny wiersz: Statystyki modów, dysk, API -->
+					<Grid ColumnDefinitions="2*,2*,1*" Margin="20,5,20,0">
 					
-					<!-- SEKCJA 1: Statystyki modów -->
-					<Border Grid.Column="0" Classes="status-section">
-						<StackPanel Orientation="Horizontal" Spacing="15">
-							<!-- Ikona -->
-							<Border Classes="status-icon-container" Background="#4A148C">
-								<TextBlock Text="📦" FontSize="24" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-							</Border>
+						<!-- SEKCJA 1: Statystyki modów -->
+						<Border Grid.Column="0" Classes="status-section">
+							<StackPanel Orientation="Horizontal" Spacing="15">
+								<!-- Ikona -->
+								<Border Classes="status-icon-container" Background="#4A148C">
+									<TextBlock Text="📦" FontSize="24" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+								</Border>
 							
-							<!-- Tekst -->
-							<StackPanel VerticalAlignment="Center" Spacing="2">
-								<TextBlock Classes="status-main-text">
-									<Run Text="Zainstalowanych modów: "/>
-									<Run Text="{Binding InstalledFullModsCount}" FontWeight="Bold"/>
-								</TextBlock>
-							</StackPanel>
-						</StackPanel>
-						
-						<!-- Tooltip z listą modów -->
-						<ToolTip.Tip>
-							<StackPanel MaxWidth="300">
-								<TextBlock Text="Zainstalowane mody:" FontWeight="Bold" Margin="0,0,0,5"/>
-								<ItemsControl ItemsSource="{Binding InstalledModsList}">
-									<ItemsControl.ItemTemplate>
-										<DataTemplate>
-											<TextBlock Text="{Binding}" FontSize="11"/>
-										</DataTemplate>
-									</ItemsControl.ItemTemplate>
-								</ItemsControl>
-							</StackPanel>
-						</ToolTip.Tip>
-					</Border>
-
-					<!-- SEKCJA 2: Przestrzeń dyskowa -->
-					<Border Grid.Column="1" Classes="status-section">
-						<StackPanel Orientation="Horizontal" Spacing="15">
-							<!-- Ikona -->
-							<Border Classes="status-icon-container" Background="#0288D1">
-								<TextBlock Text="💾" FontSize="24" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-							</Border>
-							
-							<!-- Tekst i progress bar -->
-							<StackPanel VerticalAlignment="Center" Spacing="4" Width="250">
-								<TextBlock Classes="status-main-text">
-									<Run Text="{Binding ModsFolderSizeGB, StringFormat='{}{0:F2} GB'}"/>
-									<Run Text=" / "/>
-									<Run Text="{Binding TotalDiskSpaceGB, StringFormat='{}{0:F0} GB'}"/>
-								</TextBlock>
-								
-								<!-- Progress Bar z kolorowaniem -->
-								<Grid>
-									<ProgressBar Value="{Binding DiskUsagePercentage}"
-												 Maximum="100"
-												 Height="8"
-												 CornerRadius="4"
-												 Foreground="{Binding DiskUsagePercentage, Converter={StaticResource DiskUsageColorConverter}}"/>
-									<TextBlock Classes="status-sub-text" 
-											   HorizontalAlignment="Right"
-											   Margin="0,-2,0,0">
-										<Run Text="{Binding DiskUsagePercentage, StringFormat='{}{0:F1}%'}"/>
+								<!-- Tekst -->
+								<StackPanel VerticalAlignment="Center" Spacing="2">
+									<TextBlock Classes="status-main-text">
+										<Run Text="Zainstalowanych modów: "/>
+										<Run Text="{Binding InstalledFullModsCount}" FontWeight="Bold"/>
 									</TextBlock>
-								</Grid>
+								</StackPanel>
 							</StackPanel>
-						</StackPanel>
 						
-						<!-- Tooltip ze szczegółami -->
-						<ToolTip.Tip>
-							<StackPanel>
-								<TextBlock Text="Szczegóły przestrzeni:" FontWeight="Bold" Margin="0,0,0,5"/>
-								<TextBlock Text="{Binding DiskSpaceDetailsTooltip}" FontSize="11"/>
-							</StackPanel>
-						</ToolTip.Tip>
-					</Border>
+							<!-- Tooltip z listą modów -->
+							<ToolTip.Tip>
+								<StackPanel MaxWidth="300">
+									<TextBlock Text="Zainstalowane mody:" FontWeight="Bold" Margin="0,0,0,5"/>
+									<ItemsControl ItemsSource="{Binding InstalledModsList}">
+										<ItemsControl.ItemTemplate>
+											<DataTemplate>
+												<TextBlock Text="{Binding}" FontSize="11"/>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+								</StackPanel>
+							</ToolTip.Tip>
+						</Border>
 
-					<!-- SEKCJA 3: Status API -->
-					<Border Grid.Column="2" Classes="status-section">
-						<StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
-							<!-- Status indicator (kolorowe kółko) -->
-							<Ellipse Width="16" Height="16"
-									 Fill="{Binding ApiStatusColor}"
-									 Classes="status-pulse"/>
+						<!-- SEKCJA 2: Przestrzeń dyskowa -->
+						<Border Grid.Column="1" Classes="status-section">
+							<StackPanel Orientation="Horizontal" Spacing="15">
+								<!-- Ikona -->
+								<Border Classes="status-icon-container" Background="#0288D1">
+									<TextBlock Text="💾" FontSize="24" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+								</Border>
 							
-							<!-- Tekst statusu -->
-							<StackPanel VerticalAlignment="Center">
-								<TextBlock Classes="status-main-text" Text="API"/>
-								<TextBlock Classes="status-sub-text" Text="{Binding ApiStatusText}"/>
+								<!-- Tekst i progress bar -->
+								<StackPanel VerticalAlignment="Center" Spacing="4" Width="250">
+									<TextBlock Classes="status-main-text">
+										<Run Text="{Binding ModsFolderSizeGB, StringFormat='{}{0:F2} GB'}"/>
+										<Run Text=" / "/>
+										<Run Text="{Binding TotalDiskSpaceGB, StringFormat='{}{0:F0} GB'}"/>
+									</TextBlock>
+								
+									<!-- Progress Bar z kolorowaniem -->
+									<Grid>
+										<ProgressBar Value="{Binding DiskUsagePercentage}"
+													 Maximum="100"
+													 Height="8"
+													 CornerRadius="4"
+													 Foreground="{Binding DiskUsagePercentage, Converter={StaticResource DiskUsageColorConverter}}"/>
+										<TextBlock Classes="status-sub-text" 
+												   HorizontalAlignment="Right"
+												   Margin="0,-2,0,0">
+											<Run Text="{Binding DiskUsagePercentage, StringFormat='{}{0:F1}%'}"/>
+										</TextBlock>
+									</Grid>
+								</StackPanel>
 							</StackPanel>
+						
+							<!-- Tooltip ze szczegółami -->
+							<ToolTip.Tip>
+								<StackPanel>
+									<TextBlock Text="Szczegóły przestrzeni:" FontWeight="Bold" Margin="0,0,0,5"/>
+									<TextBlock Text="{Binding DiskSpaceDetailsTooltip}" FontSize="11"/>
+								</StackPanel>
+							</ToolTip.Tip>
+						</Border>
+
+						<!-- SEKCJA 3: Status API -->
+						<Border Grid.Column="2" Classes="status-section">
+							<StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+								<!-- Status indicator (kolorowe kółko) -->
+								<Ellipse Width="16" Height="16"
+										 Fill="{Binding ApiStatusColor}"
+										 Classes="status-pulse"/>
+							
+								<!-- Tekst statusu -->
+								<StackPanel VerticalAlignment="Center">
+									<TextBlock Classes="status-main-text" Text="API"/>
+									<TextBlock Classes="status-sub-text" Text="{Binding ApiStatusText}"/>
+								</StackPanel>
+							</StackPanel>
+						
+							<!-- Tooltip ze szczegółami API -->
+							<ToolTip.Tip>
+								<StackPanel>
+									<TextBlock Text="Status serwera API" FontWeight="Bold" Margin="0,0,0,5"/>
+									<TextBlock FontSize="11">
+										<Run Text="URL: "/>
+										<Run Text="{Binding ApiBaseUrl}"/>
+									</TextBlock>
+									<TextBlock FontSize="11">
+										<Run Text="Ostatnie sprawdzenie: "/>
+										<Run Text="{Binding LastApiCheck, StringFormat='{}{0:HH:mm:ss}'}"/>
+									</TextBlock>
+									<TextBlock FontSize="11" IsVisible="{Binding IsApiOnline}">
+										<Run Text="Opóźnienie: "/>
+										<Run Text="{Binding ApiPingMs}"/>
+										<Run Text="ms"/>
+									</TextBlock>
+								</StackPanel>
+							</ToolTip.Tip>
+						</Border>
+
+					</Grid>
+					
+					<!-- Dolny wiersz: Dostępne aktualizacje (widoczne tylko gdy są) -->
+					<Border IsVisible="{Binding !!AvailableUpdatesCount}" 
+							Background="#33F44336" 
+							CornerRadius="6"
+							Padding="15,8"
+							Margin="20,0">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<TextBlock Text="⚠️" FontSize="16" VerticalAlignment="Center"/>
+							<TextBlock VerticalAlignment="Center" Foreground="#F44336" FontWeight="SemiBold">
+								<Run Text="Dostępne aktualizacje -"/>
+								<Run Text="{Binding AvailableUpdatesCount}"/>
+							</TextBlock>
 						</StackPanel>
 						
-						<!-- Tooltip ze szczegółami API -->
+						<!-- Tooltip z listą aktualizacji -->
 						<ToolTip.Tip>
-							<StackPanel>
-								<TextBlock Text="Status serwera API" FontWeight="Bold" Margin="0,0,0,5"/>
-								<TextBlock FontSize="11">
-									<Run Text="URL: "/>
-									<Run Text="{Binding ApiBaseUrl}"/>
-								</TextBlock>
-								<TextBlock FontSize="11">
-									<Run Text="Ostatnie sprawdzenie: "/>
-									<Run Text="{Binding LastApiCheck, StringFormat='{}{0:HH:mm:ss}'}"/>
-								</TextBlock>
-								<TextBlock FontSize="11" IsVisible="{Binding IsApiOnline}">
-									<Run Text="Opóźnienie: "/>
-									<Run Text="{Binding ApiPingMs}"/>
-									<Run Text="ms"/>
-								</TextBlock>
-							</StackPanel>
+							<TextBlock Text="{Binding AvailableUpdatesTooltip}" FontSize="11" MaxWidth="300" TextWrapping="Wrap"/>
 						</ToolTip.Tip>
 					</Border>
-
-				</Grid>
+				</StackPanel>
 			</Border>
 
 		</Grid>
