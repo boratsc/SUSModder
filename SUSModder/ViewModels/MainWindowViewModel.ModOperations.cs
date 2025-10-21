@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -31,6 +32,13 @@ namespace SUSModder.ViewModels
                 return;
 
             var currentSelectedMod = SelectedMod;
+
+            // Zwiększ licznik aktywnych instalacji
+            lock (_installationLock)
+            {
+                _activeInstallationsCount++;
+                System.Diagnostics.Debug.WriteLine($"[Install] Rozpoczęto instalację {currentSelectedMod.Name}. Aktywnych instalacji: {_activeInstallationsCount}");
+            }
 
             try
             {
@@ -78,6 +86,16 @@ namespace SUSModder.ViewModels
                     currentSelectedMod.InstallStatusMessage = string.Empty;
                     currentSelectedMod.IsInstalling = false;
                 });
+
+                // Zmniejsz licznik aktywnych instalacji
+                lock (_installationLock)
+                {
+                    _activeInstallationsCount--;
+                    System.Diagnostics.Debug.WriteLine($"[Install] Zakończono instalację {currentSelectedMod.Name}. Aktywnych instalacji: {_activeInstallationsCount}");
+                }
+
+                // Jeśli to była ostatnia instalacja, pokaż wszystkie oczekujące dialogi DLL
+                await ShowPendingDllDialogsIfNeeded();
 
                 // Odśwież statystyki status bara
                 await RefreshStatusBarAsync();
@@ -193,6 +211,25 @@ namespace SUSModder.ViewModels
 
         private void ShowDllSelectionWindow(ModItem mod, string platform)
         {
+            lock (_installationLock)
+            {
+                if (_activeInstallationsCount > 0)
+                {
+                    // Jeśli są aktywne instalacje, dodaj dialog do kolejki
+                    _pendingDllDialogs.Add((mod, platform));
+                    System.Diagnostics.Debug.WriteLine($"[DLL Dialog] Dodano do kolejki: {mod.Name} ({platform}). Oczekujących dialogów: {_pendingDllDialogs.Count}");
+                    return;
+                }
+            }
+
+            // Jeśli nie ma aktywnych instalacji, pokaż dialog od razu
+            ShowDllSelectionWindowInternal(mod, platform);
+        }
+
+        private void ShowDllSelectionWindowInternal(ModItem mod, string platform)
+        {
+            System.Diagnostics.Debug.WriteLine($"[DLL Dialog] Pokazywanie okna dla: {mod.Name} ({platform})");
+            
             var dllSelectionWindow = new Window
             {
                 Title = $"Dodatkowe modyfikacje DLL dla {mod.Name}",
@@ -209,6 +246,42 @@ namespace SUSModder.ViewModels
             };
             System.Diagnostics.Debug.WriteLine($"DEBUG {platform} Path: {mod.InstallPath}");
             dllSelectionWindow.Show();
+        }
+
+        private async Task ShowPendingDllDialogsIfNeeded()
+        {
+            List<(ModItem mod, string platform)> dialogsToShow;
+            
+            lock (_installationLock)
+            {
+                // Sprawdź czy są jeszcze aktywne instalacje
+                if (_activeInstallationsCount > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DLL Dialog] Wciąż są aktywne instalacje ({_activeInstallationsCount}), czekam...");
+                    return;
+                }
+
+                // Pobierz wszystkie oczekujące dialogi
+                dialogsToShow = new List<(ModItem, string)>(_pendingDllDialogs);
+                _pendingDllDialogs.Clear();
+            }
+
+            // Pokaż wszystkie oczekujące dialogi
+            if (dialogsToShow.Count > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DLL Dialog] Pokazywanie {dialogsToShow.Count} oczekujących dialogów...");
+                
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    foreach (var (mod, platform) in dialogsToShow)
+                    {
+                        ShowDllSelectionWindowInternal(mod, platform);
+                        
+                        // Małe opóźnienie między dialogami, aby się nie nałożyły wizualnie
+                        Task.Delay(100).Wait();
+                    }
+                });
+            }
         }
 
         #endregion

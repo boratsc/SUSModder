@@ -20,7 +20,7 @@ namespace SUSModder.ViewModels
 {
     public class AppSettingsViewModel : ViewModelBase
     {
-        private readonly Window _window;
+        private readonly Control _control;
         private string _modsInstallPath = string.Empty;
         private bool _developerMode = false;
         private string _gameMode = "steam";
@@ -35,9 +35,9 @@ namespace SUSModder.ViewModels
         // Dodaj event dla powiadomienia o zmianie trybu gry
         public static event Action? GameModeChanged;
 
-        public AppSettingsViewModel(Window window)
+        public AppSettingsViewModel(Control control)
         {
-            _window = window;
+            _control = control;
 
             // Załaduj obecne ustawienia
             LoadCurrentSettings();
@@ -415,32 +415,56 @@ namespace SUSModder.ViewModels
 
         private void Cancel()
         {
-            _window.Close();
+            // Dla UserControl - zamknięcie jest obsłużone przez CancelButton_Click
+            // Dla Window - zamykamy okno
+            if (_control is Window window)
+            {
+                window.Close();
+            }
         }
 
         private async Task ShowErrorAsync(string title, string message)
         {
-            var dialog = new MessageDialog(title, message);
-            await dialog.ShowDialog(_window);
+            var parentWindow = GetParentWindow();
+            if (parentWindow != null)
+            {
+                var dialog = new MessageDialog(title, message);
+                await dialog.ShowDialog(parentWindow);
+            }
         }
 
         private async Task ShowInfoAsync(string title, string message)
         {
-            var dialog = new MessageDialog(title, message);
-            await dialog.ShowDialog(_window);
+            var parentWindow = GetParentWindow();
+            if (parentWindow != null)
+            {
+                var dialog = new MessageDialog(title, message);
+                await dialog.ShowDialog(parentWindow);
+            }
+        }
+
+        private Window? GetParentWindow()
+        {
+            if (_control is Window window)
+                return window;
+            
+            return (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
         }
 
         private async Task<bool?> ShowConfirmAsync(string title, string message, string ok, string cancel)
         {
+            var parentWindow = GetParentWindow();
+            if (parentWindow == null) return null;
+
             var dialog = new Window
             {
                 Title = title,
                 Width = 400,
                 Height = 200,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Background = _window.Background,
-                Icon = _window.Icon,
-                FontFamily = _window.FontFamily
+                Background = parentWindow.Background,
+                Icon = parentWindow.Icon,
+                FontFamily = parentWindow.FontFamily
             };
 
             var cancelButton = new Button
@@ -488,19 +512,11 @@ namespace SUSModder.ViewModels
                 }
             };
 
-            return await dialog.ShowDialog<bool?>(_window);
+            return await dialog.ShowDialog<bool?>(parentWindow);
         }
 
         private async Task FactoryResetAsync()
         {
-            var result = await ShowConfirmAsync(
-                "Reset do ustawień fabrycznych",
-                "Ta operacja usunie WSZYSTKIE mody oraz przywróci ustawienia fabryczne aplikacji. Kontynuować?",
-                "Resetuj", "Anuluj");
-
-            if (result != true)
-                return;
-
             try
             {
                 // Pobierz ścieżki z appsettings.json
@@ -522,6 +538,22 @@ namespace SUSModder.ViewModels
                         if (appSettings.TryGetProperty("DefaultModsPath", out var defPathElem))
                             defaultModsPath = defPathElem.GetString() ?? string.Empty;
                     }
+                }
+
+                // Pokaż dedykowany dialog potwierdzenia
+                var dialog = new FactoryResetConfirmDialog(modsInstallPath, defaultModsPath);
+                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+                if (mainWindow != null)
+                {
+                    await dialog.ShowDialog(mainWindow);
+                    
+                    if (!dialog.Result)
+                        return;
+                }
+                else
+                {
+                    return;
                 }
 
                 void ForceDeleteDirectory(string path)

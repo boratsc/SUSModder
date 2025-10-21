@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Avalonia.Threading;
 
 namespace SUSModder.ViewModels
 {
@@ -52,6 +53,7 @@ namespace SUSModder.ViewModels
         // Przestrzeń dyskowa
         private double _modsFolderSizeGB;
         private double _totalDiskSpaceGB;
+        private double _freeDiskSpaceGB;
         private double _diskUsagePercentage;
         private string _diskSpaceDetailsTooltip = string.Empty;
 
@@ -65,6 +67,12 @@ namespace SUSModder.ViewModels
         {
             get => _totalDiskSpaceGB;
             set => this.RaiseAndSetIfChanged(ref _totalDiskSpaceGB, value);
+        }
+
+        public double FreeDiskSpaceGB
+        {
+            get => _freeDiskSpaceGB;
+            set => this.RaiseAndSetIfChanged(ref _freeDiskSpaceGB, value);
         }
 
         public double DiskUsagePercentage
@@ -169,7 +177,7 @@ namespace SUSModder.ViewModels
         /// </summary>
         public async Task RefreshStatusBarAsync()
         {
-            await Task.Run(() =>
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 UpdateModsStatistics();
                 UpdateDiskSpaceStatistics();
@@ -235,14 +243,18 @@ namespace SUSModder.ViewModels
                 // Pobierz dostępną przestrzeń na dysku
                 var driveInfo = new DriveInfo(Path.GetPathRoot(modsPath) ?? "C:\\");
                 TotalDiskSpaceGB = driveInfo.TotalSize / (1024.0 * 1024.0 * 1024.0);
-                var freeSpaceGB = driveInfo.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
+                FreeDiskSpaceGB = driveInfo.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
 
-                // Oblicz procent zajętości (względem całego dysku)
-                DiskUsagePercentage = (ModsFolderSizeGB / TotalDiskSpaceGB) * 100;
+                // Oblicz procent zajętości (względem wolnego miejsca + zajętego przez mody)
+                // tj. ile % z dostępnej przestrzeni zajmują mody
+                double totalAvailableSpace = FreeDiskSpaceGB + ModsFolderSizeGB;
+                DiskUsagePercentage = totalAvailableSpace > 0 
+                    ? (ModsFolderSizeGB / totalAvailableSpace) * 100 
+                    : 0;
 
                 // Tooltip ze szczegółami
                 DiskSpaceDetailsTooltip = $"Folder modów: {ModsFolderSizeGB:F2} GB\n" +
-                                         $"Wolne miejsce na dysku: {freeSpaceGB:F2} GB\n" +
+                                         $"Wolne miejsce na dysku: {FreeDiskSpaceGB:F2} GB\n" +
                                          $"Całkowita przestrzeń: {TotalDiskSpaceGB:F2} GB\n" +
                                          $"Ścieżka: {modsPath}";
             }

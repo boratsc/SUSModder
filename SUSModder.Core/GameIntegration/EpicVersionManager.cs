@@ -251,7 +251,10 @@ namespace SUSModder.Core.GameIntegration
             }
 
             string baseDirectory = installDirectory;
-            string tempDirectory = Path.Combine(baseDirectory, "temp");
+            
+            // Unikalna nazwa katalogu temp dla każdej instalacji, aby uniknąć konfliktów przy równoczesnych instalacjach
+            string uniqueTempId = Guid.NewGuid().ToString("N");
+            string tempDirectory = Path.Combine(baseDirectory, "temp", uniqueTempId);
             Directory.CreateDirectory(tempDirectory);
             string modFile = Path.Combine(tempDirectory, "mod.zip");
             ProgressChanged?.Invoke(10, "Rozpoczynam pobieranie moda...");
@@ -329,7 +332,20 @@ namespace SUSModder.Core.GameIntegration
             }
 
             ConfigManager.SaveConfig(existingConfigs);
-            Directory.Delete(tempDirectory, true);
+            
+            // Usuń unikalny katalog temp dla tej instalacji
+            try
+            {
+                if (Directory.Exists(tempDirectory))
+                {
+                    Directory.Delete(tempDirectory, true);
+                    Write($"Usunięto katalog tymczasowy: {tempDirectory}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Write($"[WARNING] Nie udało się usunąć katalogu tymczasowego: {ex.Message}");
+            }
 
             ProgressChanged?.Invoke(100, "Instalacja zakończona!");
 

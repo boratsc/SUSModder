@@ -19,6 +19,7 @@ namespace SUSModder.ViewModels
 
         private void ShowRecommendedDiscords()
         {
+            IsPaneOpen = false;
             try
             {
                 var discordsWindow = new RecommendedDiscordsWindow();
@@ -47,17 +48,18 @@ namespace SUSModder.ViewModels
         {
             try
             {
-                var suStatsWindow = new SUStatsConfigWindow();
-                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-
-                if (mainWindow != null)
-                {
-                    await suStatsWindow.ShowDialog(mainWindow);
-                }
+                IsPaneOpen = false;
+                // Zamknij inne panele i pokaż panel SUStats Config
+                IsInfoPanelVisible = false;
+                IsAdditionalActionsVisible = false;
+                IsDllModificationsVisible = false;
+                IsAppSettingsVisible = false;
+                IsSUStatsConfigVisible = true;
+                SelectedMod = null; // Zamknij panel wybranego moda
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error opening SUStats config window: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error opening SUStats config panel: {ex.Message}");
                 await ShowErrorDialogAsync($"Nie udało się otworzyć okna konfiguracji SUStats: {ex.Message}", "Błąd");
             }
         }
@@ -85,6 +87,7 @@ namespace SUSModder.ViewModels
         {
             try
             {
+                IsPaneOpen = false;
                 // Dialog potwierdzenia na UI thread
                 var confirmResult = await ShowConfirmDialogAsync(
                     "Czy jesteś pewny, że chcesz zrestartować ustawienia gry?",

@@ -74,7 +74,9 @@ namespace SUSModder.Core.GameIntegration
             string baseUrl = configuration.GetSection("Configuration")["BaseUrl"] ?? "https://susmodder.boracik.pl/";
             string fileUrlAmongUs = $"{baseUrl}api/susmodder-download-version?version={vanilla7zName}";
 
-            string tempDir = Path.Combine(modsInstallPath, "temp");
+            // Unikalna nazwa katalogu temp dla każdej instalacji, aby uniknąć konfliktów przy równoczesnych instalacjach
+            string uniqueTempId = Guid.NewGuid().ToString("N");
+            string tempDir = Path.Combine(modsInstallPath, "temp", uniqueTempId);
             string modFolderPath = Path.Combine(modsInstallPath, modConfig.ModName);
             string modFile = Path.Combine(tempDir, "mod.zip");
 
@@ -300,7 +302,20 @@ namespace SUSModder.Core.GameIntegration
             }
 
             ConfigManager.SaveConfig(modConfigs);
-            Directory.Delete(tempDir, true);
+            
+            // Usuń unikalny katalog temp dla tej instalacji
+            try
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                    log.Write($"Usunięto katalog tymczasowy: {tempDir}");
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Write($"[WARNING] Nie udało się usunąć katalogu tymczasowego: {ex.Message}");
+            }
 
             ForceMemoryCleanup();
 
@@ -319,7 +334,10 @@ namespace SUSModder.Core.GameIntegration
             ModManagerUserCallbacks userCallbacks)
         {
             string modsInstallPath = PathSettings.ModsInstallPath;
-            string tempDir = Path.Combine(modsInstallPath, "temp");
+            
+            // Unikalna nazwa katalogu temp dla każdej instalacji, aby uniknąć konfliktów przy równoczesnych instalacjach
+            string uniqueTempId = Guid.NewGuid().ToString("N");
+            string tempDir = Path.Combine(modsInstallPath, "temp", uniqueTempId);
             Directory.CreateDirectory(tempDir);
 
             string modFile = Path.Combine(tempDir, "mod.dll");
@@ -385,7 +403,20 @@ namespace SUSModder.Core.GameIntegration
 
             if (userCallbacks.ShowInfoAsync != null)
                 await userCallbacks.ShowInfoAsync($"Instalacja DLL moda {modConfig.ModName} zakończona pomyślnie.", "Sukces");
-            Directory.Delete(tempDir, true);
+            
+            // Usuń unikalny katalog temp dla tej instalacji
+            try
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Write($"[WARNING] Nie udało się usunąć katalogu tymczasowego: {ex.Message}");
+            }
+            
             GC.Collect();
             GC.WaitForPendingFinalizers();
         }

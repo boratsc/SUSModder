@@ -6,12 +6,14 @@
         xmlns:labs="using:Avalonia.Labs.Panels"
         xmlns:i="using:Avalonia.Xaml.Interactivity"
         xmlns:behaviors="using:SUSModder.Behaviors"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:fic="using:FluentIcons.Common"
         Icon="/Assets/icon.ico"
         Title="{Binding WindowTitle}"
         x:Class="SUSModder.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Width="1000" Height="820"
-        MinWidth="800" MinHeight="770">
+        Width="890" Height="820"
+        MinWidth="890" MinHeight="820">
 	<Window.Resources>
 		<converters:StringNotNullOrEmptyToBoolConverter x:Key="StringNotNullOrEmptyToBoolConverter"/>
 		<converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
@@ -32,141 +34,14 @@
 		<StyleInclude Source="/Styles/MenuButtonStyle.axaml"/>
 		<StyleInclude Source="/Styles/PanelStyles.axaml"/>
 		<StyleInclude Source="/Styles/StatusBarStyle.axaml"/>
+		<StyleInclude Source="/Styles/FabButtonStyle.axaml"/>
 	</Window.Styles>
 
-	<SplitView x:Name="MainSplitView"
-               IsPaneOpen="{Binding IsPaneOpen}"
-               DisplayMode="CompactOverlay"
-               PaneBackground="{DynamicResource PaneBackgroundBrush}"
-               OpenPaneLength="220">
-
-		<SplitView.Pane>
-			<Grid RowDefinitions="Auto,*,Auto" Margin="10,40,10,0">
-				<!-- Menu główne na górze -->
-				<StackPanel Grid.Row="0">
-
-					<!-- Hamburger menu button -->
-					<Button Classes="hamburger-button"
-							Command="{Binding TogglePaneCommand}">
-						<TextBlock Text="☰" Classes="menu-icon"/>
-					</Button>
-
-
-					<!-- Menu options with icons and text -->
-					<Button Classes="menu-button"
-							Margin="0,15,0,0"
-							Command="{Binding ShowAdditionalActionsCommand}">
-						<StackPanel Classes="menu-item">
-							<TextBlock Text="🛠️" Classes="menu-icon"/>
-							<TextBlock Text="Konfiguracje ToU"
-									   Classes="menu-text"
-									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
-						</StackPanel>
-					</Button>
-					<Button Margin="0,0,0,5"
-							HorizontalContentAlignment="Left"
-							Padding="0,10"
-							Background="Transparent"
-							Foreground="{DynamicResource TextPrimaryBrush}"
-							Command="{Binding ShowDllModificationsCommand}">
-						<StackPanel Orientation="Horizontal" Spacing="10">
-							<TextBlock Text="🔧" FontSize="18"/>
-							<TextBlock Text="Modyfikacje DLL"
-									   VerticalAlignment="Center"
-									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
-						</StackPanel>
-					</Button>
-					<Button Margin="0,0,0,5"
-							HorizontalContentAlignment="Left"
-							Padding="0,10"
-							Background="Transparent"
-							Foreground="{DynamicResource TextPrimaryBrush}"
-							Command="{Binding ShowSUStatsConfigCommand}">
-						<StackPanel Orientation="Horizontal" Spacing="10">
-							<TextBlock Text="📊" FontSize="18"/>
-							<TextBlock Text="SUStats - konfiguracje"
-									   VerticalAlignment="Center"
-									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
-						</StackPanel>
-					</Button>
-
-					<Button Margin="0,0,0,5"
-							HorizontalContentAlignment="Left"
-							Padding="0,10"
-							Background="Transparent"
-							Foreground="{DynamicResource TextPrimaryBrush}"
-							Command="{Binding FixBlackScreenCommand}">
-						<StackPanel Orientation="Horizontal" Spacing="10">
-							<TextBlock Text="🔨" FontSize="18"/>
-							<TextBlock Text="Napraw Amonga"
-									   VerticalAlignment="Center"
-									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
-						</StackPanel>
-					</Button>
-					<Button Margin="0,0,0,5"
-						HorizontalContentAlignment="Left"
-						Padding="0,10"
-						Background="Transparent"
-						Foreground="{DynamicResource TextPrimaryBrush}"
-						Command="{Binding ShowAppSettingsCommand}">
-						<StackPanel Orientation="Horizontal" Spacing="10">
-							<TextBlock Text="⚙️" FontSize="18"/>
-							<TextBlock Text="Ustawienia aplikacji"
-									   VerticalAlignment="Center"
-									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
-						</StackPanel>
-					</Button>
-					<Button Margin="0,0,0,5"
-						HorizontalContentAlignment="Left"
-						Padding="0,10"
-						Background="Transparent"
-						Foreground="{DynamicResource TextPrimaryBrush}"
-						Command="{Binding ShowRecommendedDiscordsCommand}">
-						<StackPanel Orientation="Horizontal" Spacing="10">
-							<TextBlock Text="👥" FontSize="18"/>
-							<TextBlock Text="Polecane Discordy"
-									   VerticalAlignment="Center"
-									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
-						</StackPanel>
-					</Button>
-					<Button Margin="0,0,0,5"
-							HorizontalContentAlignment="Left"
-							Padding="0,10"
-							Background="Transparent"
-							Foreground="{DynamicResource TextPrimaryBrush}"
-							Command="{Binding ShowInfoCommand}">
-						<StackPanel Orientation="Horizontal" Spacing="10">
-							<TextBlock Text="ℹ️" FontSize="18"/>
-							<TextBlock Text="Informacje"
-									   VerticalAlignment="Center"
-									   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
-						</StackPanel>
-					</Button>
-
-
-				</StackPanel>
-
-				<!-- Przycisk motywu na dole -->
-				<Button Grid.Row="2"
-						Command="{Binding ToggleThemeCommand}"
-						Margin="0,0,0,0"
-						HorizontalContentAlignment="Left"
-						Padding="0,10"
-						Background="Transparent"
-						Foreground="{DynamicResource TextPrimaryBrush}"
-						DockPanel.Dock="Bottom">
-					<StackPanel Orientation="Horizontal" Spacing="10">
-						<TextBlock Text="{Binding ThemeButtonIcon}" FontSize="18"/>
-						<TextBlock Text="{Binding ThemeButtonText}"
-								   VerticalAlignment="Center"
-								   IsVisible="{Binding IsPaneOpen, ElementName=MainSplitView}"/>
-					</StackPanel>
-				</Button>
-			</Grid>
-		</SplitView.Pane>
-
-		<Grid Background="{DynamicResource HeartsBackgroundBrush}" RowDefinitions="*,Auto">
-			<Grid Grid.Row="0" ColumnDefinitions="*, Auto, Auto">
+	<!-- Main Grid replacing SplitView -->
+	<Grid Background="{DynamicResource HeartsBackgroundBrush}" RowDefinitions="*,Auto">
+		
+		<!-- Main Content Area -->
+		<Grid Grid.Row="0" ColumnDefinitions="*, Auto, Auto">
 
 				<ListBox Grid.Column="0" Margin="10"
 						 ItemsSource="{Binding Mods}"
@@ -251,6 +126,8 @@
 							<Binding Path="IsInfoPanelVisible"/>
 							<Binding Path="IsAdditionalActionsVisible"/>
 							<Binding Path="IsDllModificationsVisible"/>
+							<Binding Path="IsSUStatsConfigVisible"/>
+							<Binding Path="IsAppSettingsVisible"/>
 						</MultiBinding>
 					</Border.IsVisible>
 
@@ -523,6 +400,16 @@
 													  DataContext="{Binding}"
 													  Classes="fade-in-panel"/>
 
+						<!-- Panel konfiguracji SUStats -->
+						<Panel Classes="fade-in-panel" IsVisible="{Binding IsSUStatsConfigVisible}">
+							<local:SUStatsConfigView/>
+						</Panel>
+
+						<!-- Panel ustawień aplikacji -->
+						<Panel Classes="fade-in-panel" IsVisible="{Binding IsAppSettingsVisible}">
+							<local:AppSettingsView/>
+						</Panel>
+
 						<!-- Panel modów z animacją slide od prawej -->
 						<Panel Classes="fade-in-panel">
 							<Panel.IsVisible>
@@ -733,7 +620,7 @@
 											Command="{Binding $parent[local:MainWindow].DataContext.ShowDllSelectionCommand}"/>
 								</StackPanel>
 
-								<!-- Przycisk Role - zawsze widoczny (NIE dla Vanilla) -->
+								<!-- Przycisk Role - widoczny dla modów z opisami ról (NIE dla Vanilla) -->
 								<Button Content="Role"
 										HorizontalAlignment="Stretch"
 										Margin="0,10,0,0"
@@ -745,11 +632,16 @@
 										Foreground="{DynamicResource TextPrimaryBrush}"
 										BorderBrush="{DynamicResource ModCardBorderBrush}"
 										BorderThickness="1"
-										IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 										Command="{Binding $parent[local:MainWindow].DataContext.ShowRolesCommand}">
 									<Button.IsVisible>
 										<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
 									</Button.IsVisible>
+									<Button.IsEnabled>
+										<MultiBinding Converter="{x:Static BoolConverters.And}">
+											<Binding Path="IsInstalling" Converter="{x:Static BoolConverters.Not}"/>
+											<Binding Path="HasRoles" FallbackValue="False"/>
+										</MultiBinding>
+									</Button.IsEnabled>
 								</Button>
 
 								<!-- Sekcja "Zainstalowano w:" - ukrywana podczas operacji -->
@@ -813,7 +705,8 @@
 			</Grid>
 
 			<!-- STATUS BAR - Panel statusu na dole -->
-			<Border Grid.Row="1" 
+			<Border x:Name="StatusBar"
+					Grid.Row="1" 
 					Classes="status-bar">
 				
 				<StackPanel Spacing="5">
@@ -865,7 +758,7 @@
 									<TextBlock Classes="status-main-text">
 										<Run Text="{Binding ModsFolderSizeGB, StringFormat='{}{0:F2} GB'}"/>
 										<Run Text=" / "/>
-										<Run Text="{Binding TotalDiskSpaceGB, StringFormat='{}{0:F0} GB'}"/>
+										<Run Text="{Binding FreeDiskSpaceGB, StringFormat='{}{0:F2} GB'}"/>
 									</TextBlock>
 								
 									<!-- Progress Bar z kolorowaniem -->
@@ -945,14 +838,130 @@
 							</TextBlock>
 						</StackPanel>
 						
-						<!-- Tooltip z listą aktualizacji -->
-						<ToolTip.Tip>
-							<TextBlock Text="{Binding AvailableUpdatesTooltip}" FontSize="11" MaxWidth="300" TextWrapping="Wrap"/>
-						</ToolTip.Tip>
-					</Border>
-				</StackPanel>
-			</Border>
+					<!-- Tooltip z listą aktualizacji -->
+					<ToolTip.Tip>
+						<TextBlock Text="{Binding AvailableUpdatesTooltip}" FontSize="11" MaxWidth="300" TextWrapping="Wrap"/>
+					</ToolTip.Tip>
+				</Border>
+			</StackPanel>
+		</Border>
 
-		</Grid>
-	</SplitView>
+		<!-- FAB Menu Overlay (backdrop) -->
+		<Border Grid.Row="0" Grid.RowSpan="2"
+				Classes="fab-overlay"
+				Classes.visible="{Binding IsPaneOpen}"
+				PointerPressed="OnOverlayPressed"/>
+
+		<!-- FAB Container -->
+		<Canvas x:Name="FabHost"
+				Grid.Row="0"
+				Grid.RowSpan="2"
+				HorizontalAlignment="Stretch"
+				VerticalAlignment="Stretch"
+				PointerMoved="OnFabPointerMoved"
+				PointerReleased="OnFabPointerReleased">
+
+			<!-- FAB Menu Panel -->
+			<Border x:Name="FabMenuPanel"
+					Classes="fab-menu-panel"
+					Classes.visible="{Binding IsPaneOpen}"
+					Canvas.Left="24"
+					Canvas.Top="0"
+					PointerPressed="OnMenuPanelPressed">
+
+				<StackPanel Spacing="4">
+				<!-- Menu Header -->
+				<TextBlock Text="Menu" 
+						   FontSize="18" 
+						   FontWeight="Bold" 
+						   Margin="4,4,4,12"
+						   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+			<!-- Menu Items with FluentIcons -->
+			<Button Classes="fab-menu-item"
+					Command="{Binding ShowAdditionalActionsCommand}">
+				<StackPanel Orientation="Horizontal" Spacing="12">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Wrench}" FontSize="20" Foreground="#F44336"/>
+					<TextBlock Text="Konfiguracje ToU" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Button>
+
+			<Button Classes="fab-menu-item"
+					Command="{Binding ShowDllModificationsCommand}">
+				<StackPanel Orientation="Horizontal" Spacing="12">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Code}" FontSize="20" Foreground="#9C27B0"/>
+					<TextBlock Text="Modyfikacje DLL" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Button>
+
+			<Button Classes="fab-menu-item"
+					Command="{Binding ShowSUStatsConfigCommand}">
+				<StackPanel Orientation="Horizontal" Spacing="12">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.DataBarVertical}" FontSize="20" Foreground="#E91E63"/>
+					<TextBlock Text="SUStats - konfiguracje" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Button>
+
+			<Button Classes="fab-menu-item"
+					Command="{Binding FixBlackScreenCommand}">
+				<StackPanel Orientation="Horizontal" Spacing="12">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Toolbox}" FontSize="20" Foreground="#FF9800"/>
+					<TextBlock Text="Napraw Amonga" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Button>
+
+			<Button Classes="fab-menu-item"
+					Command="{Binding ShowAppSettingsCommand}">
+				<StackPanel Orientation="Horizontal" Spacing="12">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Settings}" FontSize="20" Foreground="#2196F3"/>
+					<TextBlock Text="Ustawienia aplikacji" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Button>
+
+			<Button Classes="fab-menu-item"
+					Command="{Binding ShowRecommendedDiscordsCommand}">
+				<StackPanel Orientation="Horizontal" Spacing="12">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.PeopleTeam}" FontSize="20" Foreground="#4CAF50"/>
+					<TextBlock Text="Polecane Discordy" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Button>
+
+			<Button Classes="fab-menu-item"
+					Command="{Binding ShowInfoCommand}">
+				<StackPanel Orientation="Horizontal" Spacing="12">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Info}" FontSize="20" Foreground="#00BCD4"/>
+					<TextBlock Text="Informacje" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Button>
+
+					<Border Classes="fab-menu-separator"/>
+					<!-- Theme toggle at bottom -->
+					<Button Classes="fab-menu-item"
+							Command="{Binding ToggleThemeCommand}">
+						<StackPanel Orientation="Horizontal" Spacing="12">
+							<TextBlock Text="{Binding ThemeButtonIcon}" FontSize="20" VerticalAlignment="Center"/>
+							<TextBlock Text="{Binding ThemeButtonText}" VerticalAlignment="Center"/>
+						</StackPanel>
+					</Button>
+				</StackPanel>
+				</Border>
+
+				<!-- FAB Button (draggable, initially bottom-left) -->
+				<Button x:Name="FabButton"
+						Classes="fab"
+						Classes.active="{Binding IsPaneOpen}"
+						Command="{Binding TogglePaneCommand}"
+						Width="56"
+						Height="56"
+						Canvas.Left="24"
+						Canvas.Top="0"
+						PointerPressed="OnFabPointerPressed"
+						PointerMoved="OnFabPointerMoved"
+						PointerReleased="OnFabPointerReleased">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Navigation}" FontSize="20" Foreground="White"/>
+				</Button>
+
+			</Canvas>
+
+	</Grid>
 </Window>

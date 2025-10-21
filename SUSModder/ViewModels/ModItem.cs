@@ -17,6 +17,7 @@ namespace SUSModder.ViewModels
         private string _modType = string.Empty;
         private string _dllInstallPath = string.Empty;
         private DateTime? _lastUpdated;
+        private bool? _hasRoles;
 
         // Nowe właściwości dla instalacji
         private bool _isInstalling = false;
@@ -104,6 +105,12 @@ namespace SUSModder.ViewModels
         {
             get => _lastUpdated;
             set => this.RaiseAndSetIfChanged(ref _lastUpdated, value);
+        }
+
+        public bool? HasRoles
+        {
+            get => _hasRoles;
+            set => this.RaiseAndSetIfChanged(ref _hasRoles, value);
         }
 
         // Nowe właściwości dla instalacji
