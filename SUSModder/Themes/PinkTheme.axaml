@@ -20,7 +20,10 @@
 	<Color x:Key="GridSplitterColor">#FFB6C1</Color>
 	<Color x:Key="ListBoxSelectionColor">#FF1493</Color>
 	<Color x:Key="InstallPathBorderColor">#FF1493</Color>
-	<Color x:Key="DllButtonColor">#FFB347</Color> <!-- pastelowy pomarańcz -->
+	<Color x:Key="DllButtonColor">#FFB347</Color>
+	<Color x:Key="StatusBarBackgroundColor">#FFFAF0E6</Color>
+	<Color x:Key="StatusBarBorderColor">#FFCCCB</Color>
+	<Color x:Key="StatusBarSectionHoverColor">#FFFFC0CB</Color>
 
 	<!-- Brushes -->
 	<SolidColorBrush x:Key="PrimaryBackgroundBrush" Color="{StaticResource PrimaryBackgroundColor}"/>
@@ -42,6 +45,9 @@
 	<SolidColorBrush x:Key="ListBoxSelectionBrush" Color="{StaticResource ListBoxSelectionColor}"/>
 	<SolidColorBrush x:Key="InstallPathBorderBrush" Color="{StaticResource InstallPathBorderColor}"/>
 	<SolidColorBrush x:Key="DllButtonBrush" Color="{StaticResource DllButtonColor}"/>
+	<SolidColorBrush x:Key="StatusBarBackgroundBrush" Color="{StaticResource StatusBarBackgroundColor}"/>
+	<SolidColorBrush x:Key="StatusBarBorderBrush" Color="{StaticResource StatusBarBorderColor}"/>
+	<SolidColorBrush x:Key="StatusBarSectionHoverBrush" Color="{StaticResource StatusBarSectionHoverColor}"/>
 
 	<DrawingBrush x:Key="HeartsBackgroundBrush" TileMode="Tile" SourceRect="0,0,100,100" DestinationRect="0,0,100,100">
     <DrawingBrush.Drawing>

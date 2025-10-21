@@ -34,6 +34,7 @@
 	<ItemGroup>
 		<PackageReference Include="Avalonia" Version="11.3.7" />
 		<PackageReference Include="Avalonia.Desktop" Version="11.3.7" />
+		<PackageReference Include="Avalonia.Labs.Panels" Version="11.3.1" />
 		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.7" />
 		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.7" />
 		<PackageReference Include="Avalonia.Diagnostics" Version="11.3.7">
@@ -41,6 +42,7 @@
 			<PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
 		</PackageReference>
 		<PackageReference Include="Avalonia.ReactiveUI" Version="11.3.7" />
+		<PackageReference Include="Avalonia.Xaml.Interactions" Version="11.1.0" />
 	</ItemGroup>
 
 	<!-- Pliki które mają być wyodrębnione z single-file (zewnętrzne zależności) -->
