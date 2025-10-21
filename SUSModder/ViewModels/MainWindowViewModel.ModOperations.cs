@@ -78,6 +78,9 @@ namespace SUSModder.ViewModels
                     currentSelectedMod.InstallStatusMessage = string.Empty;
                     currentSelectedMod.IsInstalling = false;
                 });
+
+                // Odśwież statystyki status bara
+                await RefreshStatusBarAsync();
             }
         }
 
@@ -315,6 +318,9 @@ namespace SUSModder.ViewModels
                 currentSelectedMod.InstallProgress = 0;
                 currentSelectedMod.InstallStatusMessage = string.Empty;
                 currentSelectedMod.IsInstalling = false;
+
+                // Odśwież statystyki status bara
+                await RefreshStatusBarAsync();
             }
         }
 
@@ -515,6 +521,9 @@ namespace SUSModder.ViewModels
                 currentSelectedMod.InstallProgress = 0;
                 currentSelectedMod.InstallStatusMessage = string.Empty;
                 currentSelectedMod.IsInstalling = false;
+
+                // Odśwież statystyki status bara
+                await RefreshStatusBarAsync();
             }
         }
 

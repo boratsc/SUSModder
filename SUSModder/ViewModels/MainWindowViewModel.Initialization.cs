@@ -54,6 +54,12 @@ namespace SUSModder.ViewModels
 
                 // KROK 5: Odświeżenie interfejsu (zawsze, niezależnie od sukcesu Vanilla)
                 await RefreshModsListAsync();
+
+                // KROK 6: Odświeżenie panelu statusu
+                await RefreshStatusBarAsync();
+
+                // KROK 7: Uruchom auto-refresh statusu API w tle
+                StartApiStatusAutoRefresh();
             }
             catch (Exception ex)
             {

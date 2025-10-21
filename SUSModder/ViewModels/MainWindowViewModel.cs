@@ -67,6 +67,7 @@ namespace SUSModder.ViewModels
         private bool _isDllInstallDialogVisible = false;
         private ObservableCollection<ModItem> _modsWithDllInstalled = new();
         private ObservableCollection<ModItem> _modsWithoutDllInstalled = new();
+        private bool _isModContentVisible = false;
 
         #endregion
 
@@ -97,6 +98,12 @@ namespace SUSModder.ViewModels
         {
             get => _windowTitle;
             set => this.RaiseAndSetIfChanged(ref _windowTitle, value);
+        }
+
+        public bool IsModContentVisible
+        {
+            get => _isModContentVisible;
+            set => this.RaiseAndSetIfChanged(ref _isModContentVisible, value);
         }
 
         public bool IsDllModificationsVisible
@@ -192,17 +199,65 @@ namespace SUSModder.ViewModels
             set
             {
                 var previousMod = _selectedMod;
+                
+                // Jeśli zmieniamy mod (nie ten sam), najpierw ukryj zawartość (fade out)
+                if (value != null && previousMod != null && previousMod.Name != value.Name)
+                {
+                    IsModContentVisible = false;
+                    
+                    // Poczekaj na połowę fade out (400ms na fade out, czekamy 225ms aby była pewność że się ukryje)
+                    Task.Delay(225).ContinueWith(_ =>
+                    {
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                        {
+                            // Teraz zmień mod
+                            this.RaiseAndSetIfChanged(ref _selectedMod, value);
+                            this.RaisePropertyChanged(nameof(IsModSelected));
+                            this.RaisePropertyChanged(nameof(IsModPanelVisible));
+                            
+                            IsInfoPanelVisible = false;
+                            IsAdditionalActionsVisible = false;
+                            IsDllModificationsVisible = false;
+                            IsDllInstallDialogVisible = false;
+                            
+                            // Pokaż nową zawartość (fade in)
+                            IsModContentVisible = true;
+                        });
+                    });
+                    
+                    return; // Nie kontynuuj dalej
+                }
+                
+                // Dla pierwszego wyboru lub tego samego moda - bez animacji fade out
                 this.RaiseAndSetIfChanged(ref _selectedMod, value);
                 this.RaisePropertyChanged(nameof(IsModSelected));
                 this.RaisePropertyChanged(nameof(IsModPanelVisible));
 
-                // Resetuj panele tylko gdy wybieramy inny mod (nie ten sam)
-                if (value != null && (previousMod == null || previousMod.Name != value.Name))
+                if (value != null && previousMod == null)
                 {
+                    // Pierwszy wybór - krótkie opóźnienie
                     IsInfoPanelVisible = false;
                     IsAdditionalActionsVisible = false;
                     IsDllModificationsVisible = false;
                     IsDllInstallDialogVisible = false;
+                    
+                    Task.Delay(50).ContinueWith(_ =>
+                    {
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                        {
+                            IsModContentVisible = true;
+                        });
+                    });
+                }
+                else if (value != null)
+                {
+                    // Ten sam mod - pokaż natychmiast
+                    IsModContentVisible = true;
+                }
+                else
+                {
+                    // Deselect
+                    IsModContentVisible = false;
                 }
             }
         }
