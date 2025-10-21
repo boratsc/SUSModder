@@ -290,6 +290,7 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> CloseDllDialogCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowDllSelectionCommand { get; }
+        public ReactiveCommand<ModItem, Unit> ModDoubleClickCommand { get; }
 
         #endregion
 
@@ -390,6 +391,27 @@ namespace SUSModder.ViewModels
 
                 System.Diagnostics.Debug.WriteLine($"DEBUG: Otwieranie okna DLL dla platformy: {platform}");
                 dllSelectionWindow.Show();
+            });
+
+            // Komenda dla dwukliku na modzie
+            ModDoubleClickCommand = ReactiveCommand.Create<ModItem>(async (mod) =>
+            {
+                if (mod == null || mod.IsInstalling)
+                    return;
+
+                // Sprawdź czy mod jest zainstalowany
+                if (!string.IsNullOrEmpty(mod.InstallPath))
+                {
+                    // Mod zainstalowany - uruchom grę
+                    SelectedMod = mod;
+                    await LaunchAsync();
+                }
+                else
+                {
+                    // Mod niezainstalowany - zainstaluj
+                    SelectedMod = mod;
+                    Install();
+                }
             });
         }
 

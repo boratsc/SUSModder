@@ -192,6 +192,12 @@
 						<DataTemplate>
 							<Border Classes="mod-card"
 									ToolTip.ShowDelay="300">
+								<i:Interaction.Behaviors>
+									<behaviors:DoubleClickBehavior 
+										DoubleClickCommand="{Binding $parent[Window].DataContext.ModDoubleClickCommand}"
+										CommandParameter="{Binding}" 
+										DoubleClickInterval="300" />
+								</i:Interaction.Behaviors>
 								<ToolTip.Tip>
 									<StackPanel MaxWidth="300">
 										<TextBlock Text="{Binding Name}" 
