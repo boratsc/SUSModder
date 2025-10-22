@@ -385,6 +385,9 @@ namespace SUSModder.ViewModels
             CheckForAppUpdatesOnStartup();
             ApplyTheme(CurrentTheme);
 
+            // Migracja istniejących instalacji do Installation Map System
+            _ = Task.Run(async () => await MigrateExistingInstallationsAsync());
+
             // Subskrybuj do zmiany trybu gry
             AppSettingsViewModel.GameModeChanged += LoadWindowTitle;
 
