@@ -12,6 +12,8 @@ using Microsoft.Extensions.Configuration;
 using SUSModder.Core.Configuration;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using SUSModder.Core.Services;
+using SUSModder.Core.Models;
 
 namespace SUSModder.Core.GameIntegration
 {
@@ -177,17 +179,33 @@ namespace SUSModder.Core.GameIntegration
                 if (remoteMod == null)
                     continue;
 
-                // Porównaj tylko ModVersion
-                if (HasNewerVersion(localMod, remoteMod))
+                // Pobierz RZECZYWISTĄ wersję z Installation Map (a nie z config.json cache!)
+                string installedVersion = localMod.ModVersion ?? "Nieznana";
+
+                try
+                {
+                    var installMap = InstallationMapManager.LoadInstallationMapAsync(localMod.InstallPath).GetAwaiter().GetResult();
+                    if (installMap?.FullMod != null && !string.IsNullOrEmpty(installMap.FullMod.ModVersion))
+                    {
+                        installedVersion = installMap.FullMod.ModVersion;
+                    }
+                }
+                catch
+                {
+                    // Fallback do config.json jeśli InstallationMap nie istnieje
+                }
+
+                // Porównaj RZECZYWISTĄ wersję z dysku z wersją z API
+                if (HasNewerVersionComparedTo(installedVersion, remoteMod.ModVersion))
                 {
                     modsToUpdate.Add(new ModUpdateInfo
                     {
                         LocalMod = localMod,
                         RemoteMod = remoteMod,
-                        CurrentVersion = localMod.ModVersion ?? "Nieznana",
+                        CurrentVersion = installedVersion,
                         NewVersion = remoteMod.ModVersion ?? "Nieznana",
-                        ModName = localMod.ModName ?? "Nieznany", // ✅ Dodaj null check
-                        Description = remoteMod.Description ?? "", // ✅ Dodaj null check
+                        ModName = localMod.ModName ?? "Nieznany",
+                        Description = remoteMod.Description ?? "",
                         IsSelected = true // Domyślnie zaznaczone
                     });
                 }
@@ -203,6 +221,22 @@ namespace SUSModder.Core.GameIntegration
                 return !string.Equals(localMod.ModVersion, remoteMod.ModVersion, StringComparison.OrdinalIgnoreCase);
             }
             if (string.IsNullOrEmpty(localMod.ModVersion) && !string.IsNullOrEmpty(remoteMod.ModVersion))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Sprawdza czy remoteVersion jest nowsza niż installedVersion
+        /// </summary>
+        private static bool HasNewerVersionComparedTo(string? installedVersion, string? remoteVersion)
+        {
+            if (!string.IsNullOrEmpty(installedVersion) && !string.IsNullOrEmpty(remoteVersion))
+            {
+                return !string.Equals(installedVersion, remoteVersion, StringComparison.OrdinalIgnoreCase);
+            }
+            if (string.IsNullOrEmpty(installedVersion) && !string.IsNullOrEmpty(remoteVersion))
             {
                 return true;
             }
@@ -254,20 +288,41 @@ namespace SUSModder.Core.GameIntegration
         {
             try
             {
-                // 1. Usuń stary mod
                 var currentConfigs = ConfigManager.LoadConfig();
                 if (modUpdate.LocalMod == null)
                 {
                     log.Write("[ERROR] LocalMod is null");
                     return;
                 }
+
+                // KROK 0: Zapisz listę zainstalowanych DLL PRZED usunięciem
+                List<DllModInstallation> installedDlls = new List<DllModInstallation>();
+
+                if (modUpdate.LocalMod.ModType == "full" && !string.IsNullOrEmpty(modUpdate.LocalMod.InstallPath))
+                {
+                    try
+                    {
+                        var installMap = await InstallationMapManager.LoadInstallationMapAsync(modUpdate.LocalMod.InstallPath);
+                        if (installMap?.InstalledDlls != null && installMap.InstalledDlls.Any())
+                        {
+                            installedDlls = new List<DllModInstallation>(installMap.InstalledDlls);
+                            log.Write($"[Aktualizacje] Zachowuję {installedDlls.Count} zainstalowanych DLL: {string.Join(", ", installedDlls.Select(d => d.ModName))}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log.Write($"[Aktualizacje] Nie udało się odczytać Installation Map: {ex.Message}");
+                    }
+                }
+
+                // KROK 1: Usuń stary mod
                 var modToDelete = currentConfigs.FirstOrDefault(c => c.Id == modUpdate.LocalMod.Id);
                 if (modToDelete != null)
                 {
                     ModDelete.DeleteMod(modToDelete, currentConfigs, userInteraction);
                 }
 
-                // 2. Pobierz zaktualizowaną konfigurację po usunięciu
+                // KROK 2: Pobierz zaktualizowaną konfigurację po usunięciu
                 var updatedConfigs = ConfigManager.LoadConfig();
                 if (modUpdate.RemoteMod == null)
                 {
@@ -291,6 +346,7 @@ namespace SUSModder.Core.GameIntegration
                         ShowInfoAsync = userInteraction.ShowInfoAsync
                     };
 
+                    // KROK 3: Zainstaluj nową wersję moda FULL
                     await modManager.ModifyAsync(
                         modToInstall,
                         updatedConfigs,
@@ -300,6 +356,12 @@ namespace SUSModder.Core.GameIntegration
                         configuration["Configuration:Mode"] ?? "steam"
                     );
 
+                    // KROK 4: Przywróć zainstalowane DLL (jeśli były)
+                    if (installedDlls.Any())
+                    {
+                        log.Write($"[Aktualizacje] Przywracanie {installedDlls.Count} modów DLL...");
+                        await RestoreDllModsAsync(modToInstall, installedDlls, configuration, log, userInteraction);
+                    }
                 }
 
                 var modName = modUpdate.LocalMod?.ModName ?? "Nieznany";
@@ -310,6 +372,90 @@ namespace SUSModder.Core.GameIntegration
                 var modName = modUpdate.LocalMod?.ModName ?? "Nieznany";
                 log.Write($"[ERROR] Błąd podczas aktualizacji moda {modName}: {ex.Message}");
                 userInteraction.ShowError($"Błąd podczas aktualizacji moda {modName}: {ex.Message}", "Błąd");
+            }
+        }
+
+        /// <summary>
+        /// Przywraca zainstalowane mody DLL po aktualizacji moda FULL
+        /// </summary>
+        private static async Task RestoreDllModsAsync(
+            ModConfiguration fullMod,
+            List<DllModInstallation> dllsToRestore,
+            IConfiguration configuration,
+            IDiagnosticsOutput log,
+            IUserInteraction userInteraction)
+        {
+            if (!dllsToRestore.Any())
+                return;
+
+            // Pobierz aktualną konfigurację z DLL
+            var configs = ConfigManager.LoadConfig();
+            var configService = new ConfigService();
+            var dllModificationService = new DllModificationService(configService, log);
+            var platform = configuration["Configuration:Mode"] ?? "steam";
+
+            int restoredCount = 0;
+            int failedCount = 0;
+
+            foreach (var dllInfo in dllsToRestore)
+            {
+                try
+                {
+                    // Znajdź konfigurację DLL w config.json
+                    var dllConfig = configs.FirstOrDefault(c => c.Id == dllInfo.ModId);
+
+                    if (dllConfig == null)
+                    {
+                        log.Write($"[Aktualizacje] Nie znaleziono konfiguracji dla DLL (ID: {dllInfo.ModId}, nazwa: {dllInfo.ModName}) - pomijam");
+                        failedCount++;
+                        continue;
+                    }
+
+                    log.Write($"[Aktualizacje] Przywracanie DLL: {dllConfig.ModName} v{dllInfo.ModVersion}");
+
+                    // Zainstaluj DLL do zaktualizowanego moda FULL
+                    var installedPath = await dllModificationService.InstallDllToModAsync(
+                        dllConfig,
+                        fullMod,
+                        platform
+                    );
+
+                    if (!string.IsNullOrEmpty(installedPath))
+                    {
+                        restoredCount++;
+                        log.Write($"[Aktualizacje] ✓ Przywrócono: {dllConfig.ModName}");
+                    }
+                    else
+                    {
+                        failedCount++;
+                        log.Write($"[Aktualizacje] ✗ Nie udało się przywrócić: {dllConfig.ModName}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failedCount++;
+                    log.Write($"[ERROR] Błąd podczas przywracania DLL {dllInfo.ModName}: {ex.Message}");
+                }
+            }
+
+            // Pokaż podsumowanie przywracania DLL
+            if (restoredCount > 0 || failedCount > 0)
+            {
+                string summary = $"Przywrócono {restoredCount} mod(ów) DLL.";
+                if (failedCount > 0)
+                {
+                    summary += $"\n\nNie udało się przywrócić: {failedCount} mod(ów) DLL.";
+                    summary += "\nMożesz je zainstalować ponownie ręcznie z menu 'Zarządzaj modami DLL'.";
+                }
+
+                if (failedCount > 0)
+                {
+                    await userInteraction.ShowInfoAsync("Aktualizacja zakończona z ostrzeżeniami", summary);
+                }
+                else
+                {
+                    log.Write($"[Aktualizacje] Podsumowanie: {summary}");
+                }
             }
         }
     }
