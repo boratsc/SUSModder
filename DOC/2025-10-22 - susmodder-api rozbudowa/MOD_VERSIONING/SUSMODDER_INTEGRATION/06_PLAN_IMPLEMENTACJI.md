@@ -711,6 +711,141 @@ Automatyczne wykrywanie i aktualizacja modów DLL w wielu lokalizacjach.
 
 **Priorytet**: 🔴 P0 (MVP)
 
+**Status**: ✅ **UKOŃCZONA** (2025-10-22)
+
+### ✅ Zaimplementowane Funkcje
+
+#### 1. Automatyczne wykrywanie aktualizacji przy starcie
+- ✅ Integracja z `MainWindowViewModel.Initialization.cs`
+- ✅ Sprawdzanie po aktualizacjach modów FULL
+- ✅ Automatyczne wyświetlanie dialogów dla każdego DLL z aktualizacją
+
+#### 2. Inteligentne porównywanie wersji per lokalizacja
+- ✅ Odczyt wersji z Installation Map (`.susmodder-install.json`)
+- ✅ Wykrywanie różnych wersji w różnych lokalizacjach
+- ✅ Aktualizacja tylko tych lokalizacji które mają nieaktualną wersję
+- ✅ Logowanie szczegółowe: "Mod FULL: wersja X.Y.Z"
+
+#### 3. Dialogi aktualizacji (feature parity z FULL modami)
+- ✅ **DllUpdateConfirmDialog** - potwierdzenie aktualizacji
+  - Animowana ikona 📦
+  - Nazwa moda DLL
+  - Nowa dostępna wersja (wyróżniona zielonym)
+  - Lista lokalizacji z ich obecnymi wersjami: "Mod: v1.0.5 → v1.0.6"
+  - Liczba lokalizacji do zaktualizowania
+  - Przyciski: "Anuluj" / "Aktualizuj wszystkie"
+  
+- ✅ **DllUpdateProgressDialog** - postęp aktualizacji
+  - Circular progress indicator (0-100%)
+  - Nazwa aktualnie aktualizowanego moda FULL
+  - Status tekstowy
+  - Progress bar z `ClipToBounds="True"` (naprawiony overflow)
+  
+- ✅ **MessageDialog** - komunikat sukcesu/błędu
+  - Standardowy dialog (jak dla FULL modów)
+  - Format: "✅ Pomyślnie zaktualizowano [Nazwa] w X lokalizacjach"
+  - Obsługa częściowych błędów (sukces + nieudane lokalizacje)
+
+#### 4. Nowe modele danych
+- ✅ **DllLocationUpdate**
+  ```csharp
+  public class DllLocationUpdate
+  {
+      public ModConfiguration FullMod { get; set; }
+      public string CurrentVersion { get; set; }
+      public string NewVersion { get; set; }
+      public string VersionChangeText => $"{FullMod.ModName}: {CurrentVersion} → {NewVersion}";
+  }
+  ```
+
+- ✅ **DllUpdateInfo** (rozszerzony)
+  ```csharp
+  public class DllUpdateInfo
+  {
+      public ModConfiguration DllMod { get; set; }
+      public string NewVersion { get; set; }
+      public List<DllLocationUpdate> LocationUpdates { get; set; }
+      // Deprecated (dla backward compatibility):
+      public string CurrentVersion { get; set; }
+      public List<ModConfiguration> InstallLocations { get; set; }
+      public List<ModConfiguration> SelectedLocations { get; set; }
+  }
+  ```
+
+#### 5. Logika aktualizacji
+- ✅ **DllUpdateManager.CheckDllUpdatesAsync()**
+  - Iteracja przez wszystkie lokalizacje (mody FULL)
+  - Odczyt wersji z Installation Map dla każdej lokalizacji
+  - Budowanie listy `LocationUpdates` tylko dla nieaktualnych wersji
+  - Logowanie: ile lokalizacji wymaga aktualizacji vs. ile już aktualnych
+  
+- ✅ **DllUpdateManager.UpdateDllInLocationsAsync()**
+  - Aktualizacja DLL w każdej wybranej lokalizacji
+  - Progress reporting per lokalizacja
+  - Tracking sukcesów i błędów
+  - Zwraca `DllUpdateResult` z szczegółami
+
+#### 6. UI/UX improvements
+- ✅ Jeden dialog per DLL mod (jak dla FULL modów)
+- ✅ Możliwość pominięcia aktualizacji (przycisk "Anuluj")
+- ✅ Wizualne wskazanie postępu dla każdej lokalizacji
+- ✅ Komunikat końcowy z podsumowaniem (sukces/błędy)
+
+### ✅ Rezultat Fazy 3
+✅ Automatyczne sprawdzanie aktualizacji DLL przy starcie aplikacji  
+✅ Inteligentne wykrywanie różnych wersji w różnych lokalizacjach  
+✅ Dialogi aktualizacji 1:1 z modami FULL  
+✅ Kompletny flow: wykrycie → potwierdzenie → progress → sukces  
+✅ Obsługa błędów i częściowych niepowodzeń  
+✅ **TESTY MANUALNE PRZESZŁY POMYŚLNIE**
+
+### Pliki Zmodyfikowane/Dodane
+
+**Nowe pliki:**
+- `SUSModder.Core/Models/DllUpdateInfo.cs` (rozszerzony)
+- `SUSModder/Views/DllUpdateConfirmDialog.axaml`
+- `SUSModder/Views/DllUpdateConfirmDialog.axaml.cs`
+- `SUSModder/Views/DllUpdateProgressDialog.axaml`
+- `SUSModder/Views/DllUpdateProgressDialog.axaml.cs`
+
+**Zmodyfikowane pliki:**
+- `SUSModder.Core/Services/DllUpdateManager.cs`
+  - `CheckDllUpdatesAsync()` - czyta z Installation Map per lokalizacja
+  - `UpdateDllInLocationsAsync()` - aktualizuje wybrane lokalizacje
+- `SUSModder/ViewModels/MainWindowViewModel.Updates.cs`
+  - `CheckDllUpdates()` - automatyczne sprawdzanie przy starcie
+  - `ShowDllUpdateConfirmDialogAsync()` - dialog potwierdzenia
+  - `UpdateDllWithProgressAsync()` - aktualizacja z progress dialog
+- `SUSModder/ViewModels/MainWindowViewModel.Initialization.cs`
+  - Dodano wywołanie `CheckDllUpdates()` po sprawdzeniu aktualizacji FULL
+
+### Przykład Użycia
+
+```csharp
+// Automatyczne przy starcie
+private async Task InitializeApplicationAsync()
+{
+    // ... sprawdzanie aktualizacji FULL ...
+    
+    // Sprawdzanie aktualizacji DLL
+    await CheckDllUpdates();
+}
+
+// Dialog pokazuje:
+// ┌─────────────────────────────────────────┐
+// │        📦 Dostępna aktualizacja         │
+// │            AleLuduMod                   │
+// │     Nowa dostępna wersja: 1.0.6        │
+// │                                         │
+// │  Mod zostanie zaktualizowany w:         │
+// │  📦 Town of Us Mira    1.0.5 → 1.0.6   │
+// │  📦 Syzyfowy ToU       1.0.4 → 1.0.6   │
+// │                        2 lokalizacje    │
+// │                                         │
+// │    [Anuluj]  [Aktualizuj wszystkie]    │
+// └─────────────────────────────────────────┘
+```
+
 ### Zadania
 
 #### 3.1 Stwórz DllUpdateManager (2h)
