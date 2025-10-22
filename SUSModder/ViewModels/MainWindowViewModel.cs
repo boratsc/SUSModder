@@ -21,6 +21,8 @@ using System.Diagnostics;
 using SUSModder.Services;
 using System.Windows.Input;
 using SUSModder.ViewModels.Helpers;
+using Microsoft.Extensions.Configuration;
+using SUSModder.Core.Diagnostics;
 
 namespace SUSModder.ViewModels
 {
@@ -60,6 +62,8 @@ namespace SUSModder.ViewModels
         private List<ModConfiguration> _loadedConfigs = new();
         private UserInteractionService _userInteractionService;
         private readonly DllModificationService _dllModificationService;
+        private Microsoft.Extensions.Configuration.IConfiguration? _configuration;
+        private SUSModder.Core.Diagnostics.IDiagnosticsOutput? _diagnosticsOutput;
         private bool _isDllModificationsVisible = false;
         private ObservableCollection<ModItem> _dllMods = new();
         private ModItem? _selectedDllMod;
@@ -330,15 +334,20 @@ namespace SUSModder.ViewModels
                 ShowSelectFileDialogAsync
             );
 
-            var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+            _diagnosticsOutput = new UIDiagnosticsOutput((message) =>
             {
                 System.Diagnostics.Debug.WriteLine($"[DLL Service] {message}");
             });
 
             var configService = new ConfigService();
-            _dllModificationService = new DllModificationService(configService, diagnosticsOutput);
-
+            _dllModificationService = new DllModificationService(configService, _diagnosticsOutput);
+            
+            // Załaduj konfigurację (dla CompatibilityService w dialogach DLL)
             var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+            _configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+                .AddJsonFile(Path.Combine(exeDir, "appsettings.json"), optional: false, reloadOnChange: true)
+                .Build();
+
             var configRepository = new ConfigRepository(exeDir);
             ModConfigHandler.Initialize(configRepository, _userInteractionService);
 
@@ -412,7 +421,9 @@ namespace SUSModder.ViewModels
                         DataContext = new DllModSelectionViewModel(
                             _dllModificationService,
                             ModItemAdapter.ToConfig(SelectedMod),
-                            platform // Użyj zmiennej platform zamiast SelectedMod.IsEpic
+                            platform, // Użyj zmiennej platform zamiast SelectedMod.IsEpic
+                            _configuration, // Przekaż konfigurację dla CompatibilityService
+                            _diagnosticsOutput // Przekaż diagnostykę dla CompatibilityService
                         )
                     }
                 };

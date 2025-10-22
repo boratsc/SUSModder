@@ -384,7 +384,9 @@ namespace SUSModder.ViewModels
                     DataContext = new DllModSelectionViewModel(
                         _dllModificationService,
                         ModItemAdapter.ToConfig(mod),
-                        platform
+                        platform,
+                        _configuration, // Przekaż konfigurację dla CompatibilityService
+                        _diagnosticsOutput // Przekaż diagnostykę dla CompatibilityService
                     )
                 }
             };

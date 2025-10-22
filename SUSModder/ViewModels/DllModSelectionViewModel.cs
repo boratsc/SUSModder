@@ -7,16 +7,21 @@ using SUSModder.Core.Configuration;
 using System.Reactive;
 using System.Linq;
 using System.IO;
-using System.Collections.Generic; 
+using System.Collections.Generic;
+using SUSModder.Core.Models;
+using Microsoft.Extensions.Configuration;
+using SUSModder.Core.Diagnostics;
 
 namespace SUSModder.ViewModels
 {
     public class DllModSelectionViewModel : ViewModelBase
     {
         private readonly DllModificationService _dllModificationService;
-        private ModConfiguration _targetMod;
+        private readonly CompatibilityService? _compatibilityService;
+        private ModConfiguration _targetMod = null!;
         private ObservableCollection<ModConfiguration> _dllMods = new();
         private ObservableCollection<ModConfiguration> _selectedDllMods = new();
+        private Dictionary<int, CompatibilityInfo?> _compatibilityCache = new();
 
         // Dodaj event do powiadomienia o potrzebie zamknięcia widoku
         public event EventHandler? CloseRequested;
@@ -54,13 +59,32 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> InstallSelectedDllsCommand { get; }
         public ReactiveCommand<Unit, Unit> CloseCommand { get; }
 
-        public DllModSelectionViewModel(DllModificationService dllModificationService, ModConfiguration targetMod, string platform = "steam")
+        public DllModSelectionViewModel(
+            DllModificationService dllModificationService, 
+            ModConfiguration targetMod, 
+            string platform = "steam",
+            IConfiguration? configuration = null,
+            IDiagnosticsOutput? diagnostics = null)
         {
             _dllModificationService = dllModificationService;
             _targetMod = targetMod;
             Platform = platform;
             _isInstallationComplete = false;
             _installationSummary = "";
+
+            // Inicjalizacja CompatibilityService jeśli konfiguracja dostępna
+            if (configuration != null && diagnostics != null)
+            {
+                try
+                {
+                    _compatibilityService = new CompatibilityService(configuration, diagnostics);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Nie udało się zainicjalizować CompatibilityService: {ex.Message}");
+                    _compatibilityService = null;
+                }
+            }
 
             // Dodaj debugowanie w konstruktorze
             System.Diagnostics.Debug.WriteLine($"🔍 DEBUG - KONSTRUKTOR DllModSelectionViewModel");
@@ -90,6 +114,22 @@ namespace SUSModder.ViewModels
             }
 
             LoadDllMods();
+
+            // Ładuj dane kompatybilności w tle (nie blokuj UI)
+            System.Diagnostics.Debug.WriteLine($"🔍 Przygotowanie do ładowania kompatybilności - Service: {(_compatibilityService != null ? "OK" : "NULL")}, TargetMod.Id: {_targetMod?.Id}");
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine("🔍 Task.Run: Rozpoczynam ładowanie kompatybilności...");
+                    await LoadCompatibilityDataAsync();
+                    System.Diagnostics.Debug.WriteLine("🔍 Task.Run: Zakończono ładowanie kompatybilności");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Task.Run: Błąd podczas ładowania kompatybilności: {ex.Message}");
+                }
+            });
 
             InstallSelectedDllsCommand = ReactiveCommand.CreateFromTask(async () =>
             {
@@ -328,6 +368,82 @@ namespace SUSModder.ViewModels
             }
 
             return null; // Nie znaleziono ścieżki
+        }
+
+        /// <summary>
+        /// Pobiera informacje o kompatybilności dla danego moda DLL
+        /// </summary>
+        public async Task<CompatibilityInfo?> GetCompatibilityAsync(int dllModId)
+        {
+            if (_compatibilityService == null || _targetMod?.Id == null)
+                return null;
+
+            if (_compatibilityCache.TryGetValue(dllModId, out var cached))
+                return cached;
+
+            var compatibility = await _compatibilityService.CheckCompatibilityAsync(dllModId, _targetMod.Id);
+            _compatibilityCache[dllModId] = compatibility;
+            return compatibility;
+        }
+
+        /// <summary>
+        /// Zwraca emoji statusu kompatybilności dla danego moda DLL
+        /// </summary>
+        public string GetCompatibilityEmoji(ModConfiguration dllMod)
+        {
+            if (dllMod?.Id == null || !_compatibilityCache.TryGetValue(dllMod.Id, out var compat))
+                return "❓";
+            return compat?.Emoji ?? "❓";
+        }
+
+        /// <summary>
+        /// Zwraca opis kompatybilności dla danego moda DLL
+        /// </summary>
+        public string GetCompatibilityDescription(ModConfiguration dllMod)
+        {
+            if (dllMod?.Id == null || !_compatibilityCache.TryGetValue(dllMod.Id, out var compat))
+                return "Kompatybilność nieznana";
+            return compat?.Description ?? "Kompatybilność nieznana";
+        }
+
+        /// <summary>
+        /// Zwraca ostrzeżenie o kompatybilności jeśli potrzebne
+        /// </summary>
+        public string? GetCompatibilityWarning(ModConfiguration dllMod)
+        {
+            if (dllMod?.Id == null || !_compatibilityCache.TryGetValue(dllMod.Id, out var compat))
+                return null;
+            if (CompatibilityService.ShouldShowWarning(compat))
+                return compat?.Warning ?? "Ten mod może nie działać poprawnie.";
+            return null;
+        }
+
+        /// <summary>
+        /// Ładuje kompatybilność dla wszystkich modów DLL w tle
+        /// </summary>
+        public async Task LoadCompatibilityDataAsync()
+        {
+            if (_compatibilityService == null || _targetMod?.Id == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ LoadCompatibilityDataAsync: Early return - Service: {_compatibilityService != null}, TargetMod: {_targetMod != null}, Id: {_targetMod?.Id}");
+                return;
+            }
+
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🔍 Ładowanie macierzy kompatybilności dla moda FULL ID={_targetMod.Id}");
+                var matrix = await _compatibilityService.GetCompatibilityMatrixForFullModAsync(_targetMod.Id);
+                System.Diagnostics.Debug.WriteLine($"✅ Załadowano dane kompatybilności dla {matrix.Count} modów DLL");
+                
+                foreach (var kvp in matrix)
+                    _compatibilityCache[kvp.Key] = kvp.Value;
+                    
+                this.RaisePropertyChanged(nameof(DllMods));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Błąd podczas ładowania kompatybilności: {ex.Message}");
+            }
         }
     }
 }
