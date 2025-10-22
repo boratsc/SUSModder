@@ -294,6 +294,7 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> TogglePaneCommand { get; }
         public ReactiveCommand<Unit, Unit> ToggleThemeCommand { get; }
         public ReactiveCommand<Unit, Unit> InstallCommand { get; }
+        public ReactiveCommand<Unit, Unit> InstallWithVersionSelectionCommand { get; }
         public ReactiveCommand<Unit, Unit> UninstallCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowInfoCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowAppSettingsCommand { get; }
@@ -345,6 +346,7 @@ namespace SUSModder.ViewModels
             TogglePaneCommand = ReactiveCommand.Create(TogglePane);
             ToggleThemeCommand = ReactiveCommand.Create(ToggleTheme);
             InstallCommand = ReactiveCommand.Create(Install);
+            InstallWithVersionSelectionCommand = ReactiveCommand.CreateFromTask(InstallWithVersionSelection);
             UninstallCommand = ReactiveCommand.Create(Uninstall);
             LaunchCommand = ReactiveCommand.Create(Launch);
             UpdateCommand = ReactiveCommand.Create(Update);

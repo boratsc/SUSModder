@@ -554,7 +554,7 @@
 										</MultiBinding>
 									</StackPanel.IsVisible>
 
-									<Button Content="Instaluj"
+									<Button Content="Instaluj (najnowsza wersja)"
 											HorizontalAlignment="Stretch"
 											Padding="12"
 											CornerRadius="8"
@@ -564,6 +564,18 @@
 											Foreground="White"
 											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 											Command="{Binding $parent[local:MainWindow].DataContext.InstallCommand}"/>
+									
+									<Button Content="📦 Wybierz wersję..."
+											HorizontalAlignment="Stretch"
+											Padding="12"
+											CornerRadius="8"
+											FontSize="13"
+											Background="{DynamicResource SecondaryBackgroundBrush}"
+											BorderBrush="{DynamicResource AccentBrush}"
+											BorderThickness="1"
+											Foreground="{DynamicResource TextPrimaryBrush}"
+											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+											Command="{Binding $parent[local:MainWindow].DataContext.InstallWithVersionSelectionCommand}"/>
 								</StackPanel>
 
 								<!-- Przyciski dla zainstalowanego moda (NIE Vanilla) -->
