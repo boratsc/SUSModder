@@ -309,6 +309,7 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> FixBlackScreenCommand { get; }
         public ReactiveCommand<Unit, Unit> LaunchCommand { get; }
         public ReactiveCommand<Unit, Unit> UpdateCommand { get; }
+        public ReactiveCommand<Unit, Unit> CheckDllUpdatesCommand { get; }
         public ICommand OpenFolderCommand { get; }
         public ICommand CreateShortcutCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowDllModificationsCommand { get; }
@@ -359,6 +360,7 @@ namespace SUSModder.ViewModels
             UninstallCommand = ReactiveCommand.Create(Uninstall);
             LaunchCommand = ReactiveCommand.Create(Launch);
             UpdateCommand = ReactiveCommand.Create(Update);
+            CheckDllUpdatesCommand = ReactiveCommand.CreateFromTask(CheckDllUpdates);
             ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             ShowInfoCommand = ReactiveCommand.Create(ShowInfo);
             ShowAdditionalActionsCommand = ReactiveCommand.Create(ShowAdditionalActions);

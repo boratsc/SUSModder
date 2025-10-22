@@ -12,6 +12,7 @@ using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Services;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.Utilities;
+using SUSModder.Core.Models;
 using SUSModder.Services;
 using SUSModder.Views;
 using SUSModder.ViewModels.Helpers;
@@ -783,6 +784,191 @@ namespace SUSModder.ViewModels
                 diagnosticsOutput,
                 ShowConfirmDialogAsync
             );
+        }
+
+        /// <summary>
+        /// Sprawdza dostępne aktualizacje modów DLL i wyświetla dialog
+        /// </summary>
+        private async Task CheckDllUpdates()
+        {
+            try
+            {
+                _diagnosticsOutput?.Write("[CheckDllUpdates] Rozpoczynam sprawdzanie aktualizacji DLL...");
+
+                var configService = new ConfigService();
+                var dllUpdateManager = new DllUpdateManager(_dllModificationService, configService, _diagnosticsOutput ?? new UIDiagnosticsOutput(_ => { }));
+
+                // Pobierz platform (steam/epic)
+                string platform = DeterminePlatform().ToLower();
+
+                // Pobierz listę aktualizacji
+                var updates = await dllUpdateManager.CheckDllUpdatesAsync(platform);
+
+                if (updates == null || !updates.Any())
+                {
+                    _diagnosticsOutput?.Write("[CheckDllUpdates] Brak dostępnych aktualizacji");
+                    return;
+                }
+
+                _diagnosticsOutput?.Write($"[CheckDllUpdates] Znaleziono {updates.Count} aktualizacji");
+
+                // Dla każdego DLL pokazujemy osobny dialog (jak dla modów FULL)
+                foreach (var updateInfo in updates)
+                {
+                    try
+                    {
+                        // Pokaż dialog potwierdzenia dla tego DLL
+                        bool confirmed = await ShowDllUpdateConfirmDialogAsync(updateInfo);
+                        
+                        if (!confirmed)
+                        {
+                            _diagnosticsOutput?.Write($"[CheckDllUpdates] Użytkownik pominął aktualizację {updateInfo.DllMod.ModName}");
+                            continue;
+                        }
+
+                        // Pokaż dialog postępu
+                        DllUpdateProgressDialog? progressDialog = null;
+                        await Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            progressDialog = new DllUpdateProgressDialog(updateInfo.DllMod.ModName);
+                            var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+                            if (mainWindow != null)
+                            {
+                                progressDialog.Show(mainWindow);
+                            }
+                        });
+
+                        // Wykonaj aktualizację z progresem
+                        var result = await UpdateDllWithProgressAsync(updateInfo, platform, progressDialog);
+
+                        // Zamknij dialog postępu
+                        if (progressDialog != null && progressDialog.IsVisible)
+                        {
+                            await Task.Delay(1000); // Krótka pauza żeby użytkownik zobaczył "100%"
+                            await Dispatcher.UIThread.InvokeAsync(() =>
+                            {
+                                progressDialog.Close();
+                            });
+                        }
+
+                        // Pokaż wynik
+                        if (result.SuccessfulUpdates > 0)
+                        {
+                            var successMessage = $"✅ Pomyślnie zaktualizowano {updateInfo.DllMod.ModName} w {result.SuccessfulUpdates} lokalizacjach";
+                            if (result.FailedUpdates > 0)
+                            {
+                                successMessage += $"\n\n❌ Nieudane aktualizacje: {result.FailedUpdates}\n• " + 
+                                    string.Join("\n• ", result.FailedLocations);
+                            }
+                            await ShowMessageAsync("Aktualizacja zakończona", successMessage);
+                        }
+                        else
+                        {
+                            await ShowErrorDialogAsync(
+                                $"Nie udało się zaktualizować {updateInfo.DllMod.ModName} w żadnej lokalizacji.\n\n" +
+                                $"Nieudane lokalizacje:\n• " + string.Join("\n• ", result.FailedLocations),
+                                "Błąd aktualizacji");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _diagnosticsOutput?.Write($"[CheckDllUpdates ERROR] Błąd dla {updateInfo.DllMod.ModName}: {ex.Message}");
+                        await ShowErrorDialogAsync(
+                            $"Błąd podczas aktualizacji {updateInfo.DllMod.ModName}: {ex.Message}",
+                            "Błąd");
+                    }
+                }
+
+                // Odśwież listę modów po wszystkich aktualizacjach
+                await RefreshModsListAsync();
+                _diagnosticsOutput?.Write("[CheckDllUpdates] Wszystkie aktualizacje DLL zakończone");
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput?.Write($"[CheckDllUpdates ERROR] {ex.Message}");
+                await ShowErrorDialogAsync($"Błąd podczas sprawdzania aktualizacji DLL: {ex.Message}", "Błąd");
+            }
+        }
+
+        /// <summary>
+        /// Pokazuje dialog potwierdzenia aktualizacji DLL
+        /// </summary>
+        private async Task<bool> ShowDllUpdateConfirmDialogAsync(DllUpdateInfo updateInfo)
+        {
+            var dialog = new DllUpdateConfirmDialog(updateInfo);
+            var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+            if (mainWindow != null)
+            {
+                await dialog.ShowDialog(mainWindow);
+                return dialog.Result;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Aktualizuje DLL z pokazaniem postępu
+        /// </summary>
+        private async Task<DllUpdateResult> UpdateDllWithProgressAsync(
+            DllUpdateInfo updateInfo,
+            string platform,
+            DllUpdateProgressDialog? progressDialog)
+        {
+            var result = new DllUpdateResult
+            {
+                DllName = updateInfo.DllMod.ModName,
+                TotalLocations = updateInfo.SelectedLocations.Count
+            };
+
+            int current = 0;
+            foreach (var fullMod in updateInfo.SelectedLocations)
+            {
+                current++;
+                
+                try
+                {
+                    // Aktualizuj progress
+                    progressDialog?.UpdateProgress(
+                        current, 
+                        result.TotalLocations, 
+                        fullMod.ModName,
+                        "Pobieranie i instalacja...");
+
+                    _diagnosticsOutput?.Write($"[DllUpdate] Aktualizowanie {updateInfo.DllMod.ModName} w {fullMod.ModName}");
+
+                    var installedPath = await _dllModificationService.InstallDllToModAsync(
+                        updateInfo.DllMod,
+                        fullMod,
+                        platform
+                    );
+
+                    if (!string.IsNullOrEmpty(installedPath))
+                    {
+                        result.SuccessfulUpdates++;
+                        result.UpdatedLocations.Add(fullMod.ModName);
+                        _diagnosticsOutput?.Write($"[DllUpdate] ✓ Zaktualizowano w {fullMod.ModName}");
+                    }
+                    else
+                    {
+                        result.FailedUpdates++;
+                        result.FailedLocations.Add(fullMod.ModName);
+                        _diagnosticsOutput?.Write($"[DllUpdate] ✗ Nie udało się zaktualizować w {fullMod.ModName}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _diagnosticsOutput?.Write($"[ERROR] Błąd aktualizacji w {fullMod.ModName}: {ex.Message}");
+                    result.FailedUpdates++;
+                    result.FailedLocations.Add(fullMod.ModName);
+                    
+                    progressDialog?.SetError($"Błąd w {fullMod.ModName}");
+                    await Task.Delay(1000);
+                }
+            }
+
+            progressDialog?.SetCompleted();
+            return result;
         }
     }
 }

@@ -51,6 +51,9 @@ namespace SUSModder.ViewModels
 
                     // KROK 4: Sprawdzanie aktualizacji modów
                     await CheckForModUpdatesAsync();
+                    
+                    // KROK 4.5: Sprawdzanie aktualizacji DLL
+                    await CheckDllUpdates();
                 }
 
                 // KROK 5: Odświeżenie interfejsu (zawsze, niezależnie od sukcesu Vanilla)

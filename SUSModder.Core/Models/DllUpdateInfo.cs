@@ -6,6 +6,33 @@ using SUSModder.Core.Configuration;
 namespace SUSModder.Core.Models
 {
     /// <summary>
+    /// Informacja o lokalizacji (mod FULL) wymagającej aktualizacji DLL
+    /// </summary>
+    public class DllLocationUpdate
+    {
+        /// <summary>
+        /// Mod FULL gdzie DLL jest zainstalowany
+        /// </summary>
+        public ModConfiguration FullMod { get; set; } = new();
+
+        /// <summary>
+        /// Obecna wersja DLL w tym modzie FULL
+        /// </summary>
+        public string CurrentVersion { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Nowa wersja (dla UI binding)
+        /// </summary>
+        public string NewVersion { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Tekst dla UI: "ModName: v1.0.5 → v1.0.6"
+        /// </summary>
+        public string VersionChangeText => 
+            $"{FullMod.ModName}: {CurrentVersion} → {NewVersion}";
+    }
+
+    /// <summary>
     /// Informacja o dostępnej aktualizacji moda DLL
     /// </summary>
     public class DllUpdateInfo : INotifyPropertyChanged
@@ -18,17 +45,22 @@ namespace SUSModder.Core.Models
         public ModConfiguration DllMod { get; set; } = new();
 
         /// <summary>
-        /// Obecna wersja zainstalowana lokalnie
-        /// </summary>
-        public string CurrentVersion { get; set; } = string.Empty;
-
-        /// <summary>
         /// Nowa dostępna wersja
         /// </summary>
         public string NewVersion { get; set; } = string.Empty;
 
         /// <summary>
-        /// Lista modów FULL gdzie ten DLL jest zainstalowany
+        /// Lista lokalizacji (modów FULL) wymagających aktualizacji wraz z ich obecnymi wersjami
+        /// </summary>
+        public List<DllLocationUpdate> LocationUpdates { get; set; } = new();
+
+        /// <summary>
+        /// [DEPRECATED] Obecna wersja - używaj LocationUpdates
+        /// </summary>
+        public string CurrentVersion { get; set; } = string.Empty;
+
+        /// <summary>
+        /// [DEPRECATED] Lista modów FULL - używaj LocationUpdates
         /// </summary>
         public List<ModConfiguration> InstallLocations { get; set; } = new();
 
