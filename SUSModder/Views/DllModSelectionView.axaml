@@ -40,7 +40,7 @@
                                        FontSize="20" 
                                        FontWeight="Bold" 
                                        Foreground="White"/>
-                            <TextBlock Text="Wybierz modyfikacje DLL do zainstalowania" 
+                            <TextBlock Text="Wybierz modyfikacje DLL (zaznaczone = zainstalowane)" 
                                        FontSize="12" 
                                        Foreground="#E0FFFFFF"/>
                         </StackPanel>
@@ -59,25 +59,63 @@
                                         CornerRadius="8"
                                         Margin="0,0,0,10"
                                         Padding="15">
-                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                                        <!-- Checkbox -->
                                         <CheckBox Grid.Column="0"
                                                   IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                                   Margin="0,0,15,0"
                                                   VerticalAlignment="Center"/>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding ModName}"
-                                                       FontSize="16" FontWeight="Bold"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                        
+                                        <!-- Emoji kompatybilności -->
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding CompatibilityEmoji}"
+                                                   FontSize="20"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,10,0"
+                                                   ToolTip.Tip="{Binding CompatibilityDescription}"/>
+                                        
+                                        <!-- Informacje o modzie -->
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding ModName}"
+                                                           FontSize="16" FontWeight="Bold"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                <TextBlock Text=" [ZAINSTALOWANY]"
+                                                           FontSize="12" FontWeight="SemiBold"
+                                                           Foreground="#4CAF50"
+                                                           VerticalAlignment="Center"
+                                                           Margin="8,0,0,0"
+                                                           IsVisible="{Binding IsInstalled}"/>
+                                            </StackPanel>
                                             <TextBlock Text="{Binding Description}"
                                                        FontSize="12"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        TextWrapping="Wrap"
-                                                       MaxWidth="300"/>
+                                                       MaxWidth="400"/>
                                             <TextBlock Text="{Binding ModVersion, StringFormat='Wersja: {0}'}"
                                                        FontSize="11"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        Margin="0,4,0,0"/>
+                                            <!-- Ostrzeżenie o kompatybilności -->
+                                            <TextBlock Text="{Binding CompatibilityWarning}"
+                                                       FontSize="11"
+                                                       Foreground="#FF9800"
+                                                       FontStyle="Italic"
+                                                       TextWrapping="Wrap"
+                                                       Margin="0,4,0,0"
+                                                       IsVisible="{Binding CompatibilityWarning, Converter={x:Static ObjectConverters.IsNotNull}}"/>
                                         </StackPanel>
+                                        
+                                        <!-- Status kompatybilności (tekst) -->
+                                        <TextBlock Grid.Column="3"
+                                                   Text="{Binding CompatibilityDescription}"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="10,0,0,0"
+                                                   TextWrapping="Wrap"
+                                                   MaxWidth="120"
+                                                   TextAlignment="Right"/>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -94,18 +132,17 @@
                         Height="70">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Grid.Column="0"
-                                   Text="{Binding SelectedDllMods.Count, StringFormat='Wybrano: {0}'}"
+                                   Text="Zaznacz/odznacz modyfikacje aby zastosować zmiany"
                                    VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <Button Grid.Column="1"
-                                Content="Zainstaluj wybrane"
-                                Command="{Binding InstallSelectedDllsCommand}"
+                                Content="{Binding ActionButtonText}"
+                                Command="{Binding ApplyChangesCommand}"
                                 Background="{DynamicResource AccentBrush}"
                                 Foreground="White"
                                 Padding="15,10"
                                 CornerRadius="6"
-                                FontWeight="SemiBold"
-                                IsEnabled="{Binding SelectedDllMods.Count, Converter={StaticResource GreaterThanConverter}, ConverterParameter=0}"/>
+                                FontWeight="SemiBold"/>
                     </Grid>
                 </Border>
 
@@ -152,7 +189,7 @@
                     Padding="20">
                 <Grid RowDefinitions="Auto,*,Auto">
                     <TextBlock Grid.Row="0"
-                               Text="Instalacja zakończona"
+                               Text="Operacje zakończone"
                                FontSize="24"
                                FontWeight="Bold"
                                Foreground="{DynamicResource TextPrimaryBrush}"

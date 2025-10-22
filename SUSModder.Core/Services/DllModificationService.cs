@@ -25,6 +25,35 @@ namespace SUSModder.Core.Services
             _diagnosticsOutput = diagnosticsOutput;
         }
 
+        /// <summary>
+        /// Pobiera listę ID modów DLL zainstalowanych w danym modzie FULL
+        /// </summary>
+        /// <param name="targetMod">Mod docelowy (FULL)</param>
+        /// <returns>Lista ID zainstalowanych DLL</returns>
+        public async Task<List<int>> GetInstalledDllIdsAsync(ModConfiguration targetMod)
+        {
+            if (targetMod == null || string.IsNullOrEmpty(targetMod.InstallPath))
+                return new List<int>();
+
+            try
+            {
+                var installationMap = await InstallationMapManager.LoadInstallationMapAsync(targetMod.InstallPath);
+                
+                if (installationMap == null || installationMap.InstalledDlls == null)
+                    return new List<int>();
+
+                return installationMap.InstalledDlls
+                    .Where(dll => dll.ModId > 0)
+                    .Select(dll => dll.ModId)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput.Write($"Error loading installed DLL IDs: {ex.Message}");
+                return new List<int>();
+            }
+        }
+
         public List<ModConfiguration> GetDllMods()
         {
             try
