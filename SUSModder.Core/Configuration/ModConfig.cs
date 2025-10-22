@@ -15,6 +15,11 @@ namespace SUSModder.Core.Configuration
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         private bool _isSelected;
+        private bool _isInstalled;
+        private string? _compatibilityEmoji;
+        private string? _compatibilityDescription;
+        private string? _compatibilityWarning;
+
         public bool IsSelected
         {
             get => _isSelected;
@@ -24,6 +29,75 @@ namespace SUSModder.Core.Configuration
                 {
                     _isSelected = value;
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Pole dynamiczne wskazujące czy mod DLL jest zainstalowany w docelowym modzie FULL
+        /// (nie serializowane do JSON)
+        /// </summary>
+        [JsonIgnore]
+        public bool IsInstalled
+        {
+            get => _isInstalled;
+            set
+            {
+                if (_isInstalled != value)
+                {
+                    _isInstalled = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsInstalled)));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Emoji kompatybilności (dla UI)
+        /// </summary>
+        [JsonIgnore]
+        public string? CompatibilityEmoji
+        {
+            get => _compatibilityEmoji;
+            set
+            {
+                if (_compatibilityEmoji != value)
+                {
+                    _compatibilityEmoji = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompatibilityEmoji)));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Opis kompatybilności (dla UI)
+        /// </summary>
+        [JsonIgnore]
+        public string? CompatibilityDescription
+        {
+            get => _compatibilityDescription;
+            set
+            {
+                if (_compatibilityDescription != value)
+                {
+                    _compatibilityDescription = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompatibilityDescription)));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Ostrzeżenie o kompatybilności (dla UI)
+        /// </summary>
+        [JsonIgnore]
+        public string? CompatibilityWarning
+        {
+            get => _compatibilityWarning;
+            set
+            {
+                if (_compatibilityWarning != value)
+                {
+                    _compatibilityWarning = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompatibilityWarning)));
                 }
             }
         }
