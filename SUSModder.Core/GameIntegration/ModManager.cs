@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Utilities;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Models;
+using SUSModder.Core.Services;
 using Microsoft.Extensions.Configuration;
 
 namespace SUSModder.Core.GameIntegration
@@ -302,7 +304,38 @@ namespace SUSModder.Core.GameIntegration
             }
 
             ConfigManager.SaveConfig(modConfigs);
-            
+
+            // === NOWY KOD: Stwórz Installation Map ===
+            try
+            {
+                var installationMap = new InstallationMap
+                {
+                    InstalledAt = DateTime.Now,
+                    InstalledBy = $"SUSModder v{GetAppVersion()}",
+                    Platform = "steam",
+                    FullMod = new FullModInstallation
+                    {
+                        ModId = modConfig.Id,
+                        ModName = modConfig.ModName,
+                        ModVersion = modConfig.ModVersion ?? "unknown",
+                        AmongVersion = modConfig.AmongVersion ?? "unknown",
+                        InstallPath = modFolderPath,
+                        InstalledFrom = modConfig.GitHubRepoOrLink ?? "unknown",
+                        LastUpdated = DateTime.Now
+                    },
+                    InstalledDlls = new List<DllModInstallation>()
+                };
+
+                await InstallationMapManager.SaveInstallationMapAsync(modFolderPath, installationMap);
+                log.Write($"[InstallationMap] Zapisano mapę instalacji w: {modFolderPath}");
+            }
+            catch (Exception ex)
+            {
+                log.Write($"[WARNING] Nie udało się zapisać Installation Map: {ex.Message}");
+                // Nie przerywamy instalacji jeśli zapis mapy się nie powiódł
+            }
+            // === KONIEC NOWEGO KODU ===
+
             // Usuń unikalny katalog temp dla tej instalacji
             try
             {
@@ -658,6 +691,22 @@ namespace SUSModder.Core.GameIntegration
             if (Environment.Version.Major >= 5)
             {
                 GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
+            }
+        }
+
+        /// <summary>
+        /// Pobiera wersję aplikacji
+        /// </summary>
+        private static string GetAppVersion()
+        {
+            try
+            {
+                var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+                return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "unknown";
+            }
+            catch
+            {
+                return "unknown";
             }
         }
     }

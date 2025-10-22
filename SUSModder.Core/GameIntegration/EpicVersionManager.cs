@@ -12,6 +12,8 @@ using SUSModder.Core.Configuration;
 using SUSModder.Core.Diagnostics;
 using System.Globalization;
 using System.Text;
+using SUSModder.Core.Models;
+using SUSModder.Core.Services;
 
 namespace SUSModder.Core.GameIntegration
 {
@@ -332,7 +334,38 @@ namespace SUSModder.Core.GameIntegration
             }
 
             ConfigManager.SaveConfig(existingConfigs);
-            
+
+            // === NOWY KOD: Stwórz Installation Map ===
+            try
+            {
+                var installationMap = new InstallationMap
+                {
+                    InstalledAt = DateTime.Now,
+                    InstalledBy = $"SUSModder v{GetAppVersion()}",
+                    Platform = "epic",
+                    FullMod = new FullModInstallation
+                    {
+                        ModId = modConfig.Id,
+                        ModName = modConfig.ModName,
+                        ModVersion = modConfig.ModVersion ?? "unknown",
+                        AmongVersion = modConfig.AmongVersion ?? "unknown",
+                        InstallPath = gameBasePath,
+                        InstalledFrom = downloadUrl,
+                        LastUpdated = DateTime.Now
+                    },
+                    InstalledDlls = new List<DllModInstallation>()
+                };
+
+                await InstallationMapManager.SaveInstallationMapAsync(gameBasePath, installationMap);
+                Write($"[InstallationMap] Zapisano mapę instalacji w: {gameBasePath}");
+            }
+            catch (Exception ex)
+            {
+                Write($"[WARNING] Nie udało się zapisać Installation Map: {ex.Message}");
+                // Nie przerywamy instalacji jeśli zapis mapy się nie powiódł
+            }
+            // === KONIEC NOWEGO KODU ===
+
             // Usuń unikalny katalog temp dla tej instalacji
             try
             {
@@ -1020,6 +1053,22 @@ namespace SUSModder.Core.GameIntegration
         public void ResetErrorState()
         {
             _hasLaunchError = false;
+        }
+
+        /// <summary>
+        /// Pobiera wersję aplikacji
+        /// </summary>
+        private static string GetAppVersion()
+        {
+            try
+            {
+                var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+                return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "unknown";
+            }
+            catch
+            {
+                return "unknown";
+            }
         }
     }
 }

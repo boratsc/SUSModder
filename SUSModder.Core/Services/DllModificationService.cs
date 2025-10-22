@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Models;
 
 namespace SUSModder.Core.Services
 {
@@ -161,6 +162,58 @@ namespace SUSModder.Core.Services
                 await File.WriteAllBytesAsync(targetPath, content);
 
                 _diagnosticsOutput.Write($"DLL installation completed successfully");
+
+                // === NOWY KOD: Zaktualizuj Installation Map ===
+                try
+                {
+                    var installationMap = await InstallationMapManager.LoadInstallationMapAsync(targetMod.InstallPath);
+
+                    if (installationMap != null)
+                    {
+                        // Sprawdź czy DLL już istnieje w mapie
+                        var existingDll = installationMap.InstalledDlls
+                            .FirstOrDefault(d => d.ModId == dllMod.Id);
+
+                        if (existingDll != null)
+                        {
+                            // Aktualizuj istniejący wpis
+                            existingDll.ModVersion = dllMod.ModVersion ?? "unknown";
+                            existingDll.LastUpdated = DateTime.Now;
+                            existingDll.InstalledFrom = downloadUrl;
+                            _diagnosticsOutput.Write($"[InstallationMap] Zaktualizowano DLL {dllMod.ModName} w mapie");
+                        }
+                        else
+                        {
+                            // Dodaj nowy wpis
+                            var relativePath = Path.Combine(dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
+                            installationMap.InstalledDlls.Add(new DllModInstallation
+                            {
+                                ModId = dllMod.Id,
+                                ModName = dllMod.ModName,
+                                ModVersion = dllMod.ModVersion ?? "unknown",
+                                InstallPath = relativePath,
+                                InstalledFrom = downloadUrl,
+                                InstalledAt = DateTime.Now,
+                                LastUpdated = DateTime.Now
+                            });
+                            _diagnosticsOutput.Write($"[InstallationMap] Dodano DLL {dllMod.ModName} do mapy");
+                        }
+
+                        await InstallationMapManager.SaveInstallationMapAsync(targetMod.InstallPath, installationMap);
+                        _diagnosticsOutput.Write($"[InstallationMap] Zapisano mapę instalacji dla {targetMod.ModName}");
+                    }
+                    else
+                    {
+                        _diagnosticsOutput.Write($"[WARNING] Brak Installation Map dla {targetMod.ModName} - pominięto aktualizację");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _diagnosticsOutput.Write($"[WARNING] Nie udało się zaktualizować Installation Map: {ex.Message}");
+                    // Nie przerywamy operacji jeśli aktualizacja mapy się nie powiodła
+                }
+                // === KONIEC NOWEGO KODU ===
+
                 return targetPath;
             }
             catch (Exception ex)
@@ -209,6 +262,41 @@ namespace SUSModder.Core.Services
                 // Usuń plik
                 File.Delete(filePath);
                 _diagnosticsOutput.Write($"DLL uninstallation completed successfully");
+
+                // === NOWY KOD: Zaktualizuj Installation Map ===
+                try
+                {
+                    var installationMap = await InstallationMapManager.LoadInstallationMapAsync(targetMod.InstallPath);
+
+                    if (installationMap != null)
+                    {
+                        // Usuń DLL z mapy
+                        var dllToRemove = installationMap.InstalledDlls
+                            .FirstOrDefault(d => d.ModId == dllMod.Id);
+
+                        if (dllToRemove != null)
+                        {
+                            installationMap.InstalledDlls.Remove(dllToRemove);
+                            await InstallationMapManager.SaveInstallationMapAsync(targetMod.InstallPath, installationMap);
+                            _diagnosticsOutput.Write($"[InstallationMap] Usunięto DLL {dllMod.ModName} z mapy");
+                        }
+                        else
+                        {
+                            _diagnosticsOutput.Write($"[InstallationMap] DLL {dllMod.ModName} nie był w mapie");
+                        }
+                    }
+                    else
+                    {
+                        _diagnosticsOutput.Write($"[WARNING] Brak Installation Map dla {targetMod.ModName} - pominięto aktualizację");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _diagnosticsOutput.Write($"[WARNING] Nie udało się zaktualizować Installation Map: {ex.Message}");
+                    // Nie przerywamy operacji jeśli aktualizacja mapy się nie powiodła
+                }
+                // === KONIEC NOWEGO KODU ===
+
                 return true;
             }
             catch (Exception ex)

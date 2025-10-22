@@ -13,6 +13,7 @@ using SUSModder.Core.Diagnostics;
 using SUSModder.Services;
 using SUSModder.Views;
 using SUSModder.ViewModels.Helpers;
+using SUSModder.Core.Utilities;
 
 namespace SUSModder.ViewModels
 {
@@ -252,6 +253,59 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to clear Epic logs on startup: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Migruje istniejące instalacje do Installation Map System
+        /// </summary>
+        private async Task MigrateExistingInstallationsAsync()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[InstallationMap] Rozpoczynam migrację istniejących instalacji...");
+
+                var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Migration] {message}");
+                });
+
+                var configService = new ConfigService();
+                var modConfigs = configService.LoadConfig();
+                string platform = DeterminePlatform().ToLower();
+
+                // KROK 1: Walidacja - wyczyść mody które nie istnieją
+                int cleaned = InstallationMapManager.ValidateAndCleanInstalledMods(
+                    modConfigs,
+                    diagnosticsOutput
+                );
+
+                // Jeśli coś zostało wyczyszczone, zapisz config
+                if (cleaned > 0)
+                {
+                    ConfigManager.SaveConfig(modConfigs);
+                    System.Diagnostics.Debug.WriteLine($"[InstallationMap] Wyczyszczono {cleaned} modów z config.json");
+
+                    // Odśwież UI po oczyszczeniu
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        await RefreshModsListAsync();
+                    });
+                }
+
+                // KROK 2: Migruj istniejące instalacje (te które mają pliki ale nie mają mapy)
+                int migrated = await InstallationMapManager.MigrateExistingInstallationsAsync(
+                    modConfigs,
+                    platform,
+                    diagnosticsOutput
+                );
+
+                System.Diagnostics.Debug.WriteLine($"[InstallationMap] Migracja zakończona: {migrated} modów zmigrowano");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[InstallationMap] Błąd podczas migracji: {ex.Message}");
+                // Nie pokazujemy błędu użytkownikowi - migracja nie jest krytyczna
             }
         }
     }
