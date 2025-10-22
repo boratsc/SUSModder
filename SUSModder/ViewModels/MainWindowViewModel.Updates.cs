@@ -359,6 +359,23 @@ namespace SUSModder.ViewModels
                 // 4. Jeżeli mod jest zainstalowany - wykonaj reinstalację
                 if (!string.IsNullOrEmpty(modItem.InstallPath))
                 {
+                    // KROK 0: Zapisz listę zainstalowanych DLL PRZED usunięciem
+                    List<DllModInstallation> installedDlls = new List<DllModInstallation>();
+
+                    try
+                    {
+                        var installMap = await InstallationMapManager.LoadInstallationMapAsync(modItem.InstallPath);
+                        if (installMap?.InstalledDlls != null && installMap.InstalledDlls.Any())
+                        {
+                            installedDlls = new List<DllModInstallation>(installMap.InstalledDlls);
+                            System.Diagnostics.Debug.WriteLine($"[Update] Zachowuję {installedDlls.Count} zainstalowanych DLL: {string.Join(", ", installedDlls.Select(d => d.ModName))}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Update] Nie udało się odczytać Installation Map: {ex.Message}");
+                    }
+
                     // UNINSTALL
                     progressDialog?.UpdateProgress(40, "Odinstalowywanie starej wersji...");
 
@@ -447,6 +464,15 @@ namespace SUSModder.ViewModels
                         {
                             modItem.InstallPath = updatedConfig.InstallPath;
                         });
+
+                        // KROK 4: Przywróć zainstalowane DLL (jeśli były)
+                        if (installedDlls.Any())
+                        {
+                            progressDialog?.UpdateProgress(90, $"Przywracanie {installedDlls.Count} modów DLL...");
+                            System.Diagnostics.Debug.WriteLine($"[Update] Przywracanie {installedDlls.Count} modów DLL...");
+
+                            await RestoreDllModsAfterUpdateAsync(updatedConfig, installedDlls, platform, diagnosticsOutput);
+                        }
                     }
                 }
 
@@ -969,6 +995,67 @@ namespace SUSModder.ViewModels
 
             progressDialog?.SetCompleted();
             return result;
+        }
+
+        /// <summary>
+        /// Przywraca zainstalowane mody DLL po aktualizacji moda FULL
+        /// </summary>
+        private async Task RestoreDllModsAfterUpdateAsync(
+            ModConfiguration fullMod,
+            List<DllModInstallation> dllsToRestore,
+            string platform,
+            IDiagnosticsOutput log)
+        {
+            if (!dllsToRestore.Any())
+                return;
+
+            var configs = ConfigManager.LoadConfig();
+            var configService = new ConfigService();
+            var dllModificationService = new DllModificationService(configService, log);
+
+            int restoredCount = 0;
+            int failedCount = 0;
+
+            foreach (var dllInfo in dllsToRestore)
+            {
+                try
+                {
+                    var dllConfig = configs.FirstOrDefault(c => c.Id == dllInfo.ModId);
+
+                    if (dllConfig == null)
+                    {
+                        log.Write($"[Update] Nie znaleziono konfiguracji dla DLL (ID: {dllInfo.ModId}, nazwa: {dllInfo.ModName}) - pomijam");
+                        failedCount++;
+                        continue;
+                    }
+
+                    log.Write($"[Update] Przywracanie DLL: {dllConfig.ModName} v{dllInfo.ModVersion}");
+
+                    var installedPath = await dllModificationService.InstallDllToModAsync(
+                        dllConfig,
+                        fullMod,
+                        platform
+                    );
+
+                    if (!string.IsNullOrEmpty(installedPath))
+                    {
+                        restoredCount++;
+                        log.Write($"[Update] ✓ Przywrócono: {dllConfig.ModName}");
+                    }
+                    else
+                    {
+                        failedCount++;
+                        log.Write($"[Update] ✗ Nie udało się przywrócić: {dllConfig.ModName}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failedCount++;
+                    log.Write($"[ERROR] Błąd podczas przywracania DLL {dllInfo.ModName}: {ex.Message}");
+                }
+            }
+
+            log.Write($"[Update] Podsumowanie przywracania DLL: {restoredCount} sukces, {failedCount} niepowodzenie");
         }
     }
 }
