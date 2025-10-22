@@ -263,10 +263,12 @@ namespace SUSModder.ViewModels
         {
             try
             {
+                Console.WriteLine("[InstallationMap] ===== ROZPOCZĘCIE MIGRACJI =====");
                 System.Diagnostics.Debug.WriteLine("[InstallationMap] Rozpoczynam migrację istniejących instalacji...");
 
                 var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
                 {
+                    Console.WriteLine($"[Migration] {message}");
                     System.Diagnostics.Debug.WriteLine($"[Migration] {message}");
                 });
 
@@ -274,7 +276,44 @@ namespace SUSModder.ViewModels
                 var modConfigs = configService.LoadConfig();
                 string platform = DeterminePlatform().ToLower();
 
+                Console.WriteLine($"[InstallationMap] Załadowano {modConfigs.Count} konfiguracji, platforma: {platform}");
+
+                // KROK 0: Odkryj zainstalowane mody z katalogów
+                Console.WriteLine("[InstallationMap] KROK 0: Odkrywanie zainstalowanych modów...");
+                string modsBasePath = PathSettings.ModsInstallPath;
+                Console.WriteLine($"[InstallationMap] Skanowanie katalogu: {modsBasePath}");
+
+                var discoveredMaps = await InstallationMapManager.DiscoverInstalledModsAsync(
+                    modsBasePath,
+                    diagnosticsOutput
+                );
+
+                Console.WriteLine($"[InstallationMap] Odkryto {discoveredMaps.Count} modów z Installation Map");
+
+                // Import odkrytych modów do config.json
+                if (discoveredMaps.Count > 0)
+                {
+                    var imported = InstallationMapManager.ImportDiscoveredMods(
+                        discoveredMaps,
+                        modConfigs,
+                        diagnosticsOutput
+                    );
+
+                    if (imported.Count > 0)
+                    {
+                        ConfigManager.SaveConfig(modConfigs);
+                        Console.WriteLine($"[InstallationMap] ✅ Zaimportowano {imported.Count} modów do config.json");
+
+                        // Odśwież UI po imporcie
+                        await Dispatcher.UIThread.InvokeAsync(async () =>
+                        {
+                            await RefreshModsListAsync();
+                        });
+                    }
+                }
+
                 // KROK 1: Walidacja - wyczyść mody które nie istnieją
+                Console.WriteLine("[InstallationMap] KROK 1: Walidacja...");
                 int cleaned = InstallationMapManager.ValidateAndCleanInstalledMods(
                     modConfigs,
                     diagnosticsOutput
@@ -284,6 +323,7 @@ namespace SUSModder.ViewModels
                 if (cleaned > 0)
                 {
                     ConfigManager.SaveConfig(modConfigs);
+                    Console.WriteLine($"[InstallationMap] ✅ Wyczyszczono {cleaned} modów z config.json");
                     System.Diagnostics.Debug.WriteLine($"[InstallationMap] Wyczyszczono {cleaned} modów z config.json");
 
                     // Odśwież UI po oczyszczeniu
@@ -292,18 +332,26 @@ namespace SUSModder.ViewModels
                         await RefreshModsListAsync();
                     });
                 }
+                else
+                {
+                    Console.WriteLine("[InstallationMap] ✅ Brak modów do wyczyszczenia");
+                }
 
                 // KROK 2: Migruj istniejące instalacje (te które mają pliki ale nie mają mapy)
+                Console.WriteLine("[InstallationMap] KROK 2: Migracja...");
                 int migrated = await InstallationMapManager.MigrateExistingInstallationsAsync(
                     modConfigs,
                     platform,
                     diagnosticsOutput
                 );
 
+                Console.WriteLine($"[InstallationMap] ===== MIGRACJA ZAKOŃCZONA: {migrated} modów zmigrowano =====");
                 System.Diagnostics.Debug.WriteLine($"[InstallationMap] Migracja zakończona: {migrated} modów zmigrowano");
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[InstallationMap] ❌ BŁĄD podczas migracji: {ex.Message}");
+                Console.WriteLine($"[InstallationMap] Stack trace: {ex.StackTrace}");
                 System.Diagnostics.Debug.WriteLine($"[InstallationMap] Błąd podczas migracji: {ex.Message}");
                 // Nie pokazujemy błędu użytkownikowi - migracja nie jest krytyczna
             }

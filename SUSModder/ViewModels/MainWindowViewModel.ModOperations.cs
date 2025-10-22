@@ -12,6 +12,7 @@ using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Services;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.Utilities;
+using SUSModder.Core.Models;
 using SUSModder.Services;
 using SUSModder.Views;
 using SUSModder.ViewModels.Helpers;
@@ -92,6 +93,149 @@ namespace SUSModder.ViewModels
                 {
                     _activeInstallationsCount--;
                     System.Diagnostics.Debug.WriteLine($"[Install] Zakończono instalację {currentSelectedMod.Name}. Aktywnych instalacji: {_activeInstallationsCount}");
+                }
+
+                // Jeśli to była ostatnia instalacja, pokaż wszystkie oczekujące dialogi DLL
+                await ShowPendingDllDialogsIfNeeded();
+
+                // Odśwież statystyki status bara
+                await RefreshStatusBarAsync();
+            }
+        }
+
+        /// <summary>
+        /// Instalacja moda z wyborem wersji - pokazuje dialog wyboru wersji przed instalacją
+        /// </summary>
+        private async Task InstallWithVersionSelection()
+        {
+            if (SelectedMod == null || SelectedMod.IsInstalling)
+                return;
+
+            try
+            {
+                // Pobierz konfigurację moda
+                var configService = new ConfigService();
+                var allConfigs = configService.LoadConfig();
+                var modConfig = allConfigs.FirstOrDefault(c => c.ModName == SelectedMod.Name);
+
+                if (modConfig == null)
+                {
+                    await _userInteractionService.ShowErrorAsync("Nie znaleziono konfiguracji moda.", "Błąd");
+                    return;
+                }
+
+                // Pobierz konfigurację aplikacji
+                var configBuilder = new ConfigurationBuilder()
+                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                var configuration = configBuilder.Build();
+
+                // Utwórz ViewModel dialogu
+                var versionSelectionVM = new VersionSelectionViewModel(modConfig, configuration);
+
+                // Pokaż dialog
+                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+                if (mainWindow == null)
+                    return;
+
+                var dialog = new VersionSelectionDialog
+                {
+                    DataContext = versionSelectionVM
+                };
+
+                var selectedVersion = await dialog.ShowDialog<ModVersionHistory?>(mainWindow);
+
+                if (selectedVersion == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[InstallWithVersionSelection] Użytkownik anulował wybór wersji");
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[InstallWithVersionSelection] Wybrano wersję: {selectedVersion.ModVersion}");
+
+                // Zainstaluj wybraną wersję
+                await InstallSpecificVersionAsync(SelectedMod, modConfig, selectedVersion, allConfigs);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[InstallWithVersionSelection] Błąd: {ex.Message}");
+                await _userInteractionService.ShowErrorAsync($"Błąd podczas instalacji: {ex.Message}", "Błąd");
+            }
+        }
+
+        /// <summary>
+        /// Instaluje konkretną wersję moda
+        /// </summary>
+        private async Task InstallSpecificVersionAsync(
+            ModItem modItem,
+            ModConfiguration modConfig,
+            ModVersionHistory selectedVersion,
+            List<ModConfiguration> allConfigs)
+        {
+            // Zwiększ licznik aktywnych instalacji
+            lock (_installationLock)
+            {
+                _activeInstallationsCount++;
+                System.Diagnostics.Debug.WriteLine($"[InstallSpecificVersion] Rozpoczęto instalację {modItem.Name} v{selectedVersion.ModVersion}. Aktywnych instalacji: {_activeInstallationsCount}");
+            }
+
+            try
+            {
+                // Ustaw flagę instalacji
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    modItem.IsInstalling = true;
+                    modItem.ShowProgress = true;
+                });
+
+                // Nadpisz wersję w konfiguracji moda
+                var tempModConfig = new ModConfiguration
+                {
+                    Id = modConfig.Id,
+                    ModName = modConfig.ModName,
+                    ModType = modConfig.ModType,
+                    ModVersion = selectedVersion.ModVersion,
+                    AmongVersion = selectedVersion.AmongVersion,
+                    GitHubRepoOrLink = selectedVersion.GitHubRepoOrLink ?? modConfig.GitHubRepoOrLink,
+                    EpicGitHubRepoOrLink = selectedVersion.EpicGitHubRepoOrLink ?? modConfig.EpicGitHubRepoOrLink,
+                    Description = modConfig.Description,
+                    PngFileName = modConfig.PngFileName,
+                    DllInstallPath = modConfig.DllInstallPath
+                };
+
+                string platform = DeterminePlatform();
+                bool success = false;
+
+                if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
+                {
+                    success = await InstallEpicModAsync(modItem, tempModConfig);
+                }
+                else
+                {
+                    success = await InstallSteamModAsync(modItem, tempModConfig, allConfigs);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[InstallSpecificVersion] Exception: {ex.Message}");
+                await _userInteractionService.ShowErrorAsync($"Błąd podczas instalacji: {ex.Message}", "Błąd");
+            }
+            finally
+            {
+                // Ukryj progress bar
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    modItem.ShowProgress = false;
+                    modItem.InstallProgress = 0;
+                    modItem.InstallStatusMessage = string.Empty;
+                    modItem.IsInstalling = false;
+                });
+
+                // Zmniejsz licznik aktywnych instalacji
+                lock (_installationLock)
+                {
+                    _activeInstallationsCount--;
+                    System.Diagnostics.Debug.WriteLine($"[InstallSpecificVersion] Zakończono instalację {modItem.Name}. Aktywnych instalacji: {_activeInstallationsCount}");
                 }
 
                 // Jeśli to była ostatnia instalacja, pokaż wszystkie oczekujące dialogi DLL
