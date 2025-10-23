@@ -453,4 +453,5 @@ $RECYCLE.BIN/
 !.vscode/launch.json
 !.vscode/extensions.json
 CLAUDE.md
-.claude/
+.claude/*.backup
+*.bak*

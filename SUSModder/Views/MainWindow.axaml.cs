@@ -28,9 +28,13 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
     public MainWindow()
     {
-        // Ustaw DataContext PRZED InitializeComponent, aby bindingi mogły się poprawnie połączyć
-        DataContext = new MainWindowViewModel();
-        
+        // DataContext będzie ustawiony z zewnątrz (przez App.axaml.cs)
+        // Jeśli nie jest ustawiony (np. design mode), utwórz dummy
+        if (DataContext == null)
+        {
+            DataContext = new MainWindowViewModel();
+        }
+
         InitializeComponent();
 
         _fabButton = this.FindControl<Button>("FabButton");

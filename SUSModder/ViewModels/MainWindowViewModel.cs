@@ -392,14 +392,13 @@ namespace SUSModder.ViewModels
 
             ClearEpicLogsOnStartup();
             LoadSavedTheme();
-            InitializeApplicationAsync();
+            // InitializeApplicationAsync() jest teraz wywoływane z App.axaml.cs po pokazaniu splash screen
             LoadAppVersion();
             LoadWindowTitle();
-            CheckForAppUpdatesOnStartup();
+            // CheckForAppUpdatesOnStartup() jest teraz wywoływane wewnątrz InitializeApplicationAsync()
             ApplyTheme(CurrentTheme);
 
-            // Migracja istniejących instalacji do Installation Map System
-            _ = Task.Run(async () => await MigrateExistingInstallationsAsync());
+            // Migracja istniejących instalacji jest teraz wewnątrz InitializeApplicationAsync()
 
             // Subskrybuj do zmiany trybu gry
             AppSettingsViewModel.GameModeChanged += LoadWindowTitle;

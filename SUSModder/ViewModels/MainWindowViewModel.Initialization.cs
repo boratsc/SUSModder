@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -22,77 +23,99 @@ namespace SUSModder.ViewModels
     /// </summary>
     public partial class MainWindowViewModel
     {
-        private async void InitializeApplicationAsync()
+        /// <summary>
+        /// Publiczna metoda inicjalizacji aplikacji wywoływana przez App.axaml.cs
+        /// </summary>
+        /// <param name="progressCallback">Callback do raportowania postępu (0.0 - 1.0, status text)</param>
+        public async Task InitializeApplicationAsync(Action<double, string>? progressCallback = null)
         {
             try
             {
-                // KROK 1: Ładowanie konfiguracji modów
+                // KROK 1: Ładowanie konfiguracji modów (10%)
+                progressCallback?.Invoke(0.0, "Ładowanie konfiguracji modów...");
                 await Task.Run(() =>
                 {
                     var configService = new ConfigService();
                     var configs = configService.LoadConfig();
                     System.Diagnostics.Debug.WriteLine($"Loaded {configs.Count} configs from service");
-
-                    // Zapisz do pola klasy
                     _loadedConfigs = configs;
                 });
 
-                // KROK 2: Wyszukiwanie i konfiguracja Vanilla Among Us - PRZED sprawdzaniem aktualizacji
+                // KROK 2: Wyszukiwanie i konfiguracja Vanilla Among Us (30%)
+                progressCallback?.Invoke(0.1, "Wykrywanie Among Us...");
                 bool vanillaSetupSuccess = await SetupVanillaGameAsync();
 
                 if (vanillaSetupSuccess)
                 {
-                    // KROK 3: Przeładuj konfigurację po dodaniu Vanilla
+                    // KROK 3: Przeładuj konfigurację po dodaniu Vanilla (40%)
+                    progressCallback?.Invoke(0.3, "Aktualizacja konfiguracji...");
                     await Task.Run(() =>
                     {
                         var configService = new ConfigService();
                         _loadedConfigs = configService.LoadConfig();
                     });
 
-                    // KROK 4: Sprawdzanie aktualizacji modów
-                    await CheckForModUpdatesAsync();
-                    
-                    // KROK 4.5: Sprawdzanie aktualizacji DLL
-                    await CheckDllUpdates();
+                    // KROK 4: Równoległe sprawdzanie aktualizacji (60%)
+                    progressCallback?.Invoke(0.4, "Sprawdzanie aktualizacji...");
+                    await Task.WhenAll(
+                        CheckForModUpdatesAsync(),
+                        CheckDllUpdates()
+                    );
                 }
 
-                // KROK 5: Odświeżenie interfejsu (zawsze, niezależnie od sukcesu Vanilla)
+                // KROK 5: Odświeżenie interfejsu (70%)
+                progressCallback?.Invoke(0.6, "Odświeżanie listy modów...");
                 await RefreshModsListAsync();
 
-                // KROK 5.5: Preload ikon modów w tle
-                _ = Task.Run(async () =>
+                // KROK 6: Równoległe operacje w tle (80%)
+                progressCallback?.Invoke(0.7, "Ładowanie zasobów...");
+                var backgroundTasks = new List<Task>
                 {
-                    var iconFileNames = _loadedConfigs
-                        .Select(c => c.PngFileName)
-                        .Where(f => !string.IsNullOrWhiteSpace(f))
-                        .Distinct()
-                        .ToList();
-                    
-                    await ModIconPreloader.PreloadIconsAsync(iconFileNames);
-                });
+                    // Preload ikon modów
+                    Task.Run(async () =>
+                    {
+                        var iconFileNames = _loadedConfigs
+                            .Select(c => c.PngFileName)
+                            .Where(f => !string.IsNullOrWhiteSpace(f))
+                            .Distinct()
+                            .ToList();
+                        await ModIconPreloader.PreloadIconsAsync(iconFileNames);
+                    }),
 
-                // KROK 6: Odświeżenie panelu statusu
+                    // Auto-logowanie SUStats
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await SUStatsConfigViewModel.TryAutoLoginOnStartupAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[SUStats] Błąd podczas auto-logowania w tle: {ex.Message}");
+                        }
+                    }),
+
+                    // Migracja instalacji
+                    MigrateExistingInstallationsAsync()
+                };
+
+                // Nie czekamy na backgroundTasks - niech działają w tle
+
+                // KROK 7: Odświeżenie panelu statusu (90%)
+                progressCallback?.Invoke(0.8, "Finalizacja...");
                 await RefreshStatusBarAsync();
 
-                // KROK 7: Uruchom auto-refresh statusu API i aktualizacji modów w tle
+                // KROK 8: Uruchom auto-refresh (95%)
+                progressCallback?.Invoke(0.9, "Uruchamianie usług...");
                 StartApiStatusAutoRefresh();
                 StartModUpdatesAutoRefresh();
 
-                // KROK 8: Pierwsze sprawdzenie aktualizacji modów
+                // KROK 9: Pierwsze sprawdzenie aktualizacji (100%)
                 await CheckForModUpdatesForStatusBarAsync();
+                progressCallback?.Invoke(1.0, "Gotowe!");
 
-                // KROK 9: Auto-logowanie SUStats w tle (asynchronicznie, nie blokujemy UI)
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await SUStatsConfigViewModel.TryAutoLoginOnStartupAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[SUStats] Błąd podczas auto-logowania w tle: {ex.Message}");
-                    }
-                });
+                // Uruchom sprawdzanie aktualizacji aplikacji w tle (nie blokuje)
+                CheckForAppUpdatesOnStartup();
             }
             catch (Exception ex)
             {
