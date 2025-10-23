@@ -3,7 +3,7 @@
         x:Class="SUSModder.Views.SplashWindow"
         Title="SUSModder"
         Width="600"
-        Height="400"
+        Height="420"
         WindowStartupLocation="CenterScreen"
         CanResize="False"
         SystemDecorations="None"
@@ -19,36 +19,53 @@
                    HorizontalAlignment="Stretch"
                    VerticalAlignment="Stretch"/>
 
-            <!-- Loading Progress Bar at Bottom -->
-            <Border Height="4"
+            <!-- Loading Progress Bar at Bottom - Bright cyan/yellow gradient -->
+            <Border Height="6"
                     VerticalAlignment="Bottom"
                     HorizontalAlignment="Stretch"
-                    Background="#20FFFFFF"
+                    Background="#30FFFFFF"
                     CornerRadius="0,0,12,12">
                 <Border x:Name="ProgressBar"
-                        Background="#00D9FF"
                         HorizontalAlignment="Left"
                         Width="0"
                         CornerRadius="0,0,0,12">
-                    <!-- Animated Gradient Effect -->
+                    <!-- Gradient from cyan to yellow-green - very visible on blue -->
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                            <GradientStop Color="#00F5FF" Offset="0.0" />
+                            <GradientStop Color="#00FFAA" Offset="0.5" />
+                            <GradientStop Color="#FFEB3B" Offset="1.0" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <!-- Animated Gradient Effect - Enhanced with brighter glow -->
                     <Border.Effect>
-                        <DropShadowEffect Color="#00D9FF"
-                                        BlurRadius="15"
+                        <DropShadowEffect Color="#00FFAA"
+                                        BlurRadius="25"
                                         OffsetX="0"
-                                        OffsetY="0"/>
+                                        OffsetY="0"
+                                        Opacity="1.0"/>
                     </Border.Effect>
                 </Border>
             </Border>
 
-            <!-- Optional: Loading Text (jeśli chcesz dodać tekst statusu) -->
+            <!-- Loading Text - Bold and visible -->
             <TextBlock x:Name="LoadingText"
                       Text="Ładowanie..."
-                      FontSize="12"
+                      FontSize="13"
+                      FontWeight="Bold"
                       Foreground="White"
                       HorizontalAlignment="Center"
                       VerticalAlignment="Bottom"
-                      Margin="0,0,0,12"
-                      Opacity="0.8"/>
+                      Margin="0,0,0,16"
+                      Opacity="0.95">
+                <TextBlock.Effect>
+                    <DropShadowEffect Color="Black"
+                                    BlurRadius="8"
+                                    OffsetX="0"
+                                    OffsetY="1"
+                                    Opacity="0.8"/>
+                </TextBlock.Effect>
+            </TextBlock>
         </Panel>
     </Border>
 </Window>
