@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SUSModder.Views.SplashWindow"
+        Title="SUSModder"
+        Width="600"
+        Height="400"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        SystemDecorations="None"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Border CornerRadius="12" ClipToBounds="True">
+        <!-- Background Image -->
+        <Panel>
+            <Image Source="/Assets/splashscreen.jpg"
+                   Stretch="UniformToFill"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch"/>
+
+            <!-- Loading Progress Bar at Bottom -->
+            <Border Height="4"
+                    VerticalAlignment="Bottom"
+                    HorizontalAlignment="Stretch"
+                    Background="#20FFFFFF"
+                    CornerRadius="0,0,12,12">
+                <Border x:Name="ProgressBar"
+                        Background="#00D9FF"
+                        HorizontalAlignment="Left"
+                        Width="0"
+                        CornerRadius="0,0,0,12">
+                    <!-- Animated Gradient Effect -->
+                    <Border.Effect>
+                        <DropShadowEffect Color="#00D9FF"
+                                        BlurRadius="15"
+                                        OffsetX="0"
+                                        OffsetY="0"/>
+                    </Border.Effect>
+                </Border>
+            </Border>
+
+            <!-- Optional: Loading Text (jeśli chcesz dodać tekst statusu) -->
+            <TextBlock x:Name="LoadingText"
+                      Text="Ładowanie..."
+                      FontSize="12"
+                      Foreground="White"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Bottom"
+                      Margin="0,0,0,12"
+                      Opacity="0.8"/>
+        </Panel>
+    </Border>
+</Window>
