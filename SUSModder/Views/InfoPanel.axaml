@@ -5,143 +5,334 @@
              x:Class="SUSModder.Views.InfoPanel"
              x:DataType="vm:MainWindowViewModel">
 
-	<UserControl.Resources>
-		<converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
-		<converters:UrlToCommandConverter x:Key="UrlToCommandConverter"/>
-	</UserControl.Resources>
+	<UserControl.Styles>
+		<Style Selector="Border.info-card">
+			<Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="15"/>
+			<Setter Property="BoxShadow" Value="0 4 16 0 #30000000"/>
+			<Setter Property="Transitions">
+				<Transitions>
+					<TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3">
+						<TransformOperationsTransition.Easing>
+							<CubicEaseOut/>
+						</TransformOperationsTransition.Easing>
+					</TransformOperationsTransition>
+				</Transitions>
+			</Setter>
+		</Style>
 
-	<ScrollViewer MaxWidth="300">
-		<StackPanel Spacing="15">
-			<TextBlock Text="Informacje o aplikacji"
-                       FontSize="24" FontWeight="Bold"
-                       Foreground="{DynamicResource TextPrimaryBrush}"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,20"/>
+		<Style Selector="Border.info-card:pointerover">
+			<Setter Property="RenderTransform" Value="scale(1.02)"/>
+			<Setter Property="BoxShadow" Value="0 8 24 0 #4000FFAA"/>
+		</Style>
 
-			<!-- Wersja -->
-			<StackPanel>
-				<TextBlock Text="Wersja aplikacji:"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"/>
-				<TextBlock Text="{Binding AppVersion}"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
-			</StackPanel>
+		<Style Selector="TextBlock.role-label">
+			<Setter Property="FontSize" Value="10"/>
+			<Setter Property="FontWeight" Value="Bold"/>
+			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="Margin" Value="0,0,0,4"/>
+			<Setter Property="Opacity" Value="0.9"/>
+		</Style>
 
-			<!-- Twórca -->
-			<StackPanel>
-				<TextBlock Text="Twórca aplikacji:"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"/>
-				<TextBlock Text=" Bartosz &quot;boracik&quot; G."
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
-			</StackPanel>
+		<Style Selector="TextBlock.person-name">
+			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		</Style>
 
-			<!-- Testerzy -->
-			<StackPanel>
-				<TextBlock Text="Testerzy:"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"/>
-				<TextBlock Text=" Społeczność Psychopatyczna"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
-			</StackPanel>
+		<Style Selector="Border.divider">
+			<Setter Property="Height" Value="1"/>
+			<Setter Property="Margin" Value="0,5,0,5"/>
+			<Setter Property="Background">
+				<LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+					<GradientStop Color="Transparent" Offset="0"/>
+					<GradientStop Color="#00F5FF" Offset="0.3"/>
+					<GradientStop Color="#00FFAA" Offset="0.7"/>
+					<GradientStop Color="Transparent" Offset="1"/>
+				</LinearGradientBrush>
+			</Setter>
+		</Style>
+	</UserControl.Styles>
+
+	<ScrollViewer HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+		<StackPanel Spacing="10" Margin="15" MaxWidth="450" HorizontalAlignment="Center">
+			
+			<!-- Header z logo i wersją -->
+			<Border CornerRadius="10" 
+			        Padding="15,12"
+			        Background="{DynamicResource SecondaryBackgroundBrush}"
+			        BorderBrush="{DynamicResource AccentBrush}"
+			        BorderThickness="2"
+			        BoxShadow="0 4 12 0 #30000000">
+				<StackPanel Spacing="5" HorizontalAlignment="Center">
+					<TextBlock Text="SUSModder" 
+					           FontSize="26" 
+					           FontWeight="Black"
+					           HorizontalAlignment="Center"
+					           TextAlignment="Center"
+					           Foreground="{DynamicResource AccentBrush}">
+						<TextBlock.Effect>
+							<DropShadowEffect Color="{DynamicResource AccentColor}" BlurRadius="12" OffsetX="0" OffsetY="0"/>
+						</TextBlock.Effect>
+					</TextBlock>
+					
+					<TextBlock Text="{Binding AppVersion, StringFormat='v{0}'}" 
+					           FontSize="12" 
+					           FontWeight="Medium"
+					           Foreground="{DynamicResource TextSecondaryBrush}"
+					           HorizontalAlignment="Center"
+					           Opacity="0.9"/>
+				</StackPanel>
+			</Border>
+
+			<!-- Divider -->
+			<Border Classes="divider" Margin="0,5,0,5"/>
+
+			<!-- Twórca - główna sekcja -->
+			<Border Classes="info-card" Padding="12,10">
+				<StackPanel Spacing="6">
+					<TextBlock Classes="role-label" Text="TWÓRCA APLIKACJI" FontSize="10"/>
+					<StackPanel Orientation="Horizontal" Spacing="10">
+						<Border Width="32" Height="32" 
+						        CornerRadius="16" 
+						        Background="{DynamicResource AccentBrush}"
+						        VerticalAlignment="Center">
+							<TextBlock Text="👨‍💻" 
+							           FontSize="16" 
+							           HorizontalAlignment="Center"
+							           VerticalAlignment="Center"/>
+						</Border>
+						<TextBlock Classes="person-name" 
+						           Text="B'Яacik" 
+						           FontSize="13"
+						           VerticalAlignment="Center"/>
+					</StackPanel>
+				</StackPanel>
+			</Border>
 
 			<!-- Grafiki -->
-			<StackPanel>
-				<TextBlock Text="Grafiki:"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"/>
-				<TextBlock Text=" Pacia"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
-			</StackPanel>
-
-			<!-- Podziękowania -->
-			<StackPanel>
-				<TextBlock Text="Specjalne podziękowania dla:"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"/>
-				<TextBlock Text=" notpe"
-						   Foreground="{DynamicResource TextSecondaryBrush}"/>
-				<TextBlock Text=" ma1ked"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
-				<TextBlock Text=" bobofrucik"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
-				<TextBlock Text=" Pacia"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
-				<TextBlock Text=" Hefe"
-						   Foreground="{DynamicResource TextSecondaryBrush}"/>
-				<TextBlock Text=" Sheep aka Syzyf"
-						   Foreground="{DynamicResource TextSecondaryBrush}"/>
-				<TextBlock Text=" tumcio13"
-						   Foreground="{DynamicResource TextSecondaryBrush}"/>
-			</StackPanel>
-
-			<!-- Social Media -->
-			<StackPanel>
-				<TextBlock Text="Social Media:"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"
-                           Margin="0,0,0,10"/>
-
-				<!-- Discord -->
-				<Button Background="Transparent"
-                        BorderThickness="0"
-                        Padding="5"
-                        HorizontalContentAlignment="Left"
-                        Command="{Binding Source='https://discord.gg/psychopaci', Converter={StaticResource UrlToCommandConverter}}">
+			<Border Classes="info-card" Padding="12,10">
+				<StackPanel Spacing="6">
+					<TextBlock Classes="role-label" Text="GRAFIKI" FontSize="10"/>
 					<StackPanel Orientation="Horizontal" Spacing="10">
-						<Image Source="{Binding Source='discord.png', Converter={StaticResource StringToBitmapConverter}}"
-                               Width="24" Height="24"/>
-						<TextBlock Text="Discord - Psychopaci"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+						<Border Width="32" Height="32" 
+						        CornerRadius="16" 
+						        VerticalAlignment="Center">
+							<Border.Background>
+								<LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+									<GradientStop Color="#FF6B9D" Offset="0"/>
+									<GradientStop Color="#E91E63" Offset="1"/>
+								</LinearGradientBrush>
+							</Border.Background>
+							<TextBlock Text="🎨" 
+							           FontSize="16" 
+							           HorizontalAlignment="Center"
+							           VerticalAlignment="Center"/>
+						</Border>
+						<TextBlock Classes="person-name" 
+						           Text="Pacia" 
+						           FontSize="13"
+						           VerticalAlignment="Center"/>
 					</StackPanel>
-				</Button>
+				</StackPanel>
+			</Border>
 
-				<!-- YouTube -->
-				<Button Background="Transparent"
-                        BorderThickness="0"
-                        Padding="5"
-                        HorizontalContentAlignment="Left"
-                        Command="{Binding Source='https://www.youtube.com/@boracikgaming', Converter={StaticResource UrlToCommandConverter}}">
+			<!-- Testerzy -->
+			<Border Classes="info-card" Padding="12,10">
+				<StackPanel Spacing="6">
+					<TextBlock Classes="role-label" Text="TESTERZY" FontSize="10"/>
 					<StackPanel Orientation="Horizontal" Spacing="10">
-						<Image Source="{Binding Source='youtube.png', Converter={StaticResource StringToBitmapConverter}}"
-                               Width="24" Height="24"/>
-						<TextBlock Text="YouTube - boracikgaming"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+						<Border Width="32" Height="32" 
+						        CornerRadius="16" 
+						        Background="#00FFAA"
+						        VerticalAlignment="Center">
+							<TextBlock Text="🎮" 
+							           FontSize="16" 
+							           HorizontalAlignment="Center"
+							           VerticalAlignment="Center"/>
+						</Border>
+						<TextBlock Classes="person-name" 
+						           Text="Społeczność Psychopatyczna" 
+						           FontSize="13"
+						           VerticalAlignment="Center"
+						           TextWrapping="Wrap"
+						           MaxWidth="280"/>
 					</StackPanel>
-				</Button>
+				</StackPanel>
+			</Border>
 
-				<!-- Kick -->
-				<Button Background="Transparent"
-                        BorderThickness="0"
-                        Padding="5"
-                        HorizontalContentAlignment="Left"
-                        Command="{Binding Source='https://kick.com/boracik-gaming', Converter={StaticResource UrlToCommandConverter}}">
-					<StackPanel Orientation="Horizontal" Spacing="10">
-						<Image Source="{Binding Source='kick.png', Converter={StaticResource StringToBitmapConverter}}"
-                               Width="24" Height="24"/>
-						<TextBlock Text="Kick - boracik-gaming"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
-					</StackPanel>
-				</Button>
+			<!-- Divider -->
+			<Border Classes="divider" Margin="0,5,0,5"/>
 
-				<!-- Twitch -->
-				<Button Background="Transparent"
-                        BorderThickness="0"
-                        Padding="5"
-                        HorizontalContentAlignment="Left"
-                        Command="{Binding Source='https://www.twitch.tv/boracik_gaming', Converter={StaticResource UrlToCommandConverter}}">
-					<StackPanel Orientation="Horizontal" Spacing="10">
-						<Image Source="{Binding Source='twitch.png', Converter={StaticResource StringToBitmapConverter}}"
-                               Width="24" Height="24"/>
-						<TextBlock Text="Twitch - boracik_gaming"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
-					</StackPanel>
-				</Button>
-			</StackPanel>
+			<!-- Podziękowania - elegancka siatka -->
+			<Border Classes="info-card" Padding="12,10">
+				<StackPanel Spacing="8">
+					<TextBlock Classes="role-label" Text="SPECJALNE PODZIĘKOWANIA" FontSize="10"/>
+					<WrapPanel Orientation="Horizontal" HorizontalAlignment="Center">
+						<!-- notpe -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}" 
+						        BorderBrush="{DynamicResource AccentBrush}"
+						        BorderThickness="1"
+						        CornerRadius="10" 
+						        Padding="8,4" 
+						        Margin="2"
+						        BoxShadow="0 2 6 0 #20000000">
+							<TextBlock Text="notpe" 
+							           FontSize="10" 
+							           FontWeight="SemiBold"
+							           Foreground="{DynamicResource TextPrimaryBrush}"/>
+						</Border>
+						
+						<!-- notpeatryk -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}" 
+						        BorderBrush="{DynamicResource AccentBrush}"
+						        BorderThickness="1"
+						        CornerRadius="10" 
+						        Padding="8,4" 
+						        Margin="2"
+						        BoxShadow="0 2 6 0 #20000000">
+							<TextBlock Text="notpeatryk" 
+							           FontSize="10" 
+							           FontWeight="SemiBold"
+							           Foreground="{DynamicResource TextPrimaryBrush}"/>
+						</Border>
+						
+						<!-- ma1ked -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}" 
+						        BorderBrush="{DynamicResource AccentBrush}"
+						        BorderThickness="1"
+						        CornerRadius="10" 
+						        Padding="8,4" 
+						        Margin="2"
+						        BoxShadow="0 2 6 0 #20000000">
+							<TextBlock Text="ma1ked" 
+							           FontSize="10" 
+							           FontWeight="SemiBold"
+							           Foreground="{DynamicResource TextPrimaryBrush}"/>
+						</Border>
+						
+						<!-- bobofrucik -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}" 
+						        BorderBrush="{DynamicResource AccentBrush}"
+						        BorderThickness="1"
+						        CornerRadius="10" 
+						        Padding="8,4" 
+						        Margin="2"
+						        BoxShadow="0 2 6 0 #20000000">
+							<TextBlock Text="bobofrucik" 
+							           FontSize="10" 
+							           FontWeight="SemiBold"
+							           Foreground="{DynamicResource TextPrimaryBrush}"/>
+						</Border>
+						
+						<!-- Pacia -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}" 
+						        BorderBrush="{DynamicResource AccentBrush}"
+						        BorderThickness="1"
+						        CornerRadius="10" 
+						        Padding="8,4" 
+						        Margin="2"
+						        BoxShadow="0 2 6 0 #20000000">
+							<TextBlock Text="Pacia" 
+							           FontSize="10" 
+							           FontWeight="SemiBold"
+							           Foreground="{DynamicResource TextPrimaryBrush}"/>
+						</Border>
+						
+						<!-- Hefe -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}" 
+						        BorderBrush="{DynamicResource AccentBrush}"
+						        BorderThickness="1"
+						        CornerRadius="10" 
+						        Padding="8,4" 
+						        Margin="2"
+						        BoxShadow="0 2 6 0 #20000000">
+							<TextBlock Text="Hefe" 
+							           FontSize="10" 
+							           FontWeight="SemiBold"
+							           Foreground="{DynamicResource TextPrimaryBrush}"/>
+						</Border>
+						
+						<!-- Sheep aka Syzyf -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}" 
+						        BorderBrush="{DynamicResource AccentBrush}"
+						        BorderThickness="1"
+						        CornerRadius="10" 
+						        Padding="8,4" 
+						        Margin="2"
+						        BoxShadow="0 2 6 0 #20000000">
+							<TextBlock Text="Sheep aka Syzyf" 
+							           FontSize="10" 
+							           FontWeight="SemiBold"
+							           Foreground="{DynamicResource TextPrimaryBrush}"/>
+						</Border>
+						
+						<!-- ananasia -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}" 
+						        BorderBrush="{DynamicResource AccentBrush}"
+						        BorderThickness="1"
+						        CornerRadius="10" 
+						        Padding="8,4" 
+						        Margin="2"
+						        BoxShadow="0 2 6 0 #20000000">
+							<TextBlock Text="ananasia" 
+							           FontSize="10" 
+							           FontWeight="SemiBold"
+							           Foreground="{DynamicResource TextPrimaryBrush}"/>
+						</Border>
+						
+						<!-- tumcio13 -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}" 
+						        BorderBrush="{DynamicResource AccentBrush}"
+						        BorderThickness="1"
+						        CornerRadius="10" 
+						        Padding="8,4" 
+						        Margin="2"
+						        BoxShadow="0 2 6 0 #20000000">
+							<TextBlock Text="tumcio13" 
+							           FontSize="10" 
+							           FontWeight="SemiBold"
+							           Foreground="{DynamicResource TextPrimaryBrush}"/>
+						</Border>
+					</WrapPanel>
+				</StackPanel>
+			</Border>
+
+			<!-- Stopka z copyright -->
+			<Border CornerRadius="8" 
+			        Padding="10"
+			        Margin="0,5,0,8"
+			        Background="{DynamicResource SecondaryBackgroundBrush}">
+				<TextBlock Text="© 2025 SUSModder - Oprogramowanie na licencji GPLv3. Wszelkie prawa zastrzeżone." 
+				           FontSize="9" 
+				           Foreground="{DynamicResource TextSecondaryBrush}"
+				           HorizontalAlignment="Center"
+				           TextAlignment="Center"
+				           TextWrapping="Wrap"
+				           Opacity="0.8"/>
+			</Border>
+
+			<!-- Przycisk zamknij -->
+			<Button Content="Zamknij"
+			        HorizontalAlignment="Stretch"
+			        Padding="12,8"
+			        CornerRadius="8"
+			        FontSize="13"
+			        FontWeight="SemiBold"
+			        Background="{DynamicResource ModCardBackgroundBrush}"
+			        Foreground="{DynamicResource TextPrimaryBrush}"
+			        BorderBrush="{DynamicResource AccentBrush}"
+			        BorderThickness="2"
+			        Click="CloseButton_Click">
+				<Button.Styles>
+					<Style Selector="Button:pointerover">
+						<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+						<Setter Property="Foreground" Value="White"/>
+					</Style>
+				</Button.Styles>
+			</Button>
 		</StackPanel>
 	</ScrollViewer>
 </UserControl>

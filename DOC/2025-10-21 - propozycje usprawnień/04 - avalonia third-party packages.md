@@ -578,5 +578,5 @@ public class InfoBanner : UserControl
 
 **Aktualizacja:** 21.10.2025  
 **Autor:** GitHub Copilot  
-**Kontekst:** SUSModder v1.2.0 – feature-1.2.0 branch  
+**Kontekst:** SUSModder v2.0.0 – feature-2.0.0 branch  
 **Status:** Research & Planning document

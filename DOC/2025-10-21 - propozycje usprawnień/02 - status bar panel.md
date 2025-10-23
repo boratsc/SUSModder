@@ -655,7 +655,7 @@ namespace SUSModder.Converters
 ### Informacje dodatkowe do wyświetlenia:
 - **Liczba dostępnych aktualizacji** (badge przy ikonie API lub osobna sekcja)
 - **Ostatnia aktywność**: "Zainstalowano [ModName] 5 minut temu"
-- **Wersja aplikacji**: Mała etykieta "v1.2.0" po prawej stronie
+- **Wersja aplikacji**: Mała etykieta "v2.0.0" po prawej stronie
 - **Steam/Epic indicator**: Ikona platformy z nazwą aktywnego trybu
 - **Szybki switch**: Toggle Steam ↔ Epic bezpośrednio z status bara
 

@@ -422,4 +422,4 @@ Każdy behavior jest reużywalny – raz napisany może być użyty w wielu miej
 
 *Dokument stworzony: 21.10.2025*  
 *Autor: GitHub Copilot*  
-*Kontekst: SUSModder v1.2.0 – feature branch z animacjami i status barem*
+*Kontekst: SUSModder v2.0.0 – feature branch z animacjami i status barem*
