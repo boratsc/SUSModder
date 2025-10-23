@@ -23,7 +23,7 @@ namespace SUSModder.Core.Models
         public DateTime InstalledAt { get; set; }
 
         /// <summary>
-        /// Kto/co zainstalowało (np. "SUSModder v1.2.0")
+        /// Kto/co zainstalowało (np. "SUSModder v2.0.0")
         /// </summary>
         [JsonPropertyName("installedBy")]
         public string InstalledBy { get; set; } = string.Empty;

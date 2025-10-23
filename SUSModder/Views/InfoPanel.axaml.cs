@@ -1,4 +1,6 @@
 ﻿using Avalonia.Controls;
+using Avalonia.Interactivity;
+using SUSModder.ViewModels;
 
 namespace SUSModder.Views
 {
@@ -7,6 +9,14 @@ namespace SUSModder.Views
         public InfoPanel()
         {
             InitializeComponent();
+        }
+
+        private void CloseButton_Click(object? sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                viewModel.IsInfoPanelVisible = false;
+            }
         }
     }
 }

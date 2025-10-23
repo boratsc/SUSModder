@@ -1,7 +1,7 @@
 # Status Wdrożenia - System Wersjonowania i Kompatybilności
 
 **Data aktualizacji**: 2025-10-22
-**Branch**: `feature-1.2.0`
+**Branch**: `feature-2.0.0`
 **Ogólny postęp**: **100%** - 🎉 **UKOŃCZONE + BUGFIXY!**
 
 ---

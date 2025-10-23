@@ -1,7 +1,7 @@
 # Podsumowanie refaktoringu modułu Core
 
 **Data:** 2025-10-20  
-**Branch:** feature-1.2.0  
+**Branch:** feature-2.0.0  
 **Status:** ✅ Zakończono pomyślnie
 
 ---

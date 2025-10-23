@@ -1,5 +1,5 @@
-# SUSModder - Changelog Październik 2025 (v1.2.0)
-**Gałąź:** `feature-1.2.0`  
+# SUSModder - Changelog Październik 2025 (v2.0.0)
+**Gałąź:** `feature-2.0.0`  
 **Okres:** 01.10.2025 - 21.10.2025  
 **Status:** 🚧 W rozwoju
 
@@ -547,7 +547,7 @@ Copyright © 2025 Bartosz Gradzik
 **Dokument wygenerowany:** 21.10.2025  
 **Ostatnia aktualizacja:** 21.10.2025  
 **Status:** ✅ Aktualny  
-**Branch:** feature-1.2.0  
+**Branch:** feature-2.0.0  
 **Build Status:** ✅ 0 błędów, 0 ostrzeżeń
 
 ---
@@ -567,4 +567,4 @@ Październik 2025 był **najbardziej produktywnym miesiącem** w historii projek
 - 🚀 **Główny plik ViewModelu zmniejszony o 86.7%**
 - 🐛 **0 błędów kompilacji**
 
-**Projekt gotowy na wersję 1.2.0!** 🎊
+**Projekt gotowy na wersję 2.0.0!** 🎊
