@@ -4,24 +4,29 @@ using Avalonia.Threading;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.Views
 {
     public partial class UninstallConfirmDialog : Window
     {
         public bool Result { get; private set; }
+        private readonly ILocalizationService _localizationService;
 
         public UninstallConfirmDialog()
         {
             InitializeComponent();
+            _localizationService = App.GetService<ILocalizationService>();
         }
 
         public UninstallConfirmDialog(string modName, string installPath)
         {
             InitializeComponent();
-            Title = "Potwierdzenie usunięcia";
-            TitleText.Text = $"Czy usunąć mod '{modName}'?";
-            MessageText.Text = "Ta operacja jest nieodwracalna. Wszystkie pliki moda zostaną trwale usunięte.";
+            _localizationService = App.GetService<ILocalizationService>();
+                
+            Title = _localizationService.Get("Dialogs.Uninstall.Title");
+            TitleText.Text = _localizationService.GetFormatted("Dialogs.Uninstall.MessageWithName", modName);
+            MessageText.Text = _localizationService.Get("Dialogs.Confirm.DeleteMessage");
 
             // Asynchronicznie sprawdź rozmiar katalogu
             _ = LoadDirectorySizeAsync(installPath);
@@ -37,11 +42,11 @@ namespace SUSModder.Views
                 await Task.Run(() =>
                 {
                     var size = GetDirectorySize(path);
-                    var sizeText = FormatBytes(size);
+                    var sizeMB = size / (1024.0 * 1024.0);
 
                     Dispatcher.UIThread.Post(() =>
                     {
-                        SizeInfoText.Text = $"Rozmiar do usunięcia: {sizeText}";
+                        SizeInfoText.Text = _localizationService.GetFormatted("Dialogs.Uninstall.SizeInfo", $"{sizeMB:0.##}");
                         SizeInfoBorder.IsVisible = true;
                     });
                 });

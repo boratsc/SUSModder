@@ -3,6 +3,7 @@
         xmlns:i="using:Avalonia.Xaml.Interactivity"
         xmlns:ia="using:Avalonia.Xaml.Interactions.Core"
         xmlns:behaviors="using:SUSModder.Behaviors"
+        xmlns:local="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.UninstallConfirmDialog"
         Width="480" Height="340"
         WindowStartupLocation="CenterOwner"
@@ -152,7 +153,7 @@
 						Margin="0,20,0,0">
 				<Button x:Name="CancelButton"
 						Classes="cancel-button"
-						Content="Anuluj"
+						Content="{local:Localize Dialogs.Uninstall.CancelButton}"
 						Width="160" Height="38"
 						Background="{DynamicResource ModCardBackgroundBrush}"
 						Foreground="{DynamicResource TextPrimaryBrush}"
@@ -163,7 +164,7 @@
 						Click="CancelButton_Click"/>
 				<Button x:Name="ConfirmButton"
 						Classes="delete-button"
-						Content="Usuń mod"
+						Content="{local:Localize Dialogs.Uninstall.ConfirmButton}"
 						Width="160" Height="38"
 						Background="#DC2626"
 						Foreground="White"

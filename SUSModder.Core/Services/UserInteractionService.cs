@@ -54,7 +54,7 @@ namespace SUSModder.Core.Services
         // Asynchroniczne metody (nowe)
         public async Task ShowInfoAsync(string message, string title = "")
         {
-            await _infoDialog(title, message);
+            await _infoDialog(message, title);
         }
 
         public async Task ShowErrorAsync(string message, string title = "")

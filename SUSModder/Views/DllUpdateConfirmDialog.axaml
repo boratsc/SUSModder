@@ -5,6 +5,7 @@
         xmlns:behaviors="using:SUSModder.Behaviors"
         xmlns:config="using:SUSModder.Core.Configuration"
         xmlns:models="using:SUSModder.Core.Models"
+        xmlns:local="clr-namespace:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.DllUpdateConfirmDialog"
         Width="600" Height="550"
         WindowStartupLocation="CenterOwner"
@@ -111,7 +112,7 @@
 				
 				<!-- Tytuł -->
 				<TextBlock x:Name="TitleText"
-						   Text="Dostępna aktualizacja moda DLL"
+						   Text="{local:Localize DllManager.UpdateConfirm.Title}"
 						   FontSize="20" 
 						   FontWeight="Bold"
 						   Foreground="{DynamicResource TextPrimaryBrush}"
@@ -137,7 +138,7 @@
 					<StackPanel Orientation="Horizontal" 
 								HorizontalAlignment="Center"
 								Spacing="8">
-						<TextBlock Text="Nowa dostępna wersja:"
+						<TextBlock Text="{local:Localize DllManager.UpdateConfirm.NewVersionAvailable}"
 								   FontSize="13"
 								   FontWeight="Medium"
 								   Foreground="{DynamicResource TextSecondaryBrush}"
@@ -158,7 +159,7 @@
 						Padding="16,12"
 						Margin="0,8,0,0">
 					<StackPanel>
-						<TextBlock Text="Mod zostanie zaktualizowany w:"
+						<TextBlock Text="{local:Localize DllManager.UpdateConfirm.UpdateInLocations}"
 								   FontSize="13"
 								   FontWeight="SemiBold"
 								   Foreground="{DynamicResource TextPrimaryBrush}"
@@ -224,7 +225,6 @@
 				</Border>
 			</StackPanel>
 
-			<!-- Przyciski -->
 			<StackPanel Grid.Row="2"
 						Orientation="Horizontal"
 						HorizontalAlignment="Center"
@@ -232,7 +232,7 @@
 						Margin="0,20,0,0">
 				<Button x:Name="CancelButton"
 						Classes="cancel-button"
-						Content="Anuluj"
+						Content="{local:Localize DllManager.UpdateConfirm.CancelButton}"
 						Width="160" Height="38"
 						Background="{DynamicResource ModCardBackgroundBrush}"
 						Foreground="{DynamicResource TextPrimaryBrush}"
@@ -243,7 +243,7 @@
 						Click="CancelButton_Click"/>
 				<Button x:Name="ConfirmButton"
 						Classes="update-button"
-						Content="Aktualizuj wszystkie"
+						Content="{local:Localize DllManager.UpdateConfirm.UpdateAllButton}"
 						Width="180" Height="38"
 						Background="#10B981"
 						Foreground="White"

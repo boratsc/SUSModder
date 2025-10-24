@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SUSModder.ViewModels"
         xmlns:local="using:SUSModder.Views"
+        xmlns:loc="using:SUSModder.Services.Localization"
         xmlns:converters="using:SUSModder.Converters"
         xmlns:labs="using:Avalonia.Labs.Panels"
         xmlns:i="using:Avalonia.Xaml.Interactivity"
@@ -19,6 +20,7 @@
 		<converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
 		<converters:InstallStatusToOpacityConverter x:Key="InstallStatusToOpacityConverter"/>
 		<converters:DiskUsageColorConverter x:Key="DiskUsageColorConverter"/>
+		<converters:UpdatesColorConverter x:Key="UpdatesColorConverter"/>
 		<converters:StringTruncateConverter x:Key="StringTruncateConverter"/>
 	</Window.Resources>
 
@@ -29,7 +31,6 @@
 	<Window.Styles>
 		<FluentTheme />
 		<!-- Importowane style -->
-		<StyleInclude Source="/Styles/AnimationStyles.axaml"/>
 		<StyleInclude Source="/Styles/ModCardStyle.axaml"/>
 		<StyleInclude Source="/Styles/MenuButtonStyle.axaml"/>
 		<StyleInclude Source="/Styles/PanelStyles.axaml"/>
@@ -151,10 +152,10 @@
 										<StackPanel Orientation="Horizontal" Spacing="15">
 											<TextBlock Text="🧩" FontSize="32" VerticalAlignment="Center"/>
 											<StackPanel VerticalAlignment="Center">
-												<TextBlock Text="Modyfikacje DLL"
+												<TextBlock Text="{loc:Localize UI.DllManager.Title}"
 														   FontSize="20" FontWeight="Bold"
 														   Foreground="White"/>
-												<TextBlock Text="Wybierz modyfikację do zainstalowania"
+												<TextBlock Text="{loc:Localize UI.DllManager.SelectModification}"
 														   FontSize="12"
 														   Foreground="#E0FFFFFF"/>
 											</StackPanel>
@@ -194,7 +195,7 @@
 														</StackPanel>
 														<!-- Przycisk wyboru -->
 														<Button Grid.Column="2"
-																Content="Wybierz"
+																Content="{loc:Localize UI.Buttons.Select}"
 																Background="{DynamicResource AccentBrush}"
 																Foreground="White"
 																Padding="15,8"
@@ -228,7 +229,7 @@
 												<TextBlock Text="{Binding SelectedDllMod.Name}"
 														   FontSize="18" FontWeight="Bold"
 														   Foreground="White"/>
-												<TextBlock Text="Zarządzaj instalacją modyfikacji"
+												<TextBlock Text="{loc:Localize UI.DllManager.ManageInstallation}"
 														   FontSize="12"
 														   Foreground="#E0FFFFFF"/>
 											</StackPanel>
@@ -244,7 +245,7 @@
 											Padding="15"
 											IsVisible="{Binding ModsWithoutDllInstalled.Count}">
 										<StackPanel>
-											<TextBlock Text="📥 Zainstaluj w:"
+											<TextBlock Text="{loc:Localize UI.DllManager.InstallIn}"
 													   FontSize="16" FontWeight="Bold"
 													   Foreground="{DynamicResource AccentBrush}"
 													   Margin="0,0,0,10"/>
@@ -274,7 +275,7 @@
 
 																<!-- Przycisk Instaluj -->
 																<Button Grid.Column="2"
-																		Content="Instaluj"
+																		Content="{loc:Localize UI.Buttons.Install}"
 																		Background="{DynamicResource AccentBrush}"
 																		Foreground="White"
 																		Padding="10,5"
@@ -300,7 +301,7 @@
 											Padding="15"
 											IsVisible="{Binding ModsWithDllInstalled.Count}">
 										<StackPanel>
-											<TextBlock Text="🗑️ Odinstaluj z:"
+											<TextBlock Text="{loc:Localize UI.DllManager.UninstallFrom}"
 													   FontSize="16" FontWeight="Bold"
 													   Foreground="{DynamicResource DangerBrush}"
 													   Margin="0,0,0,10"/>
@@ -330,7 +331,7 @@
 
 																<!-- Przycisk Usuń -->
 																<Button Grid.Column="2"
-																		Content="Usuń"
+																		Content="{loc:Localize UI.Buttons.Delete}"
 																		Background="{DynamicResource DangerBrush}"
 																		Foreground="White"
 																		Padding="10,5"
@@ -366,11 +367,11 @@
 													   FontSize="32"
 													   HorizontalAlignment="Center"
 													   Margin="0,0,0,10"/>
-											<TextBlock Text="Brak zainstalowanych modów"
+											<TextBlock Text="{loc:Localize UI.DllManager.NoModsInstalled}"
 													   FontSize="14"
 													   Foreground="{DynamicResource TextSecondaryBrush}"
 													   TextAlignment="Center"/>
-											<TextBlock Text="Zainstaluj najpierw jakiś mod typu 'full'"
+											<TextBlock Text="{loc:Localize UI.DllManager.InstallFullModFirst}"
 													   FontSize="12"
 													   Foreground="{DynamicResource TextSecondaryBrush}"
 													   TextAlignment="Center"/>
@@ -378,7 +379,7 @@
 									</Border>
 
 									<!-- Przycisk powrotu -->
-									<Button Content="← Powrót do listy DLL"
+									<Button Content="{loc:Localize UI.DllManager.BackToList}"
 											HorizontalAlignment="Center"
 											Background="{DynamicResource ModCardBackgroundBrush}"
 											Foreground="{DynamicResource TextPrimaryBrush}"
@@ -444,12 +445,16 @@
 														   FontSize="20" FontWeight="Bold"
 														   Foreground="White"
 														   TextWrapping="Wrap"/>
-												<TextBlock Text="{Binding ModVersion, StringFormat='Wersja moda: {0}'}"
-														   FontSize="11"
-														   Foreground="#E0FFFFFF"/>
-												<TextBlock Text="{Binding AmongVersion, StringFormat='Wersja AmongUs: {0}'}"
-														   FontSize="11"
-														   Foreground="#E0FFFFFF"/>
+												<TextBlock FontSize="11" Foreground="#E0FFFFFF">
+													<Run Text="{loc:Localize UI.Labels.ModVersion}"/>
+													<Run Text=":"/>
+													<Run Text="{Binding ModVersion}"/>
+												</TextBlock>
+												<TextBlock FontSize="11" Foreground="#E0FFFFFF">
+													<Run Text="{loc:Localize UI.Labels.GameVersion}"/>
+													<Run Text=":"/>
+													<Run Text="{Binding AmongVersion}"/>
+												</TextBlock>
 											</StackPanel>
 										</StackPanel>
 
@@ -533,7 +538,7 @@
 								</StackPanel>
 							</Border>								<!-- Przyciski dla Vanilla - tylko Uruchom -->
 								<StackPanel IsVisible="{Binding IsVanilla}" Spacing="10">
-									<Button Content="Uruchom"
+									<Button Content="{loc:Localize UI.Buttons.Launch}"
 											HorizontalAlignment="Stretch"
 											Padding="12"
 											CornerRadius="8"
@@ -554,7 +559,7 @@
 										</MultiBinding>
 									</StackPanel.IsVisible>
 
-									<Button Content="Instaluj (najnowsza wersja)"
+									<Button Content="{loc:Localize UI.Buttons.InstallLatest}"
 											HorizontalAlignment="Stretch"
 											Padding="12"
 											CornerRadius="8"
@@ -564,8 +569,8 @@
 											Foreground="White"
 											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 											Command="{Binding $parent[local:MainWindow].DataContext.InstallCommand}"/>
-									
-									<Button Content="📦 Wybierz wersję..."
+
+									<Button Content="{loc:Localize UI.Buttons.SelectVersion}"
 											HorizontalAlignment="Stretch"
 											Padding="12"
 											CornerRadius="8"
@@ -587,7 +592,7 @@
 										</MultiBinding>
 									</StackPanel.IsVisible>
 
-									<Button Content="Uruchom"
+									<Button Content="{loc:Localize UI.Buttons.Launch}"
 											HorizontalAlignment="Stretch"
 											Padding="12"
 											CornerRadius="8"
@@ -598,7 +603,7 @@
 											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 											Command="{Binding $parent[local:MainWindow].DataContext.LaunchCommand}"/>
 
-									<Button Content="Aktualizuj"
+									<Button Content="{loc:Localize UI.Buttons.Update}"
 											HorizontalAlignment="Stretch"
 											Padding="12"
 											CornerRadius="8"
@@ -609,7 +614,7 @@
 											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 											Command="{Binding $parent[local:MainWindow].DataContext.UpdateCommand}"/>
 
-									<Button Content="Usuń"
+									<Button Content="{loc:Localize UI.Buttons.Delete}"
 											HorizontalAlignment="Stretch"
 											Padding="12"
 											CornerRadius="8"
@@ -620,7 +625,7 @@
 											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 											Command="{Binding $parent[local:MainWindow].DataContext.UninstallCommand}"/>
 
-									<Button Content="Dodaj DLL"
+									<Button Content="{loc:Localize UI.Buttons.AddDll}"
 											HorizontalAlignment="Stretch"
 											Padding="12"
 											CornerRadius="8"
@@ -633,7 +638,7 @@
 								</StackPanel>
 
 								<!-- Przycisk Role - widoczny dla modów z opisami ról (NIE dla Vanilla) -->
-								<Button Content="Role"
+								<Button Content="{loc:Localize UI.Buttons.Roles}"
 										HorizontalAlignment="Stretch"
 										Margin="0,10,0,0"
 										Padding="12"
@@ -665,7 +670,7 @@
 										</MultiBinding>
 									</StackPanel.IsVisible>
 									
-									<TextBlock Text="Zainstalowano w:"
+									<TextBlock Text="{loc:Localize UI.Labels.InstalledIn}:"
 											   FontSize="11"
 											   Foreground="{DynamicResource TextSecondaryBrush}"
 											   Margin="0,0,0,8"/>
@@ -684,7 +689,7 @@
 									</Border>
 									<Grid ColumnDefinitions="*,5,*">
 										<Button Grid.Column="0"
-												Content="Otwórz folder"
+												Content="{loc:Localize UI.Buttons.OpenFolder}"
 												HorizontalAlignment="Stretch"
 												Padding="8"
 												CornerRadius="6"
@@ -697,7 +702,7 @@
 												Command="{Binding $parent[local:MainWindow].DataContext.OpenFolderCommand}"/>
 
 										<Button Grid.Column="2"
-												Content="Stwórz skrót"
+												Content="{loc:Localize UI.Buttons.CreateShortcut}"
 												HorizontalAlignment="Stretch"
 												Padding="8"
 												CornerRadius="6"
@@ -718,12 +723,11 @@
 
 			<!-- STATUS BAR - Panel statusu na dole -->
 			<Border x:Name="StatusBar"
-					Grid.Row="1" 
+					Grid.Row="1"
 					Classes="status-bar">
-				
-				<StackPanel Spacing="5">
-					<!-- Górny wiersz: Statystyki modów, dysk, API -->
-					<Grid ColumnDefinitions="2*,2*,1*" Margin="20,5,20,0">
+
+				<!-- Statystyki modów, dysk, API -->
+				<Grid ColumnDefinitions="2*,2*,1*" Margin="20,5,20,5">
 					
 						<!-- SEKCJA 1: Statystyki modów -->
 						<Border Grid.Column="0" Classes="status-section">
@@ -732,28 +736,25 @@
 								<Border Classes="status-icon-container" Background="#4A148C">
 									<TextBlock Text="📦" FontSize="24" VerticalAlignment="Center" HorizontalAlignment="Center"/>
 								</Border>
-							
+
 								<!-- Tekst -->
 								<StackPanel VerticalAlignment="Center" Spacing="2">
-									<TextBlock Classes="status-main-text">
-										<Run Text="Zainstalowanych modów: "/>
-										<Run Text="{Binding InstalledFullModsCount}" FontWeight="Bold"/>
-									</TextBlock>
+									<!-- Główny tekst - zmienia się w zależności od dostępności aktualizacji -->
+									<TextBlock Classes="status-main-text"
+											   Text="{Binding ModsStatusMainText}"
+											   Foreground="{Binding AvailableUpdatesCount, Converter={StaticResource UpdatesColorConverter}}"/>
+
+									<!-- Tekst pomocniczy - liczba zainstalowanych modów -->
+									<TextBlock Classes="status-sub-text" Text="{Binding ModsStatusSubText}"/>
 								</StackPanel>
 							</StackPanel>
-						
-							<!-- Tooltip z listą modów -->
+
+							<!-- Tooltip z listą zainstalowanych i dostępnych aktualizacji -->
 							<ToolTip.Tip>
-								<StackPanel MaxWidth="300">
-									<TextBlock Text="Zainstalowane mody:" FontWeight="Bold" Margin="0,0,0,5"/>
-									<ItemsControl ItemsSource="{Binding InstalledModsList}">
-										<ItemsControl.ItemTemplate>
-											<DataTemplate>
-												<TextBlock Text="{Binding}" FontSize="11"/>
-											</DataTemplate>
-										</ItemsControl.ItemTemplate>
-									</ItemsControl>
-								</StackPanel>
+								<TextBlock Text="{Binding ModsStatusTooltip}"
+										   FontSize="11"
+										   MaxWidth="350"
+										   TextWrapping="Wrap"/>
 							</ToolTip.Tip>
 						</Border>
 
@@ -792,7 +793,7 @@
 							<!-- Tooltip ze szczegółami -->
 							<ToolTip.Tip>
 								<StackPanel>
-									<TextBlock Text="Szczegóły przestrzeni:" FontWeight="Bold" Margin="0,0,0,5"/>
+									<TextBlock Text="{loc:Localize UI.Labels.SpaceDetailsHeader}" FontWeight="Bold" Margin="0,0,0,5"/>
 									<TextBlock Text="{Binding DiskSpaceDetailsTooltip}" FontSize="11"/>
 								</StackPanel>
 							</ToolTip.Tip>
@@ -808,7 +809,7 @@
 							
 								<!-- Tekst statusu -->
 								<StackPanel VerticalAlignment="Center">
-									<TextBlock Classes="status-main-text" Text="API"/>
+									<TextBlock Classes="status-main-text" Text="{loc:Localize UI.StatusBar.API}"/>
 									<TextBlock Classes="status-sub-text" Text="{Binding ApiStatusText}"/>
 								</StackPanel>
 							</StackPanel>
@@ -816,47 +817,26 @@
 							<!-- Tooltip ze szczegółami API -->
 							<ToolTip.Tip>
 								<StackPanel>
-									<TextBlock Text="Status serwera API" FontWeight="Bold" Margin="0,0,0,5"/>
+									<TextBlock Text="{loc:Localize UI.StatusBar.ServerStatus}" FontWeight="Bold" Margin="0,0,0,5"/>
 									<TextBlock FontSize="11">
-										<Run Text="URL: "/>
+										<Run Text="{loc:Localize UI.StatusBar.URL}"/>
 										<Run Text="{Binding ApiBaseUrl}"/>
 									</TextBlock>
 									<TextBlock FontSize="11">
-										<Run Text="Ostatnie sprawdzenie: "/>
+										<Run Text="{loc:Localize UI.StatusBar.LastCheck}"/>
 										<Run Text="{Binding LastApiCheck, StringFormat='{}{0:HH:mm:ss}'}"/>
 									</TextBlock>
 									<TextBlock FontSize="11" IsVisible="{Binding IsApiOnline}">
-										<Run Text="Opóźnienie: "/>
+										<Run Text="{loc:Localize UI.StatusBar.Latency}"/>
 										<Run Text="{Binding ApiPingMs}"/>
-										<Run Text="ms"/>
+										<Run Text="{loc:Localize UI.StatusBar.Ms}"/>
 									</TextBlock>
 								</StackPanel>
 							</ToolTip.Tip>
 						</Border>
 
-					</Grid>
-					
-					<!-- Dolny wiersz: Dostępne aktualizacje (widoczne tylko gdy są) -->
-					<Border IsVisible="{Binding !!AvailableUpdatesCount}" 
-							Background="#33F44336" 
-							CornerRadius="6"
-							Padding="15,8"
-							Margin="20,0">
-						<StackPanel Orientation="Horizontal" Spacing="10">
-							<TextBlock Text="⚠️" FontSize="16" VerticalAlignment="Center"/>
-							<TextBlock VerticalAlignment="Center" Foreground="#F44336" FontWeight="SemiBold">
-								<Run Text="Dostępne aktualizacje -"/>
-								<Run Text="{Binding AvailableUpdatesCount}"/>
-							</TextBlock>
-						</StackPanel>
-						
-					<!-- Tooltip z listą aktualizacji -->
-					<ToolTip.Tip>
-						<TextBlock Text="{Binding AvailableUpdatesTooltip}" FontSize="11" MaxWidth="300" TextWrapping="Wrap"/>
-					</ToolTip.Tip>
-				</Border>
-			</StackPanel>
-		</Border>
+				</Grid>
+			</Border>
 
 		<!-- FAB Menu Overlay (backdrop) -->
 		<Border Grid.Row="0" Grid.RowSpan="2"
@@ -883,9 +863,9 @@
 
 				<StackPanel Spacing="4">
 				<!-- Menu Header -->
-				<TextBlock Text="Menu" 
-						   FontSize="18" 
-						   FontWeight="Bold" 
+				<TextBlock Text="{loc:Localize UI.Menu.Title}"
+						   FontSize="18"
+						   FontWeight="Bold"
 						   Margin="4,4,4,12"
 						   Foreground="{DynamicResource TextPrimaryBrush}"/>
 
@@ -894,7 +874,7 @@
 					Command="{Binding ShowAdditionalActionsCommand}">
 				<StackPanel Orientation="Horizontal" Spacing="12">
 					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Wrench}" FontSize="20" Foreground="#F44336"/>
-					<TextBlock Text="Konfiguracje ToU" VerticalAlignment="Center"/>
+					<TextBlock Text="{loc:Localize UI.Menu.ToUConfigs}" VerticalAlignment="Center"/>
 				</StackPanel>
 			</Button>
 
@@ -902,7 +882,7 @@
 					Command="{Binding ShowDllModificationsCommand}">
 				<StackPanel Orientation="Horizontal" Spacing="12">
 					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Code}" FontSize="20" Foreground="#9C27B0"/>
-					<TextBlock Text="Modyfikacje DLL" VerticalAlignment="Center"/>
+					<TextBlock Text="{loc:Localize UI.Menu.DllMods}" VerticalAlignment="Center"/>
 				</StackPanel>
 			</Button>
 
@@ -910,7 +890,7 @@
 					Command="{Binding ShowSUStatsConfigCommand}">
 				<StackPanel Orientation="Horizontal" Spacing="12">
 					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.DataBarVertical}" FontSize="20" Foreground="#E91E63"/>
-					<TextBlock Text="SUStats - konfiguracje" VerticalAlignment="Center"/>
+					<TextBlock Text="{loc:Localize UI.Menu.SUStats}" VerticalAlignment="Center"/>
 				</StackPanel>
 			</Button>
 
@@ -918,7 +898,7 @@
 					Command="{Binding FixBlackScreenCommand}">
 				<StackPanel Orientation="Horizontal" Spacing="12">
 					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Toolbox}" FontSize="20" Foreground="#FF9800"/>
-					<TextBlock Text="Napraw Amonga" VerticalAlignment="Center"/>
+					<TextBlock Text="{loc:Localize UI.Menu.RepairGame}" VerticalAlignment="Center"/>
 				</StackPanel>
 			</Button>
 
@@ -926,7 +906,7 @@
 					Command="{Binding ShowAppSettingsCommand}">
 				<StackPanel Orientation="Horizontal" Spacing="12">
 					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Settings}" FontSize="20" Foreground="#2196F3"/>
-					<TextBlock Text="Ustawienia aplikacji" VerticalAlignment="Center"/>
+					<TextBlock Text="{loc:Localize UI.Menu.Settings}" VerticalAlignment="Center"/>
 				</StackPanel>
 			</Button>
 
@@ -934,7 +914,7 @@
 					Command="{Binding ShowRecommendedDiscordsCommand}">
 				<StackPanel Orientation="Horizontal" Spacing="12">
 					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.PeopleTeam}" FontSize="20" Foreground="#4CAF50"/>
-					<TextBlock Text="Polecane Discordy" VerticalAlignment="Center"/>
+					<TextBlock Text="{loc:Localize UI.Menu.RecommendedDiscords}" VerticalAlignment="Center"/>
 				</StackPanel>
 			</Button>
 
@@ -942,7 +922,7 @@
 					Command="{Binding ShowInfoCommand}">
 				<StackPanel Orientation="Horizontal" Spacing="12">
 					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Info}" FontSize="20" Foreground="#00BCD4"/>
-					<TextBlock Text="Informacje" VerticalAlignment="Center"/>
+					<TextBlock Text="{loc:Localize UI.Menu.Info}" VerticalAlignment="Center"/>
 				</StackPanel>
 			</Button>
 

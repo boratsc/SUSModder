@@ -3,6 +3,7 @@
         xmlns:i="using:Avalonia.Xaml.Interactivity"
         xmlns:ia="using:Avalonia.Xaml.Interactions.Core"
         xmlns:behaviors="using:SUSModder.Behaviors"
+        xmlns:local="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.UpdateModConfirmDialog"
         Width="550" Height="450"
         WindowStartupLocation="CenterOwner"
@@ -135,7 +136,7 @@
 					<Grid RowDefinitions="Auto,8,Auto,8,Auto" ColumnDefinitions="Auto,*">
 						<!-- Obecna wersja moda -->
 						<TextBlock Grid.Row="0" Grid.Column="0"
-								   Text="Obecna wersja moda:"
+								   Text="{local:Localize Dialogs.UpdateMod.CurrentVersion}"
 								   FontSize="13"
 								   FontWeight="Medium"
 								   Foreground="{DynamicResource TextSecondaryBrush}"
@@ -150,7 +151,7 @@
 						
 						<!-- Nowa wersja moda -->
 						<TextBlock Grid.Row="2" Grid.Column="0"
-								   Text="Nowa wersja moda:"
+								   Text="{local:Localize Dialogs.UpdateMod.NewVersion}"
 								   FontSize="13"
 								   FontWeight="Medium"
 								   Foreground="{DynamicResource TextSecondaryBrush}"
@@ -165,7 +166,7 @@
 						
 						<!-- Wersja Among Us -->
 						<TextBlock Grid.Row="4" Grid.Column="0"
-								   Text="Wersja Among Us:"
+								   Text="{local:Localize Dialogs.UpdateMod.AmongVersion}"
 								   FontSize="13"
 								   FontWeight="Medium"
 								   Foreground="{DynamicResource TextSecondaryBrush}"
@@ -207,7 +208,7 @@
 						Margin="0,20,0,0">
 				<Button x:Name="CancelButton"
 						Classes="cancel-button"
-						Content="Anuluj"
+						Content="{local:Localize Dialogs.UpdateMod.CancelButton}"
 						Width="160" Height="38"
 						Background="{DynamicResource ModCardBackgroundBrush}"
 						Foreground="{DynamicResource TextPrimaryBrush}"
@@ -218,7 +219,7 @@
 						Click="CancelButton_Click"/>
 				<Button x:Name="ConfirmButton"
 						Classes="update-button"
-						Content="Aktualizuj"
+						Content="{local:Localize Dialogs.UpdateMod.UpdateButton}"
 						Width="160" Height="38"
 						Background="#10B981"
 						Foreground="White"

@@ -2,9 +2,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:SUSModder.ViewModels"
         xmlns:models="clr-namespace:SUSModder.Core.Models;assembly=SUSModder.Core"
+        xmlns:local="clr-namespace:SUSModder.Services.Localization"
         x:DataType="vm:VersionSelectionViewModel"
         x:Class="SUSModder.Views.VersionSelectionDialog"
-        Title="Wybór wersji moda"
+        Title="{local:Localize Tools.VersionSelection.WindowTitle}"
         Width="600"
         Height="500"
         MinWidth="500"
@@ -34,7 +35,8 @@
                                Foreground="White"/>
                     <TextBlock FontSize="13" 
                                Foreground="#E0FFFFFF">
-                        <Run Text="Obecna wersja: "/>
+                        <Run Text="{local:Localize Tools.VersionSelection.CurrentVersion}"/>
+                        <Run Text=" "/>
                         <Run Text="{Binding CurrentVersion}" FontWeight="Bold"/>
                     </TextBlock>
                 </StackPanel>
@@ -43,7 +45,6 @@
 
         <!-- Główna zawartość -->
         <Grid Grid.Row="1" Margin="20">
-            <!-- Ładowanie -->
             <StackPanel IsVisible="{Binding IsLoading}"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
@@ -52,7 +53,7 @@
                            FontSize="48" 
                            HorizontalAlignment="Center"
                            Foreground="{DynamicResource AccentBrush}"/>
-                <TextBlock Text="Pobieranie dostępnych wersji..." 
+                <TextBlock Text="{local:Localize Tools.VersionSelection.Loading}"
                            FontSize="14"
                            HorizontalAlignment="Center"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -72,7 +73,7 @@
                     <TextBlock Text="❌" 
                                FontSize="32" 
                                HorizontalAlignment="Center"/>
-                    <TextBlock Text="Błąd"
+                    <TextBlock Text="{local:Localize Tools.VersionSelection.ErrorTitle}"
                                FontSize="18"
                                FontWeight="Bold"
                                HorizontalAlignment="Center"
@@ -94,7 +95,7 @@
 
                 <!-- Nagłówek listy -->
                 <TextBlock Grid.Row="0"
-                           Text="Wybierz wersję do zainstalowania:"
+                           Text="{local:Localize Tools.VersionSelection.SelectPrompt}"
                            FontSize="14"
                            FontWeight="SemiBold"
                            Margin="0,0,0,10"
@@ -129,7 +130,8 @@
                                             <StackPanel Grid.Column="0" Spacing="4">
                                                 <TextBlock FontSize="15" FontWeight="Bold"
                                                            Foreground="{DynamicResource TextPrimaryBrush}">
-                                                    <Run Text="Wersja: "/>
+                                                    <Run Text="{local:Localize Tools.VersionSelection.VersionLabel}"/>
+                                                    <Run Text=" "/>
                                                     <Run Text="{Binding ModVersion}" FontWeight="Bold"/>
                                                 </TextBlock>
                                                 <TextBlock Text="{Binding AmongVersion, StringFormat='Among Us: {0}'}"
@@ -162,11 +164,10 @@
                 BorderThickness="0,1,0,0"
                 Padding="20">
             <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
-                <!-- Wiersz 1: Info o wybranej wersji -->
                 <StackPanel Grid.Row="0"
                             IsVisible="{Binding SelectedVersion, Converter={x:Static ObjectConverters.IsNotNull}}"
                             Margin="0,0,0,5">
-                    <TextBlock Text="Wybrano:"
+                    <TextBlock Text="{local:Localize Tools.VersionSelection.SelectedLabel}"
                                FontSize="11"
                                Foreground="{DynamicResource TextTertiaryBrush}"/>
                     <TextBlock Text="{Binding SelectedVersion.DisplayText}"
@@ -176,11 +177,10 @@
                                TextWrapping="Wrap"/>
                 </StackPanel>
 
-                <!-- Wiersz 2: Przyciski -->
                 <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
                     <!-- Przycisk Anuluj -->
                     <Button Grid.Column="0"
-                            Content="Anuluj"
+                            Content="{local:Localize Tools.VersionSelection.CancelButton}"
                             Command="{Binding CancelCommand}"
                             Width="120"
                             Height="40"
@@ -192,7 +192,7 @@
 
                     <!-- Przycisk Instaluj -->
                     <Button Grid.Column="1"
-                            Content="Instaluj wybraną wersję"
+                            Content="{local:Localize Tools.VersionSelection.InstallButton}"
                             Command="{Binding ConfirmCommand}"
                             MinWidth="180"
                             Height="40"

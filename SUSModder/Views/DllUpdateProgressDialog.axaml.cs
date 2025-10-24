@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using SUSModder.Core.Services.Localization;
+using System;
 
 namespace SUSModder.Views
 {
@@ -12,9 +14,12 @@ namespace SUSModder.Views
         private TextBlock? _percentText;
         private TextBlock? _bigPercentText;
         private Border? _progressFill;
+        private readonly ILocalizationService _localizationService;
 
         public DllUpdateProgressDialog()
         {
+            _localizationService = App.GetService<ILocalizationService>();
+            
             InitializeComponent();
             _dllModNameText = this.FindControl<TextBlock>("DllModNameText");
             _currentLocationText = this.FindControl<TextBlock>("CurrentLocationText");
@@ -30,7 +35,7 @@ namespace SUSModder.Views
             {
                 _dllModNameText.Text = dllModName;
             }
-            this.Title = $"Aktualizacja: {dllModName}";
+            this.Title = _localizationService.GetFormatted("DllManager.UpdateProgress.WindowTitle", dllModName);
         }
 
         public void UpdateProgress(int current, int total, string locationName, string status)
@@ -60,7 +65,7 @@ namespace SUSModder.Views
                 // Aktualizuj lokalizację
                 if (_currentLocationText != null)
                 {
-                    _currentLocationText.Text = $"📁 {locationName}";
+                    _currentLocationText.Text = _localizationService.Get("DllManager.UpdateProgress.LocationPrefix") + locationName;
                 }
 
                 // Aktualizuj status
@@ -77,7 +82,7 @@ namespace SUSModder.Views
             {
                 if (_statusText != null)
                 {
-                    _statusText.Text = "✅ Aktualizacja zakończona pomyślnie!";
+                    _statusText.Text = _localizationService.Get("DllManager.UpdateProgress.UpdateCompleted");
                 }
             });
         }
@@ -88,7 +93,7 @@ namespace SUSModder.Views
             {
                 if (_statusText != null)
                 {
-                    _statusText.Text = $"❌ Błąd: {errorMessage}";
+                    _statusText.Text = _localizationService.GetFormatted("DllManager.UpdateProgress.UpdateError", errorMessage);
                 }
             });
         }

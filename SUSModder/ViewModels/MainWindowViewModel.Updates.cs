@@ -90,16 +90,19 @@ namespace SUSModder.ViewModels
 
         private async Task<bool> ShowUpdateModConfirmDialogAsync(ModUpdateInfo updateInfo)
         {
-            var dialog = new UpdateModConfirmDialog(updateInfo);
-            var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-
-            if (mainWindow != null)
+            return await Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                await dialog.ShowDialog(mainWindow);
-                return dialog.Result;
-            }
+                var dialog = new UpdateModConfirmDialog(updateInfo);
+                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
 
-            return false;
+                if (mainWindow != null)
+                {
+                    await dialog.ShowDialog(mainWindow);
+                    return dialog.Result;
+                }
+
+                return false;
+            });
         }
 
         private async Task ProcessUpdatesWithIndividualDialogsAsync(List<ModUpdateInfo> availableUpdates)
@@ -921,16 +924,19 @@ namespace SUSModder.ViewModels
         /// </summary>
         private async Task<bool> ShowDllUpdateConfirmDialogAsync(DllUpdateInfo updateInfo)
         {
-            var dialog = new DllUpdateConfirmDialog(updateInfo);
-            var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-
-            if (mainWindow != null)
+            return await Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                await dialog.ShowDialog(mainWindow);
-                return dialog.Result;
-            }
+                var dialog = new DllUpdateConfirmDialog(updateInfo);
+                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
 
-            return false;
+                if (mainWindow != null)
+                {
+                    await dialog.ShowDialog(mainWindow);
+                    return dialog.Result;
+                }
+
+                return false;
+            });
         }
 
         /// <summary>
@@ -1013,6 +1019,14 @@ namespace SUSModder.ViewModels
             var configService = new ConfigService();
             var dllModificationService = new DllModificationService(configService, log);
 
+            // Odśwież fullMod z zapisanej konfiguracji aby mieć aktualny InstallPath
+            var updatedFullMod = configs.FirstOrDefault(c => c.Id == fullMod.Id);
+            if (updatedFullMod == null)
+            {
+                log.Write($"[Update] ❌ Nie znaleziono zaktualizowanej konfiguracji dla {fullMod.ModName} - nie można przywrócić DLL");
+                return;
+            }
+
             int restoredCount = 0;
             int failedCount = 0;
 
@@ -1033,7 +1047,7 @@ namespace SUSModder.ViewModels
 
                     var installedPath = await dllModificationService.InstallDllToModAsync(
                         dllConfig,
-                        fullMod,
+                        updatedFullMod,  // Używamy zaktualizowanej konfiguracji z InstallPath
                         platform
                     );
 

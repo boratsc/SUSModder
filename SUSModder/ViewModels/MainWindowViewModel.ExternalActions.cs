@@ -161,7 +161,9 @@ namespace SUSModder.ViewModels
             {
                 try
                 {
-                    string amongUsExePath = Path.Combine(SelectedMod.InstallPath, "Among Us.exe");
+                    // Uwzględnij strukturę Epic (podkatalog AmongUs)
+                    string actualModPath = PathSettings.GetActualModPath(SelectedMod.InstallPath);
+                    string amongUsExePath = Path.Combine(actualModPath, "Among Us.exe");
                     if (File.Exists(amongUsExePath))
                     {
                         // Sprawdź czy jesteśmy na Windows
@@ -170,7 +172,8 @@ namespace SUSModder.ViewModels
                             string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                             string shortcutPath = Path.Combine(desktopPath, $"{SelectedMod.Name}.lnk");
 
-                            CreateWindowsShortcut(amongUsExePath, shortcutPath, SelectedMod.InstallPath);
+                            // Dla workingDirectory używamy actualModPath, aby skrót działał poprawnie
+                            CreateWindowsShortcut(amongUsExePath, shortcutPath, actualModPath);
                         }
                         else
                         {

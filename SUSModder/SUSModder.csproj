@@ -43,6 +43,7 @@
 		</PackageReference>
 		<PackageReference Include="Avalonia.ReactiveUI" Version="11.3.7" />
 		<PackageReference Include="FluentIcons.Avalonia" Version="1.1.312" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
 		<PackageReference Include="Xaml.Behaviors.Avalonia" Version="11.3.6.5" />
 	</ItemGroup>
 
@@ -76,6 +77,10 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Localization\*.json" />
 	</ItemGroup>
 
 	<ItemGroup>

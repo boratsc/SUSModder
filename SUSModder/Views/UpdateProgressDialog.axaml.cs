@@ -1,11 +1,13 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
 using System;
+using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.Views
 {
     public partial class UpdateProgressDialog : Window
     {
+        private readonly ILocalizationService _localizationService;
         private string _modName = string.Empty;
         private string _status = string.Empty;
         private int _progress = 0;
@@ -14,12 +16,13 @@ namespace SUSModder.Views
         {
             InitializeComponent();
             DataContext = this;
+            _localizationService = App.GetService<ILocalizationService>();
         }
 
         public UpdateProgressDialog(string modName) : this()
         {
             ModName = modName;
-            Title = "Aktualizacja moda";
+            Title = _localizationService.Get("Dialogs.Progress.WindowTitle");
         }
 
         public string ModName
@@ -30,7 +33,7 @@ namespace SUSModder.Views
                 _modName = value;
                 Dispatcher.UIThread.Post(() =>
                 {
-                    ModNameText.Text = $"Aktualizacja: {value}";
+                    ModNameText.Text = _localizationService.GetFormatted("Dialogs.Progress.UpdateLabel", value);
                 });
             }
         }

@@ -1,9 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SUSModder.ViewModels"
+        xmlns:local="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.EpicErrorDialog"
         x:DataType="vm:EpicErrorDialogViewModel"
-        Title="Błąd uruchamiania gry Epic"
+        Title="{local:Localize Errors.EpicLaunchError.Title}"
         Width="640" Height="480"
         MinWidth="640" MinHeight="480"
         WindowStartupLocation="CenterOwner"
@@ -20,7 +21,7 @@
 
 		<!-- Nagłówek -->
 		<TextBlock Grid.Row="0"
-                   Text="Wystąpił błąd podczas uruchamiania gry przez Epic Games"
+                   Text="{local:Localize Errors.EpicLaunchError.Header}"
                    Classes="header-text"
                    Margin="0,0,0,15"
                    TextWrapping="Wrap"/>
@@ -41,24 +42,23 @@
 		</Border>
 
 		<!-- Instrukcja -->
-		<TextBlock Grid.Row="2"
-                   Margin="0,0,0,15"
-                   TextWrapping="Wrap"
-                   Classes="instruction-text">
-			<Run Text="Spróbuj uruchomić podstawową wersję Among Us lub innego moda, a jeżeli będzie wszystko ok, ponownie uruchom "/>
-			<Run Text="{Binding ModName}" Classes="mod-name-highlight"/>
-			<Run Text="."/>
-		</TextBlock>
+		<StackPanel Grid.Row="2" Margin="0,0,0,15">
+			<TextBlock TextWrapping="Wrap" Classes="instruction-text">
+				<Run Text="{local:Localize Errors.EpicLaunchError.InstructionPrefix}"/>
+				<Run Text="{Binding ModName}" Classes="mod-name-highlight"/>
+				<Run Text="{local:Localize Errors.EpicLaunchError.InstructionSuffix}"/>
+			</TextBlock>
+		</StackPanel>
 
 		<!-- Przyciski -->
 		<StackPanel Grid.Row="3"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Spacing="10">
-			<Button Content="Kopiuj log"
+			<Button Content="{local:Localize Errors.EpicLaunchError.CopyLogButton}"
                     Command="{Binding CopyLogCommand}"
                     Classes="secondary-button"/>
-			<Button Content="Zamknij"
+			<Button Content="{local:Localize Errors.EpicLaunchError.CloseButton}"
                     Command="{Binding CloseCommand}"
                     IsDefault="True"
                     Classes="primary-button"/>

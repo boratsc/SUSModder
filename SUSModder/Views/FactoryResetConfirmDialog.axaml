@@ -3,6 +3,7 @@
         xmlns:i="using:Avalonia.Xaml.Interactivity"
         xmlns:ia="using:Avalonia.Xaml.Interactions.Core"
         xmlns:behaviors="using:SUSModder.Behaviors"
+        xmlns:local="clr-namespace:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.FactoryResetConfirmDialog"
         Width="500" Height="410"
         WindowStartupLocation="CenterOwner"
@@ -109,7 +110,7 @@
 				
 				<!-- Tytuł -->
 				<TextBlock x:Name="TitleText"
-						   Text="Reset do ustawień fabrycznych"
+						   Text="{local:Localize Tools.FactoryReset.Title}"
 						   FontSize="20" 
 						   FontWeight="Bold"
 						   Foreground="{DynamicResource TextPrimaryBrush}"
@@ -118,7 +119,7 @@
 
 				<!-- Wiadomość główna -->
 				<TextBlock x:Name="MessageText"
-						   Text="Ta operacja usunie WSZYSTKIE mody oraz przywróci ustawienia fabryczne aplikacji. Kontynuować?"
+						   Text="{local:Localize Tools.FactoryReset.Message}"
 						   FontSize="14"
 						   Foreground="{DynamicResource TextSecondaryBrush}"
 						   TextWrapping="Wrap"
@@ -138,7 +139,7 @@
 						MaxWidth="420">
 					<StackPanel Orientation="Horizontal" Spacing="8">
 						<TextBlock Text="⚠️" FontSize="16" VerticalAlignment="Center"/>
-						<TextBlock Text="Operacja jest nieodwracalna!"
+						<TextBlock Text="{local:Localize Tools.FactoryReset.WarningMessage}"
 								   FontSize="13"
 								   FontWeight="SemiBold"
 								   Foreground="#EF4444"
@@ -172,7 +173,6 @@
 						Spacing="12"
 						Margin="0,20,0,0">
 
-				<!-- Przycisk Anuluj -->
 				<Button x:Name="CancelButton"
 						Click="CancelButton_Click"
 						Classes="cancel-button"
@@ -182,14 +182,13 @@
 						BorderBrush="{DynamicResource ModCardBorderBrush}"
 						BorderThickness="1"
 						CornerRadius="8">
-					<TextBlock Text="Anuluj"
+					<TextBlock Text="{local:Localize Tools.FactoryReset.CancelButton}"
 							   FontSize="14"
 							   Foreground="{DynamicResource TextPrimaryBrush}"
 							   VerticalAlignment="Center"
 							   HorizontalAlignment="Center"/>
 				</Button>
 
-				<!-- Przycisk Resetuj -->
 				<Button x:Name="ResetButton"
 						Click="ResetButton_Click"
 						Classes="reset-button"
@@ -210,7 +209,7 @@
 					</Button.RenderTransform>
 					<StackPanel Orientation="Horizontal" Spacing="8">
 						<TextBlock Text="⚠️" FontSize="16" VerticalAlignment="Center"/>
-						<TextBlock Text="Resetuj"
+						<TextBlock Text="{local:Localize Tools.FactoryReset.ResetButton}"
 								   FontSize="14"
 								   FontWeight="SemiBold"
 								   Foreground="White"

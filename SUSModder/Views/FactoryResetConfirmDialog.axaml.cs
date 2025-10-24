@@ -5,22 +5,24 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using System.Text.Json;
+using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.Views
 {
     public partial class FactoryResetConfirmDialog : Window
     {
         public bool Result { get; private set; }
+        private readonly ILocalizationService _localizationService;
 
         public FactoryResetConfirmDialog()
         {
+            _localizationService = App.GetService<ILocalizationService>();
             InitializeComponent();
         }
 
-        public FactoryResetConfirmDialog(string modsInstallPath, string defaultModsPath)
+        public FactoryResetConfirmDialog(string modsInstallPath, string defaultModsPath) : this()
         {
-            InitializeComponent();
-            Title = "Potwierdzenie resetu fabrycznego";
+            Title = _localizationService.Get("Tools.FactoryReset.WindowTitle");
 
             // Asynchronicznie sprawdź rozmiar katalogów do usunięcia
             _ = LoadDirectoriesSizeAsync(modsInstallPath, defaultModsPath);
@@ -56,11 +58,11 @@ namespace SUSModder.Views
                     if (totalSize > 0)
                     {
                         var sizeText = FormatBytes(totalSize);
-                        string dirText = directoriesCount == 1 ? "katalog" : directoriesCount == 2 ? "katalogi" : "katalogów";
+                        string dirText = GetDirectoryText(directoriesCount);
 
                         Dispatcher.UIThread.Post(() =>
                         {
-                            SizeInfoText.Text = $"Rozmiar do usunięcia: {sizeText} ({directoriesCount} {dirText})";
+                            SizeInfoText.Text = _localizationService.GetFormatted("Tools.FactoryReset.SizeInfo", sizeText, directoriesCount, dirText);
                             SizeInfoBorder.IsVisible = true;
                         });
                     }
@@ -69,6 +71,30 @@ namespace SUSModder.Views
             catch
             {
                 // Jeśli nie można obliczyć rozmiaru, po prostu nie pokazuj info
+            }
+        }
+
+        private string GetDirectoryText(int count)
+        {
+            var currentLanguage = _localizationService.CurrentCulture;
+            
+            if (currentLanguage == "pl")
+            {
+                // Polska forma liczby mnogiej dla "katalog"
+                if (count == 1)
+                    return _localizationService.Get("Tools.FactoryReset.DirectorySingular");
+                else if (count >= 2 && count <= 4)
+                    return _localizationService.Get("Tools.FactoryReset.DirectoryPlural2");
+                else
+                    return _localizationService.Get("Tools.FactoryReset.DirectoryPlural5");
+            }
+            else
+            {
+                // Angielska forma liczby mnogiej dla "directory"
+                if (count == 1)
+                    return _localizationService.Get("Tools.FactoryReset.DirectorySingular");
+                else
+                    return _localizationService.Get("Tools.FactoryReset.DirectoryPlural");
             }
         }
 

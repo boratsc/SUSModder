@@ -45,30 +45,26 @@ namespace SUSModder.ViewModels
                 progressCallback?.Invoke(0.1, "Wykrywanie Among Us...");
                 bool vanillaSetupSuccess = await SetupVanillaGameAsync();
 
-                if (vanillaSetupSuccess)
+                // KROK 3: Przeładuj konfigurację (40%)
+                progressCallback?.Invoke(0.3, "Aktualizacja konfiguracji...");
+                await Task.Run(() =>
                 {
-                    // KROK 3: Przeładuj konfigurację po dodaniu Vanilla (40%)
-                    progressCallback?.Invoke(0.3, "Aktualizacja konfiguracji...");
-                    await Task.Run(() =>
-                    {
-                        var configService = new ConfigService();
-                        _loadedConfigs = configService.LoadConfig();
-                    });
+                    var configService = new ConfigService();
+                    _loadedConfigs = configService.LoadConfig();
+                });
 
-                    // KROK 4: Równoległe sprawdzanie aktualizacji (60%)
-                    progressCallback?.Invoke(0.4, "Sprawdzanie aktualizacji...");
-                    await Task.WhenAll(
-                        CheckForModUpdatesAsync(),
-                        CheckDllUpdates()
-                    );
-                }
+                // Odśwież tytuł okna po wykryciu platformy (zawsze, niezależnie czy Vanilla był nowy czy już istniał)
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    LoadWindowTitle();
+                });
 
-                // KROK 5: Odświeżenie interfejsu (70%)
-                progressCallback?.Invoke(0.6, "Odświeżanie listy modów...");
+                // KROK 4: Odświeżenie interfejsu (70%)
+                progressCallback?.Invoke(0.4, "Odświeżanie listy modów...");
                 await RefreshModsListAsync();
 
-                // KROK 6: Równoległe operacje w tle (80%)
-                progressCallback?.Invoke(0.7, "Ładowanie zasobów...");
+                // KROK 5: Równoległe operacje w tle (80%)
+                progressCallback?.Invoke(0.6, "Ładowanie zasobów...");
                 var backgroundTasks = new List<Task>
                 {
                     // Preload ikon modów
@@ -101,16 +97,16 @@ namespace SUSModder.ViewModels
 
                 // Nie czekamy na backgroundTasks - niech działają w tle
 
-                // KROK 7: Odświeżenie panelu statusu (90%)
+                // KROK 6: Odświeżenie panelu statusu (90%)
                 progressCallback?.Invoke(0.8, "Finalizacja...");
                 await RefreshStatusBarAsync();
 
-                // KROK 8: Uruchom auto-refresh (95%)
+                // KROK 7: Uruchom auto-refresh (95%)
                 progressCallback?.Invoke(0.9, "Uruchamianie usług...");
                 StartApiStatusAutoRefresh();
                 StartModUpdatesAutoRefresh();
 
-                // KROK 9: Pierwsze sprawdzenie aktualizacji (100%)
+                // KROK 8: Pierwsze sprawdzenie aktualizacji dla status bar (100%)
                 await CheckForModUpdatesForStatusBarAsync();
                 progressCallback?.Invoke(1.0, "Gotowe!");
 
@@ -140,15 +136,24 @@ namespace SUSModder.ViewModels
                     var configuration = configBuilder.Build();
 
                     // Wywołaj asynchroniczną wersję z interfejsem użytkownika
-                    bool success = await GameLocator.CheckAndSetupVanillaModAsync(
+                    var vanillaMod = await GameLocator.CheckAndSetupVanillaModAsync(
                         _loadedConfigs,
                         configuration,
                         _userInteractionService
                     );
 
-                    System.Diagnostics.Debug.WriteLine($"Vanilla game setup completed with result: {success}");
+                    System.Diagnostics.Debug.WriteLine($"Vanilla game setup completed with result: {(vanillaMod != null ? "success" : "already exists or cancelled")}");
 
-                    if (success)
+                    // Jeśli zwrócono nowy mod, dodaj go do listy
+                    if (vanillaMod != null)
+                    {
+                        _loadedConfigs.Add(vanillaMod);
+                        return true;
+                    }
+
+                    // Jeśli null - już istniał lub user anulował
+                    var existingVanilla = _loadedConfigs.FirstOrDefault(x => x.ModName == "AmongUs" && x.ModType == "Vanilla");
+                    if (existingVanilla != null)
                         return true;
 
                     // Jeśli niepowodzenie, przejdź do obsługi poniżej
@@ -279,6 +284,34 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to clear Epic logs on startup: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sprawdza aktualizacje modów i DLL po załadowaniu głównego okna
+        /// </summary>
+        public async Task CheckForUpdatesAfterMainWindowLoadAsync()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[Post-Init] Rozpoczynam sprawdzanie aktualizacji po załadowaniu głównego okna...");
+
+                // Zwiększone opóźnienie aby UI był w pełni zainicjalizowany i uniknąć błędów PlatformImpl
+                await Task.Delay(1500);
+
+                // Sprawdź aktualizacje SEKWENCYJNIE - najpierw mody FULL, potem DLL
+                System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji modów FULL...");
+                await CheckForModUpdatesAsync();
+
+                System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji modów DLL...");
+                await CheckDllUpdates();
+
+                System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji zakończone");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Post-Init] Błąd podczas sprawdzania aktualizacji: {ex.Message}");
+                // Nie pokazujemy błędu użytkownikowi - aktualizacje nie są krytyczne
             }
         }
 

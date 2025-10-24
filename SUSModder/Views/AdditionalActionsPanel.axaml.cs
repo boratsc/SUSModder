@@ -4,6 +4,7 @@ using SUSModder.ViewModels;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Repositories;
 using SUSModder.Services;
+using SUSModder.Core.Services.Localization;
 using System;
 using System.Threading.Tasks;
 using System.IO;
@@ -24,10 +25,12 @@ namespace SUSModder.Views
     {
         private ConfigRepository? _configRepository;
         private UserInteractionService? _userInteractionService;
+        private readonly ILocalizationService _localizationService;
 
         public AdditionalActionsPanel()
         {
             InitializeComponent();
+            _localizationService = (ILocalizationService)Application.Current!.Resources["LocalizationService"]!;
             InitializeServices();
         }
 
@@ -64,8 +67,8 @@ namespace SUSModder.Views
             {
                 // Zapytaj o nazwę konfiguracji
                 string? configName = await ShowPromptDialogAsync(
-                    "Wpisz nazwę konfiguracji (lub zostaw puste dla domyślnej nazwy z datą):",
-                    "Nazwa konfiguracji");
+                    _localizationService.Get("Tools.SaveConfigPrompt"),
+                    _localizationService.Get("Tools.ConfigNameTitle"));
 
                 // Jeśli użytkownik anulował dialog, nie rób nic
                 if (configName == null)
@@ -73,11 +76,15 @@ namespace SUSModder.Views
 
                 // Wywołaj metodę z podaną nazwą
                 ModConfigHandler.SaveLocalConfig(configName);
-                await ShowMessageAsync("Sukces", "Konfiguracja została zapisana lokalnie.");
+                await ShowMessageAsync(
+                    _localizationService.Get("Dialogs.Info.Title"),
+                    _localizationService.Get("Tools.SaveSuccess"));
             }
             catch (Exception ex)
             {
-                await ShowErrorDialogAsync($"Błąd podczas zapisywania lokalnej konfiguracji: {ex.Message}", "Błąd");
+                await ShowErrorDialogAsync(
+                    _localizationService.GetFormatted("Tools.SaveLocalError", ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
             }
         }
 
@@ -90,7 +97,9 @@ namespace SUSModder.Views
 
                 if (availableFiles.Length == 0)
                 {
-                    await ShowErrorDialogAsync("Nie znaleziono zapisanych konfiguracji.", "Błąd");
+                    await ShowErrorDialogAsync(
+                        _localizationService.Get("Tools.NoConfigsFound"),
+                        _localizationService.Get("Dialogs.Error.Title"));
                     return;
                 }
 
@@ -111,20 +120,24 @@ namespace SUSModder.Views
                 if (!string.IsNullOrWhiteSpace(selectedFile))
                 {
                     ModConfigHandler.LoadLocalConfig(selectedFile);
-                    await ShowMessageAsync("Sukces", "Konfiguracja została wczytana.");
+                    await ShowMessageAsync(
+                        _localizationService.Get("Dialogs.Info.Title"),
+                        _localizationService.Get("Tools.LoadSuccess"));
                 }
             }
             catch (DirectoryNotFoundException ex)
             {
-                await ShowErrorDialogAsync(ex.Message, "Błąd");
+                await ShowErrorDialogAsync(ex.Message, _localizationService.Get("Dialogs.Error.Title"));
             }
             catch (FileNotFoundException ex)
             {
-                await ShowErrorDialogAsync(ex.Message, "Błąd");
+                await ShowErrorDialogAsync(ex.Message, _localizationService.Get("Dialogs.Error.Title"));
             }
             catch (Exception ex)
             {
-                await ShowErrorDialogAsync($"Błąd podczas ładowania lokalnej konfiguracji: {ex.Message}", "Błąd");
+                await ShowErrorDialogAsync(
+                    _localizationService.GetFormatted("Tools.LoadLocalError", ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
             }
         }
 
@@ -151,27 +164,33 @@ namespace SUSModder.Views
             catch (FileNotFoundException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[UI] FileNotFoundException: {ex.Message}");
-                await ShowErrorDialogAsync(ex.Message, "Brak plików");
+                await ShowErrorDialogAsync(ex.Message, _localizationService.Get("Errors.FileNotFound"));
             }
             catch (InvalidOperationException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[UI] InvalidOperationException: {ex.Message}");
-                await ShowErrorDialogAsync(ex.Message, "Błąd konfiguracji");
+                await ShowErrorDialogAsync(ex.Message, _localizationService.Get("Dialogs.Error.Title"));
             }
             catch (HttpRequestException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[UI] HttpRequestException: {ex.Message}");
-                await ShowErrorDialogAsync($"Błąd połączenia z serwerem: {ex.Message}", "Błąd sieci");
+                await ShowErrorDialogAsync(
+                    _localizationService.GetFormatted("Tools.NetworkError", ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
             }
             catch (TimeoutException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[UI] TimeoutException: {ex.Message}");
-                await ShowErrorDialogAsync("Przekroczono limit czasu połączenia z serwerem.", "Timeout");
+                await ShowErrorDialogAsync(
+                    _localizationService.Get("Tools.TimeoutError"),
+                    _localizationService.Get("Dialogs.Error.Title"));
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[UI] Exception: {ex}");
-                await ShowErrorDialogAsync($"Wystąpił nieoczekiwany błąd: {ex.Message}", "Błąd");
+                await ShowErrorDialogAsync(
+                    _localizationService.GetFormatted("Tools.UnexpectedError", ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
             }
         }
 
@@ -199,7 +218,9 @@ namespace SUSModder.Views
                         System.Diagnostics.Debug.WriteLine("[UI] Konfiguracja wczytana pomyślnie");
 
                         // Pokaż komunikat sukcesu
-                        var successDialog = new MessageDialog("Sukces", "Konfiguracja z serwera została pomyślnie wczytana.");
+                        var successDialog = new MessageDialog(
+                            _localizationService.Get("Dialogs.Info.Title"),
+                            _localizationService.Get("Tools.ServerLoadSuccess"));
                         await successDialog.ShowDialog(mainWindow);
                     }
                 }
@@ -207,27 +228,35 @@ namespace SUSModder.Views
             catch (ArgumentException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[UI] ArgumentException: {ex.Message}");
-                await ShowErrorDialogAsync("Nieprawidłowy kod konfiguracji.", "Błąd");
+                await ShowErrorDialogAsync(
+                    _localizationService.Get("Tools.InvalidConfigCode"),
+                    _localizationService.Get("Dialogs.Error.Title"));
             }
             catch (InvalidOperationException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[UI] InvalidOperationException: {ex.Message}");
-                await ShowErrorDialogAsync(ex.Message, "Błąd konfiguracji");
+                await ShowErrorDialogAsync(ex.Message, _localizationService.Get("Dialogs.Error.Title"));
             }
             catch (HttpRequestException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[UI] HttpRequestException: {ex.Message}");
-                await ShowErrorDialogAsync($"Błąd połączenia z serwerem: {ex.Message}", "Błąd sieci");
+                await ShowErrorDialogAsync(
+                    _localizationService.GetFormatted("Tools.NetworkError", ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
             }
             catch (TimeoutException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[UI] TimeoutException: {ex.Message}");
-                await ShowErrorDialogAsync("Przekroczono limit czasu połączenia z serwerem.", "Timeout");
+                await ShowErrorDialogAsync(
+                    _localizationService.Get("Tools.TimeoutError"),
+                    _localizationService.Get("Dialogs.Error.Title"));
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[UI] Exception: {ex}");
-                await ShowErrorDialogAsync($"Wystąpił nieoczekiwany błąd: {ex.Message}", "Błąd");
+                await ShowErrorDialogAsync(
+                    _localizationService.GetFormatted("Tools.UnexpectedError", ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
             }
         }
 
@@ -242,12 +271,16 @@ namespace SUSModder.Views
                 if (!string.IsNullOrWhiteSpace(selectedFile))
                 {
                     ModConfigHandler.LoadLocalTxtConfig(selectedFile);
-                    await ShowMessageAsync("Sukces", "Konfiguracja została wczytana z pliku txt.");
+                    await ShowMessageAsync(
+                        _localizationService.Get("Dialogs.Info.Title"),
+                        _localizationService.Get("Tools.LoadTxtSuccess"));
                 }
             }
             catch (Exception ex)
             {
-                await ShowErrorDialogAsync($"Błąd podczas ładowania konfiguracji z pliku txt: {ex.Message}", "Błąd");
+                await ShowErrorDialogAsync(
+                    _localizationService.GetFormatted("Tools.LoadTxtError", ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
             }
         }
 
@@ -278,7 +311,9 @@ namespace SUSModder.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[UI] Exception w OnChangePresetNamesClick: {ex}");
-                await ShowErrorDialogAsync($"Wystąpił nieoczekiwany błąd: {ex.Message}", "Błąd");
+                await ShowErrorDialogAsync(
+                    _localizationService.GetFormatted("Tools.UnexpectedError", ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
             }
         }
 
@@ -295,13 +330,17 @@ namespace SUSModder.Views
                     await dialog.ShowDialog(mainWindow);
                     if (dialog.DialogResult)
                     {
-                        await ShowMessageAsync("Sukces", $"Ustawiono liczbę graczy na {dialog.PlayerCount}");
+                        await ShowMessageAsync(
+                            _localizationService.Get("Dialogs.Info.Title"),
+                            _localizationService.GetFormatted("Tools.LobbySetSuccess", dialog.PlayerCount));
                     }
                 }
             }
             catch (Exception ex)
             {
-                await ShowErrorDialogAsync($"Błąd podczas ustawiania lobby: {ex.Message}", "Błąd");
+                await ShowErrorDialogAsync(
+                    _localizationService.GetFormatted("Tools.LobbySetError", ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
             }
         }
 
@@ -383,7 +422,7 @@ namespace SUSModder.Views
 
                 var options = new Avalonia.Platform.Storage.FilePickerOpenOptions
                 {
-                    Title = "Wybierz plik",
+                    Title = _localizationService.Get("Tools.SelectFileTitle"),
                     AllowMultiple = false,
                     FileTypeFilter = fileTypeFilters
                 };

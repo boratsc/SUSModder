@@ -368,5 +368,101 @@ namespace SUSModder.Core.Configuration
                 return "dark"; // domyślny motyw
             }
         }
+
+        public static void SaveLanguageSetting(string language)
+        {
+            try
+            {
+                if (File.Exists(appSettingsFilePath))
+                {
+                    var json = File.ReadAllText(appSettingsFilePath);
+                    var config = JsonSerializer.Deserialize<JsonElement>(json);
+
+                    var configDict = new Dictionary<string, object>();
+
+                    // Skopiuj istniejące ustawienia
+                    foreach (var property in config.EnumerateObject())
+                    {
+                        if (property.Name == "Configuration")
+                        {
+                            var configSection = new Dictionary<string, object>();
+                            bool languageFound = false;
+
+                            foreach (var configProp in property.Value.EnumerateObject())
+                            {
+                                if (configProp.Name == "Language")
+                                {
+                                    configSection[configProp.Name] = language;
+                                    languageFound = true;
+                                }
+                                else
+                                {
+                                    configSection[configProp.Name] = configProp.Value.ToString();
+                                }
+                            }
+
+                            // Jeśli parametr Language nie istniał, dodaj go
+                            if (!languageFound)
+                            {
+                                configSection["Language"] = language;
+                            }
+
+                            configDict[property.Name] = configSection;
+                        }
+                        else
+                        {
+                            try
+                            {
+                                var deserializedValue = JsonSerializer.Deserialize<object>(property.Value.GetRawText());
+                                if (deserializedValue != null)
+                                {
+                                    configDict[property.Name] = deserializedValue;
+                                }
+                                else
+                                {
+                                    configDict[property.Name] = property.Value.GetRawText();
+                                }
+                            }
+                            catch (JsonException)
+                            {
+                                configDict[property.Name] = property.Value.GetRawText();
+                            }
+                        }
+                    }
+
+                    var updatedJson = JsonSerializer.Serialize(configDict, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    });
+                    File.WriteAllText(appSettingsFilePath, updatedJson);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd zapisywania języka: {ex.Message}");
+            }
+        }
+
+        public static string GetLanguageSetting()
+        {
+            try
+            {
+                var configBuilder = new ConfigurationBuilder()
+                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+                var configuration = configBuilder.Build();
+                var language = configuration["Configuration:Language"];
+
+                // Zwróć pusty string jeśli parametr nie istnieje lub jest pusty
+                // To spowoduje pokazanie dialogu wyboru języka
+                return language ?? string.Empty;
+            }
+            catch
+            {
+                // W przypadku błędu zwróć pusty string, aby pokazać dialog
+                return string.Empty;
+            }
+        }
     }
 }

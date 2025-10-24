@@ -125,5 +125,27 @@ namespace SUSModder.Core.Utilities
                 // Można dodać logowanie błędu
             }
         }
+
+        /// <summary>
+        /// Zwraca rzeczywistą ścieżkę bazową moda z uwzględnieniem struktury Epic (podkatalog AmongUs).
+        /// Dla Epic Among Us gra jest instalowana w podkatalogu AmongUs, podczas gdy dla Steam bezpośrednio w katalogu moda.
+        /// </summary>
+        /// <param name="installPath">Ścieżka instalacji moda z config.json</param>
+        /// <returns>Rzeczywista ścieżka do katalogu z plikami gry</returns>
+        public static string GetActualModPath(string installPath)
+        {
+            if (string.IsNullOrEmpty(installPath))
+                return installPath;
+
+            // Sprawdź czy istnieje podkatalog AmongUs (typowe dla Epic)
+            string epicSubPath = Path.Combine(installPath, "AmongUs");
+            if (Directory.Exists(epicSubPath))
+            {
+                return epicSubPath;
+            }
+
+            // Dla Steam lub gdy nie ma podkatalogu AmongUs
+            return installPath;
+        }
     }
 }

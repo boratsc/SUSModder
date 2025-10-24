@@ -1,9 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SUSModder.ViewModels"
+        xmlns:local="clr-namespace:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.RecommendedDiscordsWindow"
         x:DataType="vm:RecommendedDiscordsViewModel"
-        Title="Polecane Discordy"
+        Title="{local:Localize RecommendedDiscords.WindowTitle}"
         Width="800" Height="800"
         MinWidth="600" MinHeight="400"
         Icon="/Assets/icon.ico"
@@ -29,10 +30,10 @@
 			<StackPanel Orientation="Horizontal" Spacing="15">
 				<TextBlock Text="💬" FontSize="32" VerticalAlignment="Center"/>
 				<StackPanel VerticalAlignment="Center">
-					<TextBlock Text="Polecane Discordy"
+					<TextBlock Text="{local:Localize RecommendedDiscords.Header}"
                                FontSize="24" FontWeight="Bold"
                                Foreground="White"/>
-					<TextBlock Text="Dołącz do społeczności Among Us - sprawdź na jakie DC warto zajrzeć"
+					<TextBlock Text="{local:Localize RecommendedDiscords.Subtitle}"
                                FontSize="14"
                                Foreground="#E0FFFFFF"/>
 				</StackPanel>
@@ -121,7 +122,7 @@
 
 								<!-- Przycisk dołącz -->
 								<Button Grid.Column="2"
-                                        Content="Dołącz"
+                                        Content="{local:Localize RecommendedDiscords.JoinButton}"
                                         Background="{DynamicResource AccentBrush}"
                                         Foreground="White"
                                         Padding="20,10"
@@ -150,7 +151,7 @@
                 BorderThickness="0,1,0,0"
                 Padding="0,15,0,0"
                 Margin="0,20,0,0">
-			<Button Content="Zamknij"
+			<Button Content="{local:Localize RecommendedDiscords.CloseButton}"
                     HorizontalAlignment="Right"
                     Padding="20,10"
                     CornerRadius="6"

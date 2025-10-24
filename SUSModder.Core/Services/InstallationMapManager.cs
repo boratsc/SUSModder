@@ -118,17 +118,39 @@ namespace SUSModder.Core.Services
 
             try
             {
-                // Przeszukaj wszystkie podkatalogi
+                // Przeszukaj wszystkie podkatalogi (STEAM: poziom 1)
                 var directories = Directory.GetDirectories(modsBasePath);
 
                 foreach (var dir in directories)
                 {
+                    // Sprawdź bezpośrednio w katalogu (STEAM)
                     var map = await LoadInstallationMapAsync(dir);
 
                     if (map != null)
                     {
                         log.Write($"[Odkryto] {map.FullMod.ModName} v{map.FullMod.ModVersion} w {dir}");
                         discoveredMods.Add(map);
+                    }
+                    else
+                    {
+                        // Sprawdź podkatalogi (EPIC: poziom 2, np. "ModName\AmongUs\")
+                        try
+                        {
+                            var subDirectories = Directory.GetDirectories(dir);
+                            foreach (var subDir in subDirectories)
+                            {
+                                var subMap = await LoadInstallationMapAsync(subDir);
+                                if (subMap != null)
+                                {
+                                    log.Write($"[Odkryto] {subMap.FullMod.ModName} v{subMap.FullMod.ModVersion} w {subDir}");
+                                    discoveredMods.Add(subMap);
+                                }
+                            }
+                        }
+                        catch (Exception subEx)
+                        {
+                            log.Write($"[WARN] Błąd podczas skanowania podkatalogu {dir}: {subEx.Message}");
+                        }
                     }
                 }
 

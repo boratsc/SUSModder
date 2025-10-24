@@ -6,6 +6,7 @@ using Avalonia;
 using Avalonia.Styling;
 using Avalonia.Markup.Xaml;
 using System;
+using System.ComponentModel;
 using SUSModder.Core.Services;
 using SUSModder.Core.Configuration;
 using Avalonia.Controls;
@@ -62,6 +63,7 @@ namespace SUSModder.ViewModels
         private List<ModConfiguration> _loadedConfigs = new();
         private UserInteractionService _userInteractionService;
         private readonly DllModificationService _dllModificationService;
+        private readonly SUSModder.Core.Services.Localization.ILocalizationService _localizationService;
         private Microsoft.Extensions.Configuration.IConfiguration? _configuration;
         private SUSModder.Core.Diagnostics.IDiagnosticsOutput? _diagnosticsOutput;
         private bool _isDllModificationsVisible = false;
@@ -200,10 +202,10 @@ namespace SUSModder.ViewModels
 
         public string ThemeButtonText => CurrentTheme switch
         {
-            ThemeType.Dark => "Motyw jasny",
-            ThemeType.Light => "Motyw różowy",
-            ThemeType.Pink => "Motyw ciemny",
-            _ => "Motyw ciemny"
+            ThemeType.Dark => _localizationService.Get("UI.Theme.SwitchToLight"),
+            ThemeType.Light => _localizationService.Get("UI.Theme.SwitchToPink"),
+            ThemeType.Pink => _localizationService.Get("UI.Theme.SwitchToDark"),
+            _ => _localizationService.Get("UI.Theme.SwitchToDark")
         };
 
         public string ThemeButtonIcon => CurrentTheme switch
@@ -327,6 +329,8 @@ namespace SUSModder.ViewModels
 
         public MainWindowViewModel()
         {
+            _localizationService = App.GetService<SUSModder.Core.Services.Localization.ILocalizationService>();
+            
             _userInteractionService = new UserInteractionService(
                 ShowConfirmDialogAsync,
                 ShowMessageAsync,
@@ -375,6 +379,15 @@ namespace SUSModder.ViewModels
             this.RaisePropertyChanged(nameof(IsDeveloperMode));
             ShowRecommendedDiscordsCommand = ReactiveCommand.Create(ShowRecommendedDiscords);
             ShowSUStatsConfigCommand = ReactiveCommand.Create(ShowSUStatsConfig);
+            
+            // Subscribe to language changes to update theme button text
+            if (_localizationService is INotifyPropertyChanged localizationNotify)
+            {
+                localizationNotify.PropertyChanged += (s, e) =>
+                {
+                    this.RaisePropertyChanged(nameof(ThemeButtonText));
+                };
+            }
 
             LobbySetCommand = ReactiveCommand.CreateFromTask(ShowLobbySetDialog);
             FixBlackScreenCommand = ReactiveCommand.CreateFromTask(ExecuteFixBlackScreenAsync);
@@ -394,7 +407,7 @@ namespace SUSModder.ViewModels
             LoadSavedTheme();
             // InitializeApplicationAsync() jest teraz wywoływane z App.axaml.cs po pokazaniu splash screen
             LoadAppVersion();
-            LoadWindowTitle();
+            // LoadWindowTitle() jest teraz wywoływane wewnątrz InitializeApplicationAsync() po wykryciu platformy
             // CheckForAppUpdatesOnStartup() jest teraz wywoływane wewnątrz InitializeApplicationAsync()
             ApplyTheme(CurrentTheme);
 
