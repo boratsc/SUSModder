@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using SUSModder.Core.Models;
 using Microsoft.Extensions.Configuration;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.ViewModels
 {
@@ -18,6 +19,7 @@ namespace SUSModder.ViewModels
     {
         private readonly DllModificationService _dllModificationService;
         private readonly CompatibilityService? _compatibilityService;
+        private readonly ILocalizationService _localizationService;
         private ModConfiguration _targetMod = null!;
         private ObservableCollection<ModConfiguration> _dllMods = new();
         private Dictionary<int, CompatibilityInfo?> _compatibilityCache = new();
@@ -29,7 +31,7 @@ namespace SUSModder.ViewModels
         // Nowe pola dla stanu po instalacji
         private bool _isInstallationComplete;
         private string _installationSummary = "";
-        private string _actionButtonText = "Zatwierdź zmiany";
+        private string _actionButtonText = string.Empty;
 
         public ObservableCollection<ModConfiguration> DllMods
         {
@@ -71,6 +73,8 @@ namespace SUSModder.ViewModels
             _targetMod = targetMod;
             Platform = platform;
             _isInstallationComplete = false;
+            _localizationService = App.GetService<ILocalizationService>();
+            _actionButtonText = _localizationService.Get("DllManager.ConfirmChanges");
 
             // Inicjalizacja CompatibilityService jeśli konfiguracja dostępna
             if (configuration != null && diagnostics != null)
@@ -218,13 +222,13 @@ namespace SUSModder.ViewModels
             var toUninstall = DllMods.Where(m => !m.IsSelected && m.IsInstalled).ToList();
 
             if (toInstall.Any() && toUninstall.Any())
-                ActionButtonText = $"Zainstaluj ({toInstall.Count}) i usuń ({toUninstall.Count})";
+                ActionButtonText = _localizationService.GetFormatted("DllManager.InstallAndRemove", toInstall.Count, toUninstall.Count);
             else if (toInstall.Any())
-                ActionButtonText = $"Zainstaluj ({toInstall.Count})";
+                ActionButtonText = _localizationService.GetFormatted("DllManager.InstallCount", toInstall.Count);
             else if (toUninstall.Any())
-                ActionButtonText = $"Usuń ({toUninstall.Count})";
+                ActionButtonText = _localizationService.GetFormatted("DllManager.RemoveCount", toUninstall.Count);
             else
-                ActionButtonText = "Brak zmian";
+                ActionButtonText = _localizationService.Get("DllManager.NoChanges");
         }
 
         private async Task ApplyChangesAsync()

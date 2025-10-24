@@ -1,7 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.SUStatsConfirmDialog"
-        Title="Statystyki SUStats"
+        Title="{local:Localize SUStatsConfirm.WindowTitle}"
         Width="600" Height="355"
         MinWidth="550" MinHeight="325"
         MaxWidth="700" MaxHeight="425"
@@ -19,10 +20,10 @@
 				<StackPanel Orientation="Horizontal" Spacing="15">
 					<TextBlock Text="📊" FontSize="32" VerticalAlignment="Center"/>
 					<StackPanel VerticalAlignment="Center">
-						<TextBlock Text="Statystyki SUStats"
+						<TextBlock Text="{local:Localize SUStatsConfirm.Header}"
                                    FontSize="18" FontWeight="Bold"
                                    Foreground="White"/>
-						<TextBlock Text="Czy chcesz zapisywać statystyki gry?"
+						<TextBlock Text="{local:Localize SUStatsConfirm.Subtitle}"
                                    FontSize="12"
                                    Foreground="#E0FFFFFF"/>
 					</StackPanel>
@@ -31,7 +32,7 @@
 
 			<!-- Treść pytania -->
 			<StackPanel Spacing="10">
-				<TextBlock Text="Wykryto konfigurację serwera SUStats:"
+				<TextBlock Text="{local:Localize SUStatsConfirm.DetectedConfig}"
                            FontSize="14"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            TextAlignment="Center"/>
@@ -48,7 +49,7 @@
                                TextAlignment="Center"/>
 				</Border>
 
-				<TextBlock Text="Czy chcesz uruchomić grę z zapisywaniem statystyk na tym serwerze?"
+				<TextBlock Text="{local:Localize SUStatsConfirm.Question}"
                            FontSize="14"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            TextAlignment="Center"
@@ -62,7 +63,7 @@
                         HorizontalAlignment="Center">
 
 				<!-- Tak - uruchom -->
-				<Button Content="✅ Tak - uruchom"
+				<Button Content="{local:Localize SUStatsConfirm.YesButton}"
                         Background="{DynamicResource SuccessBrush}"
                         Foreground="White"
                         Padding="15,12"
@@ -79,7 +80,7 @@
 				</Button>
 
 				<!-- Nie, skasuj i uruchom -->
-				<Button Content="🗑️ Skasuj i uruchom"
+				<Button Content="{local:Localize SUStatsConfirm.NoButton}"
                         Background="{DynamicResource DangerBrush}"
                         Foreground="White"
                         Padding="15,12"
@@ -96,7 +97,7 @@
 				</Button>
 
 				<!-- Anuluj -->
-				<Button Content="❌ Anuluj"
+				<Button Content="{local:Localize SUStatsConfirm.CancelButton}"
                         Background="{DynamicResource ModCardBackgroundBrush}"
                         Foreground="{DynamicResource TextPrimaryBrush}"
                         BorderBrush="{DynamicResource ModCardBorderBrush}"

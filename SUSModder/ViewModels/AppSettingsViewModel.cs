@@ -13,6 +13,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using System.Collections.Generic;
 using System.Linq;
 using SUSModder.Core.Configuration;
+using SUSModder.Core.Services.Localization;
 using SUSModder.Views;
 using System.Diagnostics;
 
@@ -21,17 +22,27 @@ namespace SUSModder.ViewModels
     public class AppSettingsViewModel : ViewModelBase
     {
         private readonly Control _control;
+        private readonly ILocalizationService? _localizationService;
         private string _modsInstallPath = string.Empty;
         private bool _developerMode = false;
         private string _gameMode = "steam";
+        private LanguageOption? _selectedLanguage;
         private string _originalModsInstallPath = string.Empty;
         private bool _originalDeveloperMode = false;
         private string _originalGameMode = "steam";
+        private string _originalLanguage = "pl";
         private bool _hasUnsavedChanges = false;
+
+        // Stała lista dostępnych języków (aby uniknąć problemów z referencjami)
+        private static readonly List<LanguageOption> _availableLanguages = new()
+        {
+            new LanguageOption { Code = "pl", DisplayName = "Polski" },
+            new LanguageOption { Code = "en", DisplayName = "English" }
+        };
 
         // Dodaj event dla powiadomienia o zapisaniu
         public event Action? SettingsSaved;
-        
+
         // Dodaj event dla powiadomienia o zmianie trybu gry
         public static event Action? GameModeChanged;
 
@@ -41,6 +52,41 @@ namespace SUSModder.ViewModels
 
             // Załaduj obecne ustawienia
             LoadCurrentSettings();
+
+            // Pobierz serwis lokalizacji z DI
+            try
+            {
+                _localizationService = App.GetService<ILocalizationService>();
+                var currentCulture = _localizationService?.CurrentCulture ?? "pl";
+
+                Console.WriteLine($"[AppSettingsViewModel] CurrentCulture z serwisu: {currentCulture}");
+                Console.WriteLine($"[AppSettingsViewModel] Dostępne języki: {string.Join(", ", AvailableLanguages.Select(l => $"{l.DisplayName}({l.Code})"))}");
+
+                _selectedLanguage = AvailableLanguages.FirstOrDefault(l => l.Code == currentCulture);
+
+                if (_selectedLanguage == null)
+                {
+                    Console.WriteLine($"[AppSettingsViewModel] Nie znaleziono języka dla kodu: {currentCulture}, ustawiam domyślny");
+                    _selectedLanguage = AvailableLanguages[0];
+                }
+
+                _originalLanguage = currentCulture;
+
+                Console.WriteLine($"[AppSettingsViewModel] Ustawiono SelectedLanguage: {_selectedLanguage?.DisplayName} ({_selectedLanguage?.Code})");
+                Console.WriteLine($"[AppSettingsViewModel] SelectedLanguage == null? {_selectedLanguage == null}");
+
+                // Ważne: powiadom UI o ustawieniu początkowej wartości
+                this.RaisePropertyChanged(nameof(SelectedLanguage));
+                this.RaisePropertyChanged(nameof(AvailableLanguages));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AppSettingsViewModel] BŁĄD przy inicjalizacji języka: {ex.Message}");
+                Console.WriteLine($"[AppSettingsViewModel] Stack trace: {ex.StackTrace}");
+                _selectedLanguage = AvailableLanguages[0];
+                this.RaisePropertyChanged(nameof(SelectedLanguage));
+                this.RaisePropertyChanged(nameof(AvailableLanguages));
+            }
 
             // Komendy
             BrowseFolderCommand = ReactiveCommand.CreateFromTask(BrowseFolder);
@@ -104,6 +150,42 @@ namespace SUSModder.ViewModels
                     this.RaisePropertyChanged(nameof(IsSteamMode));
                 }
             }
+        }
+
+        public List<LanguageOption> AvailableLanguages => _availableLanguages;
+
+        public LanguageOption? SelectedLanguage
+        {
+            get
+            {
+                Console.WriteLine($"[AppSettingsViewModel] SelectedLanguage GET: {_selectedLanguage?.DisplayName} ({_selectedLanguage?.Code})");
+                return _selectedLanguage;
+            }
+            set
+            {
+                Console.WriteLine($"[AppSettingsViewModel] SelectedLanguage SET: {value?.DisplayName} ({value?.Code})");
+                var oldValue = _selectedLanguage;
+                this.RaiseAndSetIfChanged(ref _selectedLanguage, value);
+                if (oldValue != value && value != null)
+                {
+                    Console.WriteLine($"[AppSettingsViewModel] Język zmieniony z {oldValue?.Code} na {value.Code}");
+                    OnLanguageChanged();
+                    CheckForChanges();
+                }
+            }
+        }
+
+        private void OnLanguageChanged()
+        {
+            if (_selectedLanguage == null) return;
+
+            // Zmień język w serwisie (live switch)
+            _localizationService?.ChangeCulture(_selectedLanguage.Code);
+
+            // Zapisz wybór do appsettings.json natychmiast (live switch)
+            ConfigManager.SaveLanguageSetting(_selectedLanguage.Code);
+
+            System.Diagnostics.Debug.WriteLine($"Język zmieniony na: {_selectedLanguage.Code}");
         }
 
         public bool HasUnsavedChanges
@@ -198,7 +280,8 @@ namespace SUSModder.ViewModels
         {
             HasUnsavedChanges = !string.Equals(_modsInstallPath, _originalModsInstallPath, StringComparison.OrdinalIgnoreCase) ||
                                _developerMode != _originalDeveloperMode ||
-                               _gameMode != _originalGameMode;
+                               _gameMode != _originalGameMode ||
+                               (_selectedLanguage?.Code ?? "pl") != _originalLanguage;
             this.RaisePropertyChanged(nameof(WindowTitle));
         }
 
@@ -609,5 +692,14 @@ namespace SUSModder.ViewModels
                 await ShowErrorAsync("Błąd resetu", $"Wystąpił błąd podczas resetowania aplikacji:\n{ex.Message}");
             }
         }
+    }
+
+    /// <summary>
+    /// Model dla opcji języka w ComboBox.
+    /// </summary>
+    public class LanguageOption
+    {
+        public string Code { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
     }
 }

@@ -149,6 +149,9 @@ namespace SUSModder.ViewModels
         private int _availableUpdatesCount;
         private List<string> _availableUpdatesList = new();
         private string _availableUpdatesTooltip = string.Empty;
+        private string _modsStatusMainText = string.Empty;
+        private string _modsStatusSubText = string.Empty;
+        private string _modsStatusTooltip = string.Empty;
 
         public int AvailableUpdatesCount
         {
@@ -166,6 +169,33 @@ namespace SUSModder.ViewModels
         {
             get => _availableUpdatesTooltip;
             set => this.RaiseAndSetIfChanged(ref _availableUpdatesTooltip, value);
+        }
+
+        /// <summary>
+        /// Główny tekst sekcji modów - pokazuje aktualizacje lub zainstalowane mody
+        /// </summary>
+        public string ModsStatusMainText
+        {
+            get => _modsStatusMainText;
+            set => this.RaiseAndSetIfChanged(ref _modsStatusMainText, value);
+        }
+
+        /// <summary>
+        /// Tekst pomocniczy pod głównym - liczba zainstalowanych modów
+        /// </summary>
+        public string ModsStatusSubText
+        {
+            get => _modsStatusSubText;
+            set => this.RaiseAndSetIfChanged(ref _modsStatusSubText, value);
+        }
+
+        /// <summary>
+        /// Tooltip dla sekcji modów - zawiera listę zainstalowanych i dostępne aktualizacje
+        /// </summary>
+        public string ModsStatusTooltip
+        {
+            get => _modsStatusTooltip;
+            set => this.RaiseAndSetIfChanged(ref _modsStatusTooltip, value);
         }
 
         #endregion
@@ -210,11 +240,72 @@ namespace SUSModder.ViewModels
                 }
 
                 InstalledModsList = installedMods;
+
+                // Aktualizuj status modów (wywoływane przy każdej zmianie listy modów)
+                UpdateModsStatusDisplay();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error updating mods statistics: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Aktualizuje wyświetlanie statusu modów (główny/pomocniczy tekst + tooltip)
+        /// </summary>
+        private void UpdateModsStatusDisplay()
+        {
+            // Główny tekst i tekst pomocniczy zależą od dostępności aktualizacji
+            if (AvailableUpdatesCount > 0)
+            {
+                // Gdy są aktualizacje - pokazujemy je w głównym tekście
+                ModsStatusMainText = $"Dostępne aktualizacje: {AvailableUpdatesCount}";
+                // A poniżej pokazujemy liczbę zainstalowanych
+                ModsStatusSubText = $"Zainstalowanych modów: {InstalledFullModsCount}";
+            }
+            else
+            {
+                // Gdy nie ma aktualizacji - pokazujemy tylko zainstalowane w głównym tekście
+                ModsStatusMainText = $"Zainstalowanych modów: {InstalledFullModsCount}";
+                // Ukrywamy tekst pomocniczy (pusty string)
+                ModsStatusSubText = string.Empty;
+            }
+
+            // Tooltip - połączenie zainstalowanych i dostępnych aktualizacji
+            BuildModsStatusTooltip();
+        }
+
+        /// <summary>
+        /// Tworzy tooltip z listą zainstalowanych modów i dostępnych aktualizacji
+        /// </summary>
+        private void BuildModsStatusTooltip()
+        {
+            var tooltipBuilder = new System.Text.StringBuilder();
+
+            // Sekcja zainstalowanych modów
+            if (InstalledModsList.Any())
+            {
+                tooltipBuilder.AppendLine("📦 Zainstalowane mody:");
+                foreach (var mod in InstalledModsList)
+                {
+                    tooltipBuilder.AppendLine($"  • {mod}");
+                }
+            }
+
+            // Sekcja dostępnych aktualizacji (jeśli są)
+            if (AvailableUpdatesList.Any())
+            {
+                if (tooltipBuilder.Length > 0)
+                    tooltipBuilder.AppendLine();
+
+                tooltipBuilder.AppendLine("⚠️ Wymagają aktualizacji:");
+                foreach (var update in AvailableUpdatesList)
+                {
+                    tooltipBuilder.AppendLine($"  • {update}");
+                }
+            }
+
+            ModsStatusTooltip = tooltipBuilder.ToString().TrimEnd();
         }
 
         /// <summary>
@@ -419,6 +510,9 @@ namespace SUSModder.ViewModels
                     AvailableUpdatesList.Clear();
                     AvailableUpdatesTooltip = string.Empty;
                 }
+
+                // Aktualizuj wyświetlanie statusu po sprawdzeniu aktualizacji
+                await Dispatcher.UIThread.InvokeAsync(() => UpdateModsStatusDisplay());
             }
             catch (Exception ex)
             {
@@ -426,6 +520,8 @@ namespace SUSModder.ViewModels
                 AvailableUpdatesCount = 0;
                 AvailableUpdatesList.Clear();
                 AvailableUpdatesTooltip = string.Empty;
+
+                await Dispatcher.UIThread.InvokeAsync(() => UpdateModsStatusDisplay());
             }
         }
 

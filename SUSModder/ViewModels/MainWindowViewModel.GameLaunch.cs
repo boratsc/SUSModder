@@ -11,6 +11,7 @@ using SUSModder.Core.Configuration;
 using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Services;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Utilities;
 using SUSModder.Services;
 using SUSModder.Views;
 using SUSModder.ViewModels.Helpers;
@@ -175,8 +176,10 @@ namespace SUSModder.ViewModels
                 throw new InvalidOperationException("InstallPath nie może być pusty.");
             }
 
-            string exePath = Path.Combine(modConfig.InstallPath, "Among Us.exe");
-            string steamAppIdPath = Path.Combine(modConfig.InstallPath, "steam_appid.txt");
+            // Uwzględnij strukturę Epic (podkatalog AmongUs)
+            string actualModPath = PathSettings.GetActualModPath(modConfig.InstallPath);
+            string exePath = Path.Combine(actualModPath, "Among Us.exe");
+            string steamAppIdPath = Path.Combine(actualModPath, "steam_appid.txt");
 
             try
             {
@@ -300,8 +303,11 @@ namespace SUSModder.ViewModels
                     return;
                 }
 
+                // Uwzględnij strukturę Epic (podkatalog AmongUs) - używamy PathSettings.GetActualModPath
+                string actualModPath = PathSettings.GetActualModPath(modConfig.InstallPath);
+                
                 // Stwórz ścieżkę do BepInEx\plugins
-                string bepInExPluginsPath = Path.Combine(modConfig.InstallPath, "BepInEx", "plugins");
+                string bepInExPluginsPath = Path.Combine(actualModPath, "BepInEx", "plugins");
                 System.Diagnostics.Debug.WriteLine($"[ApiSet] 📁 Ścieżka BepInEx\\plugins: {bepInExPluginsPath}");
 
                 // Sprawdź czy katalog BepInEx\plugins istnieje
@@ -379,8 +385,11 @@ namespace SUSModder.ViewModels
                     return;
                 }
 
+                // Uwzględnij strukturę Epic (podkatalog AmongUs)
+                string actualModPath = PathSettings.GetActualModPath(modConfig.InstallPath);
+                
                 // Stwórz ścieżkę do BepInEx\plugins\ApiSet.ini
-                string bepInExPluginsPath = Path.Combine(modConfig.InstallPath, "BepInEx", "plugins");
+                string bepInExPluginsPath = Path.Combine(actualModPath, "BepInEx", "plugins");
                 string apiSetPath = Path.Combine(bepInExPluginsPath, "ApiSet.ini");
 
                 System.Diagnostics.Debug.WriteLine($"[ApiSet] 📄 Sprawdzanie pliku: {apiSetPath}");

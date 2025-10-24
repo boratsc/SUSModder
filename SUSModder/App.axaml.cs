@@ -5,20 +5,60 @@ using Avalonia.Threading;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using SUSModder.ViewModels;
 using SUSModder.Views;
 using SUSModder.Services;
+using SUSModder.Services.Localization;
 using SUSModder.Core.Services;
+using SUSModder.Core.Services.Localization;
+using SUSModder.Core.Configuration;
 
 namespace SUSModder;
 
 public partial class App : Application
 {
     private SplashWindow? _splashWindow;
+    private static ServiceProvider? _serviceProvider;
 
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        ConfigureServices();
+    }
+
+    private void ConfigureServices()
+    {
+        var services = new ServiceCollection();
+
+        // Rejestracja serwisu lokalizacji
+        services.AddSingleton<ILocalizationService>(sp =>
+        {
+            var locService = new LocalizationService();
+
+            // Odczytaj zapisany język z appsettings.json
+            var savedLanguage = ConfigManager.GetLanguageSetting();
+
+            // Jeśli język jest ustawiony i dostępny, użyj go
+            if (!string.IsNullOrEmpty(savedLanguage) && locService.IsCultureAvailable(savedLanguage))
+            {
+                locService.ChangeCulture(savedLanguage);
+            }
+            // W przeciwnym razie pozostaw domyślny język "pl" z LocalizationService
+
+            return locService;
+        });
+
+        _serviceProvider = services.BuildServiceProvider();
+    }
+
+    /// <summary>
+    /// Pobiera serwis z DI container.
+    /// </summary>
+    public static T GetService<T>() where T : class
+    {
+        return _serviceProvider?.GetService<T>()
+            ?? throw new InvalidOperationException($"Service {typeof(T)} not registered in DI container");
     }
 
     public override void OnFrameworkInitializationCompleted()
@@ -49,6 +89,25 @@ public partial class App : Application
                 AppUpdateService.RestoreUserSettingsIfNeeded(appSettingsPath, null);
             });
             await _splashWindow?.AnimateProgressAsync(0.1)!;
+
+            // KROK 1.5: Sprawdź czy język jest ustawiony, jeśli nie - pokaż dialog wyboru języka
+            var currentLanguage = ConfigManager.GetLanguageSetting();
+            if (string.IsNullOrEmpty(currentLanguage))
+            {
+                // Język nie jest ustawiony - pokaż dialog wyboru
+                string? selectedLanguage = null;
+                await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    var languageDialog = new LanguageSelectionDialog();
+                    selectedLanguage = await languageDialog.ShowDialog<string>(_splashWindow);
+                });
+
+                // Jeśli użytkownik zamknął dialog bez wyboru, użyj polskiego jako domyślnego
+                if (string.IsNullOrEmpty(selectedLanguage))
+                {
+                    ConfigManager.SaveLanguageSetting("pl");
+                }
+            }
 
             // KROK 2: Inicjalizacja ConsoleLogger (20%)
             _splashWindow?.UpdateProgress(0.1, "Uruchamianie logowania...");
@@ -100,6 +159,10 @@ public partial class App : Application
                 {
                     await _splashWindow.CloseWithFadeAsync();
                 }
+
+                // Po załadowaniu głównego okna sprawdź aktualizacje
+                // Fire and forget - nie blokujemy UI
+                _ = viewModel.CheckForUpdatesAfterMainWindowLoadAsync();
             });
         }
         catch (Exception ex)

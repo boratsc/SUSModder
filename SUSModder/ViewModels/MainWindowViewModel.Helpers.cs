@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using Microsoft.Extensions.Configuration;
 using ReactiveUI;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.GameIntegration;
@@ -26,6 +28,27 @@ namespace SUSModder.ViewModels
         {
             try
             {
+                // KROK 1: Najpierw sprawdź appsettings.json
+                try
+                {
+                    var configBuilder = new ConfigurationBuilder()
+                        .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                    var configuration = configBuilder.Build();
+
+                    var modeFromSettings = configuration["Configuration:Mode"];
+                    if (!string.IsNullOrEmpty(modeFromSettings))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Platform Detection] Found Mode in appsettings.json: {modeFromSettings}");
+                        return modeFromSettings.ToLower();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Platform Detection] Could not read appsettings.json: {ex.Message}");
+                }
+
+                // KROK 2: Jeśli nie ma w appsettings, spróbuj wykryć z ścieżki w config.json
                 var configService = new ConfigService();
                 var allConfigs = configService.LoadConfig();
 
@@ -43,12 +66,12 @@ namespace SUSModder.ViewModels
                     // Sprawdź czy ścieżka zawiera "Epic" lub "EpicGames"
                     if (amongUsConfig.InstallPath.Contains("Epic", StringComparison.OrdinalIgnoreCase))
                     {
-                        System.Diagnostics.Debug.WriteLine("[Platform Detection] Detected Epic Games platform");
+                        System.Diagnostics.Debug.WriteLine("[Platform Detection] Detected Epic Games platform from path");
                         return "epic";
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("[Platform Detection] Detected Steam platform");
+                        System.Diagnostics.Debug.WriteLine("[Platform Detection] Detected Steam platform from path");
                         return "steam";
                     }
                 }

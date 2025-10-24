@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:local="using:SUSModder.Services.Localization"
              x:Class="SUSModder.Views.AppSettingsView"
              x:DataType="vm:AppSettingsViewModel">
 
@@ -20,10 +21,10 @@
 				<StackPanel Orientation="Horizontal" Spacing="15">
 					<TextBlock Text="⚙️" FontSize="32" VerticalAlignment="Center"/>
 					<StackPanel VerticalAlignment="Center">
-						<TextBlock Text="Ustawienia aplikacji"
+						<TextBlock Text="{local:Localize Settings.WindowTitle}"
 								   FontSize="20" FontWeight="Bold"
 								   Foreground="White"/>
-						<TextBlock Text="Konfiguracja aplikacji SUSModder"
+						<TextBlock Text="{local:Localize Settings.WindowSubtitle}"
 								   FontSize="12"
 								   Foreground="#E0FFFFFF"/>
 					</StackPanel>
@@ -40,28 +41,62 @@
 						CornerRadius="8"
 						Padding="15">
 					<StackPanel Spacing="12">
-						<TextBlock Text="Tryb gry"
+						<TextBlock Text="{local:Localize Settings.General.GameMode.Label}"
 								   FontSize="15" FontWeight="SemiBold"
 								   Foreground="{DynamicResource TextPrimaryBrush}"/>
 
-						<TextBlock Text="Wybierz platformę gry Among Us:"
+						<TextBlock Text="{local:Localize Settings.General.GameMode.Description}"
 								   FontSize="12"
 								   Foreground="{DynamicResource TextSecondaryBrush}"/>
-						<TextBlock Text="Zmiana tego ustawienia wymaga restartu aplikacji"
+						<TextBlock Text="{local:Localize Settings.General.GameMode.RestartRequired}"
 								   FontSize="11"
 								   Foreground="{DynamicResource TextSecondaryBrush}"
 								   FontStyle="Italic"/>
 
 						<StackPanel Spacing="6">
 							<RadioButton x:Name="SteamRadioButton"
-										 Content="Steam"
+										 Content="{local:Localize Settings.General.GameMode.Steam}"
 										 IsChecked="{Binding IsSteamMode}"
 										 Foreground="{DynamicResource TextPrimaryBrush}"/>
 							<RadioButton x:Name="EpicRadioButton"
-										 Content="Epic Games Store"
+										 Content="{local:Localize Settings.General.GameMode.Epic}"
 										 IsChecked="{Binding IsEpicMode}"
 										 Foreground="{DynamicResource TextPrimaryBrush}"/>
 						</StackPanel>
+					</StackPanel>
+				</Border>
+
+				<!-- Sekcja wyboru języka -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="12">
+						<TextBlock Text="{local:Localize Settings.General.Language.Label}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+						<TextBlock Text="{local:Localize Settings.General.Language.Description}"
+								   FontSize="12"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+						<ComboBox ItemsSource="{Binding AvailableLanguages}"
+								  SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
+								  Width="200"
+								  HorizontalAlignment="Left"
+								  FontSize="12"
+								  Padding="10,8"
+								  Background="{DynamicResource SecondaryBackgroundBrush}"
+								  BorderBrush="{DynamicResource BorderBrush}"
+								  BorderThickness="1"
+								  CornerRadius="4">
+							<ComboBox.ItemTemplate>
+								<DataTemplate>
+									<TextBlock Text="{Binding DisplayName}"/>
+								</DataTemplate>
+							</ComboBox.ItemTemplate>
+						</ComboBox>
 					</StackPanel>
 				</Border>
 
@@ -72,19 +107,19 @@
 						CornerRadius="8"
 						Padding="15">
 					<StackPanel Spacing="12">
-						<TextBlock Text="Ścieżki instalacji"
+						<TextBlock Text="{local:Localize Settings.Paths.Title}"
 								   FontSize="15" FontWeight="SemiBold"
 								   Foreground="{DynamicResource TextPrimaryBrush}"/>
 
-						<TextBlock Text="Katalog instalacji modów:"
+						<TextBlock Text="{local:Localize Settings.Paths.ModsInstallPath.Label}"
 								   FontSize="12" FontWeight="Medium"
 								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-						<TextBlock Text="Tutaj będą instalowane wszystkie mody Among Us"
+						<TextBlock Text="{local:Localize Settings.Paths.ModsInstallPath.Description}"
 								   FontSize="11"
 								   Foreground="{DynamicResource TextSecondaryBrush}"/>
 
 						<TextBox Text="{Binding ModsInstallPath}"
-								 Watermark="Wybierz katalog instalacji modów..."
+								 Watermark="{local:Localize Settings.Paths.ModsInstallPath.Placeholder}"
 								 FontSize="12"
 								 Padding="8"
 								 Background="{DynamicResource SecondaryBackgroundBrush}"
@@ -93,7 +128,7 @@
 								 CornerRadius="4"/>
 
 						<StackPanel Orientation="Horizontal" Spacing="8">
-							<Button Content="Przeglądaj..."
+							<Button Content="{local:Localize Settings.Paths.ModsInstallPath.Browse}"
 									Command="{Binding BrowseFolderCommand}"
 									Background="{DynamicResource SecondaryBackgroundBrush}"
 									Foreground="{DynamicResource TextPrimaryBrush}"
@@ -102,7 +137,7 @@
 									CornerRadius="4"
 									Padding="10,6"
 									FontSize="12"/>
-							<Button Content="Przywróć domyślną"
+							<Button Content="{local:Localize Settings.Paths.ModsInstallPath.Reset}"
 									Command="{Binding ResetToDefaultCommand}"
 									Background="Transparent"
 									Foreground="{DynamicResource AccentBrush}"
@@ -120,7 +155,7 @@
 						CornerRadius="8"
 						Padding="15">
 					<StackPanel Spacing="12">
-						<TextBlock Text="Ustawienia deweloperskie"
+						<TextBlock Text="{local:Localize Settings.Advanced.Title}"
 								   FontSize="15" FontWeight="SemiBold"
 								   Foreground="{DynamicResource TextPrimaryBrush}"/>
 
@@ -132,17 +167,17 @@
 								Padding="12">
 							<Grid ColumnDefinitions="*,Auto">
 								<StackPanel Grid.Column="0" VerticalAlignment="Center">
-									<TextBlock Text="Mod Developer"
+									<TextBlock Text="{local:Localize Settings.Advanced.DeveloperMode.Label}"
 											   FontSize="13" FontWeight="Medium"
 											   Foreground="{DynamicResource TextPrimaryBrush}"/>
-									<TextBlock Text="Włącza dodatkowe opcje dla deweloperów modów"
+									<TextBlock Text="{local:Localize Settings.Advanced.DeveloperMode.Description}"
 											   FontSize="11"
 											   Foreground="{DynamicResource TextSecondaryBrush}"/>
 								</StackPanel>
 								<ToggleSwitch Grid.Column="1"
 											  IsChecked="{Binding DeveloperMode}"
-											  OnContent="Włączony"
-											  OffContent="Wyłączony"
+											  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+											  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
 											  VerticalAlignment="Center"
 											  Margin="10,0,0,0"/>
 							</Grid>
@@ -156,17 +191,17 @@
 								Padding="12">
 							<Grid ColumnDefinitions="*,Auto">
 								<StackPanel Grid.Column="0" VerticalAlignment="Center">
-									<TextBlock Text="Konsola deweloperska"
+									<TextBlock Text="{local:Localize Settings.Advanced.ShowConsole.Label}"
 											   FontSize="13" FontWeight="Medium"
 											   Foreground="{DynamicResource TextPrimaryBrush}"/>
-									<TextBlock Text="Pokazuje okno konsoli z logami (tylko dla tej sesji)"
+									<TextBlock Text="{local:Localize Settings.Advanced.ShowConsole.Description}"
 											   FontSize="11"
 											   Foreground="{DynamicResource TextSecondaryBrush}"/>
 								</StackPanel>
 								<ToggleSwitch Grid.Column="1"
 											  x:Name="ShowConsoleToggle"
-											  OnContent="Włączony"
-											  OffContent="Wyłączony"
+											  OnContent="{local:Localize Settings.Advanced.ShowConsole.OnContent}"
+											  OffContent="{local:Localize Settings.Advanced.ShowConsole.OffContent}"
 											  VerticalAlignment="Center"
 											  Margin="10,0,0,0"
 											  Click="OnShowConsoleToggled"/>
@@ -182,14 +217,14 @@
 						CornerRadius="8"
 						Padding="15">
 					<StackPanel Spacing="10">
-						<TextBlock Text="Reset aplikacji"
+						<TextBlock Text="{local:Localize Settings.FactoryReset.Title}"
 								   FontSize="15" FontWeight="SemiBold"
 								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-						<TextBlock Text="Resetuje aplikację do ustawień fabrycznych i usuwa wszystkie zainstalowane mody. Ta operacja jest nieodwracalna!"
+						<TextBlock Text="{local:Localize Settings.FactoryReset.Description}"
 								   FontSize="11"
 								   Foreground="{DynamicResource TextSecondaryBrush}"
 								   TextWrapping="Wrap"/>
-						<Button Content="Resetuj"
+						<Button Content="{local:Localize Settings.FactoryReset.Button}"
 								Command="{Binding FactoryResetCommand}"
 								Background="#D32F2F"
 								Foreground="White"
@@ -212,7 +247,7 @@
 					Padding="0,15,0,0"
 				Margin="0,20,0,0">
 			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
-				<Button Content="Zamknij"
+				<Button Content="{local:Localize UI.Buttons.Close}"
 						Click="CancelButton_Click"
 						Background="{DynamicResource ModCardBackgroundBrush}"
 							Foreground="{DynamicResource TextPrimaryBrush}"
@@ -221,7 +256,7 @@
 							CornerRadius="6"
 							Padding="15,8"
 							FontSize="13"/>
-					<Button Content="Zapisz"
+					<Button Content="{local:Localize UI.Buttons.Save}"
 							Command="{Binding SaveCommand}"
 							Background="{DynamicResource AccentBrush}"
 							Foreground="White"

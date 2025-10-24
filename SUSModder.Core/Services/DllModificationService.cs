@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.Models;
+using SUSModder.Core.Utilities;
 
 namespace SUSModder.Core.Services
 {
@@ -154,8 +155,11 @@ namespace SUSModder.Core.Services
                 string fileName = Path.GetFileName(new Uri(downloadUrl).LocalPath);
                 _diagnosticsOutput.Write($"DLL file name: {fileName}");
 
-                // Ścieżka docelowa - teraz targetMod.InstallPath jest sprawdzone
-                string targetPath = Path.Combine(targetMod.InstallPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
+                // Ścieżka docelowa - uwzględnij strukturę Epic (podkatalog AmongUs)
+                string actualModPath = PathSettings.GetActualModPath(targetMod.InstallPath);
+                _diagnosticsOutput.Write($"Base install path: {targetMod.InstallPath}");
+                _diagnosticsOutput.Write($"Actual mod path (with Epic AmongUs check): {actualModPath}");
+                string targetPath = Path.Combine(actualModPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
                 string? targetDirectoryNullable = Path.GetDirectoryName(targetPath);
 
                 // Sprawdź czy GetDirectoryName zwróciło null
@@ -213,8 +217,9 @@ namespace SUSModder.Core.Services
                         }
                         else
                         {
-                            // Dodaj nowy wpis
-                            var relativePath = Path.Combine(dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
+                            // Dodaj nowy wpis - zapisz względną ścieżkę z uwzględnieniem podkatalogu AmongUs dla Epic
+                            string relativePrefix = actualModPath != targetMod.InstallPath ? "AmongUs\\" : "";
+                            var relativePath = Path.Combine(relativePrefix + (dllMod.DllInstallPath ?? "BepInEx\\plugins"), fileName);
                             installationMap.InstalledDlls.Add(new DllModInstallation
                             {
                                 ModId = dllMod.Id,
@@ -278,8 +283,9 @@ namespace SUSModder.Core.Services
                 string fileName = Path.GetFileName(new Uri(downloadUrl).LocalPath);
                 _diagnosticsOutput.Write($"DLL file name to remove: {fileName}");
 
-                // Ścieżka do pliku - teraz targetMod.InstallPath jest sprawdzone
-                string filePath = Path.Combine(targetMod.InstallPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
+                // Ścieżka do pliku - uwzględnij strukturę Epic (podkatalog AmongUs)
+                string actualModPath = PathSettings.GetActualModPath(targetMod.InstallPath);
+                string filePath = Path.Combine(actualModPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
                 _diagnosticsOutput.Write($"File path to remove: {filePath}");
 
                 if (!File.Exists(filePath))
@@ -349,7 +355,10 @@ namespace SUSModder.Core.Services
                 if (string.IsNullOrEmpty(downloadUrl)) return false;
 
                 string fileName = Path.GetFileName(new Uri(downloadUrl).LocalPath);
-                string filePath = Path.Combine(targetMod.InstallPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
+                
+                // Uwzględnij strukturę Epic (podkatalog AmongUs)
+                string actualModPath = PathSettings.GetActualModPath(targetMod.InstallPath);
+                string filePath = Path.Combine(actualModPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
 
                 return File.Exists(filePath);
             }

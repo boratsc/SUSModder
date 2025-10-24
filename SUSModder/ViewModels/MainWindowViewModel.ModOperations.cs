@@ -374,6 +374,18 @@ namespace SUSModder.ViewModels
         {
             System.Diagnostics.Debug.WriteLine($"[DLL Dialog] Pokazywanie okna dla: {mod.Name} ({platform})");
             
+            // Załaduj świeżą konfigurację z pliku, aby mieć aktualne InstallPath
+            var allConfigs = ConfigManager.LoadConfig();
+            var targetModConfig = allConfigs.FirstOrDefault(c => c.Id == mod.Id);
+            
+            if (targetModConfig == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DLL Dialog] ⚠️ Nie znaleziono konfiguracji dla moda {mod.Name} (ID: {mod.Id})");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[DLL Dialog] Załadowano konfigurację: InstallPath = {targetModConfig.InstallPath}");
+            
             var dllSelectionWindow = new Window
             {
                 Title = $"Dodatkowe modyfikacje DLL dla {mod.Name}",
@@ -383,14 +395,14 @@ namespace SUSModder.ViewModels
                 {
                     DataContext = new DllModSelectionViewModel(
                         _dllModificationService,
-                        ModItemAdapter.ToConfig(mod),
+                        targetModConfig, // Użyj świeżo załadowanej konfiguracji zamiast konwersji z ModItem
                         platform,
                         _configuration, // Przekaż konfigurację dla CompatibilityService
                         _diagnosticsOutput // Przekaż diagnostykę dla CompatibilityService
                     )
                 }
             };
-            System.Diagnostics.Debug.WriteLine($"DEBUG {platform} Path: {mod.InstallPath}");
+            System.Diagnostics.Debug.WriteLine($"DEBUG {platform} Path: {targetModConfig.InstallPath}");
             dllSelectionWindow.Show();
         }
 

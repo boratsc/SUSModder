@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:local="using:SUSModder.Services.Localization"
              x:Class="SUSModder.Views.SUStatsConfigView"
              x:DataType="vm:SUStatsConfigViewModel">
 
@@ -20,10 +21,10 @@
 				<StackPanel Orientation="Horizontal" Spacing="15">
 					<TextBlock Text="📊" FontSize="32" VerticalAlignment="Center"/>
 					<StackPanel VerticalAlignment="Center">
-						<TextBlock Text="SUStats - Konfiguracja"
+						<TextBlock Text="{local:Localize SUStatsConfig.Header}"
 								   FontSize="20" FontWeight="Bold"
 								   Foreground="White"/>
-						<TextBlock Text="Skonfiguruj rejestrowanie wyników gry"
+						<TextBlock Text="{local:Localize SUStatsConfig.Subtitle}"
 								   FontSize="12"
 								   Foreground="#E0FFFFFF"/>
 					</StackPanel>
@@ -42,11 +43,11 @@
 
 					<!-- Sekcja hasła -->
 					<StackPanel Spacing="12">
-						<TextBlock Text="🔐 Hasło dostępu"
+						<TextBlock Text="{local:Localize SUStatsConfig.PasswordSection}"
 								   FontSize="15" FontWeight="SemiBold"
 								   Foreground="{DynamicResource TextPrimaryBrush}"/>
 
-						<TextBlock Text="Wprowadź hasło aby uzyskać dostęp do konfiguracji SUStats:"
+						<TextBlock Text="{local:Localize SUStatsConfig.PasswordPrompt}"
 								   FontSize="12"
 								   Foreground="{DynamicResource TextSecondaryBrush}"
 								   TextWrapping="Wrap"/>
@@ -56,7 +57,7 @@
 									 x:Name="PasswordTextBox"
 									 Text="{Binding EnteredPassword}"
 									 PasswordChar="•"
-									 Watermark="Wprowadź hasło..."
+									 Watermark="{local:Localize SUStatsConfig.PasswordPlaceholder}"
 									 FontSize="13"
 									 Padding="10,8"
 									 CornerRadius="6"
@@ -66,7 +67,7 @@
 									 Margin="0,0,8,0"/>
 
 							<Button Grid.Column="1"
-									Content="Sprawdź"
+									Content="{local:Localize SUStatsConfig.CheckButton}"
 									Background="{DynamicResource AccentBrush}"
 									Foreground="White"
 									Padding="15,8"
@@ -86,7 +87,7 @@
 
 						<!-- Checkbox zapamiętaj logowanie -->
 						<CheckBox IsChecked="{Binding RememberLogin}"
-								  Content="Zapamiętaj logowanie"
+								  Content="{local:Localize SUStatsConfig.RememberLogin}"
 								  FontSize="12"
 								  Margin="0,5,0,0"
 								  Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -107,7 +108,7 @@
 								CornerRadius="6"
 								Padding="12">
 							<StackPanel Spacing="6">
-								<TextBlock Text="🖥️ Połączono z serwerem"
+								<TextBlock Text="{local:Localize SUStatsConfig.ServerConnected}"
 										   FontSize="13" FontWeight="SemiBold"
 										   Foreground="{DynamicResource AccentBrush}"/>
 
@@ -127,10 +128,10 @@
 								Padding="15">
 							<Grid ColumnDefinitions="*,Auto">
 								<StackPanel Grid.Column="0" VerticalAlignment="Center">
-									<TextBlock Text="📈 Włącz rejestrowanie wyników gry"
+									<TextBlock Text="{local:Localize SUStatsConfig.EnableStats}"
 											   FontSize="14" FontWeight="SemiBold"
 											   Foreground="{DynamicResource TextPrimaryBrush}"/>
-									<TextBlock Text="Wyniki Twoich gier będą zapisywane na serwerze SUStats"
+									<TextBlock Text="{local:Localize SUStatsConfig.EnableStatsDescription}"
 											   FontSize="11"
 											   Foreground="{DynamicResource TextSecondaryBrush}"
 											   Margin="0,2,0,0"/>
@@ -174,7 +175,7 @@
 				<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
 
 					<!-- Przycisk wylogowania (widoczny tylko gdy hasło jest poprawne) -->
-					<Button Content="🚪 Wyloguj"
+					<Button Content="{local:Localize SUStatsConfig.LogoutButton}"
 							Padding="12,8"
 							CornerRadius="6"
 							FontSize="13"
@@ -185,7 +186,7 @@
 							Command="{Binding ResetCommand}"
 							IsVisible="{Binding IsPasswordValid}"/>
 
-					<Button Content="Zamknij"
+					<Button Content="{local:Localize SUStatsConfig.CloseButton}"
 							Padding="15,8"
 							CornerRadius="6"
 							FontSize="13"

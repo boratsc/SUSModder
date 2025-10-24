@@ -1,9 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="using:SUSModder.Views"
+        xmlns:local="clr-namespace:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.HashDisplayDialog"
         x:DataType="views:HashDisplayDialog"
-        Title="Kod konfiguracji"
+        Title="{local:Localize Tools.HashDisplay.WindowTitle}"
         Width="500" Height="300"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
@@ -30,7 +31,7 @@
 
 		<!-- Instrukcja -->
 		<TextBlock Grid.Row="1"
-                   Text="Twój kod konfiguracji:"
+                   Text="{local:Localize Tools.HashDisplay.YourCodeLabel}"
                    FontSize="14"
                    Foreground="{DynamicResource TextSecondaryBrush}"
                    Margin="0,0,0,10"/>
@@ -59,19 +60,19 @@
 
 		<!-- Instrukcja dodatkowa -->
 		<TextBlock Grid.Row="3"
-                   Text="Możesz skopiować ten kod i wysłać go innym osobom, aby mogły pobrać Twoją konfigurację."
+                   Text="{local:Localize Tools.HashDisplay.ShareInstruction}"
                    FontSize="12"
                    Foreground="{DynamicResource TextSecondaryBrush}"
                    TextWrapping="Wrap"
                    TextAlignment="Center"
                    Margin="0,0,0,20"/>
 
-		<!-- Przyciski -->
 		<StackPanel Grid.Row="4"
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Spacing="15">
-			<Button Content="📋 Skopiuj kod"
+			<Button x:Name="CopyButton"
+                    Content="{local:Localize Tools.HashDisplay.CopyButton}"
                     Click="OnCopyClick"
                     Background="{DynamicResource AccentBrush}"
                     Foreground="White"
@@ -80,7 +81,7 @@
                     FontSize="14"
                     FontWeight="SemiBold"
                     MinWidth="140"/>
-			<Button Content="Zamknij"
+			<Button Content="{local:Localize Tools.HashDisplay.CloseButton}"
                     Click="OnCloseClick"
                     Background="{DynamicResource ModCardBackgroundBrush}"
                     Foreground="{DynamicResource TextPrimaryBrush}"

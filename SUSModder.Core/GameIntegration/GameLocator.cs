@@ -64,8 +64,8 @@ namespace SUSModder.Core.GameIntegration
             return null;
         }
 
-        // Dodaj asynchroniczną metodę
-        public static async Task<bool> CheckAndSetupVanillaModAsync(
+        // Dodaj asynchroniczną metodę - zwraca ModConfiguration jeśli wykryto/dodano nową grę, null jeśli już istnieje lub błąd
+        public static async Task<ModConfiguration?> CheckAndSetupVanillaModAsync(
             System.Collections.Generic.List<ModConfiguration> modConfigs,
             IConfiguration configuration,
             IUserInteraction? userInteraction = null)
@@ -77,7 +77,7 @@ namespace SUSModder.Core.GameIntegration
             if (existingConfig != null)
             {
                 Console.WriteLine("Among Us już zainstalowano z wersją Vanilla.");
-                return true;
+                return null; // już istnieje
             }
 
             string? foundPath = TryFindAmongUsPath(out string? detectedMode);
@@ -115,13 +115,13 @@ namespace SUSModder.Core.GameIntegration
                             "Nie wybrano prawidłowego pliku Among Us.exe. Aplikacja będzie działać bez podstawowej wersji gry.",
                             "Ostrzeżenie"
                         );
-                        return false;
+                        return null;
                     }
                 }
                 else
                 {
                     Console.WriteLine("Nie znaleziono gry i brak interfejsu użytkownika do wyboru ścieżki.");
-                    return false;
+                    return null;
                 }
             }
 
@@ -142,24 +142,20 @@ namespace SUSModder.Core.GameIntegration
                     Description = $"Detected as {detectedMode}"
                 };
 
+                // Dodaj do listy i zapisz
                 modConfigs.Add(vanillaMod);
                 ConfigManager.SaveConfig(modConfigs);
 
                 configuration["Configuration:Mode"] = detectedMode;
                 ConfigManager.SaveConfigurationSetting("Mode", detectedMode);
 
-                if (userInteraction != null)
-                {
-                    await userInteraction.ShowInfoAsync(
-                        $"Pomyślnie dodano Among Us ({detectedMode}) do listy modów.",
-                        "Sukces"
-                    );
-                }
+                // Dialog usunięty - użytkownik zobaczy grę na liście modów
+                Console.WriteLine($"Among Us ({detectedMode}) został automatycznie wykryty i dodany do listy modów.");
 
-                return true;
+                return vanillaMod; // zwróć nowo utworzony mod
             }
 
-            return false;
+            return null;
         }
 
         private static string GetGameVersion(string path)

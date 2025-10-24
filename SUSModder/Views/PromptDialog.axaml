@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="using:SUSModder.Views"
+        xmlns:loc="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.PromptDialog"
         x:DataType="views:PromptDialog"
         Title="{Binding DialogTitle}"
@@ -34,7 +35,7 @@
                     HorizontalAlignment="Right"
                     Spacing="10"
                     Margin="0,15,0,0">
-			<Button Content="OK"
+			<Button Content="{loc:Localize UI.Buttons.OK}"
                     Click="OnOkClick"
                     IsDefault="True"
                     MinWidth="80"
@@ -42,7 +43,7 @@
                     Foreground="White"
                     Padding="10,8"
                     CornerRadius="4"/>
-			<Button Content="Anuluj"
+			<Button Content="{loc:Localize UI.Buttons.Cancel}"
                     Click="OnCancelClick"
                     IsCancel="True"
                     MinWidth="80"

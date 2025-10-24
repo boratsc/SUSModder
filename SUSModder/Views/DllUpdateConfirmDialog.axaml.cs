@@ -4,15 +4,18 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Models;
+using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.Views
 {
     public partial class DllUpdateConfirmDialog : Window
     {
         public bool Result { get; private set; }
+        private readonly ILocalizationService _localizationService;
 
         public DllUpdateConfirmDialog()
         {
+            _localizationService = App.GetService<ILocalizationService>();
             InitializeComponent();
         }
 
@@ -45,12 +48,12 @@ namespace SUSModder.Views
             {
                 int count = updateInfo.LocationUpdates?.Count ?? 0;
                 locationCountText.Text = count == 1 
-                    ? "1 lokalizacja" 
-                    : $"{count} lokalizacje";
+                    ? _localizationService.Get("DllManager.UpdateConfirm.LocationCountSingular")
+                    : _localizationService.GetFormatted("DllManager.UpdateConfirm.LocationCount", count);
             }
 
             // Tytuł okna
-            this.Title = $"Aktualizacja: {updateInfo.DllMod.ModName}";
+            this.Title = _localizationService.GetFormatted("DllManager.UpdateConfirm.WindowTitle", updateInfo.DllMod.ModName);
         }
 
         private void ConfirmButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

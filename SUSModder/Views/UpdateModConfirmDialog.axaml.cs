@@ -6,29 +6,35 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using SUSModder.Core.GameIntegration;
+using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.Views
 {
     public partial class UpdateModConfirmDialog : Window
     {
         public bool Result { get; private set; }
+        private readonly ILocalizationService _localizationService;
 
         public UpdateModConfirmDialog()
         {
             InitializeComponent();
+            _localizationService = App.GetService<ILocalizationService>();
         }
 
         public UpdateModConfirmDialog(ModUpdateInfo updateInfo)
         {
             InitializeComponent();
-            Title = "Potwierdzenie aktualizacji";
-            TitleText.Text = $"Aktualizacja moda '{updateInfo.ModName}'";
-            MessageText.Text = "Dostępna jest nowa wersja tego moda. Czy chcesz ją pobrać i zainstalować?";
+            _localizationService = App.GetService<ILocalizationService>();
+            
+            Title = _localizationService.Get("Dialogs.UpdateMod.Title");
+            TitleText.Text = _localizationService.GetFormatted("Dialogs.UpdateMod.TitleWithName", updateInfo.ModName);
+            MessageText.Text = _localizationService.Get("Dialogs.UpdateMod.Message");
 
             // Ustaw informacje o wersjach
-            CurrentModVersionText.Text = updateInfo.CurrentVersion ?? "Nieznana";
-            NewModVersionText.Text = updateInfo.NewVersion ?? "Nieznana";
-            AmongVersionText.Text = updateInfo.RemoteMod?.AmongVersion ?? "Nieznana";
+            var unknownVersion = _localizationService.Get("Dialogs.UpdateMod.UnknownVersion");
+            CurrentModVersionText.Text = updateInfo.CurrentVersion ?? unknownVersion;
+            NewModVersionText.Text = updateInfo.NewVersion ?? unknownVersion;
+            AmongVersionText.Text = updateInfo.RemoteMod?.AmongVersion ?? unknownVersion;
 
             // Asynchronicznie sprawdź rozmiar pliku do pobrania
             var downloadLink = updateInfo.RemoteMod?.GitHubRepoOrLink;
@@ -56,7 +62,7 @@ namespace SUSModder.Views
 
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        DownloadSizeText.Text = $"Rozmiar do pobrania: ~{sizeText}";
+                        DownloadSizeText.Text = _localizationService.GetFormatted("Dialogs.UpdateMod.DownloadSize", sizeText);
                         DownloadSizeInfoBorder.IsVisible = true;
                     });
                 }

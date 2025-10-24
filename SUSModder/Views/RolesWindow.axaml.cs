@@ -3,6 +3,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using SUSModder.Models;
 using SUSModder.Services;
+using SUSModder.Core.Services.Localization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +15,7 @@ namespace SUSModder.Views
     public partial class RolesWindow : Window
     {
         private readonly RolesService _rolesService;
+        private readonly ILocalizationService _localizationService;
         private List<Role> _allRoles = new();
         private List<Role> _filteredRoles = new();
         private readonly int _configId;
@@ -24,26 +26,28 @@ namespace SUSModder.Views
         {
             InitializeComponent();
             _rolesService = new RolesService();
+            _localizationService = App.GetService<ILocalizationService>();
             _configId = 0;
             _modId = 0;
             _modName = string.Empty;
 
-            Title = "Role i Modyfikatory";
-            TitleText.Text = "Role i Modyfikatory";
-            SubtitleText.Text = "Ładowanie...";
+            Title = _localizationService.Get("RolesWindow.WindowTitle");
+            TitleText.Text = _localizationService.Get("RolesWindow.Header");
+            SubtitleText.Text = _localizationService.Get("RolesWindow.LoadingSubtitle");
         }
 
         public RolesWindow(int configId, int modId, string modName) // Dodany parametr modId
         {
             InitializeComponent();
             _rolesService = new RolesService();
+            _localizationService = App.GetService<ILocalizationService>();
             _configId = configId;
             _modId = modId;
             _modName = modName;
 
-            Title = $"Role i Modyfikatory - {modName}";
-            TitleText.Text = $"Role i Modyfikatory";
-            SubtitleText.Text = $"Mod: {modName}";
+            Title = $"{_localizationService.Get("RolesWindow.WindowTitle")} - {modName}";
+            TitleText.Text = _localizationService.Get("RolesWindow.Header");
+            SubtitleText.Text = string.Format(_localizationService.Get("RolesWindow.ModSubtitle"), modName);
 
             Loaded += OnWindowLoaded;
             Closing += OnWindowClosing;
@@ -151,11 +155,11 @@ namespace SUSModder.Views
 
             if (totalCount == filteredCount)
             {
-                SubtitleText.Text = $"Mod: {_modName} • {totalCount} ról/modyfikatorów";
+                SubtitleText.Text = string.Format(_localizationService.Get("RolesWindow.RoleCountSingle"), _modName, totalCount);
             }
             else
             {
-                SubtitleText.Text = $"Mod: {_modName} • {filteredCount} z {totalCount} ról/modyfikatorów";
+                SubtitleText.Text = string.Format(_localizationService.Get("RolesWindow.RoleCountFiltered"), _modName, filteredCount, totalCount);
             }
         }
 
@@ -164,6 +168,9 @@ namespace SUSModder.Views
             var searchText = SearchBox.Text?.ToLower() ?? string.Empty;
             var selectedCategory = (CategoryFilter.SelectedItem as ComboBoxItem)?.Content?.ToString();
             var selectedType = (TypeFilter.SelectedItem as ComboBoxItem)?.Content?.ToString();
+
+            var allCategoriesText = _localizationService.Get("RolesWindow.AllCategories");
+            var allTypesText = _localizationService.Get("RolesWindow.AllTypes");
 
             _filteredRoles = _allRoles.Where(role =>
             {
@@ -174,12 +181,12 @@ namespace SUSModder.Views
                                   role.Abilities.Any(a => a.Name.ToLower().Contains(searchText));
 
                 // Filtr kategorii
-                var matchesCategory = selectedCategory == "Wszystkie kategorie" ||
+                var matchesCategory = selectedCategory == allCategoriesText ||
                                     selectedCategory == null ||
                                     role.Category.Equals(selectedCategory, StringComparison.OrdinalIgnoreCase);
 
                 // Filtr typu
-                var matchesType = selectedType == "Wszystkie typy" ||
+                var matchesType = selectedType == allTypesText ||
                                 selectedType == null ||
                                 role.Type.Equals(selectedType, StringComparison.OrdinalIgnoreCase);
 

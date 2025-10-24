@@ -3,6 +3,7 @@
              xmlns:models="clr-namespace:SUSModder.Core.Configuration;assembly=SUSModder.Core"
              xmlns:vm="clr-namespace:SUSModder.ViewModels"
              xmlns:local="clr-namespace:SUSModder.Converters;assembly=SUSModder"
+             xmlns:localize="using:SUSModder.Services.Localization"
              x:DataType="vm:DllModSelectionViewModel"
              x:Class="SUSModder.Views.DllModSelectionView"
              
@@ -36,11 +37,11 @@
                         <StackPanel Grid.Column="1" 
                                     VerticalAlignment="Center"
                                     Margin="15,0,0,0">
-                            <TextBlock Text="Modyfikacje DLL" 
+                            <TextBlock Text="{localize:Localize DllManager.ViewTitle}" 
                                        FontSize="20" 
                                        FontWeight="Bold" 
                                        Foreground="White"/>
-                            <TextBlock Text="Wybierz modyfikacje DLL (zaznaczone = zainstalowane)" 
+                            <TextBlock Text="{localize:Localize DllManager.ViewSubtitle}" 
                                        FontSize="12" 
                                        Foreground="#E0FFFFFF"/>
                         </StackPanel>
@@ -80,7 +81,7 @@
                                                 <TextBlock Text="{Binding ModName}"
                                                            FontSize="16" FontWeight="Bold"
                                                            Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                                <TextBlock Text=" [ZAINSTALOWANY]"
+                                                <TextBlock Text="{localize:Localize DllManager.StatusInstalled}"
                                                            FontSize="12" FontWeight="SemiBold"
                                                            Foreground="#4CAF50"
                                                            VerticalAlignment="Center"
@@ -92,7 +93,7 @@
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        TextWrapping="Wrap"
                                                        MaxWidth="400"/>
-                                            <TextBlock Text="{Binding ModVersion, StringFormat='Wersja: {0}'}"
+                                            <TextBlock Text="{Binding ModVersion}"
                                                        FontSize="11"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        Margin="0,4,0,0"/>
@@ -132,7 +133,7 @@
                         Height="70">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Grid.Column="0"
-                                   Text="Zaznacz/odznacz modyfikacje aby zastosować zmiany"
+                                   Text="{localize:Localize DllManager.ApplyChangesHint}"
                                    VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <Button Grid.Column="1"
@@ -162,11 +163,11 @@
                                    FontSize="32"
                                    HorizontalAlignment="Center"
                                    Margin="0,0,0,10"/>
-                        <TextBlock Text="Brak dostępnych modyfikacji DLL"
+                        <TextBlock Text="{localize:Localize DllManager.NoAvailableMods}"
                                    FontSize="14"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    TextAlignment="Center"/>
-                        <TextBlock Text="Sprawdź połączenie internetowe lub konfigurację repozytoriów"
+                        <TextBlock Text="{localize:Localize DllManager.CheckConnection}"
                                    FontSize="12"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    TextAlignment="Center"/>
@@ -189,7 +190,7 @@
                     Padding="20">
                 <Grid RowDefinitions="Auto,*,Auto">
                     <TextBlock Grid.Row="0"
-                               Text="Operacje zakończone"
+                               Text="{localize:Localize DllManager.OperationsComplete}"
                                FontSize="24"
                                FontWeight="Bold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
@@ -213,7 +214,7 @@
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Right"
                                 Margin="0,15,0,0">
-                        <Button Content="Wróć"
+                        <Button Content="{localize:Localize DllManager.BackButton}"
                                 Command="{Binding OkCommand}"
                                 Background="Transparent"
                                 BorderBrush="{DynamicResource BorderBrush}"
@@ -222,7 +223,7 @@
                                 Padding="20,10"
                                 CornerRadius="6"
                                 Margin="0,0,10,0"/>
-                        <Button Content="Zamknij"
+                        <Button Content="{localize:Localize DllManager.CloseButton}"
                                 Command="{Binding CloseCommand}"
                                 Background="{DynamicResource AccentBrush}"
                                 Foreground="White"

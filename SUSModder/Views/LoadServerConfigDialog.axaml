@@ -1,9 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="using:SUSModder.Views"
+        xmlns:local="clr-namespace:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.LoadServerConfigDialog"
         x:DataType="views:LoadServerConfigDialog"
-        Title="Wczytaj konfigurację z serwera"
+        Title="{local:Localize Tools.LoadServerConfig.WindowTitle}"
         Width="600" Height="600"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
@@ -15,17 +16,16 @@
 
 	<Grid Margin="20" RowDefinitions="Auto,*,Auto">
 
-		<!-- Header -->
 		<StackPanel Grid.Row="0" Margin="0,0,0,20">
 			<StackPanel Orientation="Horizontal" Spacing="15" HorizontalAlignment="Center" Margin="0,0,0,15">
 				<TextBlock Text="📥" FontSize="32" VerticalAlignment="Center"/>
-				<TextBlock Text="Wczytaj konfigurację z serwera"
+				<TextBlock Text="{local:Localize Tools.LoadServerConfig.Header}"
                            FontSize="18" FontWeight="Bold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
 			</StackPanel>
 
-			<TextBlock Text="Wybierz sposób wczytania konfiguracji:"
+			<TextBlock Text="{local:Localize Tools.LoadServerConfig.Subtitle}"
                        FontSize="14"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        TextAlignment="Center"/>
@@ -42,19 +42,19 @@
                     Padding="20">
 				<StackPanel Spacing="15">
 					<RadioButton x:Name="ManualHashRadio"
-                                 Content="Wpisz kod ręcznie"
+                                 Content="{local:Localize Tools.LoadServerConfig.ManualHashOption}"
                                  FontSize="16" FontWeight="SemiBold"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  IsChecked="{Binding UseManualHash}"
                                  Checked="OnManualHashRadioChecked"/>
 
-					<TextBlock Text="Wpisz kod konfiguracji otrzymany od innej osoby:"
+					<TextBlock Text="{local:Localize Tools.LoadServerConfig.ManualHashHint}"
                                FontSize="12"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                IsVisible="{Binding UseManualHash}"/>
 
 					<TextBox Text="{Binding ManualHash}"
-                             Watermark="Wklej tutaj kod konfiguracji..."
+                             Watermark="{local:Localize Tools.LoadServerConfig.ManualHashPlaceholder}"
                              FontFamily="Consolas"
                              FontSize="14"
                              Padding="12"
@@ -71,7 +71,7 @@
                     Padding="20">
 				<StackPanel Spacing="15">
 					<RadioButton x:Name="SavedConfigRadio"
-                                 Content="Wybierz z zapisanych konfiguracji"
+                                 Content="{local:Localize Tools.LoadServerConfig.SavedConfigOption}"
                                  FontSize="16" FontWeight="SemiBold"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  IsChecked="{Binding UseManualHash, Converter={x:Static BoolConverters.Not}}"
@@ -80,12 +80,12 @@
 					<StackPanel IsVisible="{Binding UseManualHash, Converter={x:Static BoolConverters.Not}}"
                                 Spacing="10">
 
-						<TextBlock Text="Twoje zapisane konfiguracje:"
+						<TextBlock Text="{local:Localize Tools.LoadServerConfig.SavedConfigsLabel}"
                                    FontSize="12"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    IsVisible="{Binding SavedConfigs.Count}"/>
 
-						<TextBlock Text="Brak zapisanych konfiguracji"
+						<TextBlock Text="{local:Localize Tools.LoadServerConfig.NoSavedConfigs}"
                                    FontSize="12"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    FontStyle="Italic"
@@ -125,12 +125,11 @@
 			</Border>
 		</StackPanel>
 
-		<!-- Przyciski -->
 		<StackPanel Grid.Row="2"
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Spacing="15">
-			<Button Content="📥 Wczytaj konfigurację"
+			<Button Content="{local:Localize Tools.LoadServerConfig.LoadButton}"
                     Click="OnLoadClick"
                     Background="{DynamicResource AccentBrush}"
                     Foreground="White"
@@ -140,7 +139,7 @@
                     FontWeight="SemiBold"
                     MinWidth="180"
                     IsEnabled="{Binding CanLoad}"/>
-			<Button Content="Anuluj"
+			<Button Content="{local:Localize Tools.LoadServerConfig.CancelButton}"
                     Click="OnCancelClick"
                     Background="{DynamicResource ModCardBackgroundBrush}"
                     Foreground="{DynamicResource TextPrimaryBrush}"
