@@ -1,0 +1,72 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:SUSModder.Services.Localization"
+        x:Class="SUSModder.Views.SplashWindow"
+        Title="SUSModder"
+        Width="600"
+        Height="420"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        SystemDecorations="None"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Border CornerRadius="12" ClipToBounds="True">
+        <!-- Background Image -->
+        <Panel>
+            <Image Source="/Assets/splashscreen.jpg"
+                   Stretch="UniformToFill"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch"/>
+
+            <!-- Loading Progress Bar at Bottom - Bright cyan/yellow gradient -->
+            <Border Height="6"
+                    VerticalAlignment="Bottom"
+                    HorizontalAlignment="Stretch"
+                    Background="#30FFFFFF"
+                    CornerRadius="0,0,12,12">
+                <Border x:Name="ProgressBar"
+                        HorizontalAlignment="Left"
+                        Width="0"
+                        CornerRadius="0,0,0,12">
+                    <!-- Gradient from cyan to yellow-green - very visible on blue -->
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                            <GradientStop Color="#00F5FF" Offset="0.0" />
+                            <GradientStop Color="#00FFAA" Offset="0.5" />
+                            <GradientStop Color="#FFEB3B" Offset="1.0" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <!-- Animated Gradient Effect - Enhanced with brighter glow -->
+                    <Border.Effect>
+                        <DropShadowEffect Color="#00FFAA"
+                                        BlurRadius="25"
+                                        OffsetX="0"
+                                        OffsetY="0"
+                                        Opacity="1.0"/>
+                    </Border.Effect>
+                </Border>
+            </Border>
+
+            <!-- Loading Text - Bold and visible -->
+            <TextBlock x:Name="LoadingText"
+                      Text="{local:Localize Splash.Loading}"
+                      FontSize="13"
+                      FontWeight="Bold"
+                      Foreground="White"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Bottom"
+                      Margin="0,0,0,16"
+                      Opacity="0.95">
+                <TextBlock.Effect>
+                    <DropShadowEffect Color="Black"
+                                    BlurRadius="8"
+                                    OffsetX="0"
+                                    OffsetY="1"
+                                    Opacity="0.8"/>
+                </TextBlock.Effect>
+            </TextBlock>
+        </Panel>
+    </Border>
+</Window>

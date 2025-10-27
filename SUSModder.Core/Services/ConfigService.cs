@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text.Json;
+using System.Threading.Tasks;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Repositories;
 
@@ -71,16 +73,39 @@ namespace SUSModder.Core.Services
                 if (latestMod == null)
                     return null;
 
-                // Sprawdź czy jest nowsza wersja
-                if (IsNewerVersion(latestMod.ModVersion, currentMod.ModVersion))
+                // Pobierz RZECZYWISTĄ wersję z Installation Map (a nie z config.json cache!)
+                string installedVersion = currentMod.ModVersion ?? "unknown";
+
+                if (!string.IsNullOrEmpty(currentMod.InstallPath))
+                {
+                    try
+                    {
+                        var installMap = await InstallationMapManager.LoadInstallationMapAsync(currentMod.InstallPath);
+                        if (installMap?.FullMod != null && !string.IsNullOrEmpty(installMap.FullMod.ModVersion))
+                        {
+                            installedVersion = installMap.FullMod.ModVersion;
+                            System.Diagnostics.Debug.WriteLine($"[ConfigService] {modName} - rzeczywista wersja z InstallationMap: {installedVersion}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ConfigService] Nie udało się odczytać InstallationMap dla {modName}: {ex.Message}");
+                        // Fallback do config.json
+                    }
+                }
+
+                // Sprawdź czy jest nowsza wersja (porównaj z RZECZYWISTĄ wersją!)
+                if (IsNewerVersion(latestMod.ModVersion, installedVersion))
                 {
                     // Zachowaj ścieżkę instalacji z obecnej konfiguracji
                     latestMod.InstallPath = currentMod.InstallPath;
                     latestMod.LastUpdated = currentMod.LastUpdated;
 
+                    System.Diagnostics.Debug.WriteLine($"[ConfigService] ✓ Wykryto aktualizację: {modName} ({installedVersion} → {latestMod.ModVersion})");
                     return latestMod;
                 }
 
+                System.Diagnostics.Debug.WriteLine($"[ConfigService] Brak aktualizacji dla {modName} (zainstalowana: {installedVersion}, najnowsza: {latestMod.ModVersion})");
                 return null; // Brak aktualizacji
             }
             catch (Exception ex)

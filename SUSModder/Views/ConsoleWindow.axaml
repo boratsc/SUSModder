@@ -1,8 +1,9 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="using:SUSModder.Views"
+        xmlns:local="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.ConsoleWindow"
-        Title="Konsola deweloperska"
+        Title="{local:Localize Console.WindowTitle}"
         Width="800"
         Height="600"
         MinWidth="600"
@@ -46,7 +47,7 @@
                 Margin="0,0,0,10">
 			<Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
 				<TextBlock Grid.Column="0"
-                           Text="🖥️ Konsola deweloperska"
+                           Text="{local:Localize Console.Header}"
                            FontSize="16"
                            FontWeight="Bold"
                            Foreground="White"
@@ -54,7 +55,7 @@
 
 				<TextBlock Grid.Column="1"
                            x:Name="LogCountText"
-                           Text="0 wpisów"
+                           Text="{local:Localize Console.EntriesCountSingular}"
                            FontSize="12"
                            Foreground="#E0FFFFFF"
                            VerticalAlignment="Center"
@@ -62,7 +63,7 @@
                            Margin="10,0"/>
 
 				<Button Grid.Column="2"
-                        Content="Wyczyść"
+                        Content="{local:Localize Console.ClearButton}"
                         Background="{DynamicResource SecondaryBackgroundBrush}"
                         Foreground="{DynamicResource TextPrimaryBrush}"
                         Padding="10,5"
@@ -70,7 +71,7 @@
                         Click="OnClearClick"/>
 
 				<Button Grid.Column="3"
-                        Content="Kopiuj"
+                        Content="{local:Localize Console.CopyButton}"
                         Background="{DynamicResource SecondaryBackgroundBrush}"
                         Foreground="{DynamicResource TextPrimaryBrush}"
                         Padding="10,5"
@@ -78,7 +79,7 @@
                         Click="OnCopyClick"/>
 
 				<Button Grid.Column="4"
-                        Content="Zapisz"
+                        Content="{local:Localize Console.SaveButton}"
                         Background="{DynamicResource SecondaryBackgroundBrush}"
                         Foreground="{DynamicResource TextPrimaryBrush}"
                         Padding="10,5"
@@ -122,13 +123,13 @@
 			<Grid ColumnDefinitions="Auto,*,Auto">
 				<CheckBox Grid.Column="0"
                           x:Name="AutoScrollCheckBox"
-                          Content="Automatyczne przewijanie"
+                          Content="{local:Localize Console.AutoScroll}"
                           IsChecked="True"
                           Foreground="{DynamicResource TextPrimaryBrush}"/>
 
 				<TextBlock Grid.Column="2"
                            x:Name="StatusText"
-                           Text="Gotowe"
+                           Text="{local:Localize Console.StatusReady}"
                            FontSize="12"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center"/>

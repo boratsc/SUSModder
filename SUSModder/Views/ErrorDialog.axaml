@@ -1,7 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.ErrorDialog"
-        Title="Wystąpił błąd!"
+        Title="{loc:Localize Dialogs.Error.Title}"
         Width="500" Height="350"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
@@ -16,7 +17,7 @@
         <!-- Nagłówek z ikoną błędu -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,20">
             <TextBlock Text="❌" FontSize="24" VerticalAlignment="Center"/>
-            <TextBlock Text="Wystąpił błąd!"
+            <TextBlock Text="{loc:Localize Dialogs.Error.Header}"
                        FontSize="18" FontWeight="Bold"
                        Foreground="{DynamicResource DangerBrush}"
                        VerticalAlignment="Center"/>
@@ -49,13 +50,13 @@
                     HorizontalAlignment="Right"
                     Spacing="10"
                     Margin="0,20,0,0">
-            <Button Content="Kopiuj"
+            <Button Content="{loc:Localize Tooltips.CopyPath}"
                     Width="80" Height="30"
                     Background="{DynamicResource ModCardBackgroundBrush}"
                     Foreground="{DynamicResource TextPrimaryBrush}"
                     BorderBrush="{DynamicResource ModCardBorderBrush}"
                     Click="CopyButton_Click"/>
-            <Button Content="OK"
+            <Button Content="{loc:Localize UI.Buttons.OK}"
                     Width="80" Height="30"
                     Background="{DynamicResource AccentBrush}"
                     Foreground="White"

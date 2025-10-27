@@ -165,7 +165,7 @@
 			<StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Right"
                         Spacing="10">
-				<Button Content="Anuluj"
+				<Button Content="Zamknij"
                         Command="{Binding CancelCommand}"
                         Classes="secondary-button"/>
 				<Button Content="Zapisz"

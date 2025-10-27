@@ -1,0 +1,81 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Status Bar Container -->
+    <Style Selector="Border.status-bar">
+        <Setter Property="Background" Value="{DynamicResource StatusBarBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource StatusBarBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="0,1,0,0"/>
+        <Setter Property="BoxShadow" Value="0 -2 8 0 #15000000"/>
+        <Setter Property="Padding" Value="0,10"/>
+    </Style>
+
+    <!-- Status Section -->
+    <Style Selector="Border.status-section">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Padding" Value="10,5"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2"/>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Border.status-section:pointerover">
+        <Setter Property="Background" Value="{DynamicResource StatusBarSectionHoverBrush}"/>
+        <Setter Property="RenderTransform" Value="scale(1.02)"/>
+    </Style>
+
+    <!-- Status Icon Container -->
+    <Style Selector="Border.status-icon-container">
+        <Setter Property="Width" Value="40"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="BoxShadow" Value="0 2 4 0 #40000000"/>
+    </Style>
+
+    <!-- Status Main Text -->
+    <Style Selector="TextBlock.status-main-text">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+
+    <!-- Status Sub Text -->
+    <Style Selector="TextBlock.status-sub-text">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="Regular"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="Opacity" Value="0.7"/>
+    </Style>
+
+    <!-- Pulsating status indicator -->
+    <Style Selector="Ellipse.status-pulse">
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:1" Easing="SineEaseInOut"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Ellipse.status-pulse:not(:pointerover)">
+        <Style.Animations>
+            <Animation Duration="0:0:2" IterationCount="Infinite">
+                <KeyFrame Cue="0%">
+                    <Setter Property="Opacity" Value="1.0"/>
+                </KeyFrame>
+                <KeyFrame Cue="50%">
+                    <Setter Property="Opacity" Value="0.5"/>
+                </KeyFrame>
+                <KeyFrame Cue="100%">
+                    <Setter Property="Opacity" Value="1.0"/>
+                </KeyFrame>
+            </Animation>
+        </Style.Animations>
+    </Style>
+
+</Styles>

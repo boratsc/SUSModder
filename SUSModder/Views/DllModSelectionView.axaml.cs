@@ -43,13 +43,5 @@ namespace SUSModder.Views
             var window = this.FindAncestorOfType<Window>();
             window?.Close();
         }
-
-        private async void OnInstallSelectedDlls(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-        {
-            if (DataContext is DllModSelectionViewModel vm)
-            {
-                await vm.InstallSelectedDllsAsync(vm.Platform);
-            }
-        }
     }
 }

@@ -38,7 +38,7 @@ namespace SUSModder.Services
                     System.Diagnostics.Debug.WriteLine($"[Discord Preloader] {message}");
                 });
 
-                using var discordService = new DiscordFavoritesService(configuration, diagnosticsOutput);
+                var discordService = new DiscordFavoritesService(configuration, diagnosticsOutput);
                 var serverDataList = await discordService.GetDiscordFavoritesAsync();
                 var discordServers = DiscordServerAdapter.FromServerDataList(serverDataList);
 

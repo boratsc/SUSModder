@@ -6,22 +6,53 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Models;
+using SUSModder.Core.Utilities;
 
 namespace SUSModder.Core.Services
 {
     public class DllModificationService
     {
         private readonly ConfigService _configService;
-        private readonly HttpClient _httpClient;
+        // Statyczny HttpClient współdzielony przez wszystkie instancje (best practice)
+        private static readonly HttpClient _httpClient = new HttpClient();
         private readonly IDiagnosticsOutput _diagnosticsOutput;
-  
+
 
 
         public DllModificationService(ConfigService configService, IDiagnosticsOutput diagnosticsOutput)
         {
             _configService = configService;
-            _httpClient = new HttpClient();
             _diagnosticsOutput = diagnosticsOutput;
+        }
+
+        /// <summary>
+        /// Pobiera listę ID modów DLL zainstalowanych w danym modzie FULL
+        /// </summary>
+        /// <param name="targetMod">Mod docelowy (FULL)</param>
+        /// <returns>Lista ID zainstalowanych DLL</returns>
+        public async Task<List<int>> GetInstalledDllIdsAsync(ModConfiguration targetMod)
+        {
+            if (targetMod == null || string.IsNullOrEmpty(targetMod.InstallPath))
+                return new List<int>();
+
+            try
+            {
+                var installationMap = await InstallationMapManager.LoadInstallationMapAsync(targetMod.InstallPath);
+                
+                if (installationMap == null || installationMap.InstalledDlls == null)
+                    return new List<int>();
+
+                return installationMap.InstalledDlls
+                    .Where(dll => dll.ModId > 0)
+                    .Select(dll => dll.ModId)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput.Write($"Error loading installed DLL IDs: {ex.Message}");
+                return new List<int>();
+            }
         }
 
         public List<ModConfiguration> GetDllMods()
@@ -99,7 +130,7 @@ namespace SUSModder.Core.Services
                 return new List<ModConfiguration>();
             }
         }
-        public async Task<bool> InstallDllToModAsync(ModConfiguration dllMod, ModConfiguration targetMod, string platform)
+        public async Task<string?> InstallDllToModAsync(ModConfiguration dllMod, ModConfiguration targetMod, string platform)
         {
             try
             {
@@ -109,7 +140,7 @@ namespace SUSModder.Core.Services
                 if (string.IsNullOrEmpty(targetMod.InstallPath))
                 {
                     _diagnosticsOutput.Write("Target mod has no install path");
-                    return false;
+                    return null;
                 }
 
                 // Wybierz odpowiedni link do pobrania
@@ -117,22 +148,25 @@ namespace SUSModder.Core.Services
                 if (string.IsNullOrEmpty(downloadUrl))
                 {
                     _diagnosticsOutput.Write("No download URL available for this platform");
-                    return false;
+                    return null;
                 }
 
                 // Wyciągnij nazwę pliku z URL
                 string fileName = Path.GetFileName(new Uri(downloadUrl).LocalPath);
                 _diagnosticsOutput.Write($"DLL file name: {fileName}");
 
-                // Ścieżka docelowa - teraz targetMod.InstallPath jest sprawdzone
-                string targetPath = Path.Combine(targetMod.InstallPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
+                // Ścieżka docelowa - uwzględnij strukturę Epic (podkatalog AmongUs)
+                string actualModPath = PathSettings.GetActualModPath(targetMod.InstallPath);
+                _diagnosticsOutput.Write($"Base install path: {targetMod.InstallPath}");
+                _diagnosticsOutput.Write($"Actual mod path (with Epic AmongUs check): {actualModPath}");
+                string targetPath = Path.Combine(actualModPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
                 string? targetDirectoryNullable = Path.GetDirectoryName(targetPath);
 
                 // Sprawdź czy GetDirectoryName zwróciło null
                 if (string.IsNullOrEmpty(targetDirectoryNullable))
                 {
                     _diagnosticsOutput.Write("Could not determine target directory");
-                    return false;
+                    return null;
                 }
 
                 string targetDirectory = targetDirectoryNullable;
@@ -161,12 +195,65 @@ namespace SUSModder.Core.Services
                 await File.WriteAllBytesAsync(targetPath, content);
 
                 _diagnosticsOutput.Write($"DLL installation completed successfully");
-                return true;
+
+                // === NOWY KOD: Zaktualizuj Installation Map ===
+                try
+                {
+                    var installationMap = await InstallationMapManager.LoadInstallationMapAsync(targetMod.InstallPath);
+
+                    if (installationMap != null)
+                    {
+                        // Sprawdź czy DLL już istnieje w mapie
+                        var existingDll = installationMap.InstalledDlls
+                            .FirstOrDefault(d => d.ModId == dllMod.Id);
+
+                        if (existingDll != null)
+                        {
+                            // Aktualizuj istniejący wpis
+                            existingDll.ModVersion = dllMod.ModVersion ?? "unknown";
+                            existingDll.LastUpdated = DateTime.Now;
+                            existingDll.InstalledFrom = downloadUrl;
+                            _diagnosticsOutput.Write($"[InstallationMap] Zaktualizowano DLL {dllMod.ModName} w mapie");
+                        }
+                        else
+                        {
+                            // Dodaj nowy wpis - zapisz względną ścieżkę z uwzględnieniem podkatalogu AmongUs dla Epic
+                            string relativePrefix = actualModPath != targetMod.InstallPath ? "AmongUs\\" : "";
+                            var relativePath = Path.Combine(relativePrefix + (dllMod.DllInstallPath ?? "BepInEx\\plugins"), fileName);
+                            installationMap.InstalledDlls.Add(new DllModInstallation
+                            {
+                                ModId = dllMod.Id,
+                                ModName = dllMod.ModName,
+                                ModVersion = dllMod.ModVersion ?? "unknown",
+                                InstallPath = relativePath,
+                                InstalledFrom = downloadUrl,
+                                InstalledAt = DateTime.Now,
+                                LastUpdated = DateTime.Now
+                            });
+                            _diagnosticsOutput.Write($"[InstallationMap] Dodano DLL {dllMod.ModName} do mapy");
+                        }
+
+                        await InstallationMapManager.SaveInstallationMapAsync(targetMod.InstallPath, installationMap);
+                        _diagnosticsOutput.Write($"[InstallationMap] Zapisano mapę instalacji dla {targetMod.ModName}");
+                    }
+                    else
+                    {
+                        _diagnosticsOutput.Write($"[WARNING] Brak Installation Map dla {targetMod.ModName} - pominięto aktualizację");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _diagnosticsOutput.Write($"[WARNING] Nie udało się zaktualizować Installation Map: {ex.Message}");
+                    // Nie przerywamy operacji jeśli aktualizacja mapy się nie powiodła
+                }
+                // === KONIEC NOWEGO KODU ===
+
+                return targetPath;
             }
             catch (Exception ex)
             {
                 _diagnosticsOutput.Write($"Error installing DLL: {ex.Message}");
-                return false;
+                return null;
             }
         }
 
@@ -196,8 +283,9 @@ namespace SUSModder.Core.Services
                 string fileName = Path.GetFileName(new Uri(downloadUrl).LocalPath);
                 _diagnosticsOutput.Write($"DLL file name to remove: {fileName}");
 
-                // Ścieżka do pliku - teraz targetMod.InstallPath jest sprawdzone
-                string filePath = Path.Combine(targetMod.InstallPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
+                // Ścieżka do pliku - uwzględnij strukturę Epic (podkatalog AmongUs)
+                string actualModPath = PathSettings.GetActualModPath(targetMod.InstallPath);
+                string filePath = Path.Combine(actualModPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
                 _diagnosticsOutput.Write($"File path to remove: {filePath}");
 
                 if (!File.Exists(filePath))
@@ -209,6 +297,41 @@ namespace SUSModder.Core.Services
                 // Usuń plik
                 File.Delete(filePath);
                 _diagnosticsOutput.Write($"DLL uninstallation completed successfully");
+
+                // === NOWY KOD: Zaktualizuj Installation Map ===
+                try
+                {
+                    var installationMap = await InstallationMapManager.LoadInstallationMapAsync(targetMod.InstallPath);
+
+                    if (installationMap != null)
+                    {
+                        // Usuń DLL z mapy
+                        var dllToRemove = installationMap.InstalledDlls
+                            .FirstOrDefault(d => d.ModId == dllMod.Id);
+
+                        if (dllToRemove != null)
+                        {
+                            installationMap.InstalledDlls.Remove(dllToRemove);
+                            await InstallationMapManager.SaveInstallationMapAsync(targetMod.InstallPath, installationMap);
+                            _diagnosticsOutput.Write($"[InstallationMap] Usunięto DLL {dllMod.ModName} z mapy");
+                        }
+                        else
+                        {
+                            _diagnosticsOutput.Write($"[InstallationMap] DLL {dllMod.ModName} nie był w mapie");
+                        }
+                    }
+                    else
+                    {
+                        _diagnosticsOutput.Write($"[WARNING] Brak Installation Map dla {targetMod.ModName} - pominięto aktualizację");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _diagnosticsOutput.Write($"[WARNING] Nie udało się zaktualizować Installation Map: {ex.Message}");
+                    // Nie przerywamy operacji jeśli aktualizacja mapy się nie powiodła
+                }
+                // === KONIEC NOWEGO KODU ===
+
                 return true;
             }
             catch (Exception ex)
@@ -232,7 +355,10 @@ namespace SUSModder.Core.Services
                 if (string.IsNullOrEmpty(downloadUrl)) return false;
 
                 string fileName = Path.GetFileName(new Uri(downloadUrl).LocalPath);
-                string filePath = Path.Combine(targetMod.InstallPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
+                
+                // Uwzględnij strukturę Epic (podkatalog AmongUs)
+                string actualModPath = PathSettings.GetActualModPath(targetMod.InstallPath);
+                string filePath = Path.Combine(actualModPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
 
                 return File.Exists(filePath);
             }

@@ -1,9 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="using:SUSModder.Views"
+        xmlns:local="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.ChangePresetNamesDialog"
         x:DataType="views:ChangePresetNamesDialog"
-        Title="Zmień nazwy presetów lobby"
+        Title="{local:Localize ChangePresetNames.WindowTitle}"
         Width="600" Height="700"
         MinWidth="500" MinHeight="500"
         MaxHeight="800"
@@ -20,13 +21,13 @@
 		<StackPanel Grid.Row="0" Margin="0,0,0,20">
 			<StackPanel Orientation="Horizontal" Spacing="15" HorizontalAlignment="Center" Margin="0,0,0,15">
 				<TextBlock Text="📝" FontSize="32" VerticalAlignment="Center"/>
-				<TextBlock Text="Zmień nazwy presetów lobby"
+				<TextBlock Text="{local:Localize ChangePresetNames.Header}"
                            FontSize="18" FontWeight="Bold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
 			</StackPanel>
 
-			<TextBlock Text="Zmień nazwy plików konfiguracyjnych Among Us:"
+			<TextBlock Text="{local:Localize ChangePresetNames.Subtitle}"
                        FontSize="14"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        TextAlignment="Center"/>
@@ -44,7 +45,7 @@
 			<Grid RowDefinitions="Auto,*">
 				<!-- Nagłówek listy -->
 				<TextBlock Grid.Row="0"
-                           Text="Pliki konfiguracyjne:"
+                           Text="{local:Localize ChangePresetNames.FilesListHeader}"
                            FontSize="14" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            Margin="0,0,0,10"/>
@@ -52,7 +53,7 @@
 				<!-- Zawartość listy -->
 				<Panel Grid.Row="1">
 					<!-- Komunikat o braku plików -->
-					<TextBlock Text="Brak plików .txt w katalogu Among Us"
+					<TextBlock Text="{local:Localize ChangePresetNames.NoFiles}"
                                FontSize="12"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                FontStyle="Italic"
@@ -117,7 +118,7 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Spacing="15">
-			<Button Content="🔄 Resetuj"
+			<Button Content="{local:Localize ChangePresetNames.ResetButton}"
                     Click="OnResetClick"
                     Background="{DynamicResource ModCardBackgroundBrush}"
                     Foreground="{DynamicResource TextPrimaryBrush}"
@@ -127,7 +128,7 @@
                     CornerRadius="6"
                     FontSize="14"
                     MinWidth="100"/>
-			<Button Content="💾 Zapisz zmiany"
+			<Button Content="{local:Localize ChangePresetNames.SaveButton}"
                     Click="OnSaveClick"
                     Background="{DynamicResource AccentBrush}"
                     Foreground="White"
@@ -136,7 +137,7 @@
                     FontSize="14"
                     FontWeight="SemiBold"
                     MinWidth="140"/>
-			<Button Content="Anuluj"
+			<Button Content="{local:Localize ChangePresetNames.CancelButton}"
                     Click="OnCancelClick"
                     Background="{DynamicResource ModCardBackgroundBrush}"
                     Foreground="{DynamicResource TextPrimaryBrush}"

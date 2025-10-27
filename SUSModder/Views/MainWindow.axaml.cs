@@ -14,24 +14,61 @@ using System.Reactive;
 using System.Linq;
 using Avalonia.Media;
 using SUSModder.Services;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
+using Avalonia.Input;
 
 namespace SUSModder.Views;
 
 public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 {
-    // Dodaj komendy jako w³aœciwoœci
+    // Dodaj komendy jako wï¿½aï¿½ciwoï¿½ci
     public ReactiveCommand<Unit, Unit> RemoveSingleInstanceCommand { get; }
     public ReactiveCommand<Unit, Unit> LaunchMultipleInstancesCommand { get; }
 
     public MainWindow()
     {
+        // DataContext bÄ™dzie ustawiony z zewnÄ…trz (przez App.axaml.cs)
+        // JeÅ›li nie jest ustawiony (np. design mode), utwÃ³rz dummy
+        if (DataContext == null)
+        {
+            DataContext = new MainWindowViewModel();
+        }
+
         InitializeComponent();
+
+        _fabButton = this.FindControl<Button>("FabButton");
+        _fabMenuPanel = this.FindControl<Border>("FabMenuPanel");
+        _fabHost = this.FindControl<Canvas>("FabHost");
+        _statusBar = this.FindControl<Border>("StatusBar");
 
         // Inicjalizuj komendy
         RemoveSingleInstanceCommand = ReactiveCommand.CreateFromTask(RemoveSingleInstanceAsync);
         LaunchMultipleInstancesCommand = ReactiveCommand.CreateFromTask(LaunchMultipleInstancesAsync);
 
-        // Nas³uchuj zmiany wybranego moda i aktualizuj opis
+        // Ustaw poczÄ…tkowÄ… pozycjÄ™ FAB po zaÅ‚adowaniu okna
+        this.Opened += (_, _) =>
+        {
+            _fabInitialPlacementDone = false;
+            InitializeFabPosition();
+        };
+
+        if (_fabMenuPanel != null)
+        {
+            _fabMenuPanel.GetObservable(Visual.BoundsProperty)
+                         .Subscribe(_ => UpdateFabMenuPosition(_fabCurrentPosition.X, _fabCurrentPosition.Y));
+        }
+
+        if (_fabHost != null)
+        {
+            _fabHost.GetObservable(Visual.BoundsProperty)
+                    .Subscribe(_ => EnsureFabWithinBounds());
+        }
+
+        this.GetObservable(Visual.BoundsProperty)
+            .Subscribe(_ => EnsureFabWithinBounds());
+
+        // NasÅ‚uchuj zmiany wybranego moda i aktualizuj opis
         this.WhenActivated(disposables =>
         {
             if (DataContext is MainWindowViewModel vm)
@@ -43,15 +80,43 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                           SetDescriptionWithLinks(mod.Description ?? "");
                       else
                           SetDescriptionWithLinks("");
-                  });
+                  })
+                  .DisposeWith(disposables);
+
+                vm.WhenAnyValue(x => x.IsPaneOpen)
+                  .Subscribe(_ => UpdateFabMenuPosition(_fabCurrentPosition.X, _fabCurrentPosition.Y))
+                  .DisposeWith(disposables);
             }
         });
     }
 
+    private void InitializeFabPosition()
+    {
+        if (_fabButton == null)
+            return;
+
+        var hostHeight = GetHostHeight();
+        var hostWidth = GetHostWidth();
+        var buttonHeight = _fabButton.Bounds.Height > 0 ? _fabButton.Bounds.Height : _fabButton.Height;
+
+        if (hostHeight <= 0 || buttonHeight <= 0)
+            return;
+
+        var initialLeft = FabEdgePadding;
+        var initialTop = CalculateMaxTop(hostHeight, buttonHeight);
+
+        UpdateFabVisuals(initialLeft, initialTop);
+        
+        // Zapisz offset od doÅ‚u (poczÄ…tkowo FAB jest na maxTop, wiÄ™c offset = 0)
+        _fabOffsetFromBottom = 0;
+        
+        _fabInitialPlacementDone = true;
+    }
+
     private void ModDeveloperMenuButton_Click(object sender, RoutedEventArgs e)
     {
-        // Menu flyout otworzy siê automatycznie
-        // Tutaj mamy dostêp do wybranego moda przez DataContext
+        // Menu flyout otworzy siï¿½ automatycznie
+        // Tutaj mamy dostï¿½p do wybranego moda przez DataContext
         if (DataContext is MainWindowViewModel vm && vm.SelectedMod != null)
         {
             Debug.WriteLine($"Developer menu opened for mod: {vm.SelectedMod.Name}");
@@ -62,54 +127,54 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     {
         try
         {
-            // SprawdŸ czy mamy wybrany mod
+            // Sprawdï¿½ czy mamy wybrany mod
             if (DataContext is not MainWindowViewModel vm || vm.SelectedMod == null)
             {
-                await ShowErrorDialogAsync("B³¹d", "Nie wybrano moda.");
+                await ShowErrorDialogAsync("Bï¿½ï¿½d", "Nie wybrano moda.");
                 return;
             }
 
             var selectedMod = vm.SelectedMod;
 
-            // SprawdŸ czy mod jest zainstalowany
+            // Sprawdï¿½ czy mod jest zainstalowany
             if (string.IsNullOrEmpty(selectedMod.InstallPath) || !Directory.Exists(selectedMod.InstallPath))
             {
-                await ShowErrorDialogAsync("B³¹d", "Wybrany mod nie jest zainstalowany lub œcie¿ka instalacji nie istnieje.");
+                await ShowErrorDialogAsync("Bï¿½ï¿½d", "Wybrany mod nie jest zainstalowany lub ï¿½cieï¿½ka instalacji nie istnieje.");
                 return;
             }
 
-            // Poka¿ dialog potwierdzenia
+            // Pokaï¿½ dialog potwierdzenia
             var confirmResult = await ShowConfirmDialogAsync(
-                $"Czy na pewno chcesz usun¹æ ograniczenie SingleInstance z moda '{selectedMod.Name}'?\n\n" +
-                "Ta operacja pozwoli na uruchomienie wielu kopii tego moda jednoczeœnie.",
+                $"Czy na pewno chcesz usunï¿½ï¿½ ograniczenie SingleInstance z moda '{selectedMod.Name}'?\n\n" +
+                "Ta operacja pozwoli na uruchomienie wielu kopii tego moda jednoczeï¿½nie.",
                 "Potwierdzenie");
 
             if (!confirmResult)
                 return;
 
-            // Œcie¿ka do pliku boot.config
+            // ï¿½cieï¿½ka do pliku boot.config
             string bootConfigPath = Path.Combine(selectedMod.InstallPath, "Among Us_Data", "boot.config");
 
             if (!File.Exists(bootConfigPath))
             {
-                await ShowErrorDialogAsync("B³¹d", $"Nie znaleziono pliku boot.config w œcie¿ce:\n{bootConfigPath}");
+                await ShowErrorDialogAsync("Bï¿½ï¿½d", $"Nie znaleziono pliku boot.config w ï¿½cieï¿½ce:\n{bootConfigPath}");
                 return;
             }
 
-            // Wczytaj zawartoœæ pliku
+            // Wczytaj zawartoï¿½ï¿½ pliku
             string[] lines = await File.ReadAllLinesAsync(bootConfigPath);
 
-            // Usuñ linijki zawieraj¹ce single-instance
+            // Usuï¿½ linijki zawierajï¿½ce single-instance
             var filteredLines = lines.Where(line =>
                 !line.Trim().StartsWith("single-instance=", StringComparison.OrdinalIgnoreCase))
                 .ToArray();
 
-            // SprawdŸ czy coœ zosta³o usuniête
+            // Sprawdï¿½ czy coï¿½ zostaï¿½o usuniï¿½te
             if (lines.Length == filteredLines.Length)
             {
                 await ShowInfoDialogAsync("Informacja",
                     "Nie znaleziono linijki 'single-instance=' w pliku boot.config.\n" +
-                    "Mod prawdopodobnie ju¿ nie ma ograniczenia SingleInstance.");
+                    "Mod prawdopodobnie juï¿½ nie ma ograniczenia SingleInstance.");
                 return;
             }
 
@@ -117,19 +182,19 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             await File.WriteAllLinesAsync(bootConfigPath, filteredLines);
 
             await ShowInfoDialogAsync("Sukces",
-                $"Pomyœlnie usuniêto ograniczenie SingleInstance z moda '{selectedMod.Name}'.\n\n" +
-                "Teraz mo¿esz uruchomiæ wiele kopii tego moda jednoczeœnie.");
+                $"Pomyï¿½lnie usuniï¿½to ograniczenie SingleInstance z moda '{selectedMod.Name}'.\n\n" +
+                "Teraz moï¿½esz uruchomiï¿½ wiele kopii tego moda jednoczeï¿½nie.");
 
             Debug.WriteLine($"Successfully removed SingleInstance from mod: {selectedMod.Name}");
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Error removing SingleInstance: {ex.Message}");
-            await ShowErrorDialogAsync("B³¹d", $"Nie uda³o siê usun¹æ SingleInstance:\n{ex.Message}");
+            await ShowErrorDialogAsync("Bï¿½ï¿½d", $"Nie udaï¿½o siï¿½ usunï¿½ï¿½ SingleInstance:\n{ex.Message}");
         }
     }
 
-    // Dodaj pomocnicze metody dla dialogów
+    // Dodaj pomocnicze metody dla dialogï¿½w
     private async Task<bool> ShowConfirmDialogAsync(string message, string title)
     {
         var dialog = new SUSModder.Views.ConfirmDialog(title, message);
@@ -154,41 +219,41 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     {
         try
         {
-            // SprawdŸ czy mamy wybrany mod
+            // Sprawdï¿½ czy mamy wybrany mod
             if (DataContext is not MainWindowViewModel vm || vm.SelectedMod == null)
             {
-                await ShowErrorDialogAsync("B³¹d", "Nie wybrano moda.");
+                await ShowErrorDialogAsync("Bï¿½ï¿½d", "Nie wybrano moda.");
                 return;
             }
 
             var selectedMod = vm.SelectedMod;
 
-            // SprawdŸ czy mod jest zainstalowany
+            // Sprawdï¿½ czy mod jest zainstalowany
             if (string.IsNullOrEmpty(selectedMod.InstallPath) || !Directory.Exists(selectedMod.InstallPath))
             {
-                await ShowErrorDialogAsync("B³¹d", "Wybrany mod nie jest zainstalowany lub œcie¿ka instalacji nie istnieje.");
+                await ShowErrorDialogAsync("Bï¿½ï¿½d", "Wybrany mod nie jest zainstalowany lub ï¿½cieï¿½ka instalacji nie istnieje.");
                 return;
             }
 
-            // Poka¿ dialog z wyborem iloœci instancji
+            // Pokaï¿½ dialog z wyborem iloï¿½ci instancji
             var instanceCount = await ShowInstanceCountDialogAsync();
             if (instanceCount <= 0)
                 return;
 
-            // Poka¿ ostrze¿enie dla Epic Games (jeœli potrzebne)
-            var platform = vm.DeterminePlatform(); // U¿yj metody z ViewModel jeœli jest publiczna
+            // Pokaï¿½ ostrzeï¿½enie dla Epic Games (jeï¿½li potrzebne)
+            var platform = vm.DeterminePlatform(); // Uï¿½yj metody z ViewModel jeï¿½li jest publiczna
             if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
             {
                 var confirmEpic = await ShowConfirmDialogAsync(
-                    $"Uruchamianie wielu instancji dla Epic Games mo¿e byæ niestabilne.\n\n" +
-                    $"Czy na pewno chcesz uruchomiæ {instanceCount} instancji moda '{selectedMod.Name}'?",
-                    "Ostrze¿enie - Epic Games");
+                    $"Uruchamianie wielu instancji dla Epic Games moï¿½e byï¿½ niestabilne.\n\n" +
+                    $"Czy na pewno chcesz uruchomiï¿½ {instanceCount} instancji moda '{selectedMod.Name}'?",
+                    "Ostrzeï¿½enie - Epic Games");
 
                 if (!confirmEpic)
                     return;
             }
 
-            // Uruchom wybrane iloœci instancji
+            // Uruchom wybrane iloï¿½ci instancji
             int successfulLaunches = 0;
             var errors = new List<string>();
 
@@ -198,15 +263,15 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 {
                     Debug.WriteLine($"Launching instance {i + 1} of {instanceCount} for mod: {selectedMod.Name}");
 
-                    // Wywo³aj bezpoœrednio metodê Launch z ViewModel
+                    // Wywoï¿½aj bezpoï¿½rednio metodï¿½ Launch z ViewModel
                     await vm.LaunchAsync();
 
                     successfulLaunches++;
 
-                    // Pauza miêdzy uruchomieniami (oprócz ostatniej instancji)
+                    // Pauza miï¿½dzy uruchomieniami (oprï¿½cz ostatniej instancji)
                     if (i < instanceCount - 1)
                     {
-                        await Task.Delay(2000); // Pauza dla stabilnoœci
+                        await Task.Delay(2000); // Pauza dla stabilnoï¿½ci
                     }
                 }
                 catch (Exception ex)
@@ -216,47 +281,47 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 }
             }
 
-            // Poka¿ wyniki
+            // Pokaï¿½ wyniki
             if (successfulLaunches == instanceCount)
             {
                 await ShowInfoDialogAsync("Sukces",
-                    $"Pomyœlnie uruchomiono wszystkie {instanceCount} instancji moda '{selectedMod.Name}'.");
+                    $"Pomyï¿½lnie uruchomiono wszystkie {instanceCount} instancji moda '{selectedMod.Name}'.");
             }
             else if (successfulLaunches > 0)
             {
                 var errorMessage = $"Uruchomiono {successfulLaunches} z {instanceCount} instancji moda '{selectedMod.Name}'.";
                 if (errors.Any())
                 {
-                    errorMessage += $"\n\nB³êdy:\n{string.Join("\n", errors)}";
+                    errorMessage += $"\n\nBï¿½ï¿½dy:\n{string.Join("\n", errors)}";
                 }
-                await ShowInfoDialogAsync("Czêœciowy sukces", errorMessage);
+                await ShowInfoDialogAsync("Czï¿½ciowy sukces", errorMessage);
             }
             else
             {
-                var errorMessage = $"Nie uda³o siê uruchomiæ ¿adnej instancji moda '{selectedMod.Name}'.";
+                var errorMessage = $"Nie udaï¿½o siï¿½ uruchomiï¿½ ï¿½adnej instancji moda '{selectedMod.Name}'.";
                 if (errors.Any())
                 {
-                    errorMessage += $"\n\nB³êdy:\n{string.Join("\n", errors)}";
+                    errorMessage += $"\n\nBï¿½ï¿½dy:\n{string.Join("\n", errors)}";
                 }
-                await ShowErrorDialogAsync("B³¹d", errorMessage);
+                await ShowErrorDialogAsync("Bï¿½ï¿½d", errorMessage);
             }
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Error launching multiple instances: {ex.Message}");
-            await ShowErrorDialogAsync("B³¹d", $"Nie uda³o siê uruchomiæ wielu instancji:\n{ex.Message}");
+            await ShowErrorDialogAsync("Bï¿½ï¿½d", $"Nie udaï¿½o siï¿½ uruchomiï¿½ wielu instancji:\n{ex.Message}");
         }
     }
 
 
     private async Task<int> ShowInstanceCountDialogAsync()
     {
-        // Dialog z motywami aplikacji - zwiêkszone wymiary
+        // Dialog z motywami aplikacji - zwiï¿½kszone wymiary
         var dialog = new Window
         {
-            Title = "Iloœæ instancji",
-            Width = 400,  // Zwiêkszone z 350
-            Height = 280, // Zwiêkszone z 220
+            Title = "Iloï¿½ï¿½ instancji",
+            Width = 400,  // Zwiï¿½kszone z 350
+            Height = 280, // Zwiï¿½kszone z 220
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,
             Background = this.FindResource("WindowBackgroundBrush") as IBrush
@@ -268,13 +333,13 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             BorderBrush = this.FindResource("BorderBrush") as IBrush,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
-            Margin = new Thickness(20), // Zwiêkszone z 15
-            Padding = new Thickness(25)  // Zwiêkszone z 20
+            Margin = new Thickness(20), // Zwiï¿½kszone z 15
+            Padding = new Thickness(25)  // Zwiï¿½kszone z 20
         };
 
         var stackPanel = new StackPanel { Spacing = 25 };
 
-        // Nag³ówek
+        // Nagï¿½ï¿½wek
         var headerText = new TextBlock
         {
             Text = "Uruchom wiele instancji",
@@ -289,7 +354,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         // Opis
         var descriptionText = new TextBlock
         {
-            Text = "Ile instancji chcesz uruchomiæ?",
+            Text = "Ile instancji chcesz uruchomiï¿½?",
             FontSize = 12,
             Foreground = this.FindResource("TextSecondaryBrush") as IBrush,
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
@@ -303,7 +368,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             Minimum = 1,
             Maximum = 255,
             Value = 2,
-            Increment = 1,  // Dodaj to - zwiêksza/zmniejsza o 1
+            Increment = 1,  // Dodaj to - zwiï¿½ksza/zmniejsza o 1
             FormatString = "F0",  // Dodaj to - format bez miejsc po przecinku
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
             Width = 120,
@@ -316,7 +381,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         };
         stackPanel.Children.Add(numericUpDown);
 
-        // Panel przycisków
+        // Panel przyciskï¿½w
         var buttonPanel = new StackPanel
         {
             Orientation = Avalonia.Layout.Orientation.Horizontal,
@@ -369,7 +434,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
 
 
-    // Reszta istniej¹cych metod...
+    // Reszta istniejï¿½cych metod...
     /// <summary>
     /// Ustawia opis z klikalnymi linkami w DescriptionPanel (StackPanel).
     /// </summary>
@@ -433,6 +498,345 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             });
         }
     }
+
+    // FAB Button overlay click handler - zamyka menu po klikniÄ™ciu w tÅ‚o
+    private void OnOverlayPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.IsPaneOpen = false;
+        }
+    }
+
+    // FAB Button drag & drop functionality
+    private const double FabEdgePadding = 24d;
+    private const double FabPanelSpacing = 16d;
+
+    private Button? _fabButton;
+    private Border? _fabMenuPanel;
+    private Canvas? _fabHost;
+    private Border? _statusBar;
+
+    private bool _isDraggingFab;
+    private Point _fabDragStartPoint;
+    private bool _wasDragged;
+    private Point _fabOriginalPosition;
+    private Point _fabCurrentPosition = new Point(FabEdgePadding, FabEdgePadding);
+    private bool _fabInitialPlacementDone;
+    private IPointer? _fabActivePointer;
+    
+    // Przechowujemy offset od dolnej krawÄ™dzi, aby FAB "trzymaÅ‚ siÄ™" doÅ‚u przy zmianie rozmiaru
+    private double _fabOffsetFromBottom;
+
+    private void OnFabPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (_fabButton == null)
+            return;
+
+        var properties = e.GetCurrentPoint(this).Properties;
+        if (properties.IsLeftButtonPressed)
+        {
+            _isDraggingFab = true;
+            _wasDragged = false;
+            _fabDragStartPoint = e.GetPosition(this); // Pozycja wzglÄ™dem okna
+            _fabOriginalPosition = _fabCurrentPosition;
+
+            // PrzechwyÄ‡ wskaÅºnik, aby otrzymywaÄ‡ zdarzenia nawet poza przyciskiem
+            _fabActivePointer = e.Pointer;
+            _fabActivePointer.Capture(this); // Przechwytujemy na poziomie okna
+            e.Handled = true;
+        }
+    }
+
+    private void OnFabPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (!_isDraggingFab || !ReferenceEquals(e.Pointer, _fabActivePointer))
+            return;
+
+        var currentPoint = e.GetPosition(this);
+        var delta = currentPoint - _fabDragStartPoint;
+
+        if (!_wasDragged && (Math.Abs(delta.X) > 3 || Math.Abs(delta.Y) > 3))
+        {
+            _wasDragged = true;
+        }
+
+        if (_wasDragged)
+        {
+            var newLeft = _fabOriginalPosition.X + delta.X;
+            var newTop = _fabOriginalPosition.Y + delta.Y;
+            UpdateFabVisuals(newLeft, newTop);
+        }
+        e.Handled = true;
+    }
+
+    private void OnFabPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (!_isDraggingFab || !ReferenceEquals(e.Pointer, _fabActivePointer))
+            return;
+
+        if (_wasDragged && _fabButton != null)
+        {
+            // Zapisz ostatniÄ… pozycjÄ™
+            _fabCurrentPosition = new Point(Canvas.GetLeft(_fabButton), Canvas.GetTop(_fabButton));
+            e.Handled = true;
+        }
+        else
+        {
+            // JeÅ›li nie byÅ‚o przeciÄ…gniÄ™cia, potraktuj to jako klikniÄ™cie
+            if (DataContext is MainWindowViewModel vm)
+            {
+                vm.TogglePaneCommand.Execute(Unit.Default);
+            }
+        }
+
+        // Zawsze zwalniaj zasoby przeciÄ…gania
+        _isDraggingFab = false;
+        _fabActivePointer?.Capture(null);
+        _fabActivePointer = null;
+    }
+
+    private void UpdateFabVisuals(double desiredLeft, double desiredTop)
+    {
+        if (_fabButton == null)
+            return;
+
+        var hostWidth = GetHostWidth();
+        var hostHeight = GetHostHeight();
+
+        if (hostWidth <= 0)
+        {
+            hostWidth = _fabButton.Width + (FabEdgePadding * 2);
+        }
+
+        if (hostHeight <= 0)
+        {
+            hostHeight = _fabButton.Height + (FabEdgePadding * 2);
+        }
+
+        var buttonWidth = _fabButton.Bounds.Width > 0 ? _fabButton.Bounds.Width : _fabButton.Width;
+    var buttonHeight = _fabButton.Bounds.Height > 0 ? _fabButton.Bounds.Height : _fabButton.Height;
+
+    var maxLeft = hostWidth - buttonWidth - FabEdgePadding;
+    var maxTop = CalculateMaxTop(hostHeight, buttonHeight);
+
+        if (maxLeft < FabEdgePadding)
+        {
+            maxLeft = FabEdgePadding;
+        }
+
+        if (maxTop < FabEdgePadding)
+        {
+            maxTop = FabEdgePadding;
+        }
+
+        var clampedLeft = ClampToBounds(desiredLeft, FabEdgePadding, maxLeft);
+        var clampedTop = ClampToBounds(desiredTop, FabEdgePadding, maxTop);
+
+        Canvas.SetLeft(_fabButton, clampedLeft);
+        Canvas.SetTop(_fabButton, clampedTop);
+
+        _fabCurrentPosition = new Point(clampedLeft, clampedTop);
+        
+        // Zapisz offset od dolnej krawÄ™dzi (maxTop to pozycja przy samym dole)
+        _fabOffsetFromBottom = maxTop - clampedTop;
+
+        UpdateFabMenuPosition(clampedLeft, clampedTop);
+    }
+
+    private void UpdateFabMenuPosition(double buttonLeft, double buttonTop)
+    {
+        if (_fabMenuPanel == null || _fabButton == null)
+            return;
+
+    var hostWidth = GetHostWidth();
+    var hostHeight = GetHostHeight();
+
+        if (hostWidth <= 0)
+        {
+            hostWidth = _fabButton.Width + (FabEdgePadding * 2);
+        }
+
+        if (hostHeight <= 0)
+        {
+            hostHeight = _fabButton.Height + (FabEdgePadding * 2);
+        }
+
+        var panelWidth = _fabMenuPanel.Bounds.Width;
+        if (panelWidth <= 0)
+        {
+            panelWidth = _fabMenuPanel.DesiredSize.Width;
+        }
+        if (panelWidth <= 0)
+        {
+            panelWidth = Math.Max(_fabMenuPanel.MinWidth, 200);
+        }
+
+        var panelHeight = _fabMenuPanel.Bounds.Height;
+        if (panelHeight <= 0)
+        {
+            panelHeight = _fabMenuPanel.DesiredSize.Height;
+        }
+        if (panelHeight <= 0)
+        {
+            panelHeight = 320;
+        }
+
+        var buttonHeight = _fabButton.Bounds.Height > 0 ? _fabButton.Bounds.Height : _fabButton.Height;
+
+        var left = buttonLeft;
+        var top = buttonTop - panelHeight - FabPanelSpacing;
+
+        if (left + panelWidth > hostWidth - FabEdgePadding)
+        {
+            left = hostWidth - panelWidth - FabEdgePadding;
+        }
+        if (left < FabEdgePadding)
+        {
+            left = FabEdgePadding;
+        }
+
+        if (top < FabEdgePadding)
+        {
+            top = buttonTop + buttonHeight + FabPanelSpacing;
+
+            if (top + panelHeight > hostHeight - FabEdgePadding)
+            {
+                top = hostHeight - panelHeight - FabEdgePadding;
+            }
+
+            if (top < FabEdgePadding)
+            {
+                top = FabEdgePadding;
+            }
+        }
+
+        Canvas.SetLeft(_fabMenuPanel, left);
+        Canvas.SetTop(_fabMenuPanel, top);
+    }
+
+    private void EnsureFabWithinBounds()
+    {
+        if (!_fabInitialPlacementDone)
+        {
+            InitializeFabPosition();
+            if (!_fabInitialPlacementDone)
+                return;
+        }
+
+        // Oblicz nowÄ… pozycjÄ™ Y na podstawie offsetu od doÅ‚u
+        var hostHeight = GetHostHeight();
+        var buttonHeight = _fabButton?.Bounds.Height > 0 ? _fabButton.Bounds.Height : (_fabButton?.Height ?? 56);
+        var maxTop = CalculateMaxTop(hostHeight, buttonHeight);
+        
+        // FAB powinien pozostaÄ‡ w tej samej odlegÅ‚oÅ›ci od dolnej krawÄ™dzi
+        var newTop = maxTop - _fabOffsetFromBottom;
+        
+        // Zachowaj poprzedniÄ… pozycjÄ™ X
+        UpdateFabVisuals(_fabCurrentPosition.X, newTop);
+    }
+
+    private static double ClampToBounds(double value, double min, double max)
+    {
+        if (!double.IsFinite(value))
+        {
+            return min;
+        }
+
+        var upper = max < min ? min : max;
+
+        if (value < min)
+            return min;
+
+        if (value > upper)
+            return upper;
+
+        return value;
+    }
+
+    private double CalculateMaxTop(double hostHeight, double buttonHeight)
+    {
+        var statusBarHeight = GetStatusBarHeight();
+        
+        // FAB powinien byÄ‡ zawsze tuÅ¼ nad status barem (niebieskÄ… liniÄ…)
+        // hostHeight zawiera caÅ‚Ä… wysokoÅ›Ä‡ Canvas (z status barem)
+        // WiÄ™c odejmujemy wysokoÅ›Ä‡ status bara i dodatkowy padding
+        var maxTop = hostHeight - statusBarHeight - buttonHeight - FabEdgePadding;
+
+        // Zabezpieczenie przed ujemnymi wartoÅ›ciami
+        if (maxTop < FabEdgePadding)
+        {
+            maxTop = FabEdgePadding;
+        }
+
+        return maxTop;
+    }
+
+    private double GetStatusBarHeight()
+    {
+        if (_statusBar == null)
+            return 0;
+
+        var height = _statusBar.Bounds.Height;
+
+        if (height <= 0 && _statusBar.DesiredSize.Height > 0)
+        {
+            height = _statusBar.DesiredSize.Height;
+        }
+
+        return height > 0 ? height : 0;
+    }
+
+    private double GetHostWidth()
+    {
+        double width = _fabHost?.Bounds.Width ?? 0;
+
+        if (!(width > 0))
+        {
+            width = this.Bounds.Width;
+        }
+
+        if (!(width > 0))
+        {
+            width = this.ClientSize.Width;
+        }
+
+        if (!(width > 0) && _fabButton != null)
+        {
+            width = _fabButton.Width + (FabEdgePadding * 2);
+        }
+
+        return width > 0 ? width : (_fabButton?.Width ?? 0) + (FabEdgePadding * 2);
+    }
+
+    private double GetHostHeight()
+    {
+        double height = _fabHost?.Bounds.Height ?? 0;
+
+        if (!(height > 0))
+        {
+            height = this.Bounds.Height;
+        }
+
+        if (!(height > 0))
+        {
+            height = this.ClientSize.Height;
+        }
+
+        if (!(height > 0) && _fabButton != null)
+        {
+            height = _fabButton.Height + (FabEdgePadding * 2);
+        }
+
+        return height > 0 ? height : (_fabButton?.Height ?? 0) + (FabEdgePadding * 2);
+    }
+
+    private void OnMenuPanelPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+    {
+        // Zapobiega zamykaniu menu podczas klikania w panel (ale nie w overlay)
+        e.Handled = true;
+    }
+
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         ConsoleLogger.Shutdown();

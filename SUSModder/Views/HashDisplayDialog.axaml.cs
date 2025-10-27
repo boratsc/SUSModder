@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using System;
+using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.Views
 {
@@ -11,6 +12,7 @@ namespace SUSModder.Views
     {
         private string _hash = "";
         private string _message = "";
+        private readonly ILocalizationService _localizationService;
 
         public string Hash
         {
@@ -37,6 +39,7 @@ namespace SUSModder.Views
         // Konstruktor bezparametrowy dla AXAML
         public HashDisplayDialog()
         {
+            _localizationService = App.GetService<ILocalizationService>();
             InitializeComponent();
             DataContext = this;
         }
@@ -45,7 +48,7 @@ namespace SUSModder.Views
         public HashDisplayDialog(string hash) : this()
         {
             Hash = hash;
-            Message = "Konfiguracja została zapisana na serwerze!";
+            Message = _localizationService.Get("Tools.HashDisplay.SuccessMessage");
         }
 
         private async void OnCopyClick(object? sender, RoutedEventArgs e)
@@ -59,7 +62,7 @@ namespace SUSModder.Views
                 if (sender is Button button)
                 {
                     var originalContent = button.Content;
-                    button.Content = "Skopiowano!";
+                    button.Content = _localizationService.Get("Tools.HashDisplay.CopiedButton");
                     button.IsEnabled = false;
 
                     await Task.Delay(1500);

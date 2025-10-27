@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.ConfirmDialog"
         Width="400" Height="200"
         WindowStartupLocation="CenterOwner"
@@ -36,14 +37,14 @@
                     HorizontalAlignment="Center"
                     Spacing="10">
 			<Button x:Name="NoButton"
-                    Content="Nie"
+                    Content="{loc:Localize UI.Buttons.No}"
                     Width="140" Height="30"
                     Background="{DynamicResource ModCardBackgroundBrush}"
                     Foreground="{DynamicResource TextPrimaryBrush}"
                     BorderBrush="{DynamicResource ModCardBorderBrush}"
                     Click="NoButton_Click"/>
 			<Button x:Name="YesButton"
-                    Content="Tak"
+                    Content="{loc:Localize UI.Buttons.Yes}"
                     Width="140" Height="30"
                     Background="{DynamicResource AccentBrush}"
                     Foreground="White"

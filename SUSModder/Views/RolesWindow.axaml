@@ -2,8 +2,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="using:SUSModder.Models"
         xmlns:converters="using:SUSModder.Converters"
+        xmlns:local="clr-namespace:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.RolesWindow"
-        Title="Role i Modyfikatory"
+        Title="{local:Localize RolesWindow.WindowTitle}"
         Width="1200" Height="800"
         MinWidth="800" MinHeight="600"
         Icon="/Assets/icon.ico"
@@ -65,11 +66,11 @@
 					<TextBlock Text="🎭" FontSize="32"/>
 					<StackPanel>
 						<TextBlock x:Name="TitleText"
-                                   Text="Role i Modyfikatory"
+                                   Text="{local:Localize RolesWindow.Header}"
                                    FontSize="24" FontWeight="Bold"
                                    Foreground="White"/>
 						<TextBlock x:Name="SubtitleText"
-                                   Text="Ładowanie..."
+                                   Text="{local:Localize RolesWindow.LoadingSubtitle}"
                                    FontSize="12"
                                    Foreground="#E0FFFFFF"/>
 					</StackPanel>
@@ -78,7 +79,7 @@
 				<!-- Wyszukiwarka -->
 				<TextBox Grid.Column="1"
                          x:Name="SearchBox"
-                         Watermark="Wyszukaj role..."
+                         Watermark="{local:Localize RolesWindow.SearchPlaceholder}"
                          Margin="20,0"
                          VerticalAlignment="Center"
                          FontSize="14"
@@ -89,32 +90,32 @@
 				<!-- Filtr kategorii -->
 				<ComboBox Grid.Column="2"
                           x:Name="CategoryFilter"
-                          PlaceholderText="Wszystkie kategorie"
+                          PlaceholderText="{local:Localize RolesWindow.AllCategories}"
                           MinWidth="150"
                           Margin="0,0,10,0"
                           VerticalAlignment="Center"
                           Background="{DynamicResource SecondaryBackgroundBrush}"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           SelectionChanged="OnCategoryFilterChanged">
-					<ComboBoxItem Content="Wszystkie kategorie"/>
-					<ComboBoxItem Content="Crewmate"/>
-					<ComboBoxItem Content="Impostor"/>
-					<ComboBoxItem Content="Neutral"/>
-					<ComboBoxItem Content="Modifier"/>
+					<ComboBoxItem Content="{local:Localize RolesWindow.AllCategories}"/>
+					<ComboBoxItem Content="{local:Localize RolesWindow.CategoryCrewmate}"/>
+					<ComboBoxItem Content="{local:Localize RolesWindow.CategoryImpostor}"/>
+					<ComboBoxItem Content="{local:Localize RolesWindow.CategoryNeutral}"/>
+					<ComboBoxItem Content="{local:Localize RolesWindow.CategoryModifier}"/>
 				</ComboBox>
 
 				<!-- Filtr typu -->
 				<ComboBox Grid.Column="3"
                           x:Name="TypeFilter"
-                          PlaceholderText="Wszystkie typy"
+                          PlaceholderText="{local:Localize RolesWindow.AllTypes}"
                           MinWidth="120"
                           VerticalAlignment="Center"
                           Background="{DynamicResource SecondaryBackgroundBrush}"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           SelectionChanged="OnTypeFilterChanged">
-					<ComboBoxItem Content="Wszystkie typy"/>
-					<ComboBoxItem Content="Role"/>
-					<ComboBoxItem Content="Modifier"/>
+					<ComboBoxItem Content="{local:Localize RolesWindow.AllTypes}"/>
+					<ComboBoxItem Content="{local:Localize RolesWindow.TypeRole}"/>
+					<ComboBoxItem Content="{local:Localize RolesWindow.TypeModifier}"/>
 				</ComboBox>
 			</Grid>
 		</Border>
@@ -133,7 +134,7 @@
                         VerticalAlignment="Center">
 					<StackPanel HorizontalAlignment="Center" Spacing="15">
 						<TextBlock Text="⏳" FontSize="48" HorizontalAlignment="Center"/>
-						<TextBlock Text="Ładowanie ról..."
+						<TextBlock Text="{local:Localize RolesWindow.LoadingMessage}"
                                    FontSize="16"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    HorizontalAlignment="Center"/>
@@ -148,11 +149,11 @@
                         IsVisible="False">
 					<StackPanel HorizontalAlignment="Center" Spacing="10">
 						<TextBlock Text="❌" FontSize="32" HorizontalAlignment="Center"/>
-						<TextBlock Text="Błąd podczas ładowania ról"
+						<TextBlock Text="{local:Localize RolesWindow.ErrorMessage}"
                                    FontSize="16"
                                    Foreground="White"
                                    HorizontalAlignment="Center"/>
-						<Button Content="Spróbuj ponownie"
+						<Button Content="{local:Localize RolesWindow.RetryButton}"
                                 HorizontalAlignment="Center"
                                 Background="{DynamicResource SecondaryBackgroundBrush}"
                                 Foreground="{DynamicResource TextPrimaryBrush}"
@@ -272,11 +273,11 @@
                         IsVisible="False">
 					<StackPanel HorizontalAlignment="Center" Spacing="15">
 						<TextBlock Text="🔍" FontSize="48" HorizontalAlignment="Center"/>
-						<TextBlock Text="Brak wyników"
+						<TextBlock Text="{local:Localize RolesWindow.NoResultsMessage}"
                                    FontSize="16"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    HorizontalAlignment="Center"/>
-						<TextBlock Text="Spróbuj zmienić kryteria wyszukiwania"
+						<TextBlock Text="{local:Localize RolesWindow.NoResultsHint}"
                                    FontSize="12"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center"/>

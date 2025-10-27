@@ -1,0 +1,54 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Styl dla głównego panelu szczegółów (prawa strona) -->
+    <Style Selector="Border.details-panel">
+        <Setter Property="Margin" Value="15,10,10,10"/>
+        <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="BoxShadow" Value="0 4 16 0 #20000000"/>
+        <Setter Property="Width" Value="350"/>
+        <Setter Property="MaxWidth" Value="400"/>
+    </Style>
+
+    <!-- Styl dla nagłówka sekcji w panelu -->
+    <Style Selector="Border.section-header">
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="15"/>
+        <Setter Property="Margin" Value="0,0,0,20"/>
+    </Style>
+
+    <!-- Styl dla ikony emoji w nagłówku -->
+    <Style Selector="TextBlock.header-icon">
+        <Setter Property="FontSize" Value="32"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- Styl dla tytułu w nagłówku -->
+    <Style Selector="TextBlock.header-title">
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- Styl dla przycisku zamknij (X) w nagłówku -->
+    <Style Selector="Button.close-button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Padding" Value="8"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- Hover effect dla przycisku zamknij -->
+    <Style Selector="Button.close-button:pointerover">
+        <Setter Property="Background" Value="#40FFFFFF"/>
+    </Style>
+
+</Styles>

@@ -13,6 +13,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using System.Collections.Generic;
 using System.Linq;
 using SUSModder.Core.Configuration;
+using SUSModder.Core.Services.Localization;
 using SUSModder.Views;
 using System.Diagnostics;
 
@@ -20,27 +21,77 @@ namespace SUSModder.ViewModels
 {
     public class AppSettingsViewModel : ViewModelBase
     {
-        private readonly Window _window;
+        private readonly Control _control;
+        private readonly ILocalizationService? _localizationService;
         private string _modsInstallPath = string.Empty;
         private bool _developerMode = false;
         private string _gameMode = "steam";
+        private LanguageOption? _selectedLanguage;
         private string _originalModsInstallPath = string.Empty;
         private bool _originalDeveloperMode = false;
         private string _originalGameMode = "steam";
+        private string _originalLanguage = "pl";
         private bool _hasUnsavedChanges = false;
+        private bool _telemetryEnabled = true;
+        private bool _originalTelemetryEnabled = true;
+
+        // Stała lista dostępnych języków (aby uniknąć problemów z referencjami)
+        private static readonly List<LanguageOption> _availableLanguages = new()
+        {
+            new LanguageOption { Code = "pl", DisplayName = "Polski" },
+            new LanguageOption { Code = "en", DisplayName = "English" }
+        };
 
         // Dodaj event dla powiadomienia o zapisaniu
         public event Action? SettingsSaved;
-        
+
         // Dodaj event dla powiadomienia o zmianie trybu gry
         public static event Action? GameModeChanged;
 
-        public AppSettingsViewModel(Window window)
+        public AppSettingsViewModel(Control control)
         {
-            _window = window;
+            _control = control;
 
             // Załaduj obecne ustawienia
             LoadCurrentSettings();
+
+            // Pobierz serwis lokalizacji z DI
+            try
+            {
+                _localizationService = App.GetService<ILocalizationService>();
+                var currentCulture = _localizationService?.CurrentCulture ?? "pl";
+
+                Console.WriteLine($"[AppSettingsViewModel] CurrentCulture z serwisu: {currentCulture}");
+                Console.WriteLine($"[AppSettingsViewModel] Dostępne języki: {string.Join(", ", AvailableLanguages.Select(l => $"{l.DisplayName}({l.Code})"))}");
+
+                _selectedLanguage = AvailableLanguages.FirstOrDefault(l => l.Code == currentCulture);
+
+                if (_selectedLanguage == null)
+                {
+                    Console.WriteLine($"[AppSettingsViewModel] Nie znaleziono języka dla kodu: {currentCulture}, ustawiam domyślny");
+                    _selectedLanguage = AvailableLanguages[0];
+                }
+
+                _originalLanguage = currentCulture;
+
+                Console.WriteLine($"[AppSettingsViewModel] Ustawiono SelectedLanguage: {_selectedLanguage?.DisplayName} ({_selectedLanguage?.Code})");
+                Console.WriteLine($"[AppSettingsViewModel] SelectedLanguage == null? {_selectedLanguage == null}");
+
+                // Ważne: powiadom UI o ustawieniu początkowej wartości
+                this.RaisePropertyChanged(nameof(SelectedLanguage));
+                this.RaisePropertyChanged(nameof(AvailableLanguages));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AppSettingsViewModel] BŁĄD przy inicjalizacji języka: {ex.Message}");
+                Console.WriteLine($"[AppSettingsViewModel] Stack trace: {ex.StackTrace}");
+                _selectedLanguage = AvailableLanguages[0];
+                this.RaisePropertyChanged(nameof(SelectedLanguage));
+                this.RaisePropertyChanged(nameof(AvailableLanguages));
+            }
+
+            // Wczytaj ustawienia telemetrii
+            LoadTelemetrySettings();
 
             // Komendy
             BrowseFolderCommand = ReactiveCommand.CreateFromTask(BrowseFolder);
@@ -104,6 +155,53 @@ namespace SUSModder.ViewModels
                     this.RaisePropertyChanged(nameof(IsSteamMode));
                 }
             }
+        }
+
+        public List<LanguageOption> AvailableLanguages => _availableLanguages;
+
+        public bool TelemetryEnabled
+        {
+            get => _telemetryEnabled;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _telemetryEnabled, value);
+                OnTelemetryEnabledChanged(value);
+                CheckForChanges();
+            }
+        }
+
+        public LanguageOption? SelectedLanguage
+        {
+            get
+            {
+                Console.WriteLine($"[AppSettingsViewModel] SelectedLanguage GET: {_selectedLanguage?.DisplayName} ({_selectedLanguage?.Code})");
+                return _selectedLanguage;
+            }
+            set
+            {
+                Console.WriteLine($"[AppSettingsViewModel] SelectedLanguage SET: {value?.DisplayName} ({value?.Code})");
+                var oldValue = _selectedLanguage;
+                this.RaiseAndSetIfChanged(ref _selectedLanguage, value);
+                if (oldValue != value && value != null)
+                {
+                    Console.WriteLine($"[AppSettingsViewModel] Język zmieniony z {oldValue?.Code} na {value.Code}");
+                    OnLanguageChanged();
+                    CheckForChanges();
+                }
+            }
+        }
+
+        private void OnLanguageChanged()
+        {
+            if (_selectedLanguage == null) return;
+
+            // Zmień język w serwisie (live switch)
+            _localizationService?.ChangeCulture(_selectedLanguage.Code);
+
+            // Zapisz wybór do appsettings.json natychmiast (live switch)
+            ConfigManager.SaveLanguageSetting(_selectedLanguage.Code);
+
+            System.Diagnostics.Debug.WriteLine($"Język zmieniony na: {_selectedLanguage.Code}");
         }
 
         public bool HasUnsavedChanges
@@ -198,8 +296,112 @@ namespace SUSModder.ViewModels
         {
             HasUnsavedChanges = !string.Equals(_modsInstallPath, _originalModsInstallPath, StringComparison.OrdinalIgnoreCase) ||
                                _developerMode != _originalDeveloperMode ||
-                               _gameMode != _originalGameMode;
+                               _gameMode != _originalGameMode ||
+                               (_selectedLanguage?.Code ?? "pl") != _originalLanguage ||
+                               _telemetryEnabled != _originalTelemetryEnabled;
             this.RaisePropertyChanged(nameof(WindowTitle));
+        }
+
+        private void LoadTelemetrySettings()
+        {
+            try
+            {
+                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+                var appSettingsPath = Path.Combine(exeDir, "appsettings.json");
+
+                if (File.Exists(appSettingsPath))
+                {
+                    var jsonContent = File.ReadAllText(appSettingsPath);
+                    var jsonDocument = JsonDocument.Parse(jsonContent);
+                    var root = jsonDocument.RootElement;
+
+                    if (root.TryGetProperty("Configuration", out var config) &&
+                        config.TryGetProperty("TelemetryEnabled", out var telemetryEnabledElement))
+                    {
+                        // Accept both boolean and string values for backward compatibility
+                        if (telemetryEnabledElement.ValueKind == JsonValueKind.True || telemetryEnabledElement.ValueKind == JsonValueKind.False)
+                        {
+                            _telemetryEnabled = telemetryEnabledElement.GetBoolean();
+                        }
+                        else if (telemetryEnabledElement.ValueKind == JsonValueKind.String)
+                        {
+                            var str = telemetryEnabledElement.GetString();
+                            if (!bool.TryParse(str, out _telemetryEnabled))
+                            {
+                                _telemetryEnabled = true; // default on invalid value
+                            }
+                        }
+                        else
+                        {
+                            _telemetryEnabled = true; // sensible default
+                        }
+
+                        _originalTelemetryEnabled = _telemetryEnabled;
+                    }
+                }
+
+                this.RaisePropertyChanged(nameof(TelemetryEnabled));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to load telemetry settings: {ex.Message}");
+                _telemetryEnabled = true;
+                _originalTelemetryEnabled = true;
+            }
+        }
+
+        private void OnTelemetryEnabledChanged(bool enabled)
+        {
+            try
+            {
+                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+                var appSettingsPath = Path.Combine(exeDir, "appsettings.json");
+
+                if (File.Exists(appSettingsPath))
+                {
+                    var jsonContent = File.ReadAllText(appSettingsPath);
+                    var jsonDocument = JsonDocument.Parse(jsonContent);
+                    var root = jsonDocument.RootElement;
+
+                    var updatedSettings = new Dictionary<string, object>();
+
+                    foreach (var property in root.EnumerateObject())
+                    {
+                        if (property.Name == "Configuration")
+                        {
+                            var configuration = new Dictionary<string, object>();
+
+                            foreach (var configProperty in property.Value.EnumerateObject())
+                            {
+                                if (configProperty.Name == "TelemetryEnabled")
+                                {
+                                    configuration[configProperty.Name] = enabled;
+                                }
+                                else
+                                {
+                                    configuration[configProperty.Name] = GetJsonValue(configProperty.Value);
+                                }
+                            }
+
+                            updatedSettings[property.Name] = configuration;
+                        }
+                        else
+                        {
+                            updatedSettings[property.Name] = GetJsonValue(property.Value);
+                        }
+                    }
+
+                    var options = new JsonSerializerOptions { WriteIndented = true };
+                    var updatedJson = JsonSerializer.Serialize(updatedSettings, options);
+                    File.WriteAllText(appSettingsPath, updatedJson);
+
+                    System.Diagnostics.Debug.WriteLine($"Telemetry {(enabled ? "enabled" : "disabled")}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to save telemetry setting: {ex.Message}");
+            }
         }
 
         private async Task BrowseFolder()
@@ -279,6 +481,7 @@ namespace SUSModder.ViewModels
                 _originalModsInstallPath = ModsInstallPath;
                 _originalDeveloperMode = DeveloperMode;
                 _originalGameMode = GameMode;
+                _originalTelemetryEnabled = TelemetryEnabled;
                 HasUnsavedChanges = false;
 
                 // Powiadom o zapisaniu ustawień
@@ -415,32 +618,56 @@ namespace SUSModder.ViewModels
 
         private void Cancel()
         {
-            _window.Close();
+            // Dla UserControl - zamknięcie jest obsłużone przez CancelButton_Click
+            // Dla Window - zamykamy okno
+            if (_control is Window window)
+            {
+                window.Close();
+            }
         }
 
         private async Task ShowErrorAsync(string title, string message)
         {
-            var dialog = new MessageDialog(title, message);
-            await dialog.ShowDialog(_window);
+            var parentWindow = GetParentWindow();
+            if (parentWindow != null)
+            {
+                var dialog = new MessageDialog(title, message);
+                await dialog.ShowDialog(parentWindow);
+            }
         }
 
         private async Task ShowInfoAsync(string title, string message)
         {
-            var dialog = new MessageDialog(title, message);
-            await dialog.ShowDialog(_window);
+            var parentWindow = GetParentWindow();
+            if (parentWindow != null)
+            {
+                var dialog = new MessageDialog(title, message);
+                await dialog.ShowDialog(parentWindow);
+            }
+        }
+
+        private Window? GetParentWindow()
+        {
+            if (_control is Window window)
+                return window;
+            
+            return (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
         }
 
         private async Task<bool?> ShowConfirmAsync(string title, string message, string ok, string cancel)
         {
+            var parentWindow = GetParentWindow();
+            if (parentWindow == null) return null;
+
             var dialog = new Window
             {
                 Title = title,
                 Width = 400,
                 Height = 200,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Background = _window.Background,
-                Icon = _window.Icon,
-                FontFamily = _window.FontFamily
+                Background = parentWindow.Background,
+                Icon = parentWindow.Icon,
+                FontFamily = parentWindow.FontFamily
             };
 
             var cancelButton = new Button
@@ -488,19 +715,11 @@ namespace SUSModder.ViewModels
                 }
             };
 
-            return await dialog.ShowDialog<bool?>(_window);
+            return await dialog.ShowDialog<bool?>(parentWindow);
         }
 
         private async Task FactoryResetAsync()
         {
-            var result = await ShowConfirmAsync(
-                "Reset do ustawień fabrycznych",
-                "Ta operacja usunie WSZYSTKIE mody oraz przywróci ustawienia fabryczne aplikacji. Kontynuować?",
-                "Resetuj", "Anuluj");
-
-            if (result != true)
-                return;
-
             try
             {
                 // Pobierz ścieżki z appsettings.json
@@ -522,6 +741,22 @@ namespace SUSModder.ViewModels
                         if (appSettings.TryGetProperty("DefaultModsPath", out var defPathElem))
                             defaultModsPath = defPathElem.GetString() ?? string.Empty;
                     }
+                }
+
+                // Pokaż dedykowany dialog potwierdzenia
+                var dialog = new FactoryResetConfirmDialog(modsInstallPath, defaultModsPath);
+                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+                if (mainWindow != null)
+                {
+                    await dialog.ShowDialog(mainWindow);
+                    
+                    if (!dialog.Result)
+                        return;
+                }
+                else
+                {
+                    return;
                 }
 
                 void ForceDeleteDirectory(string path)
@@ -577,5 +812,14 @@ namespace SUSModder.ViewModels
                 await ShowErrorAsync("Błąd resetu", $"Wystąpił błąd podczas resetowania aplikacji:\n{ex.Message}");
             }
         }
+    }
+
+    /// <summary>
+    /// Model dla opcji języka w ComboBox.
+    /// </summary>
+    public class LanguageOption
+    {
+        public string Code { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
     }
 }
