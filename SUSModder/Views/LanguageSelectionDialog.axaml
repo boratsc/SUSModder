@@ -1,0 +1,170 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SUSModder.ViewModels"
+        x:Class="SUSModder.Views.LanguageSelectionDialog"
+        x:DataType="vm:LanguageSelectionViewModel"
+        Title="Language Selection"
+        Width="500"
+        Height="350"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        SystemDecorations="None"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Border CornerRadius="12"
+            ClipToBounds="True"
+            Background="#1A1A2E"
+            BorderBrush="#00FFAA"
+            BorderThickness="2">
+        <Border.Effect>
+            <DropShadowEffect Color="#00FFAA"
+                            BlurRadius="20"
+                            OffsetX="0"
+                            OffsetY="0"
+                            Opacity="0.5"/>
+        </Border.Effect>
+
+        <Grid RowDefinitions="Auto,*,Auto" Margin="30">
+            <!-- Header with bilingual text -->
+            <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,10,0,30">
+                <TextBlock Text="Wybierz język"
+                          FontSize="24"
+                          FontWeight="Bold"
+                          Foreground="White"
+                          HorizontalAlignment="Center"
+                          Margin="0,0,0,5"/>
+                <TextBlock Text="Choose language"
+                          FontSize="20"
+                          FontWeight="SemiBold"
+                          Foreground="#CCCCCC"
+                          HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Language Selection Buttons -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,20,*" HorizontalAlignment="Center">
+                <!-- Polish Button -->
+                <Button Grid.Column="0"
+                        Width="180"
+                        Height="180"
+                        Background="#2A2A3E"
+                        BorderBrush="#00FFAA"
+                        BorderThickness="2"
+                        CornerRadius="12"
+                        Command="{Binding SelectPolishCommand}"
+                        Cursor="Hand"
+                        Classes="languageButton">
+                    <Button.Styles>
+                        <Style Selector="Button.languageButton:pointerover">
+                            <Setter Property="Background" Value="#3A3A4E"/>
+                            <Setter Property="BorderBrush" Value="#00F5FF"/>
+                        </Style>
+                        <Style Selector="Button.languageButton:pressed">
+                            <Setter Property="Background" Value="#4A4A5E"/>
+                        </Style>
+                    </Button.Styles>
+                    <Button.Effect>
+                        <DropShadowEffect Color="#00FFAA"
+                                        BlurRadius="0"
+                                        OffsetX="0"
+                                        OffsetY="0"
+                                        Opacity="0.3"/>
+                    </Button.Effect>
+
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="15">
+                        <!-- Polish Flag -->
+                        <Border Width="120"
+                                Height="80"
+                                CornerRadius="8"
+                                ClipToBounds="True"
+                                BorderBrush="#555"
+                                BorderThickness="1">
+                            <Grid RowDefinitions="*,*">
+                                <Rectangle Grid.Row="0" Fill="White"/>
+                                <Rectangle Grid.Row="1" Fill="#DC143C"/>
+                            </Grid>
+                        </Border>
+
+                        <TextBlock Text="Polski"
+                                  FontSize="18"
+                                  FontWeight="Bold"
+                                  Foreground="White"
+                                  HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- English Button -->
+                <Button Grid.Column="2"
+                        Width="180"
+                        Height="180"
+                        Background="#2A2A3E"
+                        BorderBrush="#00FFAA"
+                        BorderThickness="2"
+                        CornerRadius="12"
+                        Command="{Binding SelectEnglishCommand}"
+                        Cursor="Hand"
+                        Classes="languageButton">
+                    <Button.Effect>
+                        <DropShadowEffect Color="#00FFAA"
+                                        BlurRadius="0"
+                                        OffsetX="0"
+                                        OffsetY="0"
+                                        Opacity="0.3"/>
+                    </Button.Effect>
+
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="15">
+                        <!-- UK Flag -->
+                        <Border Width="120"
+                                Height="80"
+                                CornerRadius="8"
+                                ClipToBounds="True"
+                                BorderBrush="#555"
+                                BorderThickness="1">
+                            <Grid>
+                                <!-- Blue background -->
+                                <Rectangle Fill="#012169"/>
+
+                                <!-- White diagonals -->
+                                <Path Fill="White"
+                                      Data="M 0,0 L 120,80 M 120,0 L 0,80"
+                                      StrokeThickness="20"
+                                      Stroke="White"/>
+
+                                <!-- Red diagonals -->
+                                <Path Fill="#C8102E"
+                                      Data="M 0,0 L 120,80 M 120,0 L 0,80"
+                                      StrokeThickness="12"
+                                      Stroke="#C8102E"/>
+
+                                <!-- White cross -->
+                                <Rectangle Fill="White" Width="120" Height="20" VerticalAlignment="Center"/>
+                                <Rectangle Fill="White" Width="20" Height="80" HorizontalAlignment="Center"/>
+
+                                <!-- Red cross -->
+                                <Rectangle Fill="#C8102E" Width="120" Height="12" VerticalAlignment="Center"/>
+                                <Rectangle Fill="#C8102E" Width="12" Height="80" HorizontalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <TextBlock Text="English"
+                                  FontSize="18"
+                                  FontWeight="Bold"
+                                  Foreground="White"
+                                  HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- Footer text -->
+            <TextBlock Grid.Row="2"
+                      Text="Możesz zmienić język później w ustawieniach / You can change language later in settings"
+                      FontSize="11"
+                      Foreground="#888888"
+                      HorizontalAlignment="Center"
+                      TextWrapping="Wrap"
+                      TextAlignment="Center"
+                      Margin="0,20,0,0"/>
+        </Grid>
+    </Border>
+</Window>

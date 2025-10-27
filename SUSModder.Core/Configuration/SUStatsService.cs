@@ -7,9 +7,13 @@ using System.Threading.Tasks;
 
 namespace SUSModder.Core.Configuration
 {
-    public class SUStatsService : IDisposable
+    public class SUStatsService
     {
-        private readonly HttpClient _httpClient;
+        // Statyczny HttpClient współdzielony przez wszystkie instancje (best practice)
+        private static readonly HttpClient _httpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(30)
+        };
         private readonly IConfiguration _configuration;
         private readonly IDiagnosticsOutput _diagnosticsOutput;
 
@@ -17,8 +21,6 @@ namespace SUSModder.Core.Configuration
         {
             _configuration = configuration;
             _diagnosticsOutput = diagnosticsOutput;
-            _httpClient = new HttpClient();
-            _httpClient.Timeout = TimeSpan.FromSeconds(30);
         }
 
         public async Task<List<AmongToken>> GetSUStatsServersAsync()
@@ -45,7 +47,7 @@ namespace SUSModder.Core.Configuration
 
                 // Pobierz token
                 var token = SecretProvider.GetDownloadToken();
-                _diagnosticsOutput.Write($"Token retrieved, length: {token?.Length ?? 0}");
+                _diagnosticsOutput.Write("Download token retrieved.");
 
                 if (string.IsNullOrEmpty(token))
                 {
@@ -58,7 +60,7 @@ namespace SUSModder.Core.Configuration
                 _httpClient.DefaultRequestHeaders.Add("Authorization", token);
                 _httpClient.DefaultRequestHeaders.Add("User-Agent", "SUSModder/1.0");
 
-                _diagnosticsOutput.Write($"Headers configured - Authorization: {token.Substring(0, 10)}...");
+                _diagnosticsOutput.Write("Authorization header configured.");
 
                 // Wykonaj żądanie
                 var response = await _httpClient.GetAsync(fullUrl);
@@ -123,9 +125,5 @@ namespace SUSModder.Core.Configuration
             }
         }
 
-        public void Dispose()
-        {
-            _httpClient?.Dispose();
-        }
     }
 }

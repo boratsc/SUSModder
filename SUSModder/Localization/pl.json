@@ -1,0 +1,619 @@
+{
+  "UI": {
+    "Buttons": {
+      "Install": "Instaluj",
+      "Launch": "Uruchom",
+      "Update": "Aktualizuj",
+      "Delete": "Usuń",
+      "Cancel": "Anuluj",
+      "OK": "OK",
+      "Yes": "Tak",
+      "No": "Nie",
+      "Browse": "Przeglądaj...",
+      "OpenFolder": "Otwórz folder",
+      "CreateShortcut": "Stwórz skrót",
+      "Close": "Zamknij",
+      "Save": "Zapisz",
+      "Apply": "Zastosuj",
+      "Reset": "Resetuj",
+      "Retry": "Ponów",
+      "Skip": "Pomiń",
+      "Select": "Wybierz",
+      "InstallLatest": "Instaluj (najnowsza wersja)",
+      "SelectVersion": "📦 Wybierz wersję...",
+      "AddDll": "Dodaj DLL",
+      "Roles": "Role"
+    },
+    "Labels": {
+      "InstalledMods": "Zainstalowanych modów",
+      "InstalledIn": "Zainstalowano w",
+      "Version": "Wersja",
+      "ModVersion": "Wersja moda",
+      "GameVersion": "Wersja gry",
+      "ModVersionFormat": "Wersja moda: {0}",
+      "GameVersionFormat": "Wersja AmongUs: {0}",
+      "NoMods": "Brak zainteresowanych modów",
+      "SpaceDetails": "Szczegóły przestrzeni",
+      "SpaceDetailsHeader": "Szczegóły przestrzeni:",
+      "Author": "Autor",
+      "Description": "Opis",
+      "ReleaseDate": "Data wydania",
+      "Size": "Rozmiar",
+      "Status": "Status",
+      "Name": "Nazwa",
+      "Path": "Ścieżka"
+    },
+    "Menu": {
+      "Title": "Menu",
+      "ToUConfigs": "Konfiguracje ToU",
+      "DllMods": "Modyfikacje DLL",
+      "SUStats": "SUStats - konfiguracje",
+      "RepairGame": "Napraw Amonga",
+      "Settings": "Ustawienia aplikacji",
+      "About": "O programie",
+      "Help": "Pomoc",
+      "Exit": "Wyjdź",
+      "RecommendedDiscords": "Polecane Discordy",
+      "Info": "Informacje"
+    },
+    "ModDetails": {
+      "Header": "Szczegóły moda:",
+      "Name": "Nazwa:",
+      "Version": "Wersja:",
+      "InstalledIn": "Zainstalowano w:",
+      "Author": "Autor:",
+      "Description": "Opis:",
+      "Links": "Linki:",
+      "Discord": "Discord",
+      "GitHub": "GitHub",
+      "Website": "Strona WWW"
+    },
+    "Search": {
+      "Placeholder": "Wpisz nazwę moda...",
+      "NoResults": "Nie znaleziono modów",
+      "Searching": "Wyszukiwanie..."
+    },
+    "Filter": {
+      "All": "Wszystkie",
+      "Installed": "Zainstalowane",
+      "NotInstalled": "Niezainstalowane",
+      "UpdateAvailable": "Dostępna aktualizacja"
+    },
+    "ModStatus": {
+      "Installed": "Zainstalowany",
+      "NotInstalled": "Niezainstalowany",
+      "UpdateAvailable": "Dostępna aktualizacja",
+      "Installing": "Instalowanie...",
+      "Updating": "Aktualizowanie...",
+      "Deleting": "Usuwanie..."
+    },
+    "StatusBar": {
+      "InstalledMods": "Zainstalowanych modów: ",
+      "InstalledModsList": "Zainstalowane mody:",
+      "API": "API",
+      "ServerStatus": "Status serwera API",
+      "URL": "URL: ",
+      "LastCheck": "Ostatnie sprawdzenie: ",
+      "Latency": "Opóźnienie: ",
+      "Ms": "ms",
+      "AvailableUpdates": "Dostępne aktualizacje -"
+    },
+    "Theme": {
+      "SwitchToLight": "Motyw jasny",
+      "SwitchToPink": "Motyw różowy",
+      "SwitchToDark": "Motyw ciemny"
+    },
+    "DeveloperMenu": {
+      "RemoveSingleInstance": "Usuń SingleInstance",
+      "LaunchMultiple": "Uruchom wybraną ilość instancji"
+    },
+    "DllManager": {
+      "Title": "Modyfikacje DLL",
+      "SelectModification": "Wybierz modyfikację do zainstalowania",
+      "ManageInstallation": "Zarządzaj instalacją modyfikacji",
+      "InstallIn": "📥 Zainstaluj w:",
+      "UninstallFrom": "🗑️ Odinstaluj z:",
+      "NoModsInstalled": "Brak zainstalowanych modów",
+      "InstallFullModFirst": "Zainstaluj najpierw jakiś mod typu 'full'",
+      "BackToList": "← Powrót do listy DLL",
+      "VersionFormat": "Wersja: {0}",
+      "ViewTitle": "Modyfikacje DLL",
+      "ViewSubtitle": "Wybierz modyfikacje DLL (zaznaczone = zainstalowane)",
+      "StatusInstalled": "[ZAINSTALOWANY]",
+      "VersionLabel": "Wersja: {0}"
+    }
+  },
+  "DllManager": {
+    "Title": "Zarządzanie modyfikacjami DLL",
+    "SelectTargetMod": "Wybierz mod docelowy",
+    "InstallDll": "Instaluj DLL",
+    "RemoveDll": "Usuń DLL",
+    "InstalledDlls": "Zainstalowane DLL",
+    "AvailableDlls": "Dostępne DLL",
+    "NoDllsInstalled": "Brak zainstalowanych DLL",
+    "DllInstalled": "DLL {0} został zainstalowany do {1}",
+    "DllRemoved": "DLL {0} został usunięty z {1}",
+    "CompatibilityWarning": "Sprawdź kompatybilność DLL z modem docelowym",
+    "ViewTitle": "Modyfikacje DLL",
+    "ViewSubtitle": "Wybierz modyfikacje DLL (zaznaczone = zainstalowane)",
+    "StatusInstalled": "[ZAINSTALOWANY]",
+    "VersionLabel": "Wersja: {0}",
+    "ApplyChangesHint": "Zaznacz/odznacz modyfikacje aby zastosować zmiany",
+    "NoAvailableMods": "Brak dostępnych modyfikacji DLL",
+    "CheckConnection": "Sprawdź połączenie internetowe lub konfigurację repozytoriów",
+    "OperationsComplete": "Operacje zakończone",
+    "BackButton": "Wróć",
+    "CloseButton": "Zamknij",
+    "ConfirmChanges": "Zatwierdź zmiany",
+    "InstallAndRemove": "Zainstaluj ({0}) i usuń ({1})",
+    "InstallCount": "Zainstaluj ({0})",
+    "RemoveCount": "Usuń ({0})",
+    "NoChanges": "Brak zmian",
+    "UpdateProgress": {
+      "WindowTitle": "Aktualizacja: {0}",
+      "UpdateCompleted": "✅ Aktualizacja zakończona pomyślnie!",
+      "UpdateError": "❌ Błąd: {0}",
+      "LocationPrefix": "📁 "
+    },
+    "UpdateConfirm": {
+      "WindowTitle": "Aktualizacja: {0}",
+      "Title": "Dostępna aktualizacja moda DLL",
+      "NewVersionAvailable": "Nowa dostępna wersja:",
+      "UpdateInLocations": "Mod zostanie zaktualizowany w:",
+      "LocationCount": "{0} lokalizacje",
+      "LocationCountSingular": "1 lokalizacja",
+      "UpdateAllButton": "Aktualizuj wszystkie",
+      "CancelButton": "Anuluj"
+    }
+  },
+  "Dialogs": {
+    "Error": {
+      "Title": "Błąd",
+      "Header": "Wystąpił błąd:",
+      "InstallFailed": "Nie udało się zainstalować moda",
+      "UpdateFailed": "Nie udało się zaktualizować moda",
+      "DeleteFailed": "Nie udało się usunąć moda",
+      "ConfigNotFound": "Nie znaleziono konfiguracji moda",
+      "NetworkError": "Błąd połączenia sieciowego",
+      "FileAccessError": "Błąd dostępu do pliku",
+      "DiskSpaceError": "Brak miejsca na dysku",
+      "GameNotFound": "Nie znaleziono gry Among Us",
+      "InstallFailedWithDetails": "Błąd podczas instalacji: {0}",
+      "UpdateFailedWithDetails": "Błąd podczas aktualizacji: {0}",
+      "NetworkErrorDetails": "Nie można połączyć się z serwerem. Szczegóły: {0}",
+      "InvalidPath": "Nieprawidłowa ścieżka instalacji",
+      "PermissionDenied": "Brak uprawnień do zapisu w tym folderze"
+    },
+    "Confirm": {
+      "Title": "Potwierdzenie",
+      "UninstallMessage": "Czy na pewno chcesz odinstalować {0}?",
+      "UninstallPath": "Ścieżka: {0}",
+      "DeleteMessage": "Ta operacja jest nieodwracalna. Kontynuować?",
+      "RestartApp": "Czy chcesz teraz uruchomić ponownie aplikację?",
+      "OverwriteFiles": "Niektóre pliki zostaną nadpisane. Kontynuować?",
+      "ResetSettings": "Czy na pewno chcesz przywrócić domyślne ustawienia?",
+      "CancelInstallation": "Czy na pewno chcesz anulować instalację?"
+    },
+    "Uninstall": {
+      "Title": "Potwierdź odinstalowanie",
+      "Message": "Czy na pewno chcesz odinstalować ten mod?",
+      "MessageWithName": "Czy na pewno chcesz odinstalować mod {0}?",
+      "SizeInfo": "Zostanie zwolnione około {0} MB miejsca na dysku",
+      "ConfirmButton": "Usuń mod",
+      "CancelButton": "Anuluj"
+    },
+    "UpdateMod": {
+      "Title": "Potwierdzenie aktualizacji",
+      "TitleWithName": "Aktualizacja moda '{0}'",
+      "Message": "Dostępna jest nowa wersja tego moda. Czy chcesz ją pobrać i zainstalować?",
+      "CurrentVersion": "Obecna wersja moda:",
+      "NewVersion": "Nowa wersja moda:",
+      "AmongVersion": "Wersja Among Us:",
+      "DownloadSize": "Rozmiar do pobrania: ~{0}",
+      "UnknownVersion": "Nieznana",
+      "UpdateButton": "Aktualizuj",
+      "CancelButton": "Anuluj"
+    },
+    "Info": {
+      "Title": "Informacja",
+      "UpdateAvailable": "Dostępna jest nowa wersja",
+      "RestartRequired": "Restart wymagany. Zmiana wymaga ponownego uruchomienia aplikacji.",
+      "InstallSuccess": "Instalacja zakończona pomyślnie",
+      "UpdateSuccess": "Aktualizacja zakończona pomyślnie",
+      "DeleteSuccess": "Mod został usunięty",
+      "NoUpdatesAvailable": "Wszystkie mody są aktualne",
+      "CheckingForUpdates": "Sprawdzanie aktualizacji...",
+      "DownloadComplete": "Pobieranie zakończone",
+      "AlreadyInstalled": "Ten mod jest już zainstalowany",
+      "GameRepaired": "Gra została naprawiona pomyślnie"
+    },
+    "Warning": {
+      "Title": "Ostrzeżenie",
+      "LowDiskSpace": "Mało miejsca na dysku. Wymagane: {0} MB, dostępne: {1} MB",
+      "OldGameVersion": "Ta wersja moda może nie być kompatybilna z Twoją wersją gry",
+      "BetaVersion": "To jest wersja beta. Mogą wystąpić błędy.",
+      "ModConflict": "Ten mod może kolidować z innymi zainstalowanymi modami"
+    },
+    "Progress": {
+      "Title": "Trwa operacja...",
+      "Downloading": "Pobieranie: {0}%",
+      "Extracting": "Rozpakowywanie...",
+      "Installing": "Instalowanie...",
+      "PleaseWait": "Proszę czekać...",
+      "WindowTitle": "Aktualizacja moda",
+      "UpdateLabel": "Aktualizacja: {0}"
+    }
+  },
+  "Settings": {
+    "WindowTitle": "Ustawienia aplikacji",
+    "WindowSubtitle": "Konfiguracja aplikacji SUSModder",
+    "General": {
+      "Title": "Ogólne",
+      "Language": {
+        "Label": "Język",
+        "Description": "Zmiana języka nastąpi natychmiast",
+        "Polish": "Polski",
+        "English": "English"
+      },
+      "Theme": {
+        "Label": "Motyw",
+        "Description": "Wybierz motyw kolorystyczny aplikacji",
+        "Dark": "Ciemny",
+        "Pink": "Różowy"
+      },
+      "GameMode": {
+        "Label": "Tryb gry",
+        "Description": "Wybierz platformę gry Among Us:",
+        "RestartRequired": "Zmiana tego ustawienia wymaga restartu aplikacji",
+        "Steam": "Steam",
+        "Epic": "Epic Games Store"
+      }
+    },
+    "Paths": {
+      "Title": "Ścieżki instalacji",
+      "ModsInstallPath": {
+        "Label": "Katalog instalacji modów:",
+        "Description": "Tutaj będą instalowane wszystkie mody Among Us",
+        "Browse": "Przeglądaj...",
+        "Reset": "Przywróć domyślną",
+        "Invalid": "Nieprawidłowa ścieżka",
+        "Empty": "Ścieżka instalacji modów nie może być pusta",
+        "Placeholder": "Wybierz katalog instalacji modów..."
+      },
+      "GamePath": {
+        "Label": "Ścieżka do gry Among Us",
+        "Description": "Lokalizacja gry Among Us",
+        "AutoDetect": "Wykryj automatycznie",
+        "NotFound": "Nie znaleziono gry Among Us"
+      }
+    },
+    "Privacy": {
+      "Title": "Prywatność",
+      "Telemetry": {
+        "Label": "Anonimowe statystyki",
+        "Description": "Pomaga nam rozwijać aplikację. Żadne dane osobowe nie są zbierane.",
+        "Details": "Zbieramy: wersję aplikacji, platformę, język, listę zainstalowanych modów (tylko ID) oraz czas sesji.",
+        "OnContent": "Włączone",
+        "OffContent": "Wyłączone"
+      }
+    },
+    "Advanced": {
+      "Title": "Ustawienia deweloperskie",
+      "DeveloperMode": {
+        "Label": "Mod Developer",
+        "Description": "Włącza dodatkowe opcje dla deweloperów modów",
+        "OnContent": "Włączony",
+        "OffContent": "Wyłączony"
+      },
+      "ShowConsole": {
+        "Label": "Konsola deweloperska",
+        "Description": "Pokazuje okno konsoli z logami (tylko dla tej sesji)",
+        "OnContent": "Włączony",
+        "OffContent": "Wyłączony"
+      },
+      "AutoUpdate": {
+        "Label": "Automatyczne aktualizacje",
+        "Description": "Sprawdzaj automatycznie dostępność aktualizacji przy starcie"
+      },
+      "ClearCache": {
+        "Label": "Wyczyść cache",
+        "Button": "Wyczyść teraz",
+        "Success": "Cache został wyczyszczony"
+      }
+    },
+    "FactoryReset": {
+      "Title": "Reset aplikacji",
+      "Description": "Resetuje aplikację do ustawień fabrycznych i usuwa wszystkie zainstalowane mody. Ta operacja jest nieodwracalna!",
+      "Button": "Resetuj"
+    }
+  },
+  "Messages": {
+    "RestartRequired": "Restart wymagany",
+    "RestartRequiredForChange": "Zmiana {0} wymaga ponownego uruchomienia aplikacji. Czy chcesz uruchomić ponownie teraz?",
+    "UpdateAvailable": "Dostępna aktualizacja",
+    "InstallComplete": "Instalacja zakończona",
+    "UpdateComplete": "Aktualizacja zakończona",
+    "DeleteComplete": "Usuwanie zakończone",
+    "ModInstalled": "Zainstalowano mod: {0}",
+    "ModUpdated": "Zaktualizowano mod: {0}",
+    "ModDeleted": "Usunięto mod: {0}",
+    "ModRequirements": "Mod {0} (wersja {1}) wymaga {2} MB",
+    "DownloadingMod": "Pobieranie moda {0}...",
+    "InstallingMod": "Instalowanie moda {0}...",
+    "UpdatingMod": "Aktualizowanie moda {0}...",
+    "NoInternetConnection": "Brak połączenia z Internetem",
+    "ConfigurationSaved": "Konfiguracja została zapisana",
+    "SettingsSaved": "Ustawienia zostały zapisane"
+  },
+  "Status": {
+    "Ready": "Gotowe",
+    "Loading": "Ładowanie...",
+    "FetchingMods": "Pobieranie listy modów...",
+    "Installing": "Instalowanie...",
+    "Updating": "Aktualizowanie...",
+    "Downloading": "Pobieranie...",
+    "Extracting": "Rozpakowywanie...",
+    "Deleting": "Usuwanie...",
+    "CheckingUpdates": "Sprawdzanie aktualizacji...",
+    "ConnectingToServer": "Łączenie z serwerem...",
+    "InitializingApp": "Inicjalizacja aplikacji...",
+    "LoadingConfiguration": "Ładowanie konfiguracji..."
+  },
+  "Tooltips": {
+    "InstallMod": "Kliknij aby zainstalować mod",
+    "LaunchMod": "Uruchom mod",
+    "UpdateMod": "Aktualizuj mod do najnowszej wersji",
+    "DeleteMod": "Odinstaluj mod",
+    "OpenModFolder": "Otwórz folder moda",
+    "CreateDesktopShortcut": "Stwórz skrót na pulpicie",
+    "ViewModDetails": "Zobacz szczegóły moda",
+    "RefreshModList": "Odśwież listę modów",
+    "OpenSettings": "Otwórz ustawienia",
+    "OpenDiscord": "Otwórz serwer Discord",
+    "OpenGitHub": "Otwórz repozytorium GitHub",
+    "CopyPath": "Skopiuj ścieżkę"
+  },
+  "Errors": {
+    "Generic": "Wystąpił nieoczekiwany błąd",
+    "NetworkTimeout": "Przekroczono limit czasu połączenia",
+    "FileNotFound": "Nie znaleziono pliku: {0}",
+    "DirectoryNotFound": "Nie znaleziono folderu: {0}",
+    "AccessDenied": "Brak uprawnień dostępu do: {0}",
+    "DiskFull": "Brak miejsca na dysku",
+    "DownloadFailed": "Nie udało się pobrać pliku",
+    "ExtractionFailed": "Nie udało się rozpakować archiwum",
+    "InvalidConfiguration": "Nieprawidłowa konfiguracja",
+    "GameNotRunning": "Gra nie jest uruchomiona",
+    "ModNotCompatible": "Mod nie jest kompatybilny z tą wersją gry",
+    "EpicLaunchError": {
+      "Title": "Błąd uruchamiania gry Epic",
+      "Header": "Wystąpił błąd podczas uruchamiania gry przez Epic Games",
+      "InstructionPrefix": "Spróbuj uruchomić podstawową wersję Among Us lub innego moda, a jeżeli będzie wszystko ok, ponownie uruchom ",
+      "InstructionSuffix": ".",
+      "CopyLogButton": "Kopiuj log",
+      "CloseButton": "Zamknij"
+    }
+  },
+  "ModTypes": {
+    "Full": "Pełny mod",
+    "Dll": "Modyfikacja DLL",
+    "Vanilla": "Wersja waniliowa",
+    "Unknown": "Nieznany typ"
+  },
+  "About": {
+    "WindowTitle": "O programie",
+    "AppName": "SUSModder",
+    "Version": "Wersja: {0}",
+    "Description": "Menedżer modów dla Among Us",
+    "Developer": "Deweloper: {0}",
+    "License": "Licencja: MIT",
+    "Website": "Strona WWW",
+    "GitHub": "Repozytorium GitHub",
+    "Discord": "Serwer Discord",
+    "Credits": "Podziękowania",
+    "ThirdPartyLibraries": "Biblioteki zewnętrzne",
+    "CreatorLabel": "TWÓRCA APLIKACJI",
+    "GraphicsLabel": "GRAFIKI",
+    "TestersLabel": "TESTERZY",
+    "TestersCommunity": "Społeczność Psychopatyczna",
+    "SpecialThanksLabel": "SPECJALNE PODZIĘKOWANIA",
+    "Copyright": "© 2025 SUSModder - Oprogramowanie na licencji GPLv3. Wszelkie prawa zastrzeżone."
+  },
+  "Updates": {
+    "CheckingForUpdates": "Sprawdzanie aktualizacji...",
+    "UpdateAvailable": "Dostępna jest nowa wersja: {0}",
+    "NoUpdatesAvailable": "Używasz najnowszej wersji",
+    "DownloadUpdate": "Pobierz aktualizację",
+    "InstallUpdate": "Zainstaluj aktualizację",
+    "ReleaseNotes": "Informacje o wydaniu",
+    "SkipVersion": "Pomiń tę wersję",
+    "RemindLater": "Przypomnij później",
+    "ModUpdatesTitle": "Aktualizacje modów",
+    "AvailableModUpdates": "Dostępne aktualizacje modów:",
+    "UpdatingMods": "Aktualizowanie modów...",
+    "CurrentVersion": "Obecna: {0}",
+    "NewVersion": "Nowa: {0}",
+    "Updating": "Aktualizowanie: {0}",
+    "UpdateSelected": "Aktualizuj wybrane",
+    "AppUpdateTitle": "Aktualizacja aplikacji",
+    "NewVersionAvailable": "Dostępna jest nowa wersja!",
+    "CurrentVersionLabel": "Obecna wersja: {0}",
+    "NewVersionLabel": "Nowa wersja: {0}",
+    "DownloadAndInstallQuestion": "Czy chcesz pobrać i zainstalować aktualizację?",
+    "DownloadingUpdate": "Pobieranie aktualizacji...",
+    "YesUpdate": "Tak, aktualizuj",
+    "NotNow": "Nie teraz"
+  },
+  "Tools": {
+    "TownOfUsTools": "Narzędzia dla TownOfUs",
+    "TownOfUsDescription": "Możesz tutaj zarządzać rzeczami związanymi z modami opartymi na Town Of Us (ToU, Syzyf, Edited itd)",
+    "Toolkit": "Toolkit",
+    "SetLobbySize": "Ustaw ilość osób w Lobby",
+    "SetLobbySizeHeader": "Ustaw liczbę graczy w lobby",
+    "SetLobbySizePrompt": "Wprowadź liczbę graczy (4-255):",
+    "TouConfigs": "Konfiguracje ToU",
+    "SaveConfigPrompt": "Wpisz nazwę konfiguracji (lub zostaw puste dla domyślnej nazwy z datą):",
+    "ConfigNameTitle": "Nazwa konfiguracji",
+    "SaveSuccess": "Konfiguracja została zapisana lokalnie.",
+    "LoadSuccess": "Konfiguracja została wczytana.",
+    "LoadTxtSuccess": "Konfiguracja została wczytana z pliku txt.",
+    "ServerLoadSuccess": "Konfiguracja z serwera została pomyślnie wczytana.",
+    "LobbySetSuccess": "Ustawiono liczbę graczy na {0}",
+    "NoConfigsFound": "Nie znaleziono zapisanych konfiguracji.",
+    "InvalidConfigCode": "Nieprawidłowy kod konfiguracji.",
+    "NetworkError": "Błąd połączenia z serwerem: {0}",
+    "TimeoutError": "Przekroczono limit czasu połączenia z serwerem.",
+    "UnexpectedError": "Wystąpił nieoczekiwany błąd: {0}",
+    "SaveLocalError": "Błąd podczas zapisywania lokalnej konfiguracji: {0}",
+    "LoadLocalError": "Błąd podczas ładowania lokalnej konfiguracji: {0}",
+    "LoadTxtError": "Błąd podczas ładowania konfiguracji z pliku txt: {0}",
+    "LobbySetError": "Błąd podczas ustawiania lobby: {0}",
+    "SelectFileTitle": "Wybierz plik",
+    "SaveConfigLocally": "Zapisz konfiguracje lokalnie",
+    "LoadConfigLocally": "Wczytaj konfiguracje lokalne",
+    "SaveConfigServer": "Zapisz konfiguracje na serwerze",
+    "LoadConfigServer": "Wczytaj konfiguracje z serwera",
+    "LoadConfigFromTxt": "Wczytaj konfigurację z pliku .txt",
+    "ChangePresetNames": "Zmień nazwy presetów lobby",
+    "LoadServerConfig": {
+      "WindowTitle": "Wczytaj konfigurację z serwera",
+      "Header": "Wczytaj konfigurację z serwera",
+      "Subtitle": "Wybierz sposób wczytania konfiguracji:",
+      "ManualHashOption": "Wpisz kod ręcznie",
+      "ManualHashHint": "Wpisz kod konfiguracji otrzymany od innej osoby:",
+      "ManualHashPlaceholder": "Wklej tutaj kod konfiguracji...",
+      "SavedConfigOption": "Wybierz z zapisanych konfiguracji",
+      "SavedConfigsLabel": "Twoje zapisane konfiguracje:",
+      "NoSavedConfigs": "Brak zapisanych konfiguracji",
+      "LoadButton": "📥 Wczytaj konfigurację",
+      "CancelButton": "Anuluj"
+    },
+    "VersionSelection": {
+      "WindowTitle": "Wybór wersji moda",
+      "CurrentVersion": "Obecna wersja:",
+      "Loading": "Pobieranie dostępnych wersji...",
+      "ErrorTitle": "Błąd",
+      "SelectPrompt": "Wybierz wersję do zainstalowania:",
+      "VersionLabel": "Wersja:",
+      "AmongVersion": "Among Us: {0}",
+      "SelectedLabel": "Wybrano:",
+      "CancelButton": "Anuluj",
+      "InstallButton": "Instaluj wybraną wersję"
+    },
+    "HashDisplay": {
+      "WindowTitle": "Kod konfiguracji",
+      "SuccessMessage": "Konfiguracja została zapisana na serwerze!",
+      "YourCodeLabel": "Twój kod konfiguracji:",
+      "ShareInstruction": "Możesz skopiować ten kod i wysłać go innym osobom, aby mogły pobrać Twoją konfigurację.",
+      "CopyButton": "📋 Skopiuj kod",
+      "CopiedButton": "Skopiowano!",
+      "CloseButton": "Zamknij"
+    },
+    "FactoryReset": {
+      "WindowTitle": "Potwierdzenie resetu fabrycznego",
+      "Title": "Reset do ustawień fabrycznych",
+      "Message": "Ta operacja usunie WSZYSTKIE mody oraz przywróci ustawienia fabryczne aplikacji. Kontynuować?",
+      "WarningMessage": "Operacja jest nieodwracalna!",
+      "SizeInfo": "Rozmiar do usunięcia: {0} ({1} {2})",
+      "DirectorySingular": "katalog",
+      "DirectoryPlural": "katalogów",
+      "DirectoryPlural2": "katalogi",
+      "DirectoryPlural5": "katalogów",
+      "CancelButton": "Anuluj",
+      "ResetButton": "Resetuj"
+    }
+  },
+  "Console": {
+    "WindowTitle": "Konsola deweloperska",
+    "Header": "🖥️ Konsola deweloperska",
+    "EntriesCount": "{0} wpisów",
+    "EntriesCountSingular": "1 wpis",
+    "ClearButton": "Wyczyść",
+    "CopyButton": "Kopiuj",
+    "SaveButton": "Zapisz",
+    "AutoScroll": "Automatyczne przewijanie",
+    "StatusReady": "Gotowe",
+    "StatusCleared": "Logi wyczyszczone",
+    "StatusCopied": "Logi skopiowane do schowka",
+    "StatusSaved": "Logi zapisane: {0}",
+    "StatusSaveError": "Błąd zapisu: {0}",
+    "SaveDialogTitle": "Zapisz logi",
+    "SaveDialogTextFiles": "Pliki tekstowe",
+    "SaveDialogAllFiles": "Wszystkie pliki",
+    "SaveDialogDefaultName": "SUSModder_Logs_{0}.txt"
+  },
+  "ChangePresetNames": {
+    "WindowTitle": "Zmień nazwy presetów lobby",
+    "Header": "Zmień nazwy presetów lobby",
+    "Subtitle": "Zmień nazwy plików konfiguracyjnych Among Us:",
+    "FilesListHeader": "Pliki konfiguracyjne:",
+    "NoFiles": "Brak plików .txt w katalogu Among Us",
+    "ResetButton": "🔄 Resetuj",
+    "SaveButton": "💾 Zapisz zmiany",
+    "CancelButton": "Anuluj"
+  },
+  "SUStatsConfirm": {
+    "WindowTitle": "Statystyki SUStats",
+    "Header": "Statystyki SUStats",
+    "Subtitle": "Czy chcesz zapisywać statystyki gry?",
+    "DetectedConfig": "Wykryto konfigurację serwera SUStats:",
+    "ServerNamePlaceholder": "[Nazwa serwera]",
+    "Question": "Czy chcesz uruchomić grę z zapisywaniem statystyk na tym serwerze?",
+    "YesButton": "✅ Tak - uruchom",
+    "NoButton": "🗑️ Skasuj i uruchom",
+    "CancelButton": "❌ Anuluj"
+  },
+  "SUStatsConfig": {
+    "Header": "SUStats - Konfiguracja",
+    "Subtitle": "Skonfiguruj rejestrowanie wyników gry",
+    "PasswordSection": "🔐 Hasło dostępu",
+    "PasswordPrompt": "Wprowadź hasło aby uzyskać dostęp do konfiguracji SUStats:",
+    "PasswordPlaceholder": "Wprowadź hasło...",
+    "CheckButton": "Sprawdź",
+    "RememberLogin": "Zapamiętaj logowanie",
+    "ServerConnected": "🖥️ Połączono z serwerem",
+    "EnableStats": "📈 Włącz rejestrowanie wyników gry",
+    "EnableStatsDescription": "Wyniki Twoich gier będą zapisywane na serwerze SUStats",
+    "LogoutButton": "🚪 Wyloguj",
+    "CloseButton": "Zamknij"
+  },
+  "RolesWindow": {
+    "WindowTitle": "Role i Modyfikatory",
+    "Header": "Role i Modyfikatory",
+    "LoadingSubtitle": "Ładowanie...",
+    "ModSubtitle": "Mod: {0}",
+    "SearchPlaceholder": "Wyszukaj role...",
+    "AllCategories": "Wszystkie kategorie",
+    "CategoryCrewmate": "Crewmate",
+    "CategoryImpostor": "Impostor",
+    "CategoryNeutral": "Neutral",
+    "CategoryModifier": "Modifier",
+    "AllTypes": "Wszystkie typy",
+    "TypeRole": "Role",
+    "TypeModifier": "Modifier",
+    "LoadingMessage": "Ładowanie ról...",
+    "ErrorMessage": "Błąd podczas ładowania ról",
+    "RetryButton": "Spróbuj ponownie",
+    "NoResultsMessage": "Brak wyników",
+    "NoResultsHint": "Spróbuj zmienić kryteria wyszukiwania",
+    "RoleCountSingle": "Mod: {0} • {1} ról/modyfikatorów",
+    "RoleCountFiltered": "Mod: {0} • {1} z {2} ról/modyfikatorów"
+  },
+  "RoleDetail": {
+    "WindowTitle": "Szczegóły roli",
+    "DescriptionHeader": "📝 Opis",
+    "AbilitiesHeader": "⚡ Zdolności",
+    "ModHeader": "Mod:",
+    "CloseButton": "Zamknij"
+  },
+  "RecommendedDiscords": {
+    "WindowTitle": "Polecane Discordy",
+    "Header": "Polecane Discordy",
+    "Subtitle": "Dołącz do społeczności Among Us - sprawdź na jakie DC warto zajrzeć",
+    "JoinButton": "Dołącz",
+    "CloseButton": "Zamknij"
+  },
+  "Splash": {
+    "Loading": "Ładowanie..."
+  }
+}

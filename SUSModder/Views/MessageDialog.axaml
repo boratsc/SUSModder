@@ -1,7 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.MessageDialog"
-        Width="350" Height="180"
+        Width="380" Height="210"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         Background="{DynamicResource WindowBackgroundBrush}">
@@ -18,7 +19,7 @@
                    HorizontalAlignment="Center"
                    TextAlignment="Center"/>
 
-		<Button Content="OK"
+		<Button Content="{loc:Localize UI.Buttons.OK}"
                 HorizontalAlignment="Center"
                 Width="80" Height="32"
                 Margin="0,10,0,0"

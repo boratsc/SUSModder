@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Utilities;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Models;
+using SUSModder.Core.Services;
 using Microsoft.Extensions.Configuration;
 
 namespace SUSModder.Core.GameIntegration
@@ -74,7 +76,9 @@ namespace SUSModder.Core.GameIntegration
             string baseUrl = configuration.GetSection("Configuration")["BaseUrl"] ?? "https://susmodder.boracik.pl/";
             string fileUrlAmongUs = $"{baseUrl}api/susmodder-download-version?version={vanilla7zName}";
 
-            string tempDir = Path.Combine(modsInstallPath, "temp");
+            // Unikalna nazwa katalogu temp dla każdej instalacji, aby uniknąć konfliktów przy równoczesnych instalacjach
+            string uniqueTempId = Guid.NewGuid().ToString("N");
+            string tempDir = Path.Combine(modsInstallPath, "temp", uniqueTempId);
             string modFolderPath = Path.Combine(modsInstallPath, modConfig.ModName);
             string modFile = Path.Combine(tempDir, "mod.zip");
 
@@ -300,7 +304,51 @@ namespace SUSModder.Core.GameIntegration
             }
 
             ConfigManager.SaveConfig(modConfigs);
-            Directory.Delete(tempDir, true);
+
+            // === NOWY KOD: Stwórz Installation Map ===
+            try
+            {
+                var installationMap = new InstallationMap
+                {
+                    InstalledAt = DateTime.Now,
+                    InstalledBy = $"SUSModder v{GetAppVersion()}",
+                    Platform = "steam",
+                    FullMod = new FullModInstallation
+                    {
+                        ModId = modConfig.Id,
+                        ModName = modConfig.ModName,
+                        ModVersion = modConfig.ModVersion ?? "unknown",
+                        AmongVersion = modConfig.AmongVersion ?? "unknown",
+                        InstallPath = modFolderPath,
+                        InstalledFrom = modConfig.GitHubRepoOrLink ?? "unknown",
+                        LastUpdated = DateTime.Now
+                    },
+                    InstalledDlls = new List<DllModInstallation>()
+                };
+
+                await InstallationMapManager.SaveInstallationMapAsync(modFolderPath, installationMap);
+                log.Write($"[InstallationMap] Zapisano mapę instalacji w: {modFolderPath}");
+            }
+            catch (Exception ex)
+            {
+                log.Write($"[WARNING] Nie udało się zapisać Installation Map: {ex.Message}");
+                // Nie przerywamy instalacji jeśli zapis mapy się nie powiódł
+            }
+            // === KONIEC NOWEGO KODU ===
+
+            // Usuń unikalny katalog temp dla tej instalacji
+            try
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                    log.Write($"Usunięto katalog tymczasowy: {tempDir}");
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Write($"[WARNING] Nie udało się usunąć katalogu tymczasowego: {ex.Message}");
+            }
 
             ForceMemoryCleanup();
 
@@ -319,7 +367,10 @@ namespace SUSModder.Core.GameIntegration
             ModManagerUserCallbacks userCallbacks)
         {
             string modsInstallPath = PathSettings.ModsInstallPath;
-            string tempDir = Path.Combine(modsInstallPath, "temp");
+            
+            // Unikalna nazwa katalogu temp dla każdej instalacji, aby uniknąć konfliktów przy równoczesnych instalacjach
+            string uniqueTempId = Guid.NewGuid().ToString("N");
+            string tempDir = Path.Combine(modsInstallPath, "temp", uniqueTempId);
             Directory.CreateDirectory(tempDir);
 
             string modFile = Path.Combine(tempDir, "mod.dll");
@@ -385,7 +436,20 @@ namespace SUSModder.Core.GameIntegration
 
             if (userCallbacks.ShowInfoAsync != null)
                 await userCallbacks.ShowInfoAsync($"Instalacja DLL moda {modConfig.ModName} zakończona pomyślnie.", "Sukces");
-            Directory.Delete(tempDir, true);
+            
+            // Usuń unikalny katalog temp dla tej instalacji
+            try
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Write($"[WARNING] Nie udało się usunąć katalogu tymczasowego: {ex.Message}");
+            }
+            
             GC.Collect();
             GC.WaitForPendingFinalizers();
         }
@@ -627,6 +691,22 @@ namespace SUSModder.Core.GameIntegration
             if (Environment.Version.Major >= 5)
             {
                 GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
+            }
+        }
+
+        /// <summary>
+        /// Pobiera wersję aplikacji
+        /// </summary>
+        private static string GetAppVersion()
+        {
+            try
+            {
+                var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+                return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "unknown";
+            }
+            catch
+            {
+                return "unknown";
             }
         }
     }

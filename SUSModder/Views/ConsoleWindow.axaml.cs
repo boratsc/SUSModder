@@ -1,6 +1,9 @@
-﻿using Avalonia.Controls;
+﻿using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Microsoft.Extensions.DependencyInjection;
+using SUSModder.Core.Services.Localization;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -14,10 +17,13 @@ namespace SUSModder.Views
     {
         private readonly ObservableCollection<LogEntry> _logEntries = new();
         private static ConsoleWindow? _instance;
+        private readonly ILocalizationService _localizationService;
 
         public ConsoleWindow()
         {
             InitializeComponent();
+            _localizationService = App.GetService<ILocalizationService>();
+            
             LogItemsControl.ItemsSource = _logEntries;
             _instance = this;
 
@@ -71,7 +77,10 @@ namespace SUSModder.Views
 
         private void UpdateLogCount()
         {
-            LogCountText.Text = $"{_logEntries.Count} wpisów";
+            var count = _logEntries.Count;
+            LogCountText.Text = count == 1 
+                ? _localizationService.Get("Console.EntriesCountSingular")
+                : _localizationService.GetFormatted("Console.EntriesCount", count);
         }
 
         private void ScrollToBottom()
@@ -83,7 +92,7 @@ namespace SUSModder.Views
         {
             _logEntries.Clear();
             UpdateLogCount();
-            StatusText.Text = "Logi wyczyszczone";
+            StatusText.Text = _localizationService.Get("Console.StatusCleared");
         }
 
         private async void OnCopyClick(object? sender, RoutedEventArgs e)
@@ -94,7 +103,7 @@ namespace SUSModder.Views
             if (clipboard != null)
             {
                 await clipboard.SetTextAsync(allLogs);
-                StatusText.Text = "Logi skopiowane do schowka";
+                StatusText.Text = _localizationService.Get("Console.StatusCopied");
             }
         }
 
@@ -105,15 +114,20 @@ namespace SUSModder.Views
                 var storageProvider = TopLevel.GetTopLevel(this)?.StorageProvider;
                 if (storageProvider == null) return;
 
+                var defaultFileName = _localizationService.GetFormatted("Console.SaveDialogDefaultName", 
+                    DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss"));
+
                 var file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
                 {
-                    Title = "Zapisz logi",
+                    Title = _localizationService.Get("Console.SaveDialogTitle"),
                     DefaultExtension = "txt",
-                    SuggestedFileName = $"SUSModder_Logs_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt",
+                    SuggestedFileName = defaultFileName,
                     FileTypeChoices = new[]
                     {
-                        new FilePickerFileType("Pliki tekstowe") { Patterns = new[] { "*.txt" } },
-                        new FilePickerFileType("Wszystkie pliki") { Patterns = new[] { "*" } }
+                        new FilePickerFileType(_localizationService.Get("Console.SaveDialogTextFiles")) 
+                            { Patterns = new[] { "*.txt" } },
+                        new FilePickerFileType(_localizationService.Get("Console.SaveDialogAllFiles")) 
+                            { Patterns = new[] { "*" } }
                     }
                 });
 
@@ -124,12 +138,12 @@ namespace SUSModder.Views
                     await using var writer = new StreamWriter(stream, Encoding.UTF8);
                     await writer.WriteAsync(allLogs);
 
-                    StatusText.Text = $"Logi zapisane: {file.Name}";
+                    StatusText.Text = _localizationService.GetFormatted("Console.StatusSaved", file.Name);
                 }
             }
             catch (Exception ex)
             {
-                StatusText.Text = $"Błąd zapisu: {ex.Message}";
+                StatusText.Text = _localizationService.GetFormatted("Console.StatusSaveError", ex.Message);
             }
         }
     }

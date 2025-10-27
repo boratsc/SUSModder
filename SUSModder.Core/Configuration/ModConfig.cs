@@ -15,6 +15,11 @@ namespace SUSModder.Core.Configuration
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         private bool _isSelected;
+        private bool _isInstalled;
+        private string? _compatibilityEmoji;
+        private string? _compatibilityDescription;
+        private string? _compatibilityWarning;
+
         public bool IsSelected
         {
             get => _isSelected;
@@ -24,6 +29,75 @@ namespace SUSModder.Core.Configuration
                 {
                     _isSelected = value;
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Pole dynamiczne wskazujące czy mod DLL jest zainstalowany w docelowym modzie FULL
+        /// (nie serializowane do JSON)
+        /// </summary>
+        [JsonIgnore]
+        public bool IsInstalled
+        {
+            get => _isInstalled;
+            set
+            {
+                if (_isInstalled != value)
+                {
+                    _isInstalled = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsInstalled)));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Emoji kompatybilności (dla UI)
+        /// </summary>
+        [JsonIgnore]
+        public string? CompatibilityEmoji
+        {
+            get => _compatibilityEmoji;
+            set
+            {
+                if (_compatibilityEmoji != value)
+                {
+                    _compatibilityEmoji = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompatibilityEmoji)));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Opis kompatybilności (dla UI)
+        /// </summary>
+        [JsonIgnore]
+        public string? CompatibilityDescription
+        {
+            get => _compatibilityDescription;
+            set
+            {
+                if (_compatibilityDescription != value)
+                {
+                    _compatibilityDescription = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompatibilityDescription)));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Ostrzeżenie o kompatybilności (dla UI)
+        /// </summary>
+        [JsonIgnore]
+        public string? CompatibilityWarning
+        {
+            get => _compatibilityWarning;
+            set
+            {
+                if (_compatibilityWarning != value)
+                {
+                    _compatibilityWarning = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompatibilityWarning)));
                 }
             }
         }
@@ -63,6 +137,9 @@ namespace SUSModder.Core.Configuration
 
         [JsonPropertyName("Description")]
         public string Description { get; set; } = string.Empty;
+
+        [JsonPropertyName("HasRoles")]
+        public bool? HasRoles { get; set; }
     }
 
     public static class ConfigManager
@@ -91,7 +168,8 @@ namespace SUSModder.Core.Configuration
 
             try
             {
-                var apiConfigs = FetchConfigFromApiAsync().GetAwaiter().GetResult();
+                // Użyj Task.Run aby uniknąć deadlocka z kontekstem synchronizacji
+                var apiConfigs = Task.Run(async () => await FetchConfigFromApiAsync()).GetAwaiter().GetResult();
                 System.Diagnostics.Debug.WriteLine($"API returned {apiConfigs.Count} configs");
 
                 if (apiConfigs.Count > 0)
@@ -106,6 +184,7 @@ namespace SUSModder.Core.Configuration
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"API fetch failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                 return new List<ModConfiguration>();
             }
         }
@@ -116,19 +195,34 @@ namespace SUSModder.Core.Configuration
             {
                 try
                 {
+                    // Ustaw timeout na 15 sekund
+                    httpClient.Timeout = TimeSpan.FromSeconds(15);
+
                     // Pobierz URL z appsettings.json
                     string configApiUrl = GetUpdateServerUrl();
+                    System.Diagnostics.Debug.WriteLine($"Fetching config from: {configApiUrl}");
 
                     // Dodaj token autoryzacji tak jak w UpdateConfigMenuItem_Click
                     string downloadToken = SecretProvider.GetDownloadToken();
                     httpClient.DefaultRequestHeaders.Add("Authorization", downloadToken);
 
                     var response = await httpClient.GetStringAsync(configApiUrl);
-                    return JsonSerializer.Deserialize<List<ModConfiguration>>(response) ?? new List<ModConfiguration>();
+                    System.Diagnostics.Debug.WriteLine($"API response received, length: {response.Length}");
+                    
+                    var configs = JsonSerializer.Deserialize<List<ModConfiguration>>(response) ?? new List<ModConfiguration>();
+                    System.Diagnostics.Debug.WriteLine($"Deserialized {configs.Count} configurations");
+                    
+                    return configs;
+                }
+                catch (TaskCanceledException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"API request timeout: {ex.Message}");
+                    return new List<ModConfiguration>();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error fetching config from API: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Error fetching config from API: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                     return new List<ModConfiguration>();
                 }
             }
@@ -272,6 +366,190 @@ namespace SUSModder.Core.Configuration
             catch
             {
                 return "dark"; // domyślny motyw
+            }
+        }
+
+        public static void SaveLanguageSetting(string language)
+        {
+            try
+            {
+                if (File.Exists(appSettingsFilePath))
+                {
+                    var json = File.ReadAllText(appSettingsFilePath);
+                    var config = JsonSerializer.Deserialize<JsonElement>(json);
+
+                    var configDict = new Dictionary<string, object>();
+
+                    // Skopiuj istniejące ustawienia
+                    foreach (var property in config.EnumerateObject())
+                    {
+                        if (property.Name == "Configuration")
+                        {
+                            var configSection = new Dictionary<string, object>();
+                            bool languageFound = false;
+
+                            foreach (var configProp in property.Value.EnumerateObject())
+                            {
+                                if (configProp.Name == "Language")
+                                {
+                                    configSection[configProp.Name] = language;
+                                    languageFound = true;
+                                }
+                                else
+                                {
+                                    configSection[configProp.Name] = configProp.Value.ToString();
+                                }
+                            }
+
+                            // Jeśli parametr Language nie istniał, dodaj go
+                            if (!languageFound)
+                            {
+                                configSection["Language"] = language;
+                            }
+
+                            configDict[property.Name] = configSection;
+                        }
+                        else
+                        {
+                            try
+                            {
+                                var deserializedValue = JsonSerializer.Deserialize<object>(property.Value.GetRawText());
+                                if (deserializedValue != null)
+                                {
+                                    configDict[property.Name] = deserializedValue;
+                                }
+                                else
+                                {
+                                    configDict[property.Name] = property.Value.GetRawText();
+                                }
+                            }
+                            catch (JsonException)
+                            {
+                                configDict[property.Name] = property.Value.GetRawText();
+                            }
+                        }
+                    }
+
+                    var updatedJson = JsonSerializer.Serialize(configDict, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    });
+                    File.WriteAllText(appSettingsFilePath, updatedJson);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd zapisywania języka: {ex.Message}");
+            }
+        }
+
+        public static string GetLanguageSetting()
+        {
+            try
+            {
+                var configBuilder = new ConfigurationBuilder()
+                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+                var configuration = configBuilder.Build();
+                var language = configuration["Configuration:Language"];
+
+                // Zwróć pusty string jeśli parametr nie istnieje lub jest pusty
+                // To spowoduje pokazanie dialogu wyboru języka
+                return language ?? string.Empty;
+            }
+            catch
+            {
+                // W przypadku błędu zwróć pusty string, aby pokazać dialog
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Sprawdza czy w appsettings.json istnieje klucz TelemetryEnabled.
+        /// Jeśli nie istnieje, dodaje go z wartością true.
+        /// </summary>
+        public static void EnsureTelemetryEnabledExists()
+        {
+            try
+            {
+                if (!File.Exists(appSettingsFilePath))
+                    return;
+
+                var json = File.ReadAllText(appSettingsFilePath);
+                var config = JsonSerializer.Deserialize<JsonElement>(json);
+
+                var configDict = new Dictionary<string, object>();
+                bool needsUpdate = false;
+
+                // Skopiuj istniejące ustawienia
+                foreach (var property in config.EnumerateObject())
+                {
+                    if (property.Name == "Configuration")
+                    {
+                        var configSection = new Dictionary<string, object>();
+                        bool telemetryFound = false;
+
+                        foreach (var configProp in property.Value.EnumerateObject())
+                        {
+                            if (configProp.Name == "TelemetryEnabled")
+                            {
+                                telemetryFound = true;
+                            }
+                            
+                            // Zachowaj typ danych (bool, string, int, etc.)
+                            configSection[configProp.Name] = configProp.Value.ValueKind switch
+                            {
+                                JsonValueKind.True => true,
+                                JsonValueKind.False => false,
+                                JsonValueKind.Number => configProp.Value.GetInt32(),
+                                _ => configProp.Value.ToString()
+                            };
+                        }
+
+                        // Jeśli parametr TelemetryEnabled nie istniał, dodaj go
+                        if (!telemetryFound)
+                        {
+                            configSection["TelemetryEnabled"] = true;
+                            needsUpdate = true;
+                        }
+
+                        configDict[property.Name] = configSection;
+                    }
+                    else
+                    {
+                        try
+                        {
+                            var deserializedValue = JsonSerializer.Deserialize<object>(property.Value.GetRawText());
+                            if (deserializedValue != null)
+                            {
+                                configDict[property.Name] = deserializedValue;
+                            }
+                            else
+                            {
+                                configDict[property.Name] = property.Value.GetRawText();
+                            }
+                        }
+                        catch (JsonException)
+                        {
+                            configDict[property.Name] = property.Value.GetRawText();
+                        }
+                    }
+                }
+
+                // Zapisz tylko jeśli coś się zmieniło
+                if (needsUpdate)
+                {
+                    var updatedJson = JsonSerializer.Serialize(configDict, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    });
+                    File.WriteAllText(appSettingsFilePath, updatedJson);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd podczas sprawdzania/dodawania TelemetryEnabled: {ex.Message}");
             }
         }
     }

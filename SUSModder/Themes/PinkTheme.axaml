@@ -20,7 +20,10 @@
 	<Color x:Key="GridSplitterColor">#FFB6C1</Color>
 	<Color x:Key="ListBoxSelectionColor">#FF1493</Color>
 	<Color x:Key="InstallPathBorderColor">#FF1493</Color>
-	<Color x:Key="DllButtonColor">#FFB347</Color> <!-- pastelowy pomarańcz -->
+	<Color x:Key="DllButtonColor">#FFB347</Color>
+	<Color x:Key="StatusBarBackgroundColor">#FFFAF0E6</Color>
+	<Color x:Key="StatusBarBorderColor">#FFCCCB</Color>
+	<Color x:Key="StatusBarSectionHoverColor">#FFFFC0CB</Color>
 
 	<!-- Brushes -->
 	<SolidColorBrush x:Key="PrimaryBackgroundBrush" Color="{StaticResource PrimaryBackgroundColor}"/>
@@ -42,51 +45,12 @@
 	<SolidColorBrush x:Key="ListBoxSelectionBrush" Color="{StaticResource ListBoxSelectionColor}"/>
 	<SolidColorBrush x:Key="InstallPathBorderBrush" Color="{StaticResource InstallPathBorderColor}"/>
 	<SolidColorBrush x:Key="DllButtonBrush" Color="{StaticResource DllButtonColor}"/>
+	<SolidColorBrush x:Key="StatusBarBackgroundBrush" Color="{StaticResource StatusBarBackgroundColor}"/>
+	<SolidColorBrush x:Key="StatusBarBorderBrush" Color="{StaticResource StatusBarBorderColor}"/>
+	<SolidColorBrush x:Key="StatusBarSectionHoverBrush" Color="{StaticResource StatusBarSectionHoverColor}"/>
 
-	<DrawingBrush x:Key="HeartsBackgroundBrush" TileMode="Tile" SourceRect="0,0,100,100" DestinationRect="0,0,100,100">
-    <DrawingBrush.Drawing>
-        <DrawingGroup>
-            <!-- Duże serce -->
-            <GeometryDrawing Brush="#FFFFC0CB">
-                <GeometryDrawing.Geometry>
-                    <PathGeometry Figures="M 50,30
-                                           C 50,20 70,20 70,30
-                                           C 70,40 50,55 50,70
-                                           C 50,55 30,40 30,30
-                                           C 30,20 50,20 50,30 Z"/>
-                </GeometryDrawing.Geometry>
-            </GeometryDrawing>
-            <!-- Małe serce w lewym górnym rogu -->
-            <GeometryDrawing Brush="#FFFFB6C1">
-                <GeometryDrawing.Geometry>
-                    <PathGeometry Figures="M 20,15
-                                           C 20,10 28,10 28,15
-                                           C 28,20 20,27 20,32
-                                           C 20,27 12,20 12,15
-                                           C 12,10 20,10 20,15 Z"/>
-                </GeometryDrawing.Geometry>
-            </GeometryDrawing>
-            <!-- Średnie serce w prawym dolnym rogu -->
-            <GeometryDrawing Brush="#FFFF69B4">
-                <GeometryDrawing.Geometry>
-                    <PathGeometry Figures="M 80,70
-                                           C 80,60 92,60 92,70
-                                           C 92,80 80,90 80,100
-                                           C 80,90 68,80 68,70
-                                           C 68,60 80,60 80,70 Z"/>
-                </GeometryDrawing.Geometry>
-            </GeometryDrawing>
-            <!-- Małe serce w środku po lewej -->
-            <GeometryDrawing Brush="#FFFFC0CB">
-                <GeometryDrawing.Geometry>
-                    <PathGeometry Figures="M 25,60
-                                           C 25,55 32,55 32,60
-                                           C 32,65 25,70 25,75
-                                           C 25,70 18,65 18,60
-                                           C 18,55 25,55 25,60 Z"/>
-                </GeometryDrawing.Geometry>
-            </GeometryDrawing>
-        </DrawingGroup>
-    </DrawingBrush.Drawing>
-</DrawingBrush>
+	<ImageBrush x:Key="HeartsBackgroundBrush" 
+	            Source="avares://SUSModder/Assets/hearth-background.jpg" 
+	            TileMode="Tile"
+	            Stretch="UniformToFill"/>
 </ResourceDictionary>

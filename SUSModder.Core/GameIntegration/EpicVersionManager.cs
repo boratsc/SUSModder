@@ -12,6 +12,8 @@ using SUSModder.Core.Configuration;
 using SUSModder.Core.Diagnostics;
 using System.Globalization;
 using System.Text;
+using SUSModder.Core.Models;
+using SUSModder.Core.Services;
 
 namespace SUSModder.Core.GameIntegration
 {
@@ -251,7 +253,10 @@ namespace SUSModder.Core.GameIntegration
             }
 
             string baseDirectory = installDirectory;
-            string tempDirectory = Path.Combine(baseDirectory, "temp");
+            
+            // Unikalna nazwa katalogu temp dla każdej instalacji, aby uniknąć konfliktów przy równoczesnych instalacjach
+            string uniqueTempId = Guid.NewGuid().ToString("N");
+            string tempDirectory = Path.Combine(baseDirectory, "temp", uniqueTempId);
             Directory.CreateDirectory(tempDirectory);
             string modFile = Path.Combine(tempDirectory, "mod.zip");
             ProgressChanged?.Invoke(10, "Rozpoczynam pobieranie moda...");
@@ -329,7 +334,51 @@ namespace SUSModder.Core.GameIntegration
             }
 
             ConfigManager.SaveConfig(existingConfigs);
-            Directory.Delete(tempDirectory, true);
+
+            // === NOWY KOD: Stwórz Installation Map ===
+            try
+            {
+                var installationMap = new InstallationMap
+                {
+                    InstalledAt = DateTime.Now,
+                    InstalledBy = $"SUSModder v{GetAppVersion()}",
+                    Platform = "epic",
+                    FullMod = new FullModInstallation
+                    {
+                        ModId = modConfig.Id,
+                        ModName = modConfig.ModName,
+                        ModVersion = modConfig.ModVersion ?? "unknown",
+                        AmongVersion = modConfig.AmongVersion ?? "unknown",
+                        InstallPath = gameBasePath,
+                        InstalledFrom = downloadUrl,
+                        LastUpdated = DateTime.Now
+                    },
+                    InstalledDlls = new List<DllModInstallation>()
+                };
+
+                await InstallationMapManager.SaveInstallationMapAsync(gameBasePath, installationMap);
+                Write($"[InstallationMap] Zapisano mapę instalacji w: {gameBasePath}");
+            }
+            catch (Exception ex)
+            {
+                Write($"[WARNING] Nie udało się zapisać Installation Map: {ex.Message}");
+                // Nie przerywamy instalacji jeśli zapis mapy się nie powiódł
+            }
+            // === KONIEC NOWEGO KODU ===
+
+            // Usuń unikalny katalog temp dla tej instalacji
+            try
+            {
+                if (Directory.Exists(tempDirectory))
+                {
+                    Directory.Delete(tempDirectory, true);
+                    Write($"Usunięto katalog tymczasowy: {tempDirectory}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Write($"[WARNING] Nie udało się usunąć katalogu tymczasowego: {ex.Message}");
+            }
 
             ProgressChanged?.Invoke(100, "Instalacja zakończona!");
 
@@ -1004,6 +1053,22 @@ namespace SUSModder.Core.GameIntegration
         public void ResetErrorState()
         {
             _hasLaunchError = false;
+        }
+
+        /// <summary>
+        /// Pobiera wersję aplikacji
+        /// </summary>
+        private static string GetAppVersion()
+        {
+            try
+            {
+                var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+                return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "unknown";
+            }
+            catch
+            {
+                return "unknown";
+            }
         }
     }
 }

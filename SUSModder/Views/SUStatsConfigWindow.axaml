@@ -1,9 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SUSModder.ViewModels"
+        xmlns:local="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.SUStatsConfigWindow"
         x:DataType="vm:SUStatsConfigViewModel"
-        Title="SUStats - Konfiguracja"
+        Title="{local:Localize SUStatsConfig.Header}"
         Width="600" Height="800"
         MinWidth="450" MinHeight="350"
         Icon="/Assets/icon.ico"
@@ -29,10 +30,10 @@
 			<StackPanel Orientation="Horizontal" Spacing="15">
 				<TextBlock Text="📊" FontSize="32" VerticalAlignment="Center"/>
 				<StackPanel VerticalAlignment="Center">
-					<TextBlock Text="SUStats - Konfiguracja"
+					<TextBlock Text="{local:Localize SUStatsConfig.Header}"
                                FontSize="24" FontWeight="Bold"
                                Foreground="White"/>
-					<TextBlock Text="Skonfiguruj rejestrowanie wyników gry"
+					<TextBlock Text="{local:Localize SUStatsConfig.Subtitle}"
                                FontSize="14"
                                Foreground="#E0FFFFFF"/>
 				</StackPanel>
@@ -51,11 +52,11 @@
 
 				<!-- Sekcja hasła -->
 				<StackPanel Spacing="12">
-					<TextBlock Text="🔐 Hasło dostępu"
+					<TextBlock Text="{local:Localize SUStatsConfig.PasswordSection}"
                                FontSize="16" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"/>
 
-					<TextBlock Text="Wprowadź hasło aby uzyskać dostęp do konfiguracji SUStats:"
+					<TextBlock Text="{local:Localize SUStatsConfig.PasswordPrompt}"
                                FontSize="13"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                TextWrapping="Wrap"/>
@@ -65,7 +66,7 @@
                                  x:Name="PasswordTextBox"
                                  Text="{Binding EnteredPassword}"
                                  PasswordChar="•"
-                                 Watermark="Wprowadź hasło..."
+                                 Watermark="{local:Localize SUStatsConfig.PasswordPlaceholder}"
                                  FontSize="14"
                                  Padding="12,10"
                                  CornerRadius="6"
@@ -75,7 +76,7 @@
                                  Margin="0,0,10,0"/>
 
 						<Button Grid.Column="1"
-                                Content="Sprawdź"
+                                Content="{local:Localize SUStatsConfig.CheckButton}"
                                 Background="{DynamicResource AccentBrush}"
                                 Foreground="White"
                                 Padding="20,10"
@@ -92,6 +93,13 @@
                                FontSize="12"
                                Margin="0,5,0,0"
                                IsVisible="{Binding PasswordStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+					<!-- Checkbox zapamiętaj logowanie -->
+					<CheckBox IsChecked="{Binding RememberLogin}"
+                              Content="{local:Localize SUStatsConfig.RememberLogin}"
+                              FontSize="13"
+                              Margin="0,8,0,0"
+                              Foreground="{DynamicResource TextPrimaryBrush}"/>
 				</StackPanel>
 
 				<!-- Separator -->
@@ -109,7 +117,7 @@
                             CornerRadius="6"
                             Padding="15">
 						<StackPanel Spacing="8">
-							<TextBlock Text="🖥️ Połączono z serwerem"
+							<TextBlock Text="{local:Localize SUStatsConfig.ServerConnected}"
                                        FontSize="14" FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"/>
 
@@ -129,10 +137,10 @@
                             Padding="20">
 						<Grid ColumnDefinitions="*,Auto">
 							<StackPanel Grid.Column="0" VerticalAlignment="Center">
-								<TextBlock Text="📈 Włącz rejestrowanie wyników gry"
+								<TextBlock Text="{local:Localize SUStatsConfig.EnableStats}"
                                            FontSize="15" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}"/>
-								<TextBlock Text="Wyniki Twoich gier będą zapisywane na serwerze SUStats"
+								<TextBlock Text="{local:Localize SUStatsConfig.EnableStatsDescription}"
                                            FontSize="12"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            Margin="0,3,0,0"/>
@@ -175,8 +183,8 @@
                 Margin="0,25,0,0">
 			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
 
-				<!-- Przycisk resetowania (widoczny tylko gdy hasło jest poprawne) -->
-				<Button Content="🔄 Resetuj"
+				<!-- Przycisk wylogowania (widoczny tylko gdy hasło jest poprawne) -->
+				<Button Content="{local:Localize SUStatsConfig.LogoutButton}"
                         Padding="15,10"
                         CornerRadius="6"
                         FontSize="14"
@@ -187,7 +195,7 @@
                         Command="{Binding ResetCommand}"
                         IsVisible="{Binding IsPasswordValid}"/>
 
-				<Button Content="Zamknij"
+				<Button Content="{local:Localize SUStatsConfig.CloseButton}"
                         Padding="20,10"
                         CornerRadius="6"
                         FontSize="14"

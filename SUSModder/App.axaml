@@ -11,5 +11,6 @@
 		<StyleInclude Source="/Styles/AnimationStyles.axaml"/>
 		<StyleInclude Source="/Styles/ListBoxStyles.axaml"/>
 		<StyleInclude Source="/Styles/LinkButtonStyle.axaml"/>
+		<StyleInclude Source="/Styles/FabButtonStyle.axaml"/>
 	</Application.Styles>
 </Application>

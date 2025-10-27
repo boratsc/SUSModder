@@ -49,4 +49,85 @@
 		<Setter Property="Margin" Value="0,0,0,0"/>
 	</Style>
 
+	<!-- Smooth mod transition z fade + scale + blur -->
+	<Style Selector="StackPanel.mod-content-transition">
+		<Setter Property="Opacity" Value="0"/>
+		<Setter Property="RenderTransform">
+			<Setter.Value>
+				<ScaleTransform ScaleX="0.95" ScaleY="0.95"/>
+			</Setter.Value>
+		</Setter>
+		<Setter Property="Transitions">
+			<Transitions>
+				<DoubleTransition Property="Opacity" Duration="0:0:0.35" Easing="CubicEaseInOut"/>
+				<TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.35" Easing="CubicEaseOut"/>
+			</Transitions>
+		</Setter>
+	</Style>
+
+	<Style Selector="StackPanel.mod-content-transition.visible">
+		<Setter Property="Opacity" Value="1"/>
+		<Setter Property="RenderTransform">
+			<Setter.Value>
+				<ScaleTransform ScaleX="1" ScaleY="1"/>
+			</Setter.Value>
+		</Setter>
+	</Style>
+
+	<!-- Alternatywna animacja - slide up z fade (bardziej bajerancka) -->
+	<Style Selector="StackPanel.mod-content-slide">
+		<Setter Property="Opacity" Value="0"/>
+		<Setter Property="RenderTransform">
+			<Setter.Value>
+				<TranslateTransform Y="20"/>
+			</Setter.Value>
+		</Setter>
+		<Setter Property="Transitions">
+			<Transitions>
+				<DoubleTransition Property="Opacity" Duration="0:0:0.4" Easing="CubicEaseOut"/>
+				<TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.4" Easing="CubicEaseOut"/>
+			</Transitions>
+		</Setter>
+	</Style>
+
+	<Style Selector="StackPanel.mod-content-slide.visible">
+		<Setter Property="Opacity" Value="1"/>
+		<Setter Property="RenderTransform">
+			<Setter.Value>
+				<TranslateTransform Y="0"/>
+			</Setter.Value>
+		</Setter>
+	</Style>
+
+	<!-- Najbardziej bajerancka wersja - kombinacja fade + slide + scale -->
+	<Style Selector="StackPanel.mod-content-fancy">
+		<Setter Property="Opacity" Value="0"/>
+		<Setter Property="RenderTransform">
+			<Setter.Value>
+				<TransformGroup>
+					<ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+					<TranslateTransform Y="15"/>
+				</TransformGroup>
+			</Setter.Value>
+		</Setter>
+		<Setter Property="Transitions">
+			<Transitions>
+				<DoubleTransition Property="Opacity" Duration="0:0:0.45" Easing="CubicEaseOut"/>
+				<TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.45" Easing="CubicEaseOut"/>
+			</Transitions>
+		</Setter>
+	</Style>
+
+	<Style Selector="StackPanel.mod-content-fancy.visible">
+		<Setter Property="Opacity" Value="1"/>
+		<Setter Property="RenderTransform">
+			<Setter.Value>
+				<TransformGroup>
+					<ScaleTransform ScaleX="1" ScaleY="1"/>
+					<TranslateTransform Y="0"/>
+				</TransformGroup>
+			</Setter.Value>
+		</Setter>
+	</Style>
+
 </Styles>

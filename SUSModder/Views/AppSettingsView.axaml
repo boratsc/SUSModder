@@ -1,0 +1,315 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:local="using:SUSModder.Services.Localization"
+             x:Class="SUSModder.Views.AppSettingsView"
+             x:DataType="vm:AppSettingsViewModel">
+
+	<Design.DataContext>
+		<vm:AppSettingsViewModel/>
+	</Design.DataContext>
+
+	<ScrollViewer>
+		<Grid RowDefinitions="Auto,*,Auto" Margin="0">
+
+			<!-- Header -->
+			<Border Grid.Row="0"
+					Background="{DynamicResource AccentBrush}"
+					CornerRadius="8"
+					Padding="15"
+					Margin="0,0,0,20">
+				<StackPanel Orientation="Horizontal" Spacing="15">
+					<TextBlock Text="⚙️" FontSize="32" VerticalAlignment="Center"/>
+					<StackPanel VerticalAlignment="Center">
+						<TextBlock Text="{local:Localize Settings.WindowTitle}"
+								   FontSize="20" FontWeight="Bold"
+								   Foreground="White"/>
+						<TextBlock Text="{local:Localize Settings.WindowSubtitle}"
+								   FontSize="12"
+								   Foreground="#E0FFFFFF"/>
+					</StackPanel>
+				</StackPanel>
+			</Border>
+
+			<!-- Główna zawartość -->
+			<StackPanel Grid.Row="1" Spacing="15">
+
+				<!-- Sekcja wyboru trybu gry -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="12">
+						<TextBlock Text="{local:Localize Settings.General.GameMode.Label}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+						<TextBlock Text="{local:Localize Settings.General.GameMode.Description}"
+								   FontSize="12"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.General.GameMode.RestartRequired}"
+								   FontSize="11"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   FontStyle="Italic"/>
+
+						<StackPanel Spacing="6">
+							<RadioButton x:Name="SteamRadioButton"
+										 Content="{local:Localize Settings.General.GameMode.Steam}"
+										 IsChecked="{Binding IsSteamMode}"
+										 Foreground="{DynamicResource TextPrimaryBrush}"/>
+							<RadioButton x:Name="EpicRadioButton"
+										 Content="{local:Localize Settings.General.GameMode.Epic}"
+										 IsChecked="{Binding IsEpicMode}"
+										 Foreground="{DynamicResource TextPrimaryBrush}"/>
+						</StackPanel>
+					</StackPanel>
+				</Border>
+
+				<!-- Sekcja wyboru języka -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="12">
+						<TextBlock Text="{local:Localize Settings.General.Language.Label}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+						<TextBlock Text="{local:Localize Settings.General.Language.Description}"
+								   FontSize="12"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+						<ComboBox ItemsSource="{Binding AvailableLanguages}"
+								  SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
+								  Width="200"
+								  HorizontalAlignment="Left"
+								  FontSize="12"
+								  Padding="10,8"
+								  Background="{DynamicResource SecondaryBackgroundBrush}"
+								  BorderBrush="{DynamicResource BorderBrush}"
+								  BorderThickness="1"
+								  CornerRadius="4">
+							<ComboBox.ItemTemplate>
+								<DataTemplate>
+									<TextBlock Text="{Binding DisplayName}"/>
+								</DataTemplate>
+							</ComboBox.ItemTemplate>
+						</ComboBox>
+					</StackPanel>
+				</Border>
+
+				<!-- Sekcja ścieżek -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="12">
+						<TextBlock Text="{local:Localize Settings.Paths.Title}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+						<TextBlock Text="{local:Localize Settings.Paths.ModsInstallPath.Label}"
+								   FontSize="12" FontWeight="Medium"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.Paths.ModsInstallPath.Description}"
+								   FontSize="11"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+						<TextBox Text="{Binding ModsInstallPath}"
+								 Watermark="{local:Localize Settings.Paths.ModsInstallPath.Placeholder}"
+								 FontSize="12"
+								 Padding="8"
+								 Background="{DynamicResource SecondaryBackgroundBrush}"
+								 BorderBrush="{DynamicResource BorderBrush}"
+								 BorderThickness="1"
+								 CornerRadius="4"/>
+
+						<StackPanel Orientation="Horizontal" Spacing="8">
+							<Button Content="{local:Localize Settings.Paths.ModsInstallPath.Browse}"
+									Command="{Binding BrowseFolderCommand}"
+									Background="{DynamicResource SecondaryBackgroundBrush}"
+									Foreground="{DynamicResource TextPrimaryBrush}"
+									BorderBrush="{DynamicResource BorderBrush}"
+									BorderThickness="1"
+									CornerRadius="4"
+									Padding="10,6"
+									FontSize="12"/>
+							<Button Content="{local:Localize Settings.Paths.ModsInstallPath.Reset}"
+									Command="{Binding ResetToDefaultCommand}"
+									Background="Transparent"
+									Foreground="{DynamicResource AccentBrush}"
+									BorderThickness="0"
+									Padding="10,6"
+									FontSize="11"/>
+						</StackPanel>
+					</StackPanel>
+				</Border>
+
+				<!-- Sekcja prywatności -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="12">
+						<TextBlock Text="{local:Localize Settings.Privacy.Title}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"
+								   TextWrapping="Wrap"/>
+
+						<!-- Telemetry Toggle -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="12">
+							<StackPanel Spacing="10">
+								<TextBlock Text="{local:Localize Settings.Privacy.Telemetry.Label}"
+										   FontSize="13" FontWeight="Medium"
+										   Foreground="{DynamicResource TextPrimaryBrush}"
+										   TextWrapping="Wrap"/>
+								<TextBlock Text="{local:Localize Settings.Privacy.Telemetry.Description}"
+										   FontSize="11"
+										   Foreground="{DynamicResource TextSecondaryBrush}"
+										   TextWrapping="Wrap"/>
+								<TextBlock Text="{local:Localize Settings.Privacy.Telemetry.Details}"
+										   FontSize="10"
+										   Foreground="{DynamicResource TextSecondaryBrush}"
+										   TextWrapping="Wrap"/>
+								<ToggleSwitch IsChecked="{Binding TelemetryEnabled}"
+											  OnContent="{local:Localize Settings.Privacy.Telemetry.OnContent}"
+											  OffContent="{local:Localize Settings.Privacy.Telemetry.OffContent}"
+											  HorizontalAlignment="Left"
+											  Margin="0,5,0,0"/>
+							</StackPanel>
+						</Border>
+					</StackPanel>
+				</Border>
+
+				<!-- Sekcja ustawień deweloperskich -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="12">
+						<TextBlock Text="{local:Localize Settings.Advanced.Title}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+						<!-- DeveloperMode -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="12">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0" VerticalAlignment="Center">
+									<TextBlock Text="{local:Localize Settings.Advanced.DeveloperMode.Label}"
+											   FontSize="13" FontWeight="Medium"
+											   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<TextBlock Text="{local:Localize Settings.Advanced.DeveloperMode.Description}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"/>
+								</StackPanel>
+								<ToggleSwitch Grid.Column="1"
+											  IsChecked="{Binding DeveloperMode}"
+											  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+											  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+											  VerticalAlignment="Center"
+											  Margin="10,0,0,0"/>
+							</Grid>
+						</Border>
+
+						<!-- ShowConsole -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="12">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0" VerticalAlignment="Center">
+									<TextBlock Text="{local:Localize Settings.Advanced.ShowConsole.Label}"
+											   FontSize="13" FontWeight="Medium"
+											   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<TextBlock Text="{local:Localize Settings.Advanced.ShowConsole.Description}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"/>
+								</StackPanel>
+								<ToggleSwitch Grid.Column="1"
+											  x:Name="ShowConsoleToggle"
+											  OnContent="{local:Localize Settings.Advanced.ShowConsole.OnContent}"
+											  OffContent="{local:Localize Settings.Advanced.ShowConsole.OffContent}"
+											  VerticalAlignment="Center"
+											  Margin="10,0,0,0"
+											  Click="OnShowConsoleToggled"/>
+							</Grid>
+						</Border>
+					</StackPanel>
+				</Border>
+
+				<!-- Sekcja resetowania aplikacji -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="10">
+						<TextBlock Text="{local:Localize Settings.FactoryReset.Title}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.FactoryReset.Description}"
+								   FontSize="11"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   TextWrapping="Wrap"/>
+						<Button Content="{local:Localize Settings.FactoryReset.Button}"
+								Command="{Binding FactoryResetCommand}"
+								Background="#D32F2F"
+								Foreground="White"
+								BorderBrush="#B71C1C"
+								BorderThickness="1"
+								CornerRadius="4"
+								Padding="12,6"
+								FontSize="12"
+								FontWeight="SemiBold"
+								HorizontalAlignment="Left"/>
+					</StackPanel>
+				</Border>
+
+			</StackPanel>
+
+			<!-- Footer z przyciskami -->
+			<Border Grid.Row="2"
+					BorderBrush="{DynamicResource BorderBrush}"
+					BorderThickness="0,1,0,0"
+					Padding="0,15,0,0"
+				Margin="0,20,0,0">
+			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+				<Button Content="{local:Localize UI.Buttons.Close}"
+						Click="CancelButton_Click"
+						Background="{DynamicResource ModCardBackgroundBrush}"
+							Foreground="{DynamicResource TextPrimaryBrush}"
+							BorderBrush="{DynamicResource ModCardBorderBrush}"
+							BorderThickness="1"
+							CornerRadius="6"
+							Padding="15,8"
+							FontSize="13"/>
+					<Button Content="{local:Localize UI.Buttons.Save}"
+							Command="{Binding SaveCommand}"
+							Background="{DynamicResource AccentBrush}"
+							Foreground="White"
+							BorderBrush="{DynamicResource AccentBrush}"
+							BorderThickness="1"
+							CornerRadius="6"
+							Padding="15,8"
+							FontSize="13"
+							FontWeight="SemiBold"
+							IsEnabled="{Binding HasUnsavedChanges}"/>
+				</StackPanel>
+			</Border>
+		</Grid>
+	</ScrollViewer>
+</UserControl>

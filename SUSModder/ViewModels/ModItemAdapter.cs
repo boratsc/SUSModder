@@ -19,7 +19,8 @@ namespace SUSModder.Core.Configuration
                 EpicGitHubRepoOrLink = config.EpicGitHubRepoOrLink,
                 ModType = config.ModType,
                 DllInstallPath = config.DllInstallPath ?? string.Empty,
-                LastUpdated = config.LastUpdated
+                LastUpdated = config.LastUpdated,
+                HasRoles = config.HasRoles
             };
         }
 
@@ -38,7 +39,8 @@ namespace SUSModder.Core.Configuration
                 EpicGitHubRepoOrLink = item.EpicGitHubRepoOrLink,
                 ModType = item.ModType,
                 DllInstallPath = item.DllInstallPath,
-                LastUpdated = item.LastUpdated
+                LastUpdated = item.LastUpdated,
+                HasRoles = item.HasRoles
             };
         }
     }

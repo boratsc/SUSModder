@@ -7,6 +7,7 @@ using SUSModder.Core.Services;
 using SUSModder.Core.Repositories;
 using System.IO;
 using SUSModder.Core.GameIntegration;
+using SUSModder.Core.Models;
 
 namespace SUSModder.Core.Services
 {
@@ -95,12 +96,34 @@ namespace SUSModder.Core.Services
                     if (updated)
                         configChanged = true;
 
-                    if (!string.Equals(config.ModVersion, updatedConfig.ModVersion, StringComparison.OrdinalIgnoreCase))
+                    // Pobierz RZECZYWISTĄ wersję z Installation Map (a nie z config.json cache!)
+                    string installedVersion = config.ModVersion ?? "Nieznana";
+
+                    try
                     {
+                        // POPRAWKA: Użyj await zamiast GetAwaiter().GetResult() aby uniknąć deadlocka
+                        var installMap = await InstallationMapManager.LoadInstallationMapAsync(config.InstallPath);
+                        if (installMap?.FullMod != null && !string.IsNullOrEmpty(installMap.FullMod.ModVersion))
+                        {
+                            installedVersion = installMap.FullMod.ModVersion;
+                            System.Diagnostics.Debug.WriteLine($"[ModUpdateManager] {config.ModName} - rzeczywista wersja z InstallationMap: {installedVersion}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ModUpdateManager] Nie udało się odczytać InstallationMap dla {config.ModName}: {ex.Message}");
+                        // Fallback do config.json
+                    }
+
+                    // Porównaj RZECZYWISTĄ wersję z wersją z API
+                    if (!string.Equals(installedVersion, updatedConfig.ModVersion, StringComparison.OrdinalIgnoreCase))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ModUpdateManager] ✓ Znaleziono aktualizację dla {config.ModName}: {installedVersion} → {updatedConfig.ModVersion}");
+
                         availableUpdates.Add(new ModUpdateInfo
                         {
                             ModName = config.ModName,
-                            CurrentVersion = config.ModVersion ?? "Nieznana",
+                            CurrentVersion = installedVersion,  // ← RZECZYWISTA wersja!
                             NewVersion = updatedConfig.ModVersion ?? "Nieznana",
                             Description = updatedConfig.Description ?? "",
                             IsSelected = true,

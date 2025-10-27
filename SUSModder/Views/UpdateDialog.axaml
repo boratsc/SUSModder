@@ -2,9 +2,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SUSModder.Views"
         xmlns:core="using:SUSModder.Core.GameIntegration"
+        xmlns:loc="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.UpdateDialog"
         x:DataType="vm:UpdateDialog"
-        Title="Aktualizacje modów"
+        Title="{loc:Localize Updates.ModUpdatesTitle}"
         Width="600" Height="500"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource WindowBackgroundBrush}">
@@ -19,7 +20,7 @@
 
 		<!-- Nagłówek -->
 		<TextBlock Grid.Row="0"
-                   Text="Dostępne aktualizacje modów:"
+                   Text="{loc:Localize Updates.AvailableModUpdates}"
                    FontSize="16"
                    FontWeight="Bold"
                    Foreground="{DynamicResource TextPrimaryBrush}"
@@ -60,7 +61,7 @@
                     VerticalAlignment="Center"
                     Background="{DynamicResource WindowBackgroundBrush}">
 
-			<TextBlock Text="Aktualizowanie modów..."
+			<TextBlock Text="{loc:Localize Updates.UpdatingMods}"
                        FontSize="16"
                        FontWeight="Bold"
                        HorizontalAlignment="Center"
@@ -128,7 +129,7 @@
                     Margin="0,10,0,0">
 
 			<Button Name="UpdateButton"
-                    Content="Aktualizuj wybrane"
+                    Content="{loc:Localize Updates.UpdateSelected}"
                     Click="UpdateButton_Click"
                     IsVisible="{Binding !IsUpdating}"
                     Background="{DynamicResource AccentBrush}"
@@ -137,7 +138,7 @@
                     Padding="10,5"/>
 
 			<Button Name="CancelButton"
-                    Content="Anuluj"
+                    Content="{loc:Localize UI.Buttons.Cancel}"
                     Click="CancelButton_Click"
                     IsVisible="{Binding !IsUpdating}"
                     Background="{DynamicResource SecondaryBackgroundBrush}"
@@ -148,7 +149,7 @@
                     Padding="10,5"/>
 
 			<Button Name="CloseButton"
-                    Content="Zamknij"
+                    Content="{loc:Localize UI.Buttons.Close}"
                     Click="CloseButton_Click"
                     IsVisible="{Binding IsUpdating}"
                     IsEnabled="{Binding UpdateCompleted}"

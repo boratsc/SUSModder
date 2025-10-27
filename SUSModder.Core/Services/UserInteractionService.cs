@@ -33,7 +33,7 @@ namespace SUSModder.Core.Services
 
         public void ShowInfo(string message, string title = "")
         {
-            _infoDialog(message, title).ConfigureAwait(false).GetAwaiter().GetResult();
+            _infoDialog(title, message).ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         public void ShowError(string message, string title = "")
@@ -54,7 +54,7 @@ namespace SUSModder.Core.Services
         // Asynchroniczne metody (nowe)
         public async Task ShowInfoAsync(string message, string title = "")
         {
-            await _infoDialog(title, message);
+            await _infoDialog(message, title);
         }
 
         public async Task ShowErrorAsync(string message, string title = "")

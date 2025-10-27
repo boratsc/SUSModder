@@ -1,0 +1,128 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Styl dla Floating Action Button (FAB) -->
+    <Style Selector="Button.fab">
+        <Setter Property="Width" Value="56"/>
+        <Setter Property="Height" Value="56"/>
+        <Setter Property="CornerRadius" Value="28"/>
+        <Setter Property="Background" Value="{DynamicResource AccentButtonBackground}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="RenderTransform" Value="scale(1.0)"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2">
+                    <TransformOperationsTransition.Easing>
+                        <CubicEaseOut/>
+                    </TransformOperationsTransition.Easing>
+                </TransformOperationsTransition>
+                <BrushTransition Property="Background" Duration="0:0:0.2"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <!-- FAB hover effect -->
+    <Style Selector="Button.fab:pointerover">
+        <Setter Property="RenderTransform" Value="scale(1.1)"/>
+        <Setter Property="Background" Value="{DynamicResource AccentButtonBackgroundPointerOver}"/>
+    </Style>
+
+    <!-- FAB pressed effect -->
+    <Style Selector="Button.fab:pressed">
+        <Setter Property="RenderTransform" Value="scale(0.95)"/>
+        <Setter Property="Background" Value="{DynamicResource AccentButtonBackgroundPressed}"/>
+    </Style>
+
+    <!-- FAB active (menu open) state -->
+    <Style Selector="Button.fab.active">
+        <Setter Property="Background" Value="{DynamicResource SystemAccentColorDark1}"/>
+        <Setter Property="RenderTransform" Value="rotate(45deg)"/>
+    </Style>
+
+    <!-- Overlay/backdrop for menu -->
+    <Style Selector="Border.fab-overlay">
+        <Setter Property="Background" Value="#80000000"/>
+        <Setter Property="Opacity" Value="0"/>
+        <Setter Property="IsVisible" Value="False"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.3"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Border.fab-overlay.visible">
+        <Setter Property="IsVisible" Value="True"/>
+        <Setter Property="Opacity" Value="1"/>
+    </Style>
+
+    <!-- Menu panel styling -->
+    <Style Selector="Border.fab-menu-panel">
+        <Setter Property="Background" Value="{DynamicResource PaneBackgroundBrush}"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="16"/>
+        <Setter Property="BoxShadow" Value="0 8 32 0 #60000000"/>
+        <Setter Property="MinWidth" Value="280"/>
+        <Setter Property="MaxWidth" Value="320"/>
+        <Setter Property="Width" Value="300"/>
+        <Setter Property="RenderTransform" Value="translateY(20px)"/>
+        <Setter Property="Opacity" Value="0"/>
+        <Setter Property="IsVisible" Value="False"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3">
+                    <TransformOperationsTransition.Easing>
+                        <CubicEaseOut/>
+                    </TransformOperationsTransition.Easing>
+                </TransformOperationsTransition>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.3"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Border.fab-menu-panel.visible">
+        <Setter Property="IsVisible" Value="True"/>
+        <Setter Property="RenderTransform" Value="translateY(0px)"/>
+        <Setter Property="Opacity" Value="1"/>
+    </Style>
+
+    <!-- Menu item button -->
+    <Style Selector="Button.fab-menu-item">
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="Margin" Value="0,4"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.fab-menu-item:pointerover">
+        <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+    </Style>
+
+    <Style Selector="Button.fab-menu-item:pressed">
+        <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPressed}"/>
+    </Style>
+
+    <!-- Separator in menu -->
+    <Style Selector="Border.fab-menu-separator">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Background" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="Margin" Value="8,8"/>
+        <Setter Property="Opacity" Value="0.3"/>
+    </Style>
+
+</Styles>

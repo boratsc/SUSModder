@@ -1,7 +1,8 @@
 ﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.AppUpdateDialog"
-        Title="Aktualizacja aplikacji"
+        Title="{loc:Localize Updates.AppUpdateTitle}"
         Width="500"
         Height="300"
         WindowStartupLocation="CenterOwner"
@@ -26,7 +27,7 @@
                        VerticalAlignment="Center"
                        Margin="0,0,15,0"
                        Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
-			<TextBlock Text="Dostępna jest nowa wersja!"
+			<TextBlock Text="{loc:Localize Updates.NewVersionAvailable}"
                        FontSize="18"
                        FontWeight="Bold"
                        VerticalAlignment="Center"
@@ -49,7 +50,7 @@
 
 		<!-- Pytanie -->
 		<TextBlock Grid.Row="2"
-                   Text="Czy chcesz pobrać i zainstalować aktualizację?"
+                   Text="{loc:Localize Updates.DownloadAndInstallQuestion}"
                    FontSize="14"
                    Margin="0,0,0,20"
                    Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
@@ -57,7 +58,7 @@
 		<!-- Progress bar (ukryty domyślnie) -->
 		<StackPanel Grid.Row="3" x:Name="ProgressPanel" IsVisible="False">
 			<TextBlock x:Name="ProgressText"
-                       Text="Pobieranie aktualizacji..."
+                       Text="{loc:Localize Updates.DownloadingUpdate}"
                        FontSize="12"
                        Margin="0,0,0,10"
                        HorizontalAlignment="Center"
@@ -77,14 +78,14 @@
                     HorizontalAlignment="Right"
                     Margin="0,20,0,0">
 			<Button x:Name="YesButton"
-                    Content="Tak, aktualizuj"
+                    Content="{loc:Localize Updates.YesUpdate}"
                     Width="120"
                     Height="35"
                     Margin="0,0,10,0"
                     Click="YesButton_Click"
                     Classes="accent"/>
 			<Button x:Name="NoButton"
-                    Content="Nie teraz"
+                    Content="{loc:Localize Updates.NotNow}"
                     Width="100"
                     Height="35"
                     Click="NoButton_Click"/>
