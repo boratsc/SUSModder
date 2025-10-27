@@ -464,5 +464,93 @@ namespace SUSModder.Core.Configuration
                 return string.Empty;
             }
         }
+
+        /// <summary>
+        /// Sprawdza czy w appsettings.json istnieje klucz TelemetryEnabled.
+        /// Jeśli nie istnieje, dodaje go z wartością true.
+        /// </summary>
+        public static void EnsureTelemetryEnabledExists()
+        {
+            try
+            {
+                if (!File.Exists(appSettingsFilePath))
+                    return;
+
+                var json = File.ReadAllText(appSettingsFilePath);
+                var config = JsonSerializer.Deserialize<JsonElement>(json);
+
+                var configDict = new Dictionary<string, object>();
+                bool needsUpdate = false;
+
+                // Skopiuj istniejące ustawienia
+                foreach (var property in config.EnumerateObject())
+                {
+                    if (property.Name == "Configuration")
+                    {
+                        var configSection = new Dictionary<string, object>();
+                        bool telemetryFound = false;
+
+                        foreach (var configProp in property.Value.EnumerateObject())
+                        {
+                            if (configProp.Name == "TelemetryEnabled")
+                            {
+                                telemetryFound = true;
+                            }
+                            
+                            // Zachowaj typ danych (bool, string, int, etc.)
+                            configSection[configProp.Name] = configProp.Value.ValueKind switch
+                            {
+                                JsonValueKind.True => true,
+                                JsonValueKind.False => false,
+                                JsonValueKind.Number => configProp.Value.GetInt32(),
+                                _ => configProp.Value.ToString()
+                            };
+                        }
+
+                        // Jeśli parametr TelemetryEnabled nie istniał, dodaj go
+                        if (!telemetryFound)
+                        {
+                            configSection["TelemetryEnabled"] = true;
+                            needsUpdate = true;
+                        }
+
+                        configDict[property.Name] = configSection;
+                    }
+                    else
+                    {
+                        try
+                        {
+                            var deserializedValue = JsonSerializer.Deserialize<object>(property.Value.GetRawText());
+                            if (deserializedValue != null)
+                            {
+                                configDict[property.Name] = deserializedValue;
+                            }
+                            else
+                            {
+                                configDict[property.Name] = property.Value.GetRawText();
+                            }
+                        }
+                        catch (JsonException)
+                        {
+                            configDict[property.Name] = property.Value.GetRawText();
+                        }
+                    }
+                }
+
+                // Zapisz tylko jeśli coś się zmieniło
+                if (needsUpdate)
+                {
+                    var updatedJson = JsonSerializer.Serialize(configDict, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    });
+                    File.WriteAllText(appSettingsFilePath, updatedJson);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd podczas sprawdzania/dodawania TelemetryEnabled: {ex.Message}");
+            }
+        }
     }
 }

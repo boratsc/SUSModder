@@ -287,6 +287,16 @@
         "NotFound": "Nie znaleziono gry Among Us"
       }
     },
+    "Privacy": {
+      "Title": "Prywatność",
+      "Telemetry": {
+        "Label": "Anonimowe statystyki",
+        "Description": "Pomaga nam rozwijać aplikację. Żadne dane osobowe nie są zbierane.",
+        "Details": "Zbieramy: wersję aplikacji, platformę, język, listę zainstalowanych modów (tylko ID) oraz czas sesji.",
+        "OnContent": "Włączone",
+        "OffContent": "Wyłączone"
+      }
+    },
     "Advanced": {
       "Title": "Ustawienia deweloperskie",
       "DeveloperMode": {

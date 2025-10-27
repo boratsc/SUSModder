@@ -186,20 +186,6 @@
 							           Foreground="{DynamicResource TextPrimaryBrush}"/>
 						</Border>
 						
-						<!-- notpeatryk -->
-						<Border Background="{DynamicResource TertiaryBackgroundBrush}" 
-						        BorderBrush="{DynamicResource AccentBrush}"
-						        BorderThickness="1"
-						        CornerRadius="10" 
-						        Padding="8,4" 
-						        Margin="2"
-						        BoxShadow="0 2 6 0 #20000000">
-							<TextBlock Text="notpeatryk" 
-							           FontSize="10" 
-							           FontWeight="SemiBold"
-							           Foreground="{DynamicResource TextPrimaryBrush}"/>
-						</Border>
-						
 						<!-- ma1ked -->
 						<Border Background="{DynamicResource TertiaryBackgroundBrush}" 
 						        BorderBrush="{DynamicResource AccentBrush}"

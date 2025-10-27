@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using SUSModder.ViewModels;
 using SUSModder.Views;
 using SUSModder.Services;
@@ -20,6 +21,7 @@ public partial class App : Application
 {
     private SplashWindow? _splashWindow;
     private static ServiceProvider? _serviceProvider;
+    private TelemetryService? _telemetryService;
 
     public override void Initialize()
     {
@@ -87,6 +89,9 @@ public partial class App : Application
             {
                 var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
                 AppUpdateService.RestoreUserSettingsIfNeeded(appSettingsPath, null);
+                
+                // Upewnij się, że TelemetryEnabled istnieje w appsettings.json
+                ConfigManager.EnsureTelemetryEnabledExists();
             });
             await _splashWindow?.AnimateProgressAsync(0.1)!;
 
@@ -109,10 +114,17 @@ public partial class App : Application
                 }
             }
 
-            // KROK 2: Inicjalizacja ConsoleLogger (20%)
+            // KROK 2: Inicjalizacja ConsoleLogger i Telemetrii (20%)
             _splashWindow?.UpdateProgress(0.1, "Uruchamianie logowania...");
             await Dispatcher.UIThread.InvokeAsync(() => ConsoleLogger.Initialize());
-            await _splashWindow?.AnimateProgressAsync(0.2)!;
+
+            // Inicjalizuj telemetrię (tylko Windows)
+            if (OperatingSystem.IsWindows())
+            {
+                InitializeTelemetry();
+            }
+
+            await _splashWindow?.AnimateProgressAsync(0.2)!;;
 
             // KROK 3: Tworzenie MainWindow i ViewModel (40%)
             _splashWindow?.UpdateProgress(0.2, "Ładowanie interfejsu...");
@@ -163,7 +175,19 @@ public partial class App : Application
                 // Po załadowaniu głównego okna sprawdź aktualizacje
                 // Fire and forget - nie blokujemy UI
                 _ = viewModel.CheckForUpdatesAfterMainWindowLoadAsync();
+
+                // Wyślij pierwszy heartbeat telemetrii (tylko Windows)
+                if (OperatingSystem.IsWindows() && _telemetryService != null)
+                {
+                    _ = _telemetryService.SendHeartbeatAsync();
+                }
             });
+
+            // Hook do zamknięcia aplikacji - wyślij końcowy heartbeat (tylko Windows)
+            if (OperatingSystem.IsWindows())
+            {
+                desktop.ShutdownRequested += OnShutdownRequested;
+            }
         }
         catch (Exception ex)
         {
@@ -175,6 +199,37 @@ public partial class App : Application
                 _splashWindow?.Close();
                 // TODO: Pokaż dialog błędu
             });
+        }
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private void InitializeTelemetry()
+    {
+        try
+        {
+            var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+            var appSettingsPath = Path.Combine(exeDir, "appsettings.json");
+
+            var configuration = new ConfigurationBuilder()
+                .AddJsonFile(appSettingsPath, optional: false, reloadOnChange: true)
+                .Build();
+
+            _telemetryService = new TelemetryService(configuration);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to initialize telemetry: {ex.Message}");
+        }
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private async void OnShutdownRequested(object? sender, ShutdownRequestedEventArgs e)
+    {
+        // Wyślij końcowy heartbeat przed zamknięciem
+        if (_telemetryService != null)
+        {
+            await _telemetryService.SendShutdownHeartbeatAsync();
+            _telemetryService.Dispose();
         }
     }
 }

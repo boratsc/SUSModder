@@ -10,11 +10,17 @@ Ta dokumentacja została stworzona w celu:
 
 **Data utworzenia:** 2025-10-19
 **Stan:** ✅ **100% UKOŃCZONE + ZOPTYMALIZOWANE!** 🎉
-**Ostatnia aktualizacja:** 2025-10-21 (Optymalizacje Frontend + HttpClient Fix)
-**Zakres:** SUSModder.Core (32 plików aktywnych) + SUSModder Frontend (71 plików) + Updater (1 plik)
-**Łączna analiza:** 104 pliki źródłowe
+**Ostatnia aktualizacja:** 2025-10-27 (Telemetry System + Optymalizacje)
+**Zakres:** SUSModder.Core (35 plików aktywnych) + SUSModder Frontend (71 plików) + Updater (1 plik) + Telemetry System
+**Łączna analiza:** 107 pliki źródłowe
 
-> **Najnowsze (2025-10-21):**
+> **Najnowsze (2025-10-27):**
+> - ✅ System telemetrii (anonimowe statystyki użytkowania)
+> - ✅ HardwareIdProvider, SessionTracker, TelemetryService
+> - ✅ Opt-out w Settings, GDPR-compliant
+> - Zobacz [2025-10-27 - telemetry-system/](2025-10-27%20-%20telemetry-system/README.md)
+>
+> **Poprzednie (2025-10-21):**
 > - ✅ Usunięto martwy kod (10 plików, ~500 linii)
 > - ✅ HttpClient Anti-pattern Fix (4 serwisy)
 > - ✅ MainWindowViewModel: 2799 → 371 linii (-86.7%)
@@ -294,7 +300,46 @@ SUSModder/
 
 ---
 
-## 🔄 Główne przepływy danych
+## � Rozbudowa systemu (2025)
+
+### 🆕 Telemetry System (2025-10-27)
+Lightweight system zbierania anonimowych statystyk użytkowania.
+
+**Dokumentacja:** [2025-10-27 - telemetry-system/](2025-10-27%20-%20telemetry-system/)
+
+**Komponenty:**
+- ✅ **HardwareIdProvider** - generowanie SHA256 hash z Hardware ID
+- ✅ **SessionTracker** - tracking czasu sesji
+- ✅ **TelemetryService** - wysyłanie heartbeat do API
+- ✅ **Backend API** - Node.js + Redis (endpoint specification)
+- ✅ **Analytics Dashboard** - queries i reporting
+
+**Zbierane dane:**
+- Anonimowy hash użytkownika (SHA256, wygenerowany lokalnie)
+- Wersja aplikacji
+- Platforma (Steam/Epic)
+- Język UI
+- Lista ID zainstalowanych modów (tylko numery!)
+- Czas sesji w sekundach
+
+**Prywatność:**
+- ❌ NIE zbieramy IP
+- ❌ NIE zbieramy danych osobowych
+- ✅ Opt-out w Settings
+- ✅ GDPR compliant
+- ✅ TTL 90 dni (auto-cleanup)
+
+**Pliki dokumentacji:**
+1. [00_PROJECT_SUMMARY.md](2025-10-27%20-%20telemetry-system/00_PROJECT_SUMMARY.md) - Podsumowanie projektu
+2. [01_SUSMODDER_IMPLEMENTATION.md](2025-10-27%20-%20telemetry-system/01_SUSMODDER_IMPLEMENTATION.md) - Implementacja C#
+3. [02_API_SPECIFICATION.md](2025-10-27%20-%20telemetry-system/02_API_SPECIFICATION.md) - Backend endpoint
+4. [03_REDIS_DATA_DESIGN.md](2025-10-27%20-%20telemetry-system/03_REDIS_DATA_DESIGN.md) - Struktura danych Redis
+5. [04_DASHBOARD_QUERIES.md](2025-10-27%20-%20telemetry-system/04_DASHBOARD_QUERIES.md) - Analytics queries
+6. [05_LOGGING_AND_MONITORING.md](2025-10-27%20-%20telemetry-system/05_LOGGING_AND_MONITORING.md) - Logging & monitoring
+
+---
+
+## �🔄 Główne przepływy danych
 
 ### 1. Start aplikacji
 ```

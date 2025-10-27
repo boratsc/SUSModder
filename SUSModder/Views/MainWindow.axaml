@@ -737,16 +737,22 @@
 									<TextBlock Text="📦" FontSize="24" VerticalAlignment="Center" HorizontalAlignment="Center"/>
 								</Border>
 
-								<!-- Tekst -->
-								<StackPanel VerticalAlignment="Center" Spacing="2">
-									<!-- Główny tekst - zmienia się w zależności od dostępności aktualizacji -->
-									<TextBlock Classes="status-main-text"
-											   Text="{Binding ModsStatusMainText}"
-											   Foreground="{Binding AvailableUpdatesCount, Converter={StaticResource UpdatesColorConverter}}"/>
+							<!-- Tekst -->
+							<StackPanel VerticalAlignment="Center" Spacing="2">
+								<!-- Główny tekst - CZERWONY gdy są aktualizacje -->
+								<TextBlock Classes="status-main-text"
+										   Text="{Binding ModsStatusMainText}"
+										   Foreground="#F44336"
+										   IsVisible="{Binding !!AvailableUpdatesCount}"/>
+								
+								<!-- Główny tekst - NORMALNY kolor gdy NIE MA aktualizacji -->
+								<TextBlock Classes="status-main-text"
+										   Text="{Binding ModsStatusMainText}"
+										   IsVisible="{Binding !AvailableUpdatesCount}"/>
 
-									<!-- Tekst pomocniczy - liczba zainstalowanych modów -->
-									<TextBlock Classes="status-sub-text" Text="{Binding ModsStatusSubText}"/>
-								</StackPanel>
+								<!-- Tekst pomocniczy - liczba zainstalowanych modów -->
+								<TextBlock Classes="status-sub-text" Text="{Binding ModsStatusSubText}"/>
+							</StackPanel>
 							</StackPanel>
 
 							<!-- Tooltip z listą zainstalowanych i dostępnych aktualizacji -->
