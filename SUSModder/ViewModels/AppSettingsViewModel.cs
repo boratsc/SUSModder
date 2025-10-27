@@ -32,6 +32,8 @@ namespace SUSModder.ViewModels
         private string _originalGameMode = "steam";
         private string _originalLanguage = "pl";
         private bool _hasUnsavedChanges = false;
+        private bool _telemetryEnabled = true;
+        private bool _originalTelemetryEnabled = true;
 
         // Stała lista dostępnych języków (aby uniknąć problemów z referencjami)
         private static readonly List<LanguageOption> _availableLanguages = new()
@@ -87,6 +89,9 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(SelectedLanguage));
                 this.RaisePropertyChanged(nameof(AvailableLanguages));
             }
+
+            // Wczytaj ustawienia telemetrii
+            LoadTelemetrySettings();
 
             // Komendy
             BrowseFolderCommand = ReactiveCommand.CreateFromTask(BrowseFolder);
@@ -153,6 +158,17 @@ namespace SUSModder.ViewModels
         }
 
         public List<LanguageOption> AvailableLanguages => _availableLanguages;
+
+        public bool TelemetryEnabled
+        {
+            get => _telemetryEnabled;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _telemetryEnabled, value);
+                OnTelemetryEnabledChanged(value);
+                CheckForChanges();
+            }
+        }
 
         public LanguageOption? SelectedLanguage
         {
@@ -281,8 +297,111 @@ namespace SUSModder.ViewModels
             HasUnsavedChanges = !string.Equals(_modsInstallPath, _originalModsInstallPath, StringComparison.OrdinalIgnoreCase) ||
                                _developerMode != _originalDeveloperMode ||
                                _gameMode != _originalGameMode ||
-                               (_selectedLanguage?.Code ?? "pl") != _originalLanguage;
+                               (_selectedLanguage?.Code ?? "pl") != _originalLanguage ||
+                               _telemetryEnabled != _originalTelemetryEnabled;
             this.RaisePropertyChanged(nameof(WindowTitle));
+        }
+
+        private void LoadTelemetrySettings()
+        {
+            try
+            {
+                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+                var appSettingsPath = Path.Combine(exeDir, "appsettings.json");
+
+                if (File.Exists(appSettingsPath))
+                {
+                    var jsonContent = File.ReadAllText(appSettingsPath);
+                    var jsonDocument = JsonDocument.Parse(jsonContent);
+                    var root = jsonDocument.RootElement;
+
+                    if (root.TryGetProperty("Configuration", out var config) &&
+                        config.TryGetProperty("TelemetryEnabled", out var telemetryEnabledElement))
+                    {
+                        // Accept both boolean and string values for backward compatibility
+                        if (telemetryEnabledElement.ValueKind == JsonValueKind.True || telemetryEnabledElement.ValueKind == JsonValueKind.False)
+                        {
+                            _telemetryEnabled = telemetryEnabledElement.GetBoolean();
+                        }
+                        else if (telemetryEnabledElement.ValueKind == JsonValueKind.String)
+                        {
+                            var str = telemetryEnabledElement.GetString();
+                            if (!bool.TryParse(str, out _telemetryEnabled))
+                            {
+                                _telemetryEnabled = true; // default on invalid value
+                            }
+                        }
+                        else
+                        {
+                            _telemetryEnabled = true; // sensible default
+                        }
+
+                        _originalTelemetryEnabled = _telemetryEnabled;
+                    }
+                }
+
+                this.RaisePropertyChanged(nameof(TelemetryEnabled));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to load telemetry settings: {ex.Message}");
+                _telemetryEnabled = true;
+                _originalTelemetryEnabled = true;
+            }
+        }
+
+        private void OnTelemetryEnabledChanged(bool enabled)
+        {
+            try
+            {
+                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+                var appSettingsPath = Path.Combine(exeDir, "appsettings.json");
+
+                if (File.Exists(appSettingsPath))
+                {
+                    var jsonContent = File.ReadAllText(appSettingsPath);
+                    var jsonDocument = JsonDocument.Parse(jsonContent);
+                    var root = jsonDocument.RootElement;
+
+                    var updatedSettings = new Dictionary<string, object>();
+
+                    foreach (var property in root.EnumerateObject())
+                    {
+                        if (property.Name == "Configuration")
+                        {
+                            var configuration = new Dictionary<string, object>();
+
+                            foreach (var configProperty in property.Value.EnumerateObject())
+                            {
+                                if (configProperty.Name == "TelemetryEnabled")
+                                {
+                                    configuration[configProperty.Name] = enabled;
+                                }
+                                else
+                                {
+                                    configuration[configProperty.Name] = GetJsonValue(configProperty.Value);
+                                }
+                            }
+
+                            updatedSettings[property.Name] = configuration;
+                        }
+                        else
+                        {
+                            updatedSettings[property.Name] = GetJsonValue(property.Value);
+                        }
+                    }
+
+                    var options = new JsonSerializerOptions { WriteIndented = true };
+                    var updatedJson = JsonSerializer.Serialize(updatedSettings, options);
+                    File.WriteAllText(appSettingsPath, updatedJson);
+
+                    System.Diagnostics.Debug.WriteLine($"Telemetry {(enabled ? "enabled" : "disabled")}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to save telemetry setting: {ex.Message}");
+            }
         }
 
         private async Task BrowseFolder()
@@ -362,6 +481,7 @@ namespace SUSModder.ViewModels
                 _originalModsInstallPath = ModsInstallPath;
                 _originalDeveloperMode = DeveloperMode;
                 _originalGameMode = GameMode;
+                _originalTelemetryEnabled = TelemetryEnabled;
                 HasUnsavedChanges = false;
 
                 // Powiadom o zapisaniu ustawień
