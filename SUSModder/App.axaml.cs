@@ -38,8 +38,10 @@ public partial class App : Application
         {
             var locService = new LocalizationService();
 
-            // Odczytaj zapisany język z appsettings.json
-            var savedLanguage = ConfigManager.GetLanguageSetting();
+            // Odczytaj zapisany język z user settings
+            var userSettingsService = new UserSettingsService();
+            var userSettings = userSettingsService.LoadUserSettings();
+            var savedLanguage = userSettings.Language;
 
             // Jeśli język jest ustawiony i dostępny, użyj go
             if (!string.IsNullOrEmpty(savedLanguage) && locService.IsCultureAvailable(savedLanguage))
@@ -96,7 +98,8 @@ public partial class App : Application
             await _splashWindow?.AnimateProgressAsync(0.1)!;
 
             // KROK 1.5: Sprawdź czy język jest ustawiony, jeśli nie - pokaż dialog wyboru języka
-            var currentLanguage = ConfigManager.GetLanguageSetting();
+            var userSettingsService = new UserSettingsService();
+            var currentLanguage = userSettingsService.LoadUserSettings().Language;
             if (string.IsNullOrEmpty(currentLanguage))
             {
                 // Język nie jest ustawiony - pokaż dialog wyboru
@@ -110,7 +113,7 @@ public partial class App : Application
                 // Jeśli użytkownik zamknął dialog bez wyboru, użyj polskiego jako domyślnego
                 if (string.IsNullOrEmpty(selectedLanguage))
                 {
-                    ConfigManager.SaveLanguageSetting("pl");
+                    userSettingsService.UpdateUserSetting(settings => settings.Language = "pl");
                 }
             }
 

@@ -610,12 +610,8 @@ namespace SUSModder.ViewModels
                 var silentUserInteraction = new InstallationSilentUserInteraction();
 
                 // Sprawdź platformę
-                var configBuilder = new ConfigurationBuilder()
-                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                var configuration = configBuilder.Build();
-
-                string platform = configuration.GetSection("Configuration")["Mode"] ?? "steam";
+                var userSettings = _userSettingsService.LoadUserSettings();
+                string platform = userSettings.Mode;
 
                 if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
                 {
@@ -628,6 +624,11 @@ namespace SUSModder.ViewModels
                 else
                 {
                     // Steam installation
+                    var configBuilder = new ConfigurationBuilder()
+                        .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                    var configuration = configBuilder.Build();
+                    
                     var modManager = new ModManager(configuration);
                     var callbacks = new ModManagerUserCallbacks
                     {

@@ -46,6 +46,7 @@
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.10" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
 		<PackageReference Include="Xaml.Behaviors.Avalonia" Version="11.3.6.5" />
+		<PackageReference Include="Velopack" Version="0.0.1298" />
 	</ItemGroup>
 
 	<!-- Pliki które mają być wyodrębnione z single-file (zewnętrzne zależności) -->
@@ -78,6 +79,10 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 		</Content>
+		<Content Include="version.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+		</Content>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -100,6 +105,9 @@
 	<ItemGroup>
 	  <Compile Update="Views\AppUpdateDialog.axaml.cs">
 	    <DependentUpon>AppUpdateDialog.axaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Views\VelopackUpdateDialog.axaml.cs">
+	    <DependentUpon>VelopackUpdateDialog.axaml</DependentUpon>
 	  </Compile>
 	</ItemGroup>
 </Project>

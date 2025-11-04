@@ -28,56 +28,16 @@ namespace SUSModder.ViewModels
         {
             try
             {
-                // KROK 1: Najpierw sprawdź appsettings.json
-                try
+                // Pobierz z user settings
+                var userSettings = _userSettingsService.LoadUserSettings();
+                if (!string.IsNullOrEmpty(userSettings.Mode))
                 {
-                    var configBuilder = new ConfigurationBuilder()
-                        .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                    var configuration = configBuilder.Build();
-
-                    var modeFromSettings = configuration["Configuration:Mode"];
-                    if (!string.IsNullOrEmpty(modeFromSettings))
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[Platform Detection] Found Mode in appsettings.json: {modeFromSettings}");
-                        return modeFromSettings.ToLower();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Platform Detection] Could not read appsettings.json: {ex.Message}");
-                }
-
-                // KROK 2: Jeśli nie ma w appsettings, spróbuj wykryć z ścieżki w config.json
-                var configService = new ConfigService();
-                var allConfigs = configService.LoadConfig();
-
-                // Znajdź mod "Among Us" (Vanilla)
-                var amongUsConfig = allConfigs?.FirstOrDefault(c =>
-                    c.ModName.Equals("Among Us", StringComparison.OrdinalIgnoreCase) ||
-                    c.ModName.Equals("AmongUs", StringComparison.OrdinalIgnoreCase) ||
-                    c.ModName.Equals("Vanilla", StringComparison.OrdinalIgnoreCase)
-                );
-
-                if (amongUsConfig != null && !string.IsNullOrEmpty(amongUsConfig.InstallPath))
-                {
-                    System.Diagnostics.Debug.WriteLine($"[Platform Detection] Found Among Us config with path: {amongUsConfig.InstallPath}");
-
-                    // Sprawdź czy ścieżka zawiera "Epic" lub "EpicGames"
-                    if (amongUsConfig.InstallPath.Contains("Epic", StringComparison.OrdinalIgnoreCase))
-                    {
-                        System.Diagnostics.Debug.WriteLine("[Platform Detection] Detected Epic Games platform from path");
-                        return "epic";
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("[Platform Detection] Detected Steam platform from path");
-                        return "steam";
-                    }
+                    System.Diagnostics.Debug.WriteLine($"[Platform Detection] Found Mode in user-settings: {userSettings.Mode}");
+                    return userSettings.Mode.ToLower();
                 }
 
                 // Jeśli nie znaleziono, zwróć steam jako domyślny
-                System.Diagnostics.Debug.WriteLine("[Platform Detection] No Among Us config found, defaulting to steam");
+                System.Diagnostics.Debug.WriteLine("[Platform Detection] No user settings found, defaulting to steam");
                 return "steam";
             }
             catch (Exception ex)

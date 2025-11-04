@@ -66,6 +66,7 @@ namespace SUSModder.ViewModels
         private readonly SUSModder.Core.Services.Localization.ILocalizationService _localizationService;
         private Microsoft.Extensions.Configuration.IConfiguration? _configuration;
         private SUSModder.Core.Diagnostics.IDiagnosticsOutput? _diagnosticsOutput;
+        private readonly UserSettingsService _userSettingsService;
         private bool _isDllModificationsVisible = false;
         private ObservableCollection<ModItem> _dllMods = new();
         private ModItem? _selectedDllMod;
@@ -314,14 +315,15 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> CheckDllUpdatesCommand { get; }
         public ICommand OpenFolderCommand { get; }
         public ICommand CreateShortcutCommand { get; }
-        public ReactiveCommand<Unit, Unit> ShowDllModificationsCommand { get; }
-        public ReactiveCommand<ModItem, Unit> SelectDllModCommand { get; }
-        public ReactiveCommand<ModItem, Unit> InstallDllToModCommand { get; }
-        public ReactiveCommand<ModItem, Unit> UninstallDllFromModCommand { get; }
-        public ReactiveCommand<Unit, Unit> CloseDllDialogCommand { get; }
-        public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
-        public ReactiveCommand<Unit, Unit> ShowDllSelectionCommand { get; }
-        public ReactiveCommand<ModItem, Unit> ModDoubleClickCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowDllModificationsCommand { get; }
+    public ReactiveCommand<ModItem, Unit> SelectDllModCommand { get; }
+    public ReactiveCommand<ModItem, Unit> InstallDllToModCommand { get; }
+    public ReactiveCommand<ModItem, Unit> UninstallDllFromModCommand { get; }
+    public ReactiveCommand<Unit, Unit> CloseDllDialogCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowDllSelectionCommand { get; }
+    public ReactiveCommand<Unit, Unit> CheckForAppUpdatesCommand { get; }
+    public ReactiveCommand<ModItem, Unit> ModDoubleClickCommand { get; }
 
         #endregion
 
@@ -330,6 +332,9 @@ namespace SUSModder.ViewModels
         public MainWindowViewModel()
         {
             _localizationService = App.GetService<SUSModder.Core.Services.Localization.ILocalizationService>();
+            
+            // Inicjalizuj UserSettingsService
+            _userSettingsService = new UserSettingsService();
             
             _userInteractionService = new UserInteractionService(
                 ShowConfirmDialogAsync,
@@ -365,6 +370,7 @@ namespace SUSModder.ViewModels
             LaunchCommand = ReactiveCommand.Create(Launch);
             UpdateCommand = ReactiveCommand.Create(Update);
             CheckDllUpdatesCommand = ReactiveCommand.CreateFromTask(CheckDllUpdates);
+            CheckForAppUpdatesCommand = ReactiveCommand.CreateFromTask(CheckForAppUpdatesManuallyAsync);
             ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             ShowInfoCommand = ReactiveCommand.Create(ShowInfo);
             ShowAdditionalActionsCommand = ReactiveCommand.Create(ShowAdditionalActions);
@@ -394,6 +400,7 @@ namespace SUSModder.ViewModels
 
             FixBlackScreenCommand.ThrownExceptions.Subscribe(HandleCommandError);
             LobbySetCommand.ThrownExceptions.Subscribe(HandleCommandError);
+            CheckForAppUpdatesCommand.ThrownExceptions.Subscribe(HandleCommandError);
 
             System.Diagnostics.Debug.WriteLine("[MainWindowViewModel] Starting Discord icon preloader...");
             _ = Task.Run(async () =>

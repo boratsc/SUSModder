@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using SUSModder.Core.Utilities;
 using SUSModder.Core.Repositories;
+using SUSModder.Core.Services;
 using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
@@ -23,6 +24,7 @@ namespace SUSModder.ViewModels
     {
         private readonly Control _control;
         private readonly ILocalizationService? _localizationService;
+        private readonly UserSettingsService _userSettingsService;
         private string _modsInstallPath = string.Empty;
         private bool _developerMode = false;
         private string _gameMode = "steam";
@@ -51,6 +53,7 @@ namespace SUSModder.ViewModels
         public AppSettingsViewModel(Control control)
         {
             _control = control;
+            _userSettingsService = new UserSettingsService();
 
             // Załaduj obecne ustawienia
             LoadCurrentSettings();
@@ -222,23 +225,28 @@ namespace SUSModder.ViewModels
         {
             try
             {
+                var userSettings = _userSettingsService.LoadUserSettings();
+
                 // Załaduj ModsInstallPath
-                _modsInstallPath = PathSettings.ModsInstallPath;
+                _modsInstallPath = string.IsNullOrEmpty(userSettings.ModsInstallPath) 
+                    ? PathSettings.DefaultModsPath 
+                    : userSettings.ModsInstallPath;
                 _originalModsInstallPath = _modsInstallPath;
 
                 // Załaduj DeveloperMode
                 _developerMode = DeveloperModeSettings.IsEnabled;
                 _originalDeveloperMode = _developerMode;
 
-                // Załaduj GameMode z appsettings.json
-                LoadGameModeFromAppSettings();
+                // Załaduj GameMode z user settings
+                _gameMode = userSettings.Mode;
+                _originalGameMode = _gameMode;
 
                 System.Diagnostics.Debug.WriteLine($"Loaded current settings - ModsInstallPath: {_modsInstallPath}, DeveloperMode: {_developerMode}, GameMode: {_gameMode}");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading settings: {ex.Message}");
-                _modsInstallPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Among Us - Mody");
+                _modsInstallPath = PathSettings.DefaultModsPath;
                 _originalModsInstallPath = _modsInstallPath;
                 _developerMode = false;
                 _originalDeveloperMode = false;
@@ -249,34 +257,12 @@ namespace SUSModder.ViewModels
 
         private void LoadGameModeFromAppSettings()
         {
+            // Ta metoda jest już nieużywana - GameMode jest wczytywany z UserSettings
             try
             {
-                string exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                string appSettingsPath = Path.Combine(exeDir, "appsettings.json");
-
-                if (File.Exists(appSettingsPath))
-                {
-                    string jsonContent = File.ReadAllText(appSettingsPath);
-                    var jsonDocument = JsonDocument.Parse(jsonContent);
-                    var root = jsonDocument.RootElement;
-
-                    if (root.TryGetProperty("Configuration", out var config) && 
-                        config.TryGetProperty("Mode", out var mode))
-                    {
-                        _gameMode = mode.GetString() ?? "steam";
-                        _originalGameMode = _gameMode;
-                    }
-                    else
-                    {
-                        _gameMode = "steam";
-                        _originalGameMode = "steam";
-                    }
-                }
-                else
-                {
-                    _gameMode = "steam";
-                    _originalGameMode = "steam";
-                }
+                var userSettings = _userSettingsService.LoadUserSettings();
+                _gameMode = userSettings.Mode;
+                _originalGameMode = _gameMode;
 
                 // Powiadom o zmianie właściwości radio buttonów
                 this.RaisePropertyChanged(nameof(IsSteamMode));
@@ -306,39 +292,9 @@ namespace SUSModder.ViewModels
         {
             try
             {
-                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                var appSettingsPath = Path.Combine(exeDir, "appsettings.json");
-
-                if (File.Exists(appSettingsPath))
-                {
-                    var jsonContent = File.ReadAllText(appSettingsPath);
-                    var jsonDocument = JsonDocument.Parse(jsonContent);
-                    var root = jsonDocument.RootElement;
-
-                    if (root.TryGetProperty("Configuration", out var config) &&
-                        config.TryGetProperty("TelemetryEnabled", out var telemetryEnabledElement))
-                    {
-                        // Accept both boolean and string values for backward compatibility
-                        if (telemetryEnabledElement.ValueKind == JsonValueKind.True || telemetryEnabledElement.ValueKind == JsonValueKind.False)
-                        {
-                            _telemetryEnabled = telemetryEnabledElement.GetBoolean();
-                        }
-                        else if (telemetryEnabledElement.ValueKind == JsonValueKind.String)
-                        {
-                            var str = telemetryEnabledElement.GetString();
-                            if (!bool.TryParse(str, out _telemetryEnabled))
-                            {
-                                _telemetryEnabled = true; // default on invalid value
-                            }
-                        }
-                        else
-                        {
-                            _telemetryEnabled = true; // sensible default
-                        }
-
-                        _originalTelemetryEnabled = _telemetryEnabled;
-                    }
-                }
+                var userSettings = _userSettingsService.LoadUserSettings();
+                _telemetryEnabled = userSettings.TelemetryEnabled;
+                _originalTelemetryEnabled = _telemetryEnabled;
 
                 this.RaisePropertyChanged(nameof(TelemetryEnabled));
             }
@@ -472,8 +428,17 @@ namespace SUSModder.ViewModels
                 // Sprawdź czy tryb gry się zmienił
                 bool gameModeChanged = _gameMode != _originalGameMode;
 
-                // Zapisz wszystkie ustawienia do appsettings.json
-                await SaveAllSettingsToAppSettings();
+                // Zapisz wszystkie ustawienia do UserSettingsService
+                _userSettingsService.UpdateUserSetting(settings =>
+                {
+                    settings.Mode = GameMode;
+                    settings.ModsInstallPath = ModsInstallPath;
+                    settings.TelemetryEnabled = TelemetryEnabled;
+                    if (_selectedLanguage != null)
+                    {
+                        settings.Language = _selectedLanguage.Code;
+                    }
+                });
 
                 // Zapisz DeveloperMode używając nowej klasy
                 DeveloperModeSettings.SetDeveloperMode(DeveloperMode);

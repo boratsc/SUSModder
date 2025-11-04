@@ -88,12 +88,8 @@ namespace SUSModder.ViewModels
             try
             {
                 // 3) Ustalamy tryb uruchomienia
-                var configBuilder = new ConfigurationBuilder()
-                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                var configuration = configBuilder.Build();
-
-                string mode = configuration.GetSection("Configuration")["Mode"] ?? "steam";
+                var userSettings = _userSettingsService.LoadUserSettings();
+                string mode = userSettings.Mode;
 
                 if (mode.Equals("epic", StringComparison.OrdinalIgnoreCase))
                 {

@@ -20,7 +20,13 @@ Cel tego pliku: zapewnić stały kontekst działania aplikacji, jej architektur�
 	- Instalacja modów: `GameIntegration/ModManager.cs` (Steam full), `Services/ModService.cs` (fasada), `GameIntegration/ModDelete.cs`.
 	- Aktualizacje modów: `GameIntegration/ModUpdate*.cs`, `Services/ModUpdateManager.cs`.
 	- Mody DLL: `Services/DllModificationService.cs` (+ VM `DllModSelectionViewModel` po stronie UI).
-	- Aktualizacje aplikacji: `Services/AppUpdateService.cs` (+ wywołanie w `MainWindowViewModel` i przywracanie ustawień w `Program.cs`).
+	- Aktualizacje aplikacji: 
+		- **Legacy** (v2.0.1 i wcześniej): `Services/AppUpdateService.cs` + `Updater.exe` (ZIP download → extract → replace).
+		- **Velopack** (v2.1.0+, obecny): `Services/VelopackUpdateService.cs` + `Services/VelopackApiSource.cs` (delta updates, atomic swaps, Rust-based).
+			- Auto-detekcja środowiska Velopack z fallback do legacy w `MainWindowViewModel.TryHandleVelopackAppUpdatesAsync()`.
+			- API endpoint: `https://susmodder.app/api/releases?channel=win` (manifest z .nupkg, checksum SHA256).
+			- UI: `Views/VelopackUpdateDialog.axaml(.cs)`.
+			- Pakiety generowane przez Velopack CLI (`vpk`), format .nupkg (NuGet).
 	- Sekrety: `Secrets.cs` (token HTTP i hasło 7z pobierane przez `SecretProvider`).
 	- Repozytoria: `Repositories/ConfigRepository.cs` (czytanie/zapis appsettings.json, config.json, komunikacja z API).
 
@@ -40,7 +46,7 @@ Cel tego pliku: zapewnić stały kontekst działania aplikacji, jej architektur�
 
 ## Główne przepływy
 1) Start aplikacji
-- `Program.Main` przywraca kopię ustawień użytkownika po update (AppUpdateService.RestoreUserSettingsIfNeeded), uruchamia Avalonię.
+- `Program.Main` przywraca kopię ustawień użytkownika po update (AppUpdateService.RestoreUserSettingsIfNeeded – legacy compatibility), uruchamia Avalonię.
 - `App.OnFrameworkInitializationCompleted` tworzy `MainWindow` z `MainWindowViewModel`.
 
 2) Inicjalizacja (MainWindowViewModel)
@@ -67,12 +73,22 @@ Cel tego pliku: zapewnić stały kontekst działania aplikacji, jej architektur�
 5) Aktualizacje modów
 - `ModUpdateManager` sprawdza różnice wersji na podstawie konfiguracji z API i lokalnej. UI pokazuje dialog aktualizacji i wykonuje sekwencję z progresami.
 
-6) Aktualizacja aplikacji
+6) Aktualizacja aplikacji (Velopack - v2.1.0+)
+- `VelopackUpdateService.CheckForUpdateAsync()` → `VelopackApiSource.GetReleaseFeed()` pobiera manifest z `https://susmodder.app/api/releases`.
+- Porównuje `CurrentVersion` (z appsettings.json) z `LatestVersion` z API.
+- Jeśli aktualizacja dostępna: pokazuje `VelopackUpdateDialog`.
+- `DownloadUpdateAsync()` pobiera pakiet .nupkg z progresem (SHA256 verification).
+- `ApplyUpdateAndRestartAsync()` wywołuje `UpdateManager.WaitExitThenApplyUpdatesAsync()` → Velopack's native `Update.exe` (Rust) wykonuje atomic swap plików.
+- Aplikacja restartuje się automatycznie.
+- **Fallback**: Jeśli Velopack nie jest wykryty (`IsInstalledAsync() == false`), używa legacy `AppUpdateService` (ZIP download → Updater.exe).
+
+7) Aktualizacja aplikacji (Legacy - v2.0.1 i wcześniej, dla kompatybilności wstecznej)
 - `AppUpdateService` porównuje `CurrentVersion` z najnowszą wersją z serwera.
-- Pobieranie paczki do %TEMP%, uruchomienie `updater/Updater.exe` z argumentami (kopia ustawień użytkownika – Mode, Theme, lastLaunchId, ModsInstallPath – jest zapisywana i przywracana przy kolejnym starcie).
+- Pobieranie paczki ZIP do %TEMP%, uruchomienie `updater/Updater.exe` z argumentami (kopia ustawień użytkownika – Mode, Theme, lastLaunchId, ModsInstallPath – jest zapisywana i przywracana przy kolejnym starcie).
 
 ## Zależności i środowisko
 - .NET 8.0; Avalonia 11.3; ReactiveUI; Microsoft.Extensions.Configuration.
+- **Velopack** (v0.0.1298+) - system aktualizacji aplikacji (NuGet: `Velopack`).
 - Runtime: Windows (publikacja win-x64). Narzędzia zewnętrzne w `tools/7z.exe`.
 - Uprawnienia: operacje na plikach w katalogu ModsInstallPath i rozpakowywanie archiwów (foldery muszą być dostępne do zapisu; gra nie może być uruchomiona podczas instalacji).
 
@@ -111,19 +127,94 @@ Cel tego pliku: zapewnić stały kontekst działania aplikacji, jej architektur�
 	- Dodaj rozpoznanie w GameLocator i odpowiednie linki pobierania w `ModConfiguration` + obsługa w DllModificationService.
 
 ## Weryfikacja (skrót)
-- Build: projekt `SUSModder` (net8.0). Release: publikacja single-file do `publish/` z dołączonym `tools` i `updater`.
-- Smoke test: start aplikacji, auto-detekcja gry (lub wybór exe), lista modów, instalacja DLL do istniejącego moda full, sprawdzenie aktualizacji.
+- Build: projekt `SUSModder` (net8.0). 
+- Release (Legacy single-file): publikacja single-file do `publish/` z dołączonym `tools` i `updater`.
+- Release (Velopack - REKOMENDOWANE): 
+	```powershell
+	# Zainstaluj Velopack CLI (jednorazowo)
+	dotnet tool install -g vpk
+	
+	# Zbuduj i spakuj
+	.\build-velopack-test.ps1
+	
+	# Output: velopack-releases/SUSModder-X.Y.Z-win-full.nupkg + RELEASES + releases.win.json
+	# Upload wszystkie pliki na https://susmodder.app/releases/
+	```
+- Smoke test: start aplikacji, auto-detekcja gry (lub wybór exe), lista modów, instalacja DLL do istniejącego moda full, sprawdzenie aktualizacji (Velopack w installed env, legacy w dev mode).
 
 ## Słowniczek
 - Full mod: modyfikacja z pełnym kompletem plików (BepInEx itd.) – instalowana do osobnego folderu w ModsInstallPath.
 - DLL mod: pojedyncza biblioteka .dll kopiowana do folderu BepInEx\\plugins (lub innego z DllInstallPath) w modzie full.
 - Vanilla: czysta kopia plików gry Among Us, rozpakowywana z zaszyfrowanego archiwum 7z.
+- Velopack: nowoczesny framework do instalacji i auto-update (następca Squirrel.Windows), używany od v2.1.0. Delta updates, atomic swaps, napisany w Rust.
+- .nupkg: format pakietu Velopack (NuGet package, czyli ZIP z manifestem), zawiera pliki aplikacji + metadane do delta updates.
 
+## Testowanie i debugowanie aktualizacji (Velopack)
+
+### Szybki test w dev mode:
+```powershell
+# 1. Wygeneruj dummy release (testowy pakiet)
+.\generate-dummy-release.ps1
+
+# 2. Sprawdź API
+.\test-velopack-api.ps1
+
+# 3. Symuluj środowisko Velopack
+cd publish
+mkdir packages
+echo. > ..\Update.exe
+
+# 4. Zmień wersję w appsettings.json na niższą (np. "2.0.1")
+# 5. Uruchom aplikację i kliknij "Sprawdź aktualizacje"
+```
+
+### Debugging:
+- Breakpoint w `VelopackUpdateService.CheckForUpdateAsync()`.
+- Logi `[Velopack]` w `IDiagnosticsOutput`.
+- Sprawdź `velopackEnvironmentDetected` w `MainWindowViewModel.TryHandleVelopackAppUpdatesAsync()`.
+
+### Typowe problemy:
+- "No updates available" → `CurrentVersion` w appsettings.json >= wersja z API.
+- "Velopack not detected" → Normalne w dev mode, używa legacy updater.
+- "Invalid checksum" → Backend musi zwracać prawdziwy SHA256 z pliku `RELEASES`.
+- "Failed to download" → Sprawdź dostępność URL, format API response.
+
+### Dokumentacja:
+- `VELOPACK_TESTING_GUIDE.md` - pełny przewodnik testowania.
+- `VELOPACK_STATUS.md` - obecny status implementacji.
+- `DOC/Updater-Refactoring/` - szczegółowa dokumentacja architektury i migracji.
+
+
+# Publikacja (Velopack - REKOMENDOWANE od v2.1.0)
+
+# 1. Zainstaluj Velopack CLI (jednorazowo)
+dotnet tool install -g vpk
+
+# 2. Zbuduj i spakuj używając skryptu
+cd d:\Development\SUSModder
+.\build-velopack-test.ps1
+
+# Lub manualnie:
+# a) Build aplikacji (NIE single-file!)
+cd SUSModder
+dotnet publish SUSModder.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=false -o ..\publish-velopack
+
+# b) Spakuj przez Velopack
+cd ..
+vpk pack --packId SUSModder --packVersion 2.1.0 --packDir publish-velopack --outputDir velopack-releases --channel win --icon SUSModder\Assets\icon.ico
+
+# 3. Upload plików z velopack-releases/ na serwer:
+# - SUSModder-2.1.0-win-full.nupkg
+# - RELEASES
+# - releases.win.json
+# Wszystkie pliki muszą być dostępne pod: https://susmodder.app/releases/
+
+# Publikacja Legacy (dla kompatybilności wstecznej)
 
 # Publikacja Updater (najpierw)
-cd d:\repos\SUSModder\Updater
+cd d:\Development\SUSModder\Updater
 dotnet publish -c Release
 
-# Publikacja głównej aplikacji
-cd d:\repos\SUSModder\SUSModder
+# Publikacja głównej aplikacji (single-file)
+cd d:\Development\SUSModder\SUSModder
 dotnet publish -c Release

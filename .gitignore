@@ -3,6 +3,16 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# SUSModder specific
+publish/
+publish-velopack/
+publish-velopack-temp/
+velopack-releases/
+.tools/
+.ilspy/
+Update.exe
+dummy-release/
+
 # User-specific files
 *.rsuser
 *.suo
