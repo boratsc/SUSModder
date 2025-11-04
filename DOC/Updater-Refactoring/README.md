@@ -1,9 +1,10 @@
 # SUSModder - Refactoring Systemu Aktualizacji
 
-**Data:** 2025-10-28
+**Data:** 2025-10-28 (Updated: 2025-11-04)
 **Autor:** Claude Code
 **Wersja obecna:** 2.0.1
-**Status:** Propozycja refaktoringu
+**Wersja docelowa:** 2.1.0
+**Status:** 🟡 Implementacja w toku - backend gotowy, wymaga testowego pakietu
 
 ---
 
@@ -37,16 +38,35 @@ Obecny system aktualizacji SUSModder jest flagowany przez antywirusy pomimo posi
 
 ---
 
-## Quick Start
+## Obecny Status (2025-11-04)
 
-Jeśli chcesz od razu zacząć implementację:
+### ✅ Co zostało zaimplementowane:
+- Backend API działa na `https://susmodder.app/api/releases`
+- Kod aplikacji z pełną obsługą Velopack:
+  - `VelopackUpdateService.cs` - główna logika
+  - `VelopackApiSource.cs` - custom source dla API
+  - `VelopackUpdateDialog` - UI dialog
+  - Auto-detekcja Velopack z fallback do legacy updater
+- NuGet package Velopack dodany do projektu
 
+### ⚠️ Co wymaga ukończenia:
+- **Wygenerowanie testowego pakietu .nupkg**
+- Aktualizacja backend API do zwracania prawdziwego checksum (obecnie: "dummychecksum")
+- Pełne testy instalacji i aktualizacji
+
+### 🚀 Następne Kroki:
+
+Dla **testowania**:
+1. Uruchom: `.\build-velopack-test.ps1` (lub `.\generate-dummy-release.ps1` dla szybkiego testu)
+2. Upload plików z `velopack-releases/` na serwer
+3. Popraw backend aby zwracał prawdziwy SHA256 z pliku `RELEASES`
+4. Zobacz [../../VELOPACK_TESTING_GUIDE.md](../../VELOPACK_TESTING_GUIDE.md) dla szczegółów
+
+Dla **implementacji od zera**:
 1. Przeczytaj [PROBLEM_ANALYSIS.md](./PROBLEM_ANALYSIS.md) aby zrozumieć problem
 2. Przejrzyj [SOLUTION_COMPARISON.md](./SOLUTION_COMPARISON.md) aby potwierdzić wybór
 3. Następuj krokom w [VELOPACK_IMPLEMENTATION.md](./VELOPACK_IMPLEMENTATION.md)
 4. Użyj [CODE_EXAMPLES.md](./CODE_EXAMPLES.md) jako reference podczas implementacji
-
-**Szacowany czas implementacji:** 5-7 dni roboczych
 
 ---
 

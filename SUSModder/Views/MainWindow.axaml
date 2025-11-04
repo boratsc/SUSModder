@@ -909,6 +909,14 @@
 			</Button>
 
 			<Button Classes="fab-menu-item"
+					Command="{Binding CheckForAppUpdatesCommand}">
+				<StackPanel Orientation="Horizontal" Spacing="12">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowClockwise}" FontSize="20" Foreground="#03A9F4"/>
+					<TextBlock Text="{loc:Localize UI.Menu.CheckAppUpdates}" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Button>
+
+			<Button Classes="fab-menu-item"
 					Command="{Binding ShowAppSettingsCommand}">
 				<StackPanel Orientation="Horizontal" Spacing="12">
 					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Settings}" FontSize="20" Foreground="#2196F3"/>

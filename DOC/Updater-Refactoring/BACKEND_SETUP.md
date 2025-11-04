@@ -2,7 +2,7 @@
 
 **Data:** 2025-10-28
 **Domain:** susmodder.app
-**Update URL:** https://susmodder.app/releases
+**Update URL:** https://susmodder.app/api/releases
 
 ---
 
@@ -15,6 +15,7 @@
 5. [Static Hosting (S3/CDN)](#5-static-hosting-s3cdn)
 6. [CI/CD Integration](#6-cicd-integration)
 7. [Monitoring & Analytics](#7-monitoring--analytics)
+8. [API Endpoint: /api/releases](#8-api-endpoint-apireleases)
 
 ---
 
@@ -68,6 +69,8 @@ Option C: Hybrid (Recommended)
 └─ api/                                     (Backend API)
     └─ (Your existing Node.js/Python API)
 ```
+
+> **Note:** Endpoint `GET /api/releases` (opis w sekcji 8) pełni rolę warstwy serwisowej nad katalogiem `releases/`. Backend odczytuje manifest `releases.{channel}.json` i udostępnia go jako JSON API wraz z dodatkowymi metadanymi, kontrolą błędów i nagłówkami HTTP.
 
 ### 2.2. Velopack Manifest Format
 
@@ -743,6 +746,163 @@ public async Task<UpdateDownloadResult> DownloadAndApplyUpdateAsync(...)
 
 ---
 
+## 8. API Endpoint: /api/releases
+
+### 8.1. Cel i Zakres
+
+- Udostępnia zunifikowany manifest aktualizacji dla aplikacji desktopowej (Velopack) oraz paneli administracyjnych.
+- Abstrahuje fizyczny storage (`/releases/`), umożliwiając dodanie logowania, rate limiting i przyszłe rozszerzenia bez zmian po stronie klientów.
+- Umożliwia obsługę wielu kanałów dystrybucji (np. `win`, `win-beta`) przy pomocy parametrów zapytania.
+
+### 8.2. Specyfikacja Zapytania
+
+| Metoda | Ścieżka         | Parametry zapytania           | Wymagane | Opis                                                |
+|--------|-----------------|-------------------------------|----------|-----------------------------------------------------|
+| GET    | `/api/releases` | `channel` (string, domyślnie `win`) | Nie       | Zwraca manifest Velopack dla wybranego kanału.      |
+|        |                 | `arch` (string, domyślnie `x64`)   | Nie       | Rezerwacja pod przyszłe rozszerzenia (ARM, x86).    |
+
+Nagłówki klienta: `Accept: application/json` (opcjonalnie). Odpowiedź ustawia `Content-Type: application/json; charset=utf-8`.
+
+### 8.3. Odpowiedź 200 OK (przykład)
+
+```json
+{
+  "success": true,
+  "channel": "win",
+  "arch": "x64",
+  "latestVersion": "2.1.0",
+  "updatedAt": "2025-10-28T14:33:12.000Z",
+  "downloadBaseUrl": "https://susmodder.app/releases",
+  "manifest": {
+    "LatestVersion": "2.1.0",
+    "Releases": [
+      {
+        "Version": "2.1.0",
+        "Type": "Full",
+        "FileName": "SUSModder-2.1.0-win-full.nupkg",
+        "SHA1": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1",
+        "Filesize": 54525952,
+        "PublishedAt": "2025-10-28T14:30:00Z"
+      },
+      {
+        "Version": "2.1.0",
+        "Type": "Delta",
+        "BasedOn": "2.0.1",
+        "FileName": "SUSModder-2.1.0-win-delta.nupkg",
+        "SHA1": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
+        "Filesize": 5242880,
+        "PublishedAt": "2025-10-28T14:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+> `downloadBaseUrl` można nadpisać zmienną `VELOPACK_DOWNLOAD_BASE_URL`. Jeśli nie jest ustawiona, endpoint zwraca wartość z manifestu (jeśli występuje).
+
+### 8.4. Kody odpowiedzi i błędów
+
+| Kod | Sytuacja                                | Payload przykładowy                                                     |
+|-----|-----------------------------------------|-------------------------------------------------------------------------|
+| 200 | Manifest zwrócony poprawnie             | Zgodnie z przykładem powyżej                                            |
+| 304 | Klient posiada aktualną wersję (ETag)   | Brak treści; nagłówki `ETag` i `Cache-Control` ustawione                |
+| 400 | Nieobsługiwany kanał/architektura       | `{ "success": false, "error": "invalid_channel", "message": "..." }`        |
+| 404 | Brak manifestu dla kanału               | `{ "success": false, "error": "manifest_not_found", "message": "..." }`    |
+| 500 | Błąd odczytu pliku / nieoczekiwane      | `{ "success": false, "error": "manifest_read_error", "message": "..." }`  |
+
+### 8.5. Szkic implementacji (Node.js / Express)
+
+```javascript
+router.get('/releases', async (req, res) => {
+  const channel = sanitizeIdentifier((req.query.channel || DEFAULT_CHANNEL).toLowerCase(), 'channel');
+  const arch = sanitizeIdentifier((req.query.arch || DEFAULT_ARCH).toLowerCase(), 'arch');
+
+  if (!allowedChannels.includes(channel)) {
+    return res.status(400).json({ success: false, error: 'invalid_channel', message: `Channel ${channel} is not supported.` });
+  }
+
+  const manifestDir = resolveReleasesDir();
+  if (!manifestDir) {
+    return res.status(500).json({ success: false, error: 'releases_directory_missing', message: 'Velopack releases directory is not configured.' });
+  }
+
+  const manifestPath = path.join(manifestDir, `releases.${channel}.json`);
+  try {
+    await fsp.access(manifestPath);
+  } catch {
+    return res.status(404).json({ success: false, error: 'manifest_not_found', message: `Manifest for channel ${channel} was not found.` });
+  }
+
+  const [raw, stats] = await Promise.all([
+    fsp.readFile(manifestPath, 'utf-8'),
+    fsp.stat(manifestPath)
+  ]);
+
+  const manifest = JSON.parse(raw);
+  const etag = computeEtag(raw);
+
+  if (req.headers['if-none-match'] === etag) {
+    return res.status(304).set({ 'ETag': etag, 'Cache-Control': CACHE_CONTROL_HEADER }).end();
+  }
+
+  res.set({
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': CACHE_CONTROL_HEADER,
+    'ETag': etag
+  }).json({
+    success: true,
+    channel,
+    arch,
+    latestVersion: extractLatestVersion(manifest),
+    updatedAt: stats.mtime.toISOString(),
+    downloadBaseUrl: process.env.VELOPACK_DOWNLOAD_BASE_URL ?? manifest.downloadBaseUrl ?? manifest.downloadBaseURL,
+    manifest
+  });
+});
+```
+
+Analogiczny wzorzec można zastosować w środowisku .NET (`Minimal API`), Python (`FastAPI`) czy PHP (`Laravel`). Kluczowe jest odczytanie i zwrócenie manifestu jako JSON plus kontrola błędów.
+
+### 8.6. Walidacja, Bezpieczeństwo, Cache
+
+- Walidacja parametrów wejściowych (allowlist kanałów, minimalne/ maksymalne długości).
+- Opcjonalne limitowanie ruchu: np. `IP rate limit = 60 zapytań/min`.
+- Domyślnie zwracane jest `Cache-Control: public, max-age=300, stale-while-revalidate=120` oraz nagłówek `ETag` umożliwiający odpowiedzi 304.
+- Brak CORS (aplikacja desktopowa). Włączyć jedynie dla paneli webowych.
+- Logować `channel`, `arch`, `user-agent`, `ip`, `responseStatus` dla metryk adopcji.
+- Monitorować błędy w centralnym logowaniu (ELK, Loki) i alertować dla 5xx.
+
+### 8.7. Integracja z CI/CD
+
+1. Pipeline build (`build-release-velopack.ps1`) generuje paczki i manifest `releases.{channel}.json`.
+2. Crojob/Action wysyła artefakty do `releases/` (SCP, rsync, S3 sync, itp.).
+3. Po deployu pipeline wykonuje sanity-check: `curl -f https://susmodder.app/api/releases?channel=win`.
+4. Optional: webhook do Discorda/Slacka z informacją `latestVersion` + link do release notes.
+5. W przypadku środowisk staging/beta można korzystać z osobnej domeny (`staging.susmodder.app`) lub parametru `channel=win-beta`.
+
+### 8.8. Zmienne środowiskowe i ścieżki
+
+| Zmienna                          | Domyślna wartość                                              | Opis                                                                 |
+|----------------------------------|----------------------------------------------------------------|----------------------------------------------------------------------|
+| `VELOPACK_DEFAULT_CHANNEL`      | `win`                                                           | Kanał używany, gdy klient nie poda `channel`.                        |
+| `VELOPACK_DEFAULT_ARCH`         | `x64`                                                           | Domyślna architektura w parametrach zapytania.                        |
+| `VELOPACK_CHANNELS`             | `win`                                                           | Lista dozwolonych kanałów (CSV), np. `win,win-beta`.                  |
+| `VELOPACK_ARCHES`               | `x64`                                                           | Lista dozwolonych architektur (CSV).                                  |
+| `VELOPACK_RELEASES_DIR`         | auto-detekcja (`../versions`, `../nginx/html/...`)              | Wymuszenie konkretnego katalogu z manifestami.                        |
+| `VELOPACK_DOWNLOAD_BASE_URL`    | `undefined` (przyjmuje wartość z manifestu)                     | Nadpisuje `downloadBaseUrl` w odpowiedzi API.                         |
+| `VELOPACK_CACHE_CONTROL`        | `public, max-age=300, stale-while-revalidate=120`               | Wartość nagłówka `Cache-Control`.                                     |
+
+> Ścieżka do katalogu releases jest wykrywana wg priorytetu: zmienna środowiskowa → `../versions` → katalogi montowane w kontenerach (`nginx/html/susmodder-velopack`, `nginx/html/susmodder-versions`). Pierwszy dostępny katalog jest zapamiętywany w pamięci procesu.
+
+### 8.9. Przyszłe rozszerzenia
+
+- Autoryzacja kanałów beta (`Authorization: Bearer <token>`).
+- `/api/v1/releases` jako wersjonowanie gdy nastąpi breaking change.
+- Endpoint POST z panelu administracyjnego do publikacji nowego manifestu (z podpisami SHA1/SHA256).
+- Możliwość zwracania changelogów (pole `releaseNotesUrl`) oraz hashów SHA256.
+
+---
+
 ## Summary
 
 ### Quick Start Checklist
@@ -751,7 +911,7 @@ public async Task<UpdateDownloadResult> DownloadAndApplyUpdateAsync(...)
 - [ ] Create `/releases/` directory
 - [ ] Configure CORS and caching headers for JSON
 - [ ] Upload releases.{channel}.json manifest and .nupkg packages
-- [ ] Test URL: `curl https://susmodder.app/releases/releases.win.json`
+- [ ] Wystaw endpoint `/api/releases` i przetestuj: `curl https://susmodder.app/api/releases?channel=win`
 - [ ] Optional: Setup CDN for better performance
 - [ ] Optional: CI/CD pipeline for automated releases
 

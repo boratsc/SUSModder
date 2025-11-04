@@ -31,6 +31,9 @@ namespace SUSModder.ViewModels
         {
             try
             {
+                // KROK 0: Wczytaj wersję aplikacji
+                LoadAppVersion();
+                
                 // KROK 1: Ładowanie konfiguracji modów (10%)
                 progressCallback?.Invoke(0.0, "Ładowanie konfiguracji modów...");
                 await Task.Run(() =>
@@ -204,23 +207,150 @@ namespace SUSModder.ViewModels
         {
             try
             {
-                // Poczekaj chwilę żeby UI się załadował
                 await Task.Delay(2000);
+                await CheckForAppUpdatesCoreAsync(notifyWhenNoUpdates: false, showErrorsToUser: false);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error checking for app updates: {ex.Message}");
+            }
+        }
 
-                var configBuilder = new ConfigurationBuilder()
-                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                var configuration = configBuilder.Build();
+        private Task CheckForAppUpdatesManuallyAsync()
+        {
+            return CheckForAppUpdatesCoreAsync(notifyWhenNoUpdates: true, showErrorsToUser: true);
+        }
 
-                var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+        private async Task CheckForAppUpdatesCoreAsync(bool notifyWhenNoUpdates, bool showErrorsToUser)
+        {
+            try
+            {
+                var basePath = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+                var configuration = new ConfigurationBuilder()
+                    .SetBasePath(basePath)
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                    .Build();
+
+                var diagnosticsOutput = new UIDiagnosticsOutput(message =>
                 {
                     System.Diagnostics.Debug.WriteLine($"[AppUpdate] {message}");
                 });
 
-                var updateService = new AppUpdateService(AppVersion, configuration, diagnosticsOutput);
-                var updateCheck = await updateService.CheckForUpdateAsync();
+                var handledByVelopack = await TryHandleVelopackAppUpdatesAsync(configuration, diagnosticsOutput, notifyWhenNoUpdates, showErrorsToUser);
+                if (handledByVelopack)
+                {
+                    return;
+                }
 
-                if (updateCheck.Success && updateCheck.IsUpdateAvailable)
+                await HandleLegacyAppUpdatesAsync(configuration, diagnosticsOutput, notifyWhenNoUpdates, showErrorsToUser);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error checking for app updates: {ex.Message}");
+
+                if (showErrorsToUser)
+                {
+                    await ShowErrorDialogAsync(BuildUpdateErrorMessage(ex.Message), GetUpdateDialogTitle());
+                }
+            }
+        }
+
+        private async Task<bool> TryHandleVelopackAppUpdatesAsync(IConfiguration configuration, IDiagnosticsOutput diagnosticsOutput, bool notifyWhenNoUpdates, bool showErrorsToUser)
+        {
+            VelopackUpdateService? velopackUpdateService = null;
+            bool velopackEnvironmentDetected = false;
+
+            try
+            {
+                velopackUpdateService = new VelopackUpdateService(AppVersion, configuration, diagnosticsOutput);
+                velopackEnvironmentDetected = await velopackUpdateService.IsInstalledAsync();
+
+                diagnosticsOutput.Write($"[AppUpdate] Velopack environment detected: {velopackEnvironmentDetected}");
+
+                if (!velopackEnvironmentDetected)
+                {
+                    diagnosticsOutput.Write("[AppUpdate] Velopack not detected, falling back to legacy updater");
+                    return false;
+                }
+
+                diagnosticsOutput.Write($"[AppUpdate] Checking for Velopack updates...");
+                var velopackResult = await velopackUpdateService.CheckForUpdateAsync();
+                
+                diagnosticsOutput.Write($"[AppUpdate] Check result - Success: {velopackResult.Success}, UpdateAvailable: {velopackResult.IsUpdateAvailable}");
+                diagnosticsOutput.Write($"[AppUpdate] Current: {velopackResult.CurrentVersion}, Latest: {velopackResult.LatestVersion}");
+                
+                if (!velopackResult.Success)
+                {
+                    diagnosticsOutput.Write($"[AppUpdate] Velopack check failed: {velopackResult.ErrorMessage}");
+                    if (showErrorsToUser)
+                    {
+                        await ShowErrorDialogAsync(BuildUpdateErrorMessage(velopackResult.ErrorMessage), GetUpdateDialogTitle());
+                    }
+
+                    return true;
+                }
+
+                if (velopackResult.IsUpdateAvailable && velopackResult.UpdateInfo != null)
+                {
+                    diagnosticsOutput.Write($"[AppUpdate] Update available: {velopackResult.CurrentVersion} -> {velopackResult.LatestVersion}");
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        var dialog = new VelopackUpdateDialog(AppVersion, velopackResult, velopackUpdateService);
+                        var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+                        if (mainWindow != null)
+                        {
+                            await dialog.ShowDialog(mainWindow);
+                        }
+                    });
+
+                    return true;
+                }
+
+                diagnosticsOutput.Write("[AppUpdate] No Velopack updates available");
+                if (notifyWhenNoUpdates)
+                {
+                    await ShowMessageAsync(GetUpdateDialogTitle(), _localizationService?.Get("Updates.NoUpdatesAvailable") ?? "You're on the latest version");
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                diagnosticsOutput.Write($"[AppUpdate] Velopack check failed: {ex.Message}");
+
+                if (showErrorsToUser)
+                {
+                    await ShowErrorDialogAsync(BuildUpdateErrorMessage(ex.Message), GetUpdateDialogTitle());
+                }
+
+                // Jeśli potwierdziliśmy środowisko Velopack, nie próbujemy legacy.
+                return velopackEnvironmentDetected;
+            }
+            finally
+            {
+                velopackUpdateService?.Dispose();
+            }
+        }
+
+        private async Task HandleLegacyAppUpdatesAsync(IConfiguration configuration, IDiagnosticsOutput diagnosticsOutput, bool notifyWhenNoUpdates, bool showErrorsToUser)
+        {
+            try
+            {
+                var legacyUpdateService = new AppUpdateService(AppVersion, configuration, diagnosticsOutput);
+                var updateCheck = await legacyUpdateService.CheckForUpdateAsync();
+
+                if (!updateCheck.Success)
+                {
+                    if (showErrorsToUser)
+                    {
+                        await ShowErrorDialogAsync(BuildUpdateErrorMessage(updateCheck.ErrorMessage), GetUpdateDialogTitle());
+                    }
+
+                    return;
+                }
+
+                if (updateCheck.IsUpdateAvailable)
                 {
                     await Dispatcher.UIThread.InvokeAsync(async () =>
                     {
@@ -232,26 +362,60 @@ namespace SUSModder.ViewModels
                             await updateDialog.ShowDialog(mainWindow);
                         }
                     });
+
+                    return;
+                }
+
+                if (notifyWhenNoUpdates)
+                {
+                    await ShowMessageAsync(GetUpdateDialogTitle(), _localizationService?.Get("Updates.NoUpdatesAvailable") ?? "You're on the latest version");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error checking for app updates: {ex.Message}");
-                // Nie pokazujemy błędu użytkownikowi - aktualizacje nie są krytyczne
+                diagnosticsOutput.Write($"[AppUpdate] Legacy check failed: {ex.Message}");
+
+                if (showErrorsToUser)
+                {
+                    await ShowErrorDialogAsync(BuildUpdateErrorMessage(ex.Message), GetUpdateDialogTitle());
+                }
             }
+        }
+
+        private string GetUpdateDialogTitle()
+        {
+            return _localizationService?.Get("Updates.AppUpdateTitle") ?? "Application update";
+        }
+
+        private string BuildUpdateErrorMessage(string? details)
+        {
+            if (_localizationService == null)
+            {
+                return string.IsNullOrWhiteSpace(details)
+                    ? "Failed to check for updates."
+                    : $"Failed to check for updates: {details}";
+            }
+
+            if (string.IsNullOrWhiteSpace(details))
+            {
+                return _localizationService.Get("Updates.CheckFailedWithoutDetails");
+            }
+
+            return _localizationService.GetFormatted("Updates.CheckFailed", details);
         }
 
         private void LoadAppVersion()
         {
-            var configService = new ConfigService();
-            AppVersion = configService.GetAppVersion();
+            var appVersion = _userSettingsService.LoadAppVersion();
+            AppVersion = appVersion.CurrentVersion;
         }
 
         private void LoadWindowTitle()
         {
             try
             {
-                string platform = DeterminePlatform();
+                var userSettings = _userSettingsService.LoadUserSettings();
+                string platform = userSettings.Mode;
                 WindowTitle = $"SUSModder | {platform}";
                 System.Diagnostics.Debug.WriteLine($"Window title set to: {WindowTitle}");
             }
@@ -266,7 +430,8 @@ namespace SUSModder.ViewModels
         {
             try
             {
-                string platform = DeterminePlatform();
+                var userSettings = _userSettingsService.LoadUserSettings();
+                string platform = userSettings.Mode;
                 if (platform.Equals("Epic", StringComparison.OrdinalIgnoreCase))
                 {
                     var diagnosticsOutput = new UIDiagnosticsOutput((message) =>

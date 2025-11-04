@@ -16,14 +16,14 @@ namespace SUSModder.ViewModels
         {
             try
             {
-                var savedTheme = ConfigManager.GetThemeSetting();
-                _currentTheme = savedTheme switch
+                var userSettings = _userSettingsService.LoadUserSettings();
+                _currentTheme = userSettings.Theme switch
                 {
                     "light" => ThemeType.Light,
                     "pink" => ThemeType.Pink,
                     _ => ThemeType.Dark
                 };
-                System.Diagnostics.Debug.WriteLine($"Wczytano motyw: {savedTheme} -> {_currentTheme}");
+                System.Diagnostics.Debug.WriteLine($"Wczytano motyw: {userSettings.Theme} -> {_currentTheme}");
             }
             catch (Exception ex)
             {
@@ -52,7 +52,7 @@ namespace SUSModder.ViewModels
                     ThemeType.Pink => "pink",
                     _ => "dark"
                 };
-                ConfigManager.SaveThemeSetting(themeValue);
+                _userSettingsService.UpdateUserSetting(settings => settings.Theme = themeValue);
                 System.Diagnostics.Debug.WriteLine($"Zapisano motyw: {themeValue}");
             }
             catch (Exception ex)
