@@ -55,5 +55,11 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         [JsonPropertyName("firstRunDate")]
         public string FirstRunDate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Kanał aktualizacji: "release" (stabilne wydania) lub "beta" (wersje testowe)
+        /// </summary>
+        [JsonPropertyName("updateChannel")]
+        public string UpdateChannel { get; set; } = "release";
     }
 }

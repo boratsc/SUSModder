@@ -298,6 +298,14 @@
         "OffContent": "Wyłączone"
       }
     },
+    "UpdateChannel": {
+      "Title": "Kanał aktualizacji",
+      "Description": "Wybierz kanał z którego mają być pobierane aktualizacje aplikacji",
+      "Channels": {
+        "Release": "Release (Stabilne wydania)",
+        "Beta": "Beta (Wersje testowe)"
+      }
+    },
     "Advanced": {
       "Title": "Ustawienia deweloperskie",
       "DeveloperMode": {
@@ -616,5 +624,207 @@
   },
   "Splash": {
     "Loading": "Ładowanie..."
+  },
+  "LanguageSelection": {
+    "WindowTitle": "Wybór języka",
+    "Header": "Wybierz język",
+    "Subtitle": "Choose language",
+    "PolishLabel": "Polski",
+    "EnglishLabel": "English",
+    "Footer": "Możesz zmienić język później w ustawieniach / You can change language later in settings"
+  },
+  "VersionSelection": {
+    "UnknownVersion": "Nieznana",
+    "NoVersionsAvailable": "Brak dostępnych wersji dla tego moda.",
+    "TimeoutError": "Przekroczono czas oczekiwania na odpowiedź z serwera.",
+    "FetchError": "Błąd podczas pobierania wersji: {0}"
+  },
+  "SUStatsConfig": {
+    "PasswordCorrectFromSession": "✅ Hasło poprawne (z zapisanej sesji)",
+    "StatsEnabled": "Rejestrowanie wyników jest włączone",
+    "StatsDisabled": "Rejestrowanie wyników jest wyłączone",
+    "CheckingPassword": "Sprawdzanie hasła...",
+    "EnterPassword": "❌ Wprowadź hasło",
+    "PasswordCorrect": "✅ Hasło poprawne",
+    "PasswordIncorrect": "❌ Niepoprawne hasło",
+    "PasswordCheckError": "❌ Błąd podczas sprawdzania hasła",
+    "StatsEnabledForServer": "Rejestrowanie włączone dla serwera: {0}",
+    "StatsDisabledMessage": "Rejestrowanie wyników zostało wyłączone",
+    "SettingsChangeError": "Błąd podczas zmiany ustawień",
+    "TestServerName": "Testowy serwer SUStats",
+    "TestServerOffline": "Serwer testowy (offline)"
+  },
+  "RecommendedDiscords": {
+    "LoadingServers": "Ładowanie serwerów Discord...",
+    "ServersLoaded": "Załadowano {0} serwerów Discord",
+    "FetchingServers": "Pobieranie listy serwerów Discord...",
+    "UsingSampleData": "Używam danych przykładowych (problem z połączeniem)",
+    "ConnectionError": "Błąd połączenia - używam danych przykładowych",
+    "SampleServers": {
+      "AmongUsPolska": {
+        "Name": "Among Us Polska",
+        "Description": "Największa polska społeczność Among Us. Znajdziesz tu graczy, turnieje i najnowsze informacje o grze."
+      },
+      "TownOfUs": {
+        "Name": "Town of Us Community",
+        "Description": "Oficjalny serwer moda Town of Us. Wsparcie techniczne, aktualizacje i społeczność."
+      },
+      "TheOtherRoles": {
+        "Name": "The Other Roles",
+        "Description": "Społeczność moda The Other Roles. Dyskusje o nowych rolach i strategiach gry."
+      },
+      "SUSModderSupport": {
+        "Name": "SUSModder Support",
+        "Description": "Oficjalny serwer wsparcia dla SUSModder. Pomoc techniczna i zgłaszanie błędów."
+      }
+    }
+  },
+  "DllModSelection": {
+    "UnknownCompatibility": "Kompatybilność nieznana",
+    "CompatibilityWarning": "Ten mod może nie działać poprawnie.",
+    "InstallSuccess": "✅ Zainstalowano: {0}",
+    "InstallError": "❌ Błąd instalacji: {0}",
+    "UninstallSuccess": "✅ Usunięto: {0}",
+    "UninstallError": "❌ Błąd usuwania: {0}",
+    "OperationsSummary": "{0} Operacje zakończone\n\n{1}"
+  },
+  "AppSettings": {
+    "WindowTitleUnsaved": "Ustawienia aplikacji *",
+    "BrowseFolderTitle": "Wybierz katalog instalacji modów",
+    "BrowseError": "Błąd podczas wybierania folderu",
+    "ValidationError": "Błąd walidacji",
+    "PathCannotBeEmpty": "Ścieżka instalacji modów nie może być pusta.",
+    "AccessError": "Błąd dostępu",
+    "CannotAccessDirectory": "Nie można utworzyć lub uzyskać dostępu do katalogu:\n{0}\n\nBłąd: {1}",
+    "RestartRequired": "Restart wymagany",
+    "GameModeRestartMessage": "Zmiana trybu gry wymaga restartu aplikacji.\n\nAplikacja zostanie zrestartowana automatycznie.",
+    "Success": "Sukces",
+    "SettingsSavedSuccess": "Ustawienia zostały zapisane pomyślnie.\n\nZmiany będą widoczne przy następnych operacjach.",
+    "SaveError": "Błąd zapisu",
+    "SaveErrorMessage": "Nie udało się zapisać ustawień:\n{0}",
+    "ResetError": "Błąd resetu",
+    "ResetErrorMessage": "Wystąpił błąd podczas resetowania aplikacji:\n{0}"
+  },
+  "MainWindow": {
+    "SelectAmongUsExe": "Wybierz plik Among Us.exe",
+    "ErrorDetails": {
+      "Message": "Komunikat: {0}\n\n",
+      "Type": "Typ błędu: {0}\n\n",
+      "InnerException": "Błąd wewnętrzny: {0}\n\n",
+      "StackTrace": "Stack Trace:\n{0}"
+    },
+    "DllModsWindowTitle": "Dodatkowe modyfikacje DLL dla {0}",
+    "GenericError": "Wystąpił błąd: {0}",
+    "ErrorTitle": "Błąd",
+    "DeveloperMenu": {
+      "RemoveSingleInstance": "Usuń SingleInstance",
+      "LaunchMultipleInstances": "Uruchom wybraną ilość instancji"
+    }
+  },
+  "ModOperations": {
+    "ConfigNotFound": "Nie znaleziono konfiguracji moda.",
+    "InstallError": "Błąd podczas instalacji: {0}",
+    "NoUpdatesAvailable": "Brak dostępnych aktualizacji",
+    "UpdatingConfiguration": "Aktualizowanie konfiguracji...",
+    "UpdateConfigFailed": "Nie udało się zaktualizować konfiguracji moda.",
+    "UpdateConfigError": "Błąd aktualizacji",
+    "ReloadingConfiguration": "Przeładowywanie konfiguracji...",
+    "UpdateComplete": "Aktualizacja zakończona",
+    "ModUpdatedSuccess": "Mod '{0}' został pomyślnie zaktualizowany do wersji {1}.",
+    "UpdateError": "Błąd podczas aktualizacji: {0}",
+    "InfoTitle": "Informacja",
+    "AlreadyLatestVersion": "Mod '{0}' jest już w najnowszej wersji.",
+    "SuccessTitle": "Sukces",
+    "UninstallingOldVersion": "Odinstalowywanie starej wersji...",
+    "InstallingNewVersion": "Instalowanie nowej wersji...",
+    "InstallingProgress": "Instalowanie: {0}",
+    "StartingUninstall": "Rozpoczynanie odinstalowywania...",
+    "DeletingFiles": "Usuwanie plików...",
+    "IncompleteUninstall": "Nie udało się całkowicie usunąć katalogu moda '{0}'.\n\nKatalog: {1}\n\nNiektóre pliki mogą nadal istnieć. Spróbuj usunąć je ręcznie lub zrestartować komputer i spróbować ponownie.",
+    "IncompleteUninstallTitle": "Ostrzeżenie - Niepełne usunięcie",
+    "UpdatingConfig": "Aktualizowanie konfiguracji...",
+    "UninstallComplete": "Odinstalowanie zakończone"
+  },
+  "GameLaunch": {
+    "NoModSelected": "Nie wybrano wersji gry do uruchomienia.",
+    "NoVersionSelected": "Brak wybranej wersji do uruchomienia.",
+    "ModNotInstalled": "Wybrany mod nie jest zainstalowany.",
+    "LaunchError": "Błąd podczas uruchamiania gry: {0}",
+    "LaunchErrorTitle": "Błąd uruchamiania",
+    "LaunchingEpic": "Uruchamianie Epic...",
+    "LaunchingSteam": "Uruchamiam Steam...",
+    "LaunchingGame": "Uruchamiam grę...",
+    "GameLaunched": "Gra uruchomiona",
+    "AmongUsExeNotFound": "Nie znaleziono pliku Among Us.exe w wybranej ścieżce.",
+    "SteamAppIdError": "Problem z utworzeniem pliku steam_appid.txt: {0}. Próba uruchomienia przez Steam URI.",
+    "LaunchingViaSteamUri": "Uruchamiam przez Steam URI...",
+    "LaunchedViaSteam": "Uruchomiono przez Steam",
+    "SteamUriLaunchFailed": "Nie udało się uruchomić gry przez Steam URI: {0}",
+    "EpicLaunchError": "Błąd uruchamiania gry Epic: {0}\n\nLog:\n{1}",
+    "EpicErrorTitle": "Błąd Epic Games"
+  },
+  "Updates": {
+    "CheckError": "Błąd podczas sprawdzania aktualizacji: {0}",
+    "UpdateSummaryTitle": "🎉 Podsumowanie aktualizacji\n",
+    "SuccessfulUpdates": "✅ Pomyślnie zaktualizowano ({0}):",
+    "FailedUpdates": "❌ Nie udało się zaktualizować ({0}):",
+    "SkippedUpdates": "⏭️ Pominięto ({0}):",
+    "UpdateCompletedTitle": "Aktualizacja zakończona",
+    "UpdateCompletedMessage": "🎉 Aktualizacja zakończona!",
+    "CloseMessage": "Możesz teraz zamknąć to okno.",
+    "FetchingNewConfig": "Pobieranie nowej konfiguracji...",
+    "UpdatingConfig": "Aktualizowanie konfiguracji...",
+    "PreparingReinstall": "Przygotowywanie do reinstalacji...",
+    "UninstallingOld": "Odinstalowywanie starej wersji...",
+    "UninstallFailed": "Nie udało się usunąć starej wersji moda '{0}'. Aktualizacja została przerwana.",
+    "StartingInstall": "Rozpoczynanie instalacji nowej wersji...",
+    "Installing": "Instalowanie: {0}",
+    "RestoringDlls": "Przywracanie {0} modów DLL...",
+    "UpdateCompleted": "Aktualizacja zakończona",
+    "UpdateError": "Błąd: {0}",
+    "DllUpdateSuccess": "✅ Pomyślnie zaktualizowano {0} w {1} lokalizacjach",
+    "DllUpdateFailed": "Nie udało się zaktualizować {0} w żadnej lokalizacji.\n\nNieudane lokalizacje:\n• {1}",
+    "DllUpdateFailedTitle": "Błąd aktualizacji",
+    "DllUpdateError": "Błąd podczas aktualizacji {0}: {1}",
+    "DllCheckError": "Błąd podczas sprawdzania aktualizacji DLL: {0}",
+    "DownloadingAndInstalling": "Pobieranie i instalacja...",
+    "ErrorInMod": "Błąd w {0}"
+  },
+  "Initialization": {
+    "LoadingModsConfig": "Ładowanie konfiguracji modów...",
+    "DetectingAmongUs": "Wykrywanie Among Us...",
+    "UpdatingConfig": "Aktualizacja konfiguracji...",
+    "RefreshingModsList": "Odświeżanie listy modów...",
+    "LoadingResources": "Ładowanie zasobów...",
+    "Finalizing": "Finalizacja...",
+    "StartingServices": "Uruchamianie usług...",
+    "Ready": "Gotowe!",
+    "InitializationError": "Błąd podczas inicjalizacji aplikacji",
+    "AmongUsNotSelected": "Nie wybrano pliku Among Us.exe",
+    "SelectAmongUsMessage": "Nie udało się wykryć poprawnej instalacji gry Among Us. Wybierz poprawny plik Among Us.exe lub zamknij aplikację.",
+    "TryAgain": "Spróbuj ponownie",
+    "CloseApp": "Zamknij",
+    "LatestVersionFallback": "You're on the latest version",
+    "CheckFailedFallback": "Failed to check for updates.",
+    "CheckFailedWithDetailsFallback": "Failed to check for updates: {0}",
+    "AppUpdateTitleFallback": "Application update"
+  },
+  "PromptDialog": {
+    "EnterNamePlaceholder": "Wpisz nazwę..."
+  },
+  "AppUpdateDialog": {
+    "CurrentVersionPlaceholder": "Obecna wersja: 1.0.0",
+    "NewVersionPlaceholder": "Nowa wersja: 1.1.0"
+  },
+  "VelopackUpdateDialog": {
+    "CurrentVersionExample": "2.1.4",
+    "NewVersionExample": "2.1.5"
+  },
+  "StringFormats": {
+    "CurrentVersion": "Obecna: {0}",
+    "NewVersion": "Nowa: {0}",
+    "UpdatingMod": "Aktualizowanie: {0}",
+    "DllModVersion": "Wersja: {0}",
+    "ServerNamePlaceholder": "[Nazwa serwera]"
   }
 }
