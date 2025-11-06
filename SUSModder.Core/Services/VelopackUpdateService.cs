@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Velopack;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Configuration;
 
 namespace SUSModder.Core.Services
 {
@@ -11,6 +12,7 @@ namespace SUSModder.Core.Services
     {
         private readonly IConfiguration _configuration;
         private readonly IDiagnosticsOutput _diagnosticsOutput;
+        private readonly UserSettingsService _userSettingsService;
         private readonly string _currentVersion;
     private readonly object _initializationLock = new();
     private UpdateManager? _updateManager;
@@ -22,6 +24,7 @@ namespace SUSModder.Core.Services
             _currentVersion = string.IsNullOrWhiteSpace(currentVersion) ? "0.0.0" : currentVersion;
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _diagnosticsOutput = diagnosticsOutput ?? throw new ArgumentNullException(nameof(diagnosticsOutput));
+            _userSettingsService = new UserSettingsService();
         }
 
         public async Task InitializeAsync()
@@ -35,10 +38,17 @@ namespace SUSModder.Core.Services
                     return;
 
                 var updateFeedUri = GetUpdateFeedUri();
-                _diagnosticsOutput.Write($"[Velopack] Initializing UpdateManager with feed: {updateFeedUri}");
+                var updateChannel = GetUpdateChannel();
+                _diagnosticsOutput.Write($"[Velopack] Initializing UpdateManager with feed: {updateFeedUri}, channel: {updateChannel}");
 
                 _apiSource = new VelopackApiSource(updateFeedUri);
-                _updateManager = new UpdateManager(_apiSource);
+
+                var updateOptions = new UpdateOptions
+                {
+                    ExplicitChannel = updateChannel
+                };
+
+                _updateManager = new UpdateManager(_apiSource, updateOptions);
             }
 
             await Task.CompletedTask;
@@ -117,6 +127,35 @@ namespace SUSModder.Core.Services
             await _updateManager!.WaitExitThenApplyUpdatesAsync(updateInfo.TargetFullRelease, silent, restart, restartArgs).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Pobiera aktualny kanał aktualizacji z ustawień użytkownika
+        /// </summary>
+        public string GetCurrentUpdateChannel()
+        {
+            return GetUpdateChannel();
+        }
+
+        /// <summary>
+        /// Ustawia kanał aktualizacji w ustawieniach użytkownika i resetuje UpdateManager
+        /// </summary>
+        public void SetUpdateChannel(string channel)
+        {
+            if (string.IsNullOrWhiteSpace(channel) || (channel != "release" && channel != "beta"))
+                throw new ArgumentException("Invalid channel. Must be 'release' or 'beta'.", nameof(channel));
+
+            _userSettingsService.UpdateUserSetting(settings => settings.UpdateChannel = channel);
+
+            // Reset UpdateManager aby użyć nowego kanału przy następnym sprawdzeniu
+            lock (_initializationLock)
+            {
+                _apiSource?.Dispose();
+                _apiSource = null;
+                _updateManager = null;
+            }
+
+            _diagnosticsOutput.Write($"[Velopack] Update channel changed to: {channel}");
+        }
+
         public void Dispose()
         {
             Dispose(true);
@@ -144,6 +183,29 @@ namespace SUSModder.Core.Services
                 throw new InvalidOperationException("Configuration:BaseUrl is not configured.");
 
             return EnsureAbsoluteUri($"{baseUrl}/api/releases");
+        }
+
+        private string GetUpdateChannel()
+        {
+            try
+            {
+                var userSettings = _userSettingsService.LoadUserSettings();
+                var channel = userSettings.UpdateChannel;
+
+                // Walidacja kanału - dopuszczamy tylko "release" lub "beta"
+                if (string.IsNullOrWhiteSpace(channel) || (channel != "release" && channel != "beta"))
+                {
+                    _diagnosticsOutput.Write($"[Velopack] Invalid update channel '{channel}', defaulting to 'release'");
+                    return "release";
+                }
+
+                return channel;
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput.Write($"[Velopack] Failed to load update channel: {ex.Message}, defaulting to 'release'");
+                return "release";
+            }
         }
 
         private void Dispose(bool disposing)

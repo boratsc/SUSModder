@@ -154,10 +154,10 @@ Cel tego pliku: zapewnić stały kontekst działania aplikacji, jej architektur�
 ### Szybki test w dev mode:
 ```powershell
 # 1. Wygeneruj dummy release (testowy pakiet)
-.\generate-dummy-release.ps1
+.\SKRYPTY\Testing\generate-dummy-release.ps1
 
 # 2. Sprawdź API
-.\test-velopack-api.ps1
+.\SKRYPTY\Testing\test-velopack-api.ps1
 
 # 3. Symuluj środowisko Velopack
 cd publish
@@ -180,10 +180,47 @@ echo. > ..\Update.exe
 - "Failed to download" → Sprawdź dostępność URL, format API response.
 
 ### Dokumentacja:
-- `VELOPACK_TESTING_GUIDE.md` - pełny przewodnik testowania.
-- `VELOPACK_STATUS.md` - obecny status implementacji.
+- `DOC/Updater-Refactoring/VELOPACK_TESTING_GUIDE.md` - pełny przewodnik testowania.
+- `DOC/Updater-Refactoring/VELOPACK_STATUS.md` - obecny status implementacji.
 - `DOC/Updater-Refactoring/` - szczegółowa dokumentacja architektury i migracji.
 
+## Struktura projektu
+
+### Katalogi dokumentacji (DOC/)
+```
+DOC/
+├── Updater-Refactoring/           # Dokumentacja systemu aktualizacji
+│   ├── VELOPACK_READY.md          # Status gotowości Velopack
+│   ├── VELOPACK_STATUS.md         # Bieżący status implementacji
+│   ├── VELOPACK_TESTING_GUIDE.md  # Przewodnik testowania
+│   └── MIGRATION_PLAN.md          # Plan migracji z legacy do Velopack
+├── 2025-10-22 - susmodder-api rozbudowa/  # Rozbudowa API backendu
+│   └── BACKEND_UPDATE_NEEDED.md   # Wymagania dla backendu
+├── Localization/                  # Lokalizacja i tłumaczenia
+│   └── Reports/
+│       └── HARDCODED_POLISH_TEXTS_REPORT.md  # Raport hardcodowanych tekstów
+└── DOCUMENTATION_UPDATE_SUMMARY.md  # Podsumowanie aktualizacji dokumentacji
+```
+
+### Katalogi skryptów (SKRYPTY/)
+```
+SKRYPTY/
+├── Build/                         # Skrypty buildowania i pakowania
+│   ├── build-dual-channel.ps1     # Build dla obu kanałów (release + beta)
+│   ├── build-release-velopack.ps1 # Build release Velopack
+│   └── build-velopack-test.ps1    # Build testowy Velopack
+├── Testing/                       # Skrypty testowe
+│   ├── generate-dummy-release.ps1 # Generowanie testowego release
+│   └── test-velopack-api.ps1      # Testowanie API Velopack
+└── Utilities/                     # Narzędzia pomocnicze
+    └── temp_inspect.ps1           # Inspekcja tymczasowa
+```
+
+### Ważne uwagi o strukturze:
+- Wszystkie skrypty buildowania w `SKRYPTY/Build/` - używaj `.\SKRYPTY\Build\build-dual-channel.ps1`
+- Dokumentacja Velopack w `DOC/Updater-Refactoring/` - zawsze sprawdzaj tam aktualne informacje
+- Skrypty testowe w `SKRYPTY/Testing/` - do lokalnego testowania przed produkcją
+- Raport lokalizacji w `DOC/Localization/Reports/` - informacje o tekstach do przetłumaczenia
 
 # Publikacja (Velopack - REKOMENDOWANE od v2.1.0)
 
@@ -192,7 +229,7 @@ dotnet tool install -g vpk
 
 # 2. Zbuduj i spakuj używając skryptu
 cd d:\Development\SUSModder
-.\build-velopack-test.ps1
+.\SKRYPTY\Build\build-velopack-test.ps1
 
 # Lub manualnie:
 # a) Build aplikacji (NIE single-file!)

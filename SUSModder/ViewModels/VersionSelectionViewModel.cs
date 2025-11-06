@@ -10,6 +10,7 @@ using ReactiveUI;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Models;
 using SUSModder.Core.Services;
+using SUSModder.Core.Services.Localization;
 using SUSModder.ViewModels.Helpers;
 
 namespace SUSModder.ViewModels
@@ -21,6 +22,7 @@ namespace SUSModder.ViewModels
     {
         private readonly ModVersionService _versionService;
         private readonly ModConfiguration _modConfig;
+        private readonly ILocalizationService _localizationService;
         private ObservableCollection<ModVersionHistory> _versions = new();
         private ModVersionHistory? _selectedVersion;
         private bool _isLoading;
@@ -58,7 +60,7 @@ namespace SUSModder.ViewModels
         }
 
         public string ModName => _modConfig.ModName;
-        public string CurrentVersion => _modConfig.ModVersion ?? "Nieznana";
+        public string CurrentVersion => _modConfig.ModVersion ?? _localizationService.Get("VersionSelection.UnknownVersion");
 
         public ReactiveCommand<Unit, Unit> ConfirmCommand { get; }
         public ReactiveCommand<Unit, Unit> CancelCommand { get; }
@@ -66,9 +68,10 @@ namespace SUSModder.ViewModels
         public event EventHandler<ModVersionHistory?>? VersionSelected;
         public event EventHandler? Cancelled;
 
-        public VersionSelectionViewModel(ModConfiguration modConfig, IConfiguration configuration)
+        public VersionSelectionViewModel(ModConfiguration modConfig, IConfiguration configuration, ILocalizationService localizationService)
         {
             _modConfig = modConfig;
+            _localizationService = localizationService;
             var diagnostics = new UIDiagnosticsOutput(msg => System.Diagnostics.Debug.WriteLine(msg));
             _versionService = new ModVersionService(configuration, diagnostics);
 
@@ -102,12 +105,12 @@ namespace SUSModder.ViewModels
                 if (versions.Count == 0)
                 {
                     HasError = true;
-                    ErrorMessage = "Brak dostępnych wersji dla tego moda.";
+                    ErrorMessage = _localizationService.Get("VersionSelection.NoVersionsAvailable");
                 }
                 else
                 {
                     Versions = new ObservableCollection<ModVersionHistory>(versions);
-                    
+
                     // Automatycznie wybierz najnowszą wersję (pierwsza na liście)
                     SelectedVersion = versions.FirstOrDefault();
                 }
@@ -115,12 +118,12 @@ namespace SUSModder.ViewModels
             catch (TimeoutException)
             {
                 HasError = true;
-                ErrorMessage = "Przekroczono czas oczekiwania na odpowiedź z serwera.";
+                ErrorMessage = _localizationService.Get("VersionSelection.TimeoutError");
             }
             catch (Exception ex)
             {
                 HasError = true;
-                ErrorMessage = $"Błąd podczas pobierania wersji: {ex.Message}";
+                ErrorMessage = _localizationService.GetFormatted("VersionSelection.FetchError", ex.Message);
             }
             finally
             {

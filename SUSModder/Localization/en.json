@@ -298,6 +298,14 @@
         "OffContent": "Disabled"
       }
     },
+    "UpdateChannel": {
+      "Title": "Update channel",
+      "Description": "Choose the channel from which application updates will be downloaded",
+      "Channels": {
+        "Release": "Release (Stable releases)",
+        "Beta": "Beta (Test versions)"
+      }
+    },
     "Advanced": {
       "Title": "Developer settings",
       "DeveloperMode": {
@@ -616,5 +624,207 @@
   },
   "Splash": {
     "Loading": "Loading..."
+  },
+  "LanguageSelection": {
+    "WindowTitle": "Language Selection",
+    "Header": "Wybierz język",
+    "Subtitle": "Choose language",
+    "PolishLabel": "Polski",
+    "EnglishLabel": "English",
+    "Footer": "Możesz zmienić język później w ustawieniach / You can change language later in settings"
+  },
+  "VersionSelection": {
+    "UnknownVersion": "Unknown",
+    "NoVersionsAvailable": "No available versions for this mod.",
+    "TimeoutError": "Server response timeout exceeded.",
+    "FetchError": "Error fetching versions: {0}"
+  },
+  "SUStatsConfig": {
+    "PasswordCorrectFromSession": "✅ Password correct (from saved session)",
+    "StatsEnabled": "Results recording is enabled",
+    "StatsDisabled": "Results recording is disabled",
+    "CheckingPassword": "Checking password...",
+    "EnterPassword": "❌ Enter password",
+    "PasswordCorrect": "✅ Password correct",
+    "PasswordIncorrect": "❌ Incorrect password",
+    "PasswordCheckError": "❌ Error checking password",
+    "StatsEnabledForServer": "Recording enabled for server: {0}",
+    "StatsDisabledMessage": "Results recording has been disabled",
+    "SettingsChangeError": "Error changing settings",
+    "TestServerName": "Test SUStats server",
+    "TestServerOffline": "Test server (offline)"
+  },
+  "RecommendedDiscords": {
+    "LoadingServers": "Loading Discord servers...",
+    "ServersLoaded": "Loaded {0} Discord servers",
+    "FetchingServers": "Fetching Discord servers list...",
+    "UsingSampleData": "Using sample data (connection issue)",
+    "ConnectionError": "Connection error - using sample data",
+    "SampleServers": {
+      "AmongUsPolska": {
+        "Name": "Among Us Poland",
+        "Description": "The largest Polish Among Us community. You'll find players, tournaments and the latest game news."
+      },
+      "TownOfUs": {
+        "Name": "Town of Us Community",
+        "Description": "Official Town of Us mod server. Technical support, updates and community."
+      },
+      "TheOtherRoles": {
+        "Name": "The Other Roles",
+        "Description": "The Other Roles mod community. Discussions about new roles and game strategies."
+      },
+      "SUSModderSupport": {
+        "Name": "SUSModder Support",
+        "Description": "Official SUSModder support server. Technical help and bug reporting."
+      }
+    }
+  },
+  "DllModSelection": {
+    "UnknownCompatibility": "Compatibility unknown",
+    "CompatibilityWarning": "This mod may not work properly.",
+    "InstallSuccess": "✅ Installed: {0}",
+    "InstallError": "❌ Installation error: {0}",
+    "UninstallSuccess": "✅ Removed: {0}",
+    "UninstallError": "❌ Removal error: {0}",
+    "OperationsSummary": "{0} Operations completed\n\n{1}"
+  },
+  "AppSettings": {
+    "WindowTitleUnsaved": "Application Settings *",
+    "BrowseFolderTitle": "Select mods installation directory",
+    "BrowseError": "Error selecting folder",
+    "ValidationError": "Validation error",
+    "PathCannotBeEmpty": "Mods installation path cannot be empty.",
+    "AccessError": "Access error",
+    "CannotAccessDirectory": "Cannot create or access directory:\n{0}\n\nError: {1}",
+    "RestartRequired": "Restart required",
+    "GameModeRestartMessage": "Changing game mode requires application restart.\n\nApplication will restart automatically.",
+    "Success": "Success",
+    "SettingsSavedSuccess": "Settings saved successfully.\n\nChanges will be visible during next operations.",
+    "SaveError": "Save error",
+    "SaveErrorMessage": "Failed to save settings:\n{0}",
+    "ResetError": "Reset error",
+    "ResetErrorMessage": "An error occurred while resetting the application:\n{0}"
+  },
+  "MainWindow": {
+    "SelectAmongUsExe": "Select Among Us.exe file",
+    "ErrorDetails": {
+      "Message": "Message: {0}\n\n",
+      "Type": "Error type: {0}\n\n",
+      "InnerException": "Inner error: {0}\n\n",
+      "StackTrace": "Stack Trace:\n{0}"
+    },
+    "DllModsWindowTitle": "Additional DLL modifications for {0}",
+    "GenericError": "An error occurred: {0}",
+    "ErrorTitle": "Error",
+    "DeveloperMenu": {
+      "RemoveSingleInstance": "Remove SingleInstance",
+      "LaunchMultipleInstances": "Launch selected number of instances"
+    }
+  },
+  "ModOperations": {
+    "ConfigNotFound": "Mod configuration not found.",
+    "InstallError": "Installation error: {0}",
+    "NoUpdatesAvailable": "No updates available",
+    "UpdatingConfiguration": "Updating configuration...",
+    "UpdateConfigFailed": "Failed to update mod configuration.",
+    "UpdateConfigError": "Update error",
+    "ReloadingConfiguration": "Reloading configuration...",
+    "UpdateComplete": "Update completed",
+    "ModUpdatedSuccess": "Mod '{0}' has been successfully updated to version {1}.",
+    "UpdateError": "Update error: {0}",
+    "InfoTitle": "Information",
+    "AlreadyLatestVersion": "Mod '{0}' is already at the latest version.",
+    "SuccessTitle": "Success",
+    "UninstallingOldVersion": "Uninstalling old version...",
+    "InstallingNewVersion": "Installing new version...",
+    "InstallingProgress": "Installing: {0}",
+    "StartingUninstall": "Starting uninstall...",
+    "DeletingFiles": "Deleting files...",
+    "IncompleteUninstall": "Failed to completely remove mod directory '{0}'.\n\nDirectory: {1}\n\nSome files may still exist. Try removing them manually or restart your computer and try again.",
+    "IncompleteUninstallTitle": "Warning - Incomplete removal",
+    "UpdatingConfig": "Updating configuration...",
+    "UninstallComplete": "Uninstall completed"
+  },
+  "GameLaunch": {
+    "NoModSelected": "No game version selected to launch.",
+    "NoVersionSelected": "No selected version to launch.",
+    "ModNotInstalled": "Selected mod is not installed.",
+    "LaunchError": "Error launching game: {0}",
+    "LaunchErrorTitle": "Launch error",
+    "LaunchingEpic": "Launching Epic...",
+    "LaunchingSteam": "Launching Steam...",
+    "LaunchingGame": "Launching game...",
+    "GameLaunched": "Game launched",
+    "AmongUsExeNotFound": "Among Us.exe file not found in selected path.",
+    "SteamAppIdError": "Problem creating steam_appid.txt file: {0}. Trying to launch via Steam URI.",
+    "LaunchingViaSteamUri": "Launching via Steam URI...",
+    "LaunchedViaSteam": "Launched via Steam",
+    "SteamUriLaunchFailed": "Failed to launch game via Steam URI: {0}",
+    "EpicLaunchError": "Epic game launch error: {0}\n\nLog:\n{1}",
+    "EpicErrorTitle": "Epic Games Error"
+  },
+  "Updates": {
+    "CheckError": "Error checking for updates: {0}",
+    "UpdateSummaryTitle": "🎉 Update Summary\n",
+    "SuccessfulUpdates": "✅ Successfully updated ({0}):",
+    "FailedUpdates": "❌ Failed to update ({0}):",
+    "SkippedUpdates": "⏭️ Skipped ({0}):",
+    "UpdateCompletedTitle": "Update completed",
+    "UpdateCompletedMessage": "🎉 Update completed!",
+    "CloseMessage": "You can now close this window.",
+    "FetchingNewConfig": "Fetching new configuration...",
+    "UpdatingConfig": "Updating configuration...",
+    "PreparingReinstall": "Preparing for reinstall...",
+    "UninstallingOld": "Uninstalling old version...",
+    "UninstallFailed": "Failed to remove old version of mod '{0}'. Update has been aborted.",
+    "StartingInstall": "Starting new version installation...",
+    "Installing": "Installing: {0}",
+    "RestoringDlls": "Restoring {0} DLL mods...",
+    "UpdateCompleted": "Update completed",
+    "UpdateError": "Error: {0}",
+    "DllUpdateSuccess": "✅ Successfully updated {0} in {1} locations",
+    "DllUpdateFailed": "Failed to update {0} in any location.\n\nFailed locations:\n• {1}",
+    "DllUpdateFailedTitle": "Update error",
+    "DllUpdateError": "Error updating {0}: {1}",
+    "DllCheckError": "Error checking DLL updates: {0}",
+    "DownloadingAndInstalling": "Downloading and installing...",
+    "ErrorInMod": "Error in {0}"
+  },
+  "Initialization": {
+    "LoadingModsConfig": "Loading mods configuration...",
+    "DetectingAmongUs": "Detecting Among Us...",
+    "UpdatingConfig": "Updating configuration...",
+    "RefreshingModsList": "Refreshing mods list...",
+    "LoadingResources": "Loading resources...",
+    "Finalizing": "Finalizing...",
+    "StartingServices": "Starting services...",
+    "Ready": "Ready!",
+    "InitializationError": "Error during application initialization",
+    "AmongUsNotSelected": "Among Us.exe file not selected",
+    "SelectAmongUsMessage": "Failed to detect valid Among Us game installation. Select correct Among Us.exe file or close the application.",
+    "TryAgain": "Try again",
+    "CloseApp": "Close",
+    "LatestVersionFallback": "You're on the latest version",
+    "CheckFailedFallback": "Failed to check for updates.",
+    "CheckFailedWithDetailsFallback": "Failed to check for updates: {0}",
+    "AppUpdateTitleFallback": "Application update"
+  },
+  "PromptDialog": {
+    "EnterNamePlaceholder": "Enter name..."
+  },
+  "AppUpdateDialog": {
+    "CurrentVersionPlaceholder": "Current version: 1.0.0",
+    "NewVersionPlaceholder": "New version: 1.1.0"
+  },
+  "VelopackUpdateDialog": {
+    "CurrentVersionExample": "2.1.4",
+    "NewVersionExample": "2.1.5"
+  },
+  "StringFormats": {
+    "CurrentVersion": "Current: {0}",
+    "NewVersion": "New: {0}",
+    "UpdatingMod": "Updating: {0}",
+    "DllModVersion": "Version: {0}",
+    "ServerNamePlaceholder": "[Server name]"
   }
 }

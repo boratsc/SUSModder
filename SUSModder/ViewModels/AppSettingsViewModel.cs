@@ -27,10 +27,12 @@ namespace SUSModder.ViewModels
         private readonly UserSettingsService _userSettingsService;
         private string _modsInstallPath = string.Empty;
         private bool _developerMode = false;
+        private string _updateChannel = "release";
         private string _gameMode = "steam";
         private LanguageOption? _selectedLanguage;
         private string _originalModsInstallPath = string.Empty;
         private bool _originalDeveloperMode = false;
+        private string _originalUpdateChannel = "release";
         private string _originalGameMode = "steam";
         private string _originalLanguage = "pl";
         private bool _hasUnsavedChanges = false;
@@ -44,6 +46,9 @@ namespace SUSModder.ViewModels
             new LanguageOption { Code = "en", DisplayName = "English" }
         };
 
+        // Lista dostępnych kanałów aktualizacji (nazwy będą pobierane z lokalizacji)
+        private List<UpdateChannelOption> _availableUpdateChannels = null!;
+
         // Dodaj event dla powiadomienia o zapisaniu
         public event Action? SettingsSaved;
 
@@ -55,13 +60,38 @@ namespace SUSModder.ViewModels
             _control = control;
             _userSettingsService = new UserSettingsService();
 
+            // Pobierz serwis lokalizacji
+            _localizationService = App.GetService<ILocalizationService>();
+
+            // Załaduj listę kanałów aktualizacji z tłumaczeniami
+            _availableUpdateChannels = new List<UpdateChannelOption>
+            {
+                new UpdateChannelOption
+                {
+                    Code = "release",
+                    DisplayName = _localizationService?.Get("Settings.UpdateChannel.Channels.Release") ?? "Release (Stabilne wydania)"
+                },
+                new UpdateChannelOption
+                {
+                    Code = "beta",
+                    DisplayName = _localizationService?.Get("Settings.UpdateChannel.Channels.Beta") ?? "Beta (Wersje testowe)"
+                }
+            };
+
             // Załaduj obecne ustawienia
             LoadCurrentSettings();
 
-            // Pobierz serwis lokalizacji z DI
+            // Załaduj kanał aktualizacji
+            var userSettings = _userSettingsService.LoadUserSettings();
+            _updateChannel = userSettings.UpdateChannel;
+            _originalUpdateChannel = _updateChannel;
+            _selectedUpdateChannel = AvailableUpdateChannels.FirstOrDefault(c => c.Code == _updateChannel);
+            this.RaisePropertyChanged(nameof(SelectedUpdateChannel));
+            this.RaisePropertyChanged(nameof(AvailableUpdateChannels));
+
+            // Kontynuuj inicjalizację z serwisem lokalizacji
             try
             {
-                _localizationService = App.GetService<ILocalizationService>();
                 var currentCulture = _localizationService?.CurrentCulture ?? "pl";
 
                 Console.WriteLine($"[AppSettingsViewModel] CurrentCulture z serwisu: {currentCulture}");
@@ -121,6 +151,38 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _developerMode, value);
                 CheckForChanges();
+            }
+        }
+
+        public string UpdateChannel
+        {
+            get => _updateChannel;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _updateChannel, value);
+                CheckForChanges();
+            }
+        }
+
+        public List<UpdateChannelOption> AvailableUpdateChannels
+        {
+            get => _availableUpdateChannels;
+            set => this.RaiseAndSetIfChanged(ref _availableUpdateChannels, value);
+        }
+
+        private UpdateChannelOption? _selectedUpdateChannel;
+
+        public UpdateChannelOption? SelectedUpdateChannel
+        {
+            get => _selectedUpdateChannel;
+            set
+            {
+                var oldValue = _selectedUpdateChannel;
+                this.RaiseAndSetIfChanged(ref _selectedUpdateChannel, value);
+                if (oldValue != value && value != null)
+                {
+                    UpdateChannel = value.Code;
+                }
             }
         }
 
@@ -201,8 +263,8 @@ namespace SUSModder.ViewModels
             // Zmień język w serwisie (live switch)
             _localizationService?.ChangeCulture(_selectedLanguage.Code);
 
-            // Zapisz wybór do appsettings.json natychmiast (live switch)
-            ConfigManager.SaveLanguageSetting(_selectedLanguage.Code);
+            // Zapisz wybór do user-settings.json natychmiast (live switch)
+            _userSettingsService.UpdateUserSetting(settings => settings.Language = _selectedLanguage.Code);
 
             System.Diagnostics.Debug.WriteLine($"Język zmieniony na: {_selectedLanguage.Code}");
         }
@@ -282,6 +344,7 @@ namespace SUSModder.ViewModels
         {
             HasUnsavedChanges = !string.Equals(_modsInstallPath, _originalModsInstallPath, StringComparison.OrdinalIgnoreCase) ||
                                _developerMode != _originalDeveloperMode ||
+                               _updateChannel != _originalUpdateChannel ||
                                _gameMode != _originalGameMode ||
                                (_selectedLanguage?.Code ?? "pl") != _originalLanguage ||
                                _telemetryEnabled != _originalTelemetryEnabled;
@@ -434,6 +497,7 @@ namespace SUSModder.ViewModels
                     settings.Mode = GameMode;
                     settings.ModsInstallPath = ModsInstallPath;
                     settings.TelemetryEnabled = TelemetryEnabled;
+                    settings.UpdateChannel = UpdateChannel;
                     if (_selectedLanguage != null)
                     {
                         settings.Language = _selectedLanguage.Code;
@@ -445,6 +509,7 @@ namespace SUSModder.ViewModels
 
                 _originalModsInstallPath = ModsInstallPath;
                 _originalDeveloperMode = DeveloperMode;
+                _originalUpdateChannel = UpdateChannel;
                 _originalGameMode = GameMode;
                 _originalTelemetryEnabled = TelemetryEnabled;
                 HasUnsavedChanges = false;
@@ -783,6 +848,15 @@ namespace SUSModder.ViewModels
     /// Model dla opcji języka w ComboBox.
     /// </summary>
     public class LanguageOption
+    {
+        public string Code { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Model dla opcji kanału aktualizacji w ComboBox.
+    /// </summary>
+    public class UpdateChannelOption
     {
         public string Code { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
