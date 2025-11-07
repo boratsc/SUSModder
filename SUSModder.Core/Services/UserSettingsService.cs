@@ -43,11 +43,18 @@ namespace SUSModder.Core.Services
                 {
                     var json = File.ReadAllText(UserSettingsPath);
                     _cachedSettings = JsonSerializer.Deserialize<UserSettings>(json) ?? new UserSettings();
+                    
+                    // Auto-detect channel from current version if not set or if mismatch
+                    DetectAndUpdateChannelIfNeeded(_cachedSettings);
                 }
                 else
                 {
                     // Pierwsza instalacja - migruj z appsettings.json jeśli istnieje
                     _cachedSettings = MigrateFromAppSettings() ?? new UserSettings();
+                    
+                    // Auto-detect channel from current version
+                    DetectAndUpdateChannelIfNeeded(_cachedSettings);
+                    
                     SaveUserSettings(_cachedSettings);
                 }
 
@@ -154,6 +161,25 @@ namespace SUSModder.Core.Services
         {
             _cachedSettings = null;
             _cachedVersion = null;
+        }
+
+        /// <summary>
+        /// Wykrywa kanał z aktualnej wersji aplikacji i aktualizuje ustawienia jeśli potrzeba.
+        /// WYŁĄCZONE: Użytkownik powinien mieć pełną kontrolę nad kanałem aktualizacji.
+        /// Auto-detekcja uniemożliwiała przełączanie się między kanałami (beta <-> release).
+        /// </summary>
+        private void DetectAndUpdateChannelIfNeeded(UserSettings settings)
+        {
+            // DISABLED: Auto-detection prevents manual channel switching
+            // User should have full control over update channel selection in settings
+            
+            // Original logic (disabled):
+            // - Detect channel from version (e.g. "2.3.0-beta" -> "beta", "2.2.0" -> "release")
+            // - Auto-update settings.UpdateChannel if mismatch
+            //
+            // Problem: User on release 2.2.2 switches to beta manually,
+            // but auto-detection immediately resets it back to "release"
+            // because version.json still says "2.2.2" (no "-beta" suffix)
         }
 
         private void EnsureAppDataFolderExists()

@@ -1,4 +1,4 @@
-{
+﻿{
   "UI": {
     "Buttons": {
       "Install": "Install",
@@ -48,9 +48,9 @@
       "ToUConfigs": "Town of Us Configs",
       "DllMods": "DLL Modifications",
       "SUStats": "SUStats - configurations",
-  "RepairGame": "Repair Among Us",
-  "Settings": "Application Settings",
-  "CheckAppUpdates": "Check app updates",
+      "RepairGame": "Repair Among Us",
+      "Settings": "Application Settings",
+      "CheckAppUpdates": "Check app updates",
       "About": "About",
       "Help": "Help",
       "Exit": "Exit",
@@ -442,31 +442,6 @@
     "SpecialThanksLabel": "SPECIAL THANKS",
     "Copyright": "© 2025 SUSModder - Software licensed under GPLv3. All rights reserved."
   },
-  "Updates": {
-    "CheckingForUpdates": "Checking for updates...",
-    "UpdateAvailable": "New version available: {0}",
-    "NoUpdatesAvailable": "You are using the latest version",
-    "DownloadUpdate": "Download update",
-    "InstallUpdate": "Install update",
-    "ReleaseNotes": "Release notes",
-    "SkipVersion": "Skip this version",
-    "RemindLater": "Remind me later",
-    "ModUpdatesTitle": "Mod updates",
-    "AvailableModUpdates": "Available mod updates:",
-    "UpdatingMods": "Updating mods...",
-    "Updating": "Updating: {0}",
-    "UpdateSelected": "Update selected",
-    "AppUpdateTitle": "Application update",
-    "NewVersionAvailable": "A new version is available!",
-    "CurrentVersion": "Current version",
-    "NewVersion": "New version",
-    "DownloadAndInstallQuestion": "Do you want to download and install the update?",
-    "DownloadingUpdate": "Downloading update...",
-    "YesUpdate": "Yes, update",
-    "NoLater": "Not now",
-    "CheckFailed": "Failed to check for updates: {0}",
-    "CheckFailedWithoutDetails": "Failed to check for updates."
-  },
   "Tools": {
     "TownOfUsTools": "Town Of Us Tools",
     "TownOfUsDescription": "You can manage things related to mods based on Town Of Us (ToU, Syzyf, Edited, etc.)",
@@ -586,20 +561,6 @@
     "NoButton": "🗑️ Delete and launch",
     "CancelButton": "❌ Cancel"
   },
-  "SUStatsConfig": {
-    "Header": "SUStats - Configuration",
-    "Subtitle": "Configure game results recording",
-    "PasswordSection": "🔐 Access password",
-    "PasswordPrompt": "Enter password to access SUStats configuration:",
-    "PasswordPlaceholder": "Enter password...",
-    "CheckButton": "Check",
-    "RememberLogin": "Remember login",
-    "ServerConnected": "🖥️ Connected to server",
-    "EnableStats": "📈 Enable game results recording",
-    "EnableStatsDescription": "Your game results will be saved on the SUStats server",
-    "LogoutButton": "🚪 Logout",
-    "CloseButton": "Close"
-  },
   "RolesWindow": {
     "WindowTitle": "Roles and Modifiers",
     "Header": "Roles and Modifiers",
@@ -627,13 +588,6 @@
     "DescriptionHeader": "📝 Description",
     "AbilitiesHeader": "⚡ Abilities",
     "ModHeader": "Mod:",
-    "CloseButton": "Close"
-  },
-  "RecommendedDiscords": {
-    "WindowTitle": "Recommended Discords",
-    "Header": "Recommended Discords",
-    "Subtitle": "Join the Among Us community - check out which servers are worth visiting",
-    "JoinButton": "Join",
     "CloseButton": "Close"
   },
   "Splash": {
@@ -779,7 +733,7 @@
   },
   "Updates": {
     "CheckError": "Error checking for updates: {0}",
-    "UpdateSummaryTitle": "🎉 Update Summary\n",
+    "UpdateSummaryTitle": "📊 Update Summary\n",
     "SuccessfulUpdates": "✅ Successfully updated ({0}):",
     "FailedUpdates": "❌ Failed to update ({0}):",
     "SkippedUpdates": "⏭️ Skipped ({0}):",
@@ -802,7 +756,18 @@
     "DllUpdateError": "Error updating {0}: {1}",
     "DllCheckError": "Error checking DLL updates: {0}",
     "DownloadingAndInstalling": "Downloading and installing...",
-    "ErrorInMod": "Error in {0}"
+    "ErrorInMod": "Error in {0}",
+    "NewVersionAvailable": "New version available!",
+    "DownloadAndInstallQuestion": "Would you like to download and install the update?",
+    "CurrentVersion": "Current version:",
+    "NewVersion": "New version:",
+    "YesUpdate": "Yes, update",
+    "NoLater": "Later",
+    "DownloadingUpdate": "Downloading update...",
+    "NoUpdatesAvailable": "No updates available",
+    "UpToDate": "You're on the latest version",
+    "UpdateAvailable": "Application Update",
+    "NoUpdatesMessage": "You're already using the latest version. No updates available."
   },
   "Initialization": {
     "LoadingModsConfig": "Loading mods configuration...",

@@ -9,7 +9,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$ProjectRoot = $PSScriptRoot
+$ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $ProjectFile = Join-Path $ProjectRoot "SUSModder\SUSModder.csproj"
 $PublishDirBase = Join-Path $ProjectRoot "publish-dual-channel"
 
@@ -116,6 +116,16 @@ function Build-Channel {
     Write-Host "  OK: Package created" -ForegroundColor Green
     Write-Host ""
 
+    # Fix: Velopack generates RELEASES-{channel}, but we need RELEASES for compatibility
+    $releasesFileWithSuffix = Join-Path $ReleasesDir "RELEASES-$ChannelCode"
+    $releasesFile = Join-Path $ReleasesDir "RELEASES"
+    
+    if (Test-Path $releasesFileWithSuffix) {
+        Copy-Item $releasesFileWithSuffix $releasesFile -Force
+        Write-Host "  INFO: Created RELEASES from RELEASES-$ChannelCode" -ForegroundColor Gray
+    }
+
+
     # 5. Verification
     Write-Host "[5/5] Verification..." -ForegroundColor Green
     $nupkgFile = Get-ChildItem $ReleasesDir -Filter "*.nupkg" | Select-Object -First 1
@@ -169,7 +179,9 @@ try {
     }
 
     if (-not $SkipBeta) {
-        $betaVersion = "$Version-$BetaSuffix"
+        # MUSIMY dodać sufix -beta do wersji, inaczej Velopack wpisze do manifestu czystą wersję (np. 2.3.6)
+        # To powoduje że release channel (2.2.0) widzi beta (2.3.6) jako nowszą i próbuje aktualizować
+        $betaVersion = if ($Version.Contains("-beta")) { $Version } else { "$Version-beta" }
         Build-Channel -ChannelName "BETA (Testowe)" -ChannelVersion $betaVersion -ChannelCode "beta"
     }
 

@@ -1,4 +1,4 @@
-{
+﻿{
   "UI": {
     "Buttons": {
       "Install": "Instaluj",
@@ -48,9 +48,9 @@
       "ToUConfigs": "Konfiguracje ToU",
       "DllMods": "Modyfikacje DLL",
       "SUStats": "SUStats - konfiguracje",
-  "RepairGame": "Napraw Amonga",
-  "Settings": "Ustawienia aplikacji",
-  "CheckAppUpdates": "Sprawdź aktualizacje aplikacji",
+      "RepairGame": "Napraw Amonga",
+      "Settings": "Ustawienia aplikacji",
+      "CheckAppUpdates": "Sprawdź aktualizacje aplikacji",
       "About": "O programie",
       "Help": "Pomoc",
       "Exit": "Wyjdź",
@@ -442,31 +442,6 @@
     "SpecialThanksLabel": "SPECJALNE PODZIĘKOWANIA",
     "Copyright": "© 2025 SUSModder - Oprogramowanie na licencji GPLv3. Wszelkie prawa zastrzeżone."
   },
-  "Updates": {
-    "CheckingForUpdates": "Sprawdzanie aktualizacji...",
-    "UpdateAvailable": "Dostępna jest nowa wersja: {0}",
-    "NoUpdatesAvailable": "Używasz najnowszej wersji",
-    "DownloadUpdate": "Pobierz aktualizację",
-    "InstallUpdate": "Zainstaluj aktualizację",
-    "ReleaseNotes": "Informacje o wydaniu",
-    "SkipVersion": "Pomiń tę wersję",
-    "RemindLater": "Przypomnij później",
-    "ModUpdatesTitle": "Aktualizacje modów",
-    "AvailableModUpdates": "Dostępne aktualizacje modów:",
-    "UpdatingMods": "Aktualizowanie modów...",
-    "Updating": "Aktualizowanie: {0}",
-    "UpdateSelected": "Aktualizuj wybrane",
-    "AppUpdateTitle": "Aktualizacja aplikacji",
-    "NewVersionAvailable": "Dostępna jest nowa wersja!",
-    "CurrentVersion": "Obecna wersja",
-    "NewVersion": "Nowa wersja",
-    "DownloadAndInstallQuestion": "Czy chcesz pobrać i zainstalować aktualizację?",
-    "DownloadingUpdate": "Pobieranie aktualizacji...",
-    "YesUpdate": "Tak, aktualizuj",
-    "NoLater": "Nie teraz",
-    "CheckFailed": "Nie udało się sprawdzić aktualizacji: {0}",
-    "CheckFailedWithoutDetails": "Nie udało się sprawdzić aktualizacji."
-  },
   "Tools": {
     "TownOfUsTools": "Narzędzia dla TownOfUs",
     "TownOfUsDescription": "Możesz tutaj zarządzać rzeczami związanymi z modami opartymi na Town Of Us (ToU, Syzyf, Edited itd)",
@@ -586,20 +561,6 @@
     "NoButton": "🗑️ Skasuj i uruchom",
     "CancelButton": "❌ Anuluj"
   },
-  "SUStatsConfig": {
-    "Header": "SUStats - Konfiguracja",
-    "Subtitle": "Skonfiguruj rejestrowanie wyników gry",
-    "PasswordSection": "🔐 Hasło dostępu",
-    "PasswordPrompt": "Wprowadź hasło aby uzyskać dostęp do konfiguracji SUStats:",
-    "PasswordPlaceholder": "Wprowadź hasło...",
-    "CheckButton": "Sprawdź",
-    "RememberLogin": "Zapamiętaj logowanie",
-    "ServerConnected": "🖥️ Połączono z serwerem",
-    "EnableStats": "📈 Włącz rejestrowanie wyników gry",
-    "EnableStatsDescription": "Wyniki Twoich gier będą zapisywane na serwerze SUStats",
-    "LogoutButton": "🚪 Wyloguj",
-    "CloseButton": "Zamknij"
-  },
   "RolesWindow": {
     "WindowTitle": "Role i Modyfikatory",
     "Header": "Role i Modyfikatory",
@@ -627,13 +588,6 @@
     "DescriptionHeader": "📝 Opis",
     "AbilitiesHeader": "⚡ Zdolności",
     "ModHeader": "Mod:",
-    "CloseButton": "Zamknij"
-  },
-  "RecommendedDiscords": {
-    "WindowTitle": "Polecane Discordy",
-    "Header": "Polecane Discordy",
-    "Subtitle": "Dołącz do społeczności Among Us - sprawdź na jakie DC warto zajrzeć",
-    "JoinButton": "Dołącz",
     "CloseButton": "Zamknij"
   },
   "Splash": {
@@ -779,7 +733,7 @@
   },
   "Updates": {
     "CheckError": "Błąd podczas sprawdzania aktualizacji: {0}",
-    "UpdateSummaryTitle": "🎉 Podsumowanie aktualizacji\n",
+    "UpdateSummaryTitle": "📊 Podsumowanie aktualizacji\n",
     "SuccessfulUpdates": "✅ Pomyślnie zaktualizowano ({0}):",
     "FailedUpdates": "❌ Nie udało się zaktualizować ({0}):",
     "SkippedUpdates": "⏭️ Pominięto ({0}):",
@@ -802,7 +756,18 @@
     "DllUpdateError": "Błąd podczas aktualizacji {0}: {1}",
     "DllCheckError": "Błąd podczas sprawdzania aktualizacji DLL: {0}",
     "DownloadingAndInstalling": "Pobieranie i instalacja...",
-    "ErrorInMod": "Błąd w {0}"
+    "ErrorInMod": "Błąd w {0}",
+    "NewVersionAvailable": "Dostępna nowa wersja!",
+    "DownloadAndInstallQuestion": "Czy chcesz pobrać i zainstalować aktualizację?",
+    "CurrentVersion": "Obecna wersja:",
+    "NewVersion": "Nowa wersja:",
+    "YesUpdate": "Tak, aktualizuj",
+    "NoLater": "Później",
+    "DownloadingUpdate": "Pobieranie aktualizacji...",
+    "NoUpdatesAvailable": "Brak dostępnych aktualizacji",
+    "UpToDate": "Masz najnowszą wersję aplikacji",
+    "UpdateAvailable": "Aktualizacja aplikacji",
+    "NoUpdatesMessage": "Korzystasz już z najnowszej wersji aplikacji. Nie ma dostępnych aktualizacji."
   },
   "Initialization": {
     "LoadingModsConfig": "Ładowanie konfiguracji modów...",

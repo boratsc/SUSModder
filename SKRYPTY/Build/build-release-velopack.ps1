@@ -122,14 +122,14 @@ if ($LASTEXITCODE -ne 0) {
 
 # --- Step 6: Summary ----------------------------------------------------------------
 $fullPackage = Join-Path $releasesDir ("SUSModder-${Version}-full.nupkg")
-$setupExe = Join-Path $releasesDir 'SUSModder-Setup.exe'
+$setupExe = Get-ChildItem $releasesDir -Filter "*Setup*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
 
 Write-Host "[5/6] Generated package:" -ForegroundColor Yellow
 if (Test-Path $fullPackage) {
     Write-Host "  • $fullPackage" -ForegroundColor Green
 }
-if (Test-Path $setupExe) {
-    Write-Host "  • $setupExe" -ForegroundColor Green
+if ($setupExe) {
+    Write-Host "  • $($setupExe.FullName)" -ForegroundColor Green
 }
 
 Write-Host "[6/6] Release build completed successfully" -ForegroundColor Cyan

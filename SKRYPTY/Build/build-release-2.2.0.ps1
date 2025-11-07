@@ -208,6 +208,14 @@ if (-not $SkipLegacyZip) {
         Copy-Item $appsettingsSource -Destination $appsettingsDest -Force
     }
     
+    # Kopiuj uninstall.ps1
+    $uninstallScript = Join-Path $ProjectRoot "SKRYPTY\Utilities\uninstall.ps1"
+    $uninstallDest = Join-Path $mainPublishDir "uninstall.ps1"
+    if (Test-Path $uninstallScript) {
+        Copy-Item $uninstallScript -Destination $uninstallDest -Force
+        Write-Host "    Added: uninstall.ps1" -ForegroundColor Gray
+    }
+    
     Write-Host "  OK: Additional files copied" -ForegroundColor Green
     Write-Host ""
     
@@ -230,6 +238,14 @@ if (-not $SkipLegacyZip) {
     $zipFileName = "SUSModder-$ReleaseVersion-legacy.zip"
     $zipPath = Join-Path $legacyOutputDir $zipFileName
     
+    # UWAGA: Legacy ZIP dla użytkowników 2.0.2 → 2.2.2
+    # Struktura ZIP NIE może zawierać Velopack (Update.exe), bo:
+    # 1. Legacy Updater.exe nie wie jak obsłużyć struktury current/
+    # 2. Update.exe wymaga pełnej instalacji przez Setup.exe
+    # 
+    # Po aktualizacji użytkownik dostanie komunikat w aplikacji:
+    # "Wykryto aktualizację do 2.2.2. Pobierz Setup.exe dla pełnej migracji do Velopack."
+    # 
     # Struktura ZIP:
     # /SUSModder.exe
     # /appsettings.json
@@ -347,6 +363,25 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "  OK: Package created" -ForegroundColor Green
 Write-Host ""
 
+# Ensure Setup.exe exists and sign it (Velopack pack already generates it)
+$genSetupRelease = Get-ChildItem $releaseOutputDir -Filter "*Setup*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if ($genSetupRelease) {
+    $releaseSetupPath = Join-Path $releaseOutputDir "SUSModder-release-Setup.exe"
+    if ($genSetupRelease.Name -ne (Split-Path -Leaf $releaseSetupPath)) {
+        Move-Item -LiteralPath $genSetupRelease.FullName -Destination $releaseSetupPath -Force
+    }
+}
+
+Write-Host "[4.2/5] Signing Setup.exe..." -ForegroundColor Green
+$setupExe = Join-Path $releaseOutputDir "SUSModder-release-Setup.exe"
+if (Test-Path $setupExe) {
+    Sign-Executable -FilePath $setupExe
+    Write-Host "  OK: Setup.exe signed" -ForegroundColor Green
+} else {
+    Write-Host "  WARNING: Setup.exe not found, skipping" -ForegroundColor Yellow
+}
+Write-Host ""
+
 # 2.5 Verification
 Write-Host "[5/5] Verification..." -ForegroundColor Green
 $nupkgFile = Get-ChildItem $releaseOutputDir -Filter "*.nupkg" | Select-Object -First 1
@@ -440,6 +475,25 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "  OK: Package created" -ForegroundColor Green
 Write-Host ""
 
+# Ensure Setup.exe exists and sign it (Velopack pack already generates it)
+$genSetupBeta = Get-ChildItem $betaOutputDir -Filter "*Setup*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if ($genSetupBeta) {
+    $betaSetupPath = Join-Path $betaOutputDir "SUSModder-beta-Setup.exe"
+    if ($genSetupBeta.Name -ne (Split-Path -Leaf $betaSetupPath)) {
+        Move-Item -LiteralPath $genSetupBeta.FullName -Destination $betaSetupPath -Force
+    }
+}
+
+Write-Host "[4.2/5] Signing Setup.exe..." -ForegroundColor Green
+$setupExe = Join-Path $betaOutputDir "SUSModder-beta-Setup.exe"
+if (Test-Path $setupExe) {
+    Sign-Executable -FilePath $setupExe
+    Write-Host "  OK: Setup.exe signed" -ForegroundColor Green
+} else {
+    Write-Host "  WARNING: Setup.exe not found, skipping" -ForegroundColor Yellow
+}
+Write-Host ""
+
 # 3.5 Verification
 Write-Host "[5/5] Verification..." -ForegroundColor Green
 $nupkgFile = Get-ChildItem $betaOutputDir -Filter "*.nupkg" | Select-Object -First 1
@@ -504,6 +558,6 @@ Write-Host "  [ ] Backend updated with new endpoints" -ForegroundColor Gray
 Write-Host "  [ ] Legacy ZIP uploaded and accessible" -ForegroundColor Gray
 Write-Host "  [ ] Velopack packages uploaded to both channels" -ForegroundColor Gray
 Write-Host "  [ ] Test update from v2.0.1" -ForegroundColor Gray
-Write-Host "  [ ] Test channel switching (release ↔ beta)" -ForegroundColor Gray
+Write-Host "  [ ] Test channel switching (release <-> beta)" -ForegroundColor Gray
 Write-Host "  [ ] Monitor telemetry for migration success rate" -ForegroundColor Gray
 Write-Host ""

@@ -86,6 +86,19 @@ namespace SUSModder.ViewModels
                         .Where(c => c.ModType.Equals("full", StringComparison.OrdinalIgnoreCase) || 
                                     c.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase));
 
+                    // Weryfikuj InstallPath - jeśli folder nie istnieje, wyczyść path
+                    foreach (var config in fullMods)
+                    {
+                        if (!string.IsNullOrEmpty(config.InstallPath))
+                        {
+                            if (!Directory.Exists(config.InstallPath))
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[RefreshModsList] Mod '{config.ModName}' InstallPath not found, clearing: {config.InstallPath}");
+                                config.InstallPath = null;
+                            }
+                        }
+                    }
+
                     // Sortuj: Vanilla na górze, potem zainstalowane, potem reszta
                     var sortedConfigs = fullMods
                         .OrderBy(c => !c.ModName.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
