@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using Microsoft.Extensions.Configuration;
+using SUSModder.Core.Services;
 
 namespace SUSModder.Core.Utilities
 {
@@ -65,34 +66,24 @@ namespace SUSModder.Core.Utilities
         {
             try
             {
-                var configBuilder = new ConfigurationBuilder()
-                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                var userSettingsService = new UserSettingsService();
+                var userSettings = userSettingsService.LoadUserSettings();
 
-                var configuration = configBuilder.Build();
-
-                string? modsInstallPath = configuration.GetSection("AppSettings")["ModsInstallPath"];
-
-                if (!string.IsNullOrEmpty(modsInstallPath))
+                // Jeśli użytkownik ustawił własną ścieżkę, użyj jej
+                if (!string.IsNullOrEmpty(userSettings.ModsInstallPath))
                 {
-                    _cachedModsInstallPath = Environment.ExpandEnvironmentVariables(modsInstallPath);
+                    _cachedModsInstallPath = Environment.ExpandEnvironmentVariables(userSettings.ModsInstallPath);
                     return _cachedModsInstallPath;
                 }
 
-                string? defaultPath = configuration.GetSection("AppSettings")["DefaultModsPath"];
-                if (!string.IsNullOrEmpty(defaultPath))
-                {
-                    _cachedModsInstallPath = Environment.ExpandEnvironmentVariables(defaultPath);
-                    return _cachedModsInstallPath;
-                }
-
-                _cachedModsInstallPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Among Us - Mody");
+                // W przeciwnym razie użyj domyślnej ścieżki
+                _cachedModsInstallPath = _defaultModsPath;
                 return _cachedModsInstallPath;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error reading ModsInstallPath: {ex.Message}");
-                _cachedModsInstallPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Among Us - Mody");
+                _cachedModsInstallPath = _defaultModsPath;
                 return _cachedModsInstallPath;
             }
         }

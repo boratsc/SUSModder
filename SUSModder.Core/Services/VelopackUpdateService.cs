@@ -1,0 +1,384 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Velopack;
+using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Configuration;
+
+namespace SUSModder.Core.Services
+{
+    public sealed class VelopackUpdateService : IDisposable
+    {
+        private readonly IConfiguration _configuration;
+        private readonly IDiagnosticsOutput _diagnosticsOutput;
+        private readonly UserSettingsService _userSettingsService;
+        private readonly string _currentVersion;
+    private readonly object _initializationLock = new();
+    private UpdateManager? _updateManager;
+    private VelopackApiSource? _apiSource;
+        private bool _disposed;
+
+        public VelopackUpdateService(string currentVersion, IConfiguration configuration, IDiagnosticsOutput diagnosticsOutput)
+        {
+            _currentVersion = string.IsNullOrWhiteSpace(currentVersion) ? "0.0.0" : currentVersion;
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _diagnosticsOutput = diagnosticsOutput ?? throw new ArgumentNullException(nameof(diagnosticsOutput));
+            _userSettingsService = new UserSettingsService();
+        }
+
+        public async Task InitializeAsync()
+        {
+            if (_updateManager != null)
+                return;
+
+            lock (_initializationLock)
+            {
+                if (_updateManager != null)
+                    return;
+
+                var updateFeedUri = GetUpdateFeedUri();
+                var updateChannel = GetUpdateChannel();
+                _diagnosticsOutput.Write($"[Velopack] Initializing UpdateManager with feed: {updateFeedUri}, channel: {updateChannel}");
+
+                _apiSource = new VelopackApiSource(updateFeedUri);
+
+                var updateOptions = new UpdateOptions
+                {
+                    ExplicitChannel = updateChannel,
+                    AllowVersionDowngrade = true  // Pozwól na downgrade przy zmianie kanału
+                };
+
+                _updateManager = new UpdateManager(_apiSource, updateOptions);
+            }
+
+            await Task.CompletedTask;
+        }
+
+        public async Task<VelopackUpdateCheckResult> CheckForUpdateAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await EnsureInitializedAsync();
+
+                var currentChannel = GetUpdateChannel();
+                _diagnosticsOutput.Write($"[Velopack] Checking for updates... (channel: {currentChannel}, current version: {_currentVersion})");
+                
+                var updateInfo = await _updateManager!.CheckForUpdatesAsync().ConfigureAwait(false);
+
+                if (updateInfo == null)
+                {
+                    _diagnosticsOutput.Write("[Velopack] No updates available from Velopack");
+                    
+                    // CRITICAL FIX: Sprawdź czy to zmiana kanału (cross-channel)
+                    // Jeśli jesteśmy na beta i przełączamy na release, Velopack może zwrócić null
+                    // bo uważa że 2.3.x-beta > 2.2.x (numerycznie), ale to różne kanały!
+                    bool isCrossChannelSwitch = IsCrossChannelSwitch(_currentVersion, currentChannel);
+                    
+                    if (isCrossChannelSwitch)
+                    {
+                        _diagnosticsOutput.Write($"[Velopack] Cross-channel switch detected: {_currentVersion} -> {currentChannel} channel");
+                        
+                        // Spróbuj manualnie znaleźć najnowszą wersję dla docelowego kanału
+                        var channelSwitchResult = await TryGetChannelSwitchUpdateAsync(currentChannel, cancellationToken);
+                        if (channelSwitchResult.IsUpdateAvailable)
+                        {
+                            return channelSwitchResult;
+                        }
+                    }
+                    
+                    return VelopackUpdateCheckResult.NoUpdate(_currentVersion);
+                }
+
+                var latestVersion = updateInfo.TargetFullRelease.Version.ToString();
+                _diagnosticsOutput.Write($"[Velopack] Update available: {_currentVersion} -> {latestVersion}");
+
+                return VelopackUpdateCheckResult.UpdateAvailable(_currentVersion, latestVersion, updateInfo);
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput.Write($"[Velopack] Failed to check for updates: {ex.Message}");
+                return VelopackUpdateCheckResult.Failed(_currentVersion, ex);
+            }
+        }
+        
+        /// <summary>
+        /// Sprawdza czy użytkownik próbuje przełączyć się między kanałami (beta <-> release)
+        /// </summary>
+        private bool IsCrossChannelSwitch(string currentVersion, string targetChannel)
+        {
+            bool currentIsBeta = currentVersion.Contains("-beta");
+            bool targetIsBeta = targetChannel == "beta";
+            
+            // Cross-channel switch: jesteśmy na beta ale cel to release, LUB odwrotnie
+            return currentIsBeta != targetIsBeta;
+        }
+        
+        /// <summary>
+        /// Próbuje znaleźć aktualizację przy zmianie kanału (nawet jeśli to downgrade numeryczny)
+        /// </summary>
+        private async Task<VelopackUpdateCheckResult> TryGetChannelSwitchUpdateAsync(string targetChannel, CancellationToken cancellationToken)
+        {
+            try
+            {
+                _diagnosticsOutput.Write($"[Velopack] Attempting cross-channel switch to: {targetChannel}");
+                
+                // Pobierz feed z API źródła bezpośrednio
+                var feedData = await _apiSource!.GetReleaseFeedAsync(targetChannel, cancellationToken).ConfigureAwait(false);
+                
+                if (feedData == null || !feedData.Any())
+                {
+                    _diagnosticsOutput.Write($"[Velopack] No releases found for channel: {targetChannel}");
+                    return VelopackUpdateCheckResult.NoUpdate(_currentVersion);
+                }
+                
+                // Znajdź najnowszą FULL wersję dla docelowego kanału (pomijamy delta)
+                var latestFullRelease = feedData
+                    .Where(r => r.Type == VelopackAssetType.Full)
+                    .OrderByDescending(r => r.Version)
+                    .FirstOrDefault();
+                
+                if (latestFullRelease == null)
+                {
+                    _diagnosticsOutput.Write($"[Velopack] No full release found for channel: {targetChannel}");
+                    return VelopackUpdateCheckResult.NoUpdate(_currentVersion);
+                }
+                
+                var latestVersion = latestFullRelease.Version.ToString();
+                _diagnosticsOutput.Write($"[Velopack] Channel switch target: {_currentVersion} -> {latestVersion} (channel: {targetChannel})");
+                
+                // CRITICAL: Utwórz "fake" UpdateInfo która wskazuje na full release z nowego kanału
+                // Velopack UpdateManager.ApplyUpdatesAsync() zaakceptuje to bez porównywania wersji
+                var updateInfo = new UpdateInfo(latestFullRelease, false);
+                
+                _diagnosticsOutput.Write($"[Velopack] Cross-channel update prepared (forced full download)");
+                return VelopackUpdateCheckResult.UpdateAvailable(_currentVersion, latestVersion, updateInfo);
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput.Write($"[Velopack] Failed to check channel switch: {ex.Message}");
+                return VelopackUpdateCheckResult.NoUpdate(_currentVersion);
+            }
+        }
+
+        public async Task<VelopackUpdateDownloadResult> DownloadUpdateAsync(UpdateInfo updateInfo, IProgress<int>? progress = null, CancellationToken cancellationToken = default)
+        {
+            if (updateInfo == null) throw new ArgumentNullException(nameof(updateInfo));
+
+            try
+            {
+                await EnsureInitializedAsync();
+
+                _diagnosticsOutput.Write("[Velopack] Downloading update package...");
+
+                await _updateManager!.DownloadUpdatesAsync(updateInfo, percent =>
+                {
+                    var clamped = Math.Clamp(percent, 0, 100);
+                    progress?.Report(clamped);
+                }, cancellationToken).ConfigureAwait(false);
+
+                _diagnosticsOutput.Write("[Velopack] Update package downloaded successfully");
+                return VelopackUpdateDownloadResult.Successful(updateInfo);
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput.Write($"[Velopack] Failed to download update: {ex.Message}");
+                return VelopackUpdateDownloadResult.Failed(ex);
+            }
+        }
+
+        public async Task<bool> IsInstalledAsync()
+        {
+            await EnsureInitializedAsync().ConfigureAwait(false);
+            return _updateManager!.IsInstalled;
+        }
+
+        public async Task ApplyUpdateAndRestartAsync(UpdateInfo updateInfo, bool silent = false, bool restart = true, string[]? restartArgs = null)
+        {
+            if (updateInfo == null) throw new ArgumentNullException(nameof(updateInfo));
+
+            await EnsureInitializedAsync();
+
+            if (updateInfo.TargetFullRelease == null)
+                throw new InvalidOperationException("UpdateInfo does not contain a target release.");
+
+            _diagnosticsOutput.Write("[Velopack] Preparing to apply update and restart application...");
+
+            await _updateManager!.WaitExitThenApplyUpdatesAsync(updateInfo.TargetFullRelease, silent, restart, restartArgs).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Pobiera aktualny kanał aktualizacji z ustawień użytkownika
+        /// </summary>
+        public string GetCurrentUpdateChannel()
+        {
+            return GetUpdateChannel();
+        }
+
+        /// <summary>
+        /// Ustawia kanał aktualizacji w ustawieniach użytkownika i resetuje UpdateManager
+        /// </summary>
+        public void SetUpdateChannel(string channel)
+        {
+            if (string.IsNullOrWhiteSpace(channel) || (channel != "release" && channel != "beta"))
+                throw new ArgumentException("Invalid channel. Must be 'release' or 'beta'.", nameof(channel));
+
+            _userSettingsService.UpdateUserSetting(settings => settings.UpdateChannel = channel);
+
+            // Reset UpdateManager aby użyć nowego kanału przy następnym sprawdzeniu
+            lock (_initializationLock)
+            {
+                _apiSource?.Dispose();
+                _apiSource = null;
+                _updateManager = null;
+            }
+
+            _diagnosticsOutput.Write($"[Velopack] Update channel changed to: {channel}. UpdateManager will be reinitialized on next check.");
+        }
+        
+        /// <summary>
+        /// Wymusza ponowną inicjalizację UpdateManager (użyteczne po zmianie kanału)
+        /// </summary>
+        public async Task ReinitializeAsync()
+        {
+            lock (_initializationLock)
+            {
+                _apiSource?.Dispose();
+                _apiSource = null;
+                _updateManager = null;
+            }
+            
+            await InitializeAsync();
+            _diagnosticsOutput.Write($"[Velopack] UpdateManager reinitialized with channel: {GetUpdateChannel()}");
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private async Task EnsureInitializedAsync()
+        {
+            if (_updateManager == null)
+                await InitializeAsync().ConfigureAwait(false);
+        }
+
+        private static Uri EnsureAbsoluteUri(string candidate)
+        {
+            if (Uri.TryCreate(candidate, UriKind.Absolute, out var absolute))
+                return absolute;
+
+            throw new InvalidOperationException($"Update feed URL '{candidate}' is not a valid absolute URI.");
+        }
+
+        private Uri GetUpdateFeedUri()
+        {
+            var baseUrl = _configuration["Configuration:BaseUrl"]?.TrimEnd('/');
+            if (string.IsNullOrWhiteSpace(baseUrl))
+                throw new InvalidOperationException("Configuration:BaseUrl is not configured.");
+
+            return EnsureAbsoluteUri($"{baseUrl}/api/releases");
+        }
+
+        private string GetUpdateChannel()
+        {
+            try
+            {
+                var userSettings = _userSettingsService.LoadUserSettings();
+                var channel = userSettings.UpdateChannel;
+
+                // Walidacja kanału - dopuszczamy tylko "release" lub "beta"
+                if (string.IsNullOrWhiteSpace(channel) || (channel != "release" && channel != "beta"))
+                {
+                    _diagnosticsOutput.Write($"[Velopack] Invalid update channel '{channel}', defaulting to 'release'");
+                    return "release";
+                }
+
+                return channel;
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput.Write($"[Velopack] Failed to load update channel: {ex.Message}, defaulting to 'release'");
+                return "release";
+            }
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            if (disposing)
+            {
+                _apiSource?.Dispose();
+                _apiSource = null;
+
+                _updateManager = null;
+            }
+
+            _disposed = true;
+        }
+
+        ~VelopackUpdateService()
+        {
+            Dispose(false);
+        }
+    }
+
+    public readonly struct VelopackUpdateCheckResult
+    {
+        private VelopackUpdateCheckResult(bool success, bool isUpdateAvailable, string currentVersion, string latestVersion, string? errorMessage, UpdateInfo? updateInfo)
+        {
+            Success = success;
+            IsUpdateAvailable = isUpdateAvailable;
+            CurrentVersion = currentVersion;
+            LatestVersion = latestVersion;
+            ErrorMessage = errorMessage;
+            UpdateInfo = updateInfo;
+        }
+
+        public bool Success { get; }
+        public bool IsUpdateAvailable { get; }
+        public string CurrentVersion { get; }
+        public string LatestVersion { get; }
+        public string? ErrorMessage { get; }
+        public UpdateInfo? UpdateInfo { get; }
+
+        public static VelopackUpdateCheckResult UpdateAvailable(string currentVersion, string latestVersion, UpdateInfo updateInfo) =>
+            new(true, true, currentVersion, latestVersion, null, updateInfo ?? throw new ArgumentNullException(nameof(updateInfo)));
+
+        public static VelopackUpdateCheckResult NoUpdate(string currentVersion) =>
+            new(true, false, currentVersion, currentVersion, null, null);
+
+        public static VelopackUpdateCheckResult Failed(string currentVersion, Exception exception)
+        {
+            if (exception == null) throw new ArgumentNullException(nameof(exception));
+            return new(false, false, currentVersion, currentVersion, exception.Message, null);
+        }
+    }
+
+    public readonly struct VelopackUpdateDownloadResult
+    {
+        private VelopackUpdateDownloadResult(bool success, string? errorMessage, UpdateInfo? updateInfo)
+        {
+            Success = success;
+            ErrorMessage = errorMessage;
+            UpdateInfo = updateInfo;
+        }
+
+        public bool Success { get; }
+        public string? ErrorMessage { get; }
+        public UpdateInfo? UpdateInfo { get; }
+
+        public static VelopackUpdateDownloadResult Successful(UpdateInfo updateInfo) =>
+            new(true, null, updateInfo ?? throw new ArgumentNullException(nameof(updateInfo)));
+
+        public static VelopackUpdateDownloadResult Failed(Exception exception)
+        {
+            if (exception == null) throw new ArgumentNullException(nameof(exception));
+            return new(false, exception.Message, null);
+        }
+    }
+}
