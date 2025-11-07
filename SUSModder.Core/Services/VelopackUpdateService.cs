@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
@@ -45,7 +46,8 @@ namespace SUSModder.Core.Services
 
                 var updateOptions = new UpdateOptions
                 {
-                    ExplicitChannel = updateChannel
+                    ExplicitChannel = updateChannel,
+                    AllowVersionDowngrade = true  // Pozwól na downgrade przy zmianie kanału
                 };
 
                 _updateManager = new UpdateManager(_apiSource, updateOptions);
@@ -60,12 +62,32 @@ namespace SUSModder.Core.Services
             {
                 await EnsureInitializedAsync();
 
-                _diagnosticsOutput.Write("[Velopack] Checking for updates...");
+                var currentChannel = GetUpdateChannel();
+                _diagnosticsOutput.Write($"[Velopack] Checking for updates... (channel: {currentChannel}, current version: {_currentVersion})");
+                
                 var updateInfo = await _updateManager!.CheckForUpdatesAsync().ConfigureAwait(false);
 
                 if (updateInfo == null)
                 {
-                    _diagnosticsOutput.Write("[Velopack] No updates available");
+                    _diagnosticsOutput.Write("[Velopack] No updates available from Velopack");
+                    
+                    // CRITICAL FIX: Sprawdź czy to zmiana kanału (cross-channel)
+                    // Jeśli jesteśmy na beta i przełączamy na release, Velopack może zwrócić null
+                    // bo uważa że 2.3.x-beta > 2.2.x (numerycznie), ale to różne kanały!
+                    bool isCrossChannelSwitch = IsCrossChannelSwitch(_currentVersion, currentChannel);
+                    
+                    if (isCrossChannelSwitch)
+                    {
+                        _diagnosticsOutput.Write($"[Velopack] Cross-channel switch detected: {_currentVersion} -> {currentChannel} channel");
+                        
+                        // Spróbuj manualnie znaleźć najnowszą wersję dla docelowego kanału
+                        var channelSwitchResult = await TryGetChannelSwitchUpdateAsync(currentChannel, cancellationToken);
+                        if (channelSwitchResult.IsUpdateAvailable)
+                        {
+                            return channelSwitchResult;
+                        }
+                    }
+                    
                     return VelopackUpdateCheckResult.NoUpdate(_currentVersion);
                 }
 
@@ -78,6 +100,65 @@ namespace SUSModder.Core.Services
             {
                 _diagnosticsOutput.Write($"[Velopack] Failed to check for updates: {ex.Message}");
                 return VelopackUpdateCheckResult.Failed(_currentVersion, ex);
+            }
+        }
+        
+        /// <summary>
+        /// Sprawdza czy użytkownik próbuje przełączyć się między kanałami (beta <-> release)
+        /// </summary>
+        private bool IsCrossChannelSwitch(string currentVersion, string targetChannel)
+        {
+            bool currentIsBeta = currentVersion.Contains("-beta");
+            bool targetIsBeta = targetChannel == "beta";
+            
+            // Cross-channel switch: jesteśmy na beta ale cel to release, LUB odwrotnie
+            return currentIsBeta != targetIsBeta;
+        }
+        
+        /// <summary>
+        /// Próbuje znaleźć aktualizację przy zmianie kanału (nawet jeśli to downgrade numeryczny)
+        /// </summary>
+        private async Task<VelopackUpdateCheckResult> TryGetChannelSwitchUpdateAsync(string targetChannel, CancellationToken cancellationToken)
+        {
+            try
+            {
+                _diagnosticsOutput.Write($"[Velopack] Attempting cross-channel switch to: {targetChannel}");
+                
+                // Pobierz feed z API źródła bezpośrednio
+                var feedData = await _apiSource!.GetReleaseFeedAsync(targetChannel, cancellationToken).ConfigureAwait(false);
+                
+                if (feedData == null || !feedData.Any())
+                {
+                    _diagnosticsOutput.Write($"[Velopack] No releases found for channel: {targetChannel}");
+                    return VelopackUpdateCheckResult.NoUpdate(_currentVersion);
+                }
+                
+                // Znajdź najnowszą FULL wersję dla docelowego kanału (pomijamy delta)
+                var latestFullRelease = feedData
+                    .Where(r => r.Type == VelopackAssetType.Full)
+                    .OrderByDescending(r => r.Version)
+                    .FirstOrDefault();
+                
+                if (latestFullRelease == null)
+                {
+                    _diagnosticsOutput.Write($"[Velopack] No full release found for channel: {targetChannel}");
+                    return VelopackUpdateCheckResult.NoUpdate(_currentVersion);
+                }
+                
+                var latestVersion = latestFullRelease.Version.ToString();
+                _diagnosticsOutput.Write($"[Velopack] Channel switch target: {_currentVersion} -> {latestVersion} (channel: {targetChannel})");
+                
+                // CRITICAL: Utwórz "fake" UpdateInfo która wskazuje na full release z nowego kanału
+                // Velopack UpdateManager.ApplyUpdatesAsync() zaakceptuje to bez porównywania wersji
+                var updateInfo = new UpdateInfo(latestFullRelease, false);
+                
+                _diagnosticsOutput.Write($"[Velopack] Cross-channel update prepared (forced full download)");
+                return VelopackUpdateCheckResult.UpdateAvailable(_currentVersion, latestVersion, updateInfo);
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput.Write($"[Velopack] Failed to check channel switch: {ex.Message}");
+                return VelopackUpdateCheckResult.NoUpdate(_currentVersion);
             }
         }
 
@@ -153,7 +234,23 @@ namespace SUSModder.Core.Services
                 _updateManager = null;
             }
 
-            _diagnosticsOutput.Write($"[Velopack] Update channel changed to: {channel}");
+            _diagnosticsOutput.Write($"[Velopack] Update channel changed to: {channel}. UpdateManager will be reinitialized on next check.");
+        }
+        
+        /// <summary>
+        /// Wymusza ponowną inicjalizację UpdateManager (użyteczne po zmianie kanału)
+        /// </summary>
+        public async Task ReinitializeAsync()
+        {
+            lock (_initializationLock)
+            {
+                _apiSource?.Dispose();
+                _apiSource = null;
+                _updateManager = null;
+            }
+            
+            await InitializeAsync();
+            _diagnosticsOutput.Write($"[Velopack] UpdateManager reinitialized with channel: {GetUpdateChannel()}");
         }
 
         public void Dispose()

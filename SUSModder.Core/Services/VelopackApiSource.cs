@@ -142,19 +142,24 @@ namespace SUSModder.Core.Services
                 throw new InvalidOperationException($"Velopack API error ({error}): {message}");
             }
 
-            UpdateDownloadBaseUri(root, logger);
+            // Get channel from response
+            var channel = root.TryGetProperty("channel", out var channelElement) && channelElement.ValueKind == JsonValueKind.String
+                ? channelElement.GetString() ?? "release"
+                : "release";
+
+            UpdateDownloadBaseUri(root, logger, channel);
 
             if (root.TryGetProperty("manifest", out var manifestElement) && manifestElement.ValueKind == JsonValueKind.Object)
             {
                 // Convert custom "Releases" format to Velopack "Assets" format
-                var convertedManifest = ConvertCustomManifestToVelopackFormat(manifestElement);
+                var convertedManifest = ConvertCustomManifestToVelopackFormat(manifestElement, channel);
                 return VelopackAssetFeed.FromJson(convertedManifest);
             }
 
             return VelopackAssetFeed.FromJson(payload);
         }
 
-        private string ConvertCustomManifestToVelopackFormat(JsonElement manifestElement)
+        private string ConvertCustomManifestToVelopackFormat(JsonElement manifestElement, string channel = "release")
         {
             var assets = new List<Dictionary<string, object>>();
 
@@ -169,10 +174,14 @@ namespace SUSModder.Core.Services
                     if (string.IsNullOrWhiteSpace(fileName))
                         continue;
 
+                    // FIX: Backend nie używa podkatalogów dla kanałów - nie dodawaj prefiksu
+                    // Jeśli backend zwróci absolute URL, ResolveDownloadUri użyje go bezpośrednio (linia 215)
+                    var fileNameWithPath = fileName;
+
                     var asset = new Dictionary<string, object>
                     {
                         ["PackageId"] = "SUSModder",
-                        ["FileName"] = fileName
+                        ["FileName"] = fileNameWithPath
                     };
 
                     if (release.TryGetProperty("Version", out var versionElement) && versionElement.ValueKind == JsonValueKind.String)
@@ -249,7 +258,7 @@ namespace SUSModder.Core.Services
             return builder.Uri;
         }
 
-        private void UpdateDownloadBaseUri(JsonElement root, IVelopackLogger logger)
+        private void UpdateDownloadBaseUri(JsonElement root, IVelopackLogger logger, string channel = "release")
         {
             if (TryReadUri(root, "downloadBaseUrl", out var baseUri) || TryReadUri(root, "downloadBaseURL", out baseUri))
             {
@@ -319,6 +328,28 @@ namespace SUSModder.Core.Services
             {
                 _httpClient.Dispose();
             }
+        }
+        
+        /// <summary>
+        /// Publiczny wrapper dla GetReleaseFeed - używany przy cross-channel switches
+        /// </summary>
+        public async Task<IEnumerable<VelopackAsset>> GetReleaseFeedAsync(string channel, CancellationToken cancellationToken = default)
+        {
+            var logger = new VelopackApiSourceLogger();
+            var feed = await GetReleaseFeed(logger, null, channel, null, null).ConfigureAwait(false);
+            return feed.Assets ?? Enumerable.Empty<VelopackAsset>();
+        }
+        
+        /// <summary>
+        /// Prosty logger dla wewnętrznego użycia
+        /// </summary>
+        private class VelopackApiSourceLogger : IVelopackLogger
+        {
+            public void Log(VelopackLogLevel level, string? message, Exception? exception = null) { }
+            public void Error(string message) { }
+            public void Warn(string message) { }
+            public void Info(string message) { }
+            public void Debug(string message) { }
         }
     }
 }

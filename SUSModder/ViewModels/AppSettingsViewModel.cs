@@ -54,6 +54,9 @@ namespace SUSModder.ViewModels
 
         // Dodaj event dla powiadomienia o zmianie trybu gry
         public static event Action? GameModeChanged;
+        
+        // Dodaj event dla powiadomienia o zmianie kanału aktualizacji
+        public event Action<string>? UpdateChannelChanged;
 
         public AppSettingsViewModel(Control control)
         {
@@ -490,6 +493,9 @@ namespace SUSModder.ViewModels
 
                 // Sprawdź czy tryb gry się zmienił
                 bool gameModeChanged = _gameMode != _originalGameMode;
+                
+                // Sprawdź czy kanał aktualizacji się zmienił
+                bool updateChannelChanged = _updateChannel != _originalUpdateChannel;
 
                 // Zapisz wszystkie ustawienia do UserSettingsService
                 _userSettingsService.UpdateUserSetting(settings =>
@@ -516,6 +522,12 @@ namespace SUSModder.ViewModels
 
                 // Powiadom o zapisaniu ustawień
                 SettingsSaved?.Invoke();
+                
+                // Jeśli kanał aktualizacji się zmienił, powiadom o tym
+                if (updateChannelChanged)
+                {
+                    UpdateChannelChanged?.Invoke(UpdateChannel);
+                }
 
                 // Jeśli tryb gry się zmienił, pokaż komunikat o restarcie i restartuj aplikację
                 if (gameModeChanged)

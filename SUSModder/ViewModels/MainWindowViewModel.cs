@@ -83,6 +83,9 @@ namespace SUSModder.ViewModels
         private readonly object _installationLock = new object();
         private readonly List<(ModItem mod, string platform)> _pendingDllDialogs = new List<(ModItem, string)>();
 
+        // Velopack update service - musi być jako pole aby móc reinicjalizować po zmianie kanału
+        private VelopackUpdateService? _velopackUpdateService;
+
         #endregion
 
         #region Public Properties

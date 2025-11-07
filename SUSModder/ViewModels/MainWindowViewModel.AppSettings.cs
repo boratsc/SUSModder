@@ -61,6 +61,35 @@ namespace SUSModder.ViewModels
                 }
             });
         }
+        
+        private async void OnUpdateChannelChanged(string newChannel)
+        {
+            System.Diagnostics.Debug.WriteLine($"Update channel changed to: {newChannel}");
+            
+            // Pokaż dialog o konieczności restartu
+            await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                await ShowMessageAsync(
+                    "Restart wymagany", 
+                    "Zmiana kanału aktualizacji wymaga restartu aplikacji.\n\n" +
+                    "Aplikacja zostanie zrestartowana automatycznie."
+                );
+                
+                // Restart aplikacji
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = Environment.ProcessPath!,
+                    UseShellExecute = true
+                });
+                Environment.Exit(0);
+            });
+        }
+        
+        public void HandleUpdateChannelChange(string newChannel)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MainWindowVM] Update channel changed to: {newChannel}");
+            OnUpdateChannelChanged(newChannel);
+        }
 
         private void ShowAdditionalActions()
         {

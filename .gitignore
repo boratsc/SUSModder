@@ -3,15 +3,23 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
-# SUSModder specific
+# SUSModder specific - build outputs
 publish/
-publish-velopack/
-publish-velopack-temp/
+publish-*/
+releases-*/
 velopack-releases/
 .tools/
 .ilspy/
 Update.exe
 dummy-release/
+
+# Deployment scripts with credentials
+deploy-manual.ps1
+deploy-scp.exp
+
+# Build logs
+build-release-log.txt
+*.log
 
 # User-specific files
 *.rsuser

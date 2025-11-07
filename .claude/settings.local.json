@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "WebFetch(domain:docs.velopack.io)"
+      "WebFetch(domain:docs.velopack.io)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

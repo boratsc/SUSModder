@@ -113,6 +113,9 @@ namespace SUSModder.ViewModels
                 await CheckForModUpdatesForStatusBarAsync();
                 progressCallback?.Invoke(1.0, "Gotowe!");
 
+                // KROK 9: Sprawdź rejestrację w Windows Registry (nie blokuje)
+                CheckWindowsRegistryRegistration();
+
                 // Uruchom sprawdzanie aktualizacji aplikacji w tle (nie blokuje)
                 CheckForAppUpdatesOnStartup();
             }
@@ -257,13 +260,17 @@ namespace SUSModder.ViewModels
 
         private async Task<bool> TryHandleVelopackAppUpdatesAsync(IConfiguration configuration, IDiagnosticsOutput diagnosticsOutput, bool notifyWhenNoUpdates, bool showErrorsToUser)
         {
-            VelopackUpdateService? velopackUpdateService = null;
             bool velopackEnvironmentDetected = false;
 
             try
             {
-                velopackUpdateService = new VelopackUpdateService(AppVersion, configuration, diagnosticsOutput);
-                velopackEnvironmentDetected = await velopackUpdateService.IsInstalledAsync();
+                // Utwórz VelopackUpdateService jeśli nie istnieje (tylko raz)
+                if (_velopackUpdateService == null)
+                {
+                    _velopackUpdateService = new VelopackUpdateService(AppVersion, configuration, diagnosticsOutput);
+                }
+                
+                velopackEnvironmentDetected = await _velopackUpdateService.IsInstalledAsync();
 
                 diagnosticsOutput.Write($"[AppUpdate] Velopack environment detected: {velopackEnvironmentDetected}");
 
@@ -274,7 +281,7 @@ namespace SUSModder.ViewModels
                 }
 
                 diagnosticsOutput.Write($"[AppUpdate] Checking for Velopack updates...");
-                var velopackResult = await velopackUpdateService.CheckForUpdateAsync();
+                var velopackResult = await _velopackUpdateService.CheckForUpdateAsync();
                 
                 diagnosticsOutput.Write($"[AppUpdate] Check result - Success: {velopackResult.Success}, UpdateAvailable: {velopackResult.IsUpdateAvailable}");
                 diagnosticsOutput.Write($"[AppUpdate] Current: {velopackResult.CurrentVersion}, Latest: {velopackResult.LatestVersion}");
@@ -295,7 +302,7 @@ namespace SUSModder.ViewModels
                     diagnosticsOutput.Write($"[AppUpdate] Update available: {velopackResult.CurrentVersion} -> {velopackResult.LatestVersion}");
                     await Dispatcher.UIThread.InvokeAsync(async () =>
                     {
-                        var dialog = new VelopackUpdateDialog(AppVersion, velopackResult, velopackUpdateService);
+                        var dialog = new VelopackUpdateDialog(AppVersion, velopackResult, _velopackUpdateService);
                         var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
 
                         if (mainWindow != null)
@@ -310,7 +317,16 @@ namespace SUSModder.ViewModels
                 diagnosticsOutput.Write("[AppUpdate] No Velopack updates available");
                 if (notifyWhenNoUpdates)
                 {
-                    await ShowMessageAsync(GetUpdateDialogTitle(), _localizationService?.Get("Updates.NoUpdatesAvailable") ?? "You're on the latest version");
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        var dialog = new NoUpdateDialog(AppVersion);
+                        var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+                        if (mainWindow != null)
+                        {
+                            await dialog.ShowDialog(mainWindow);
+                        }
+                    });
                 }
 
                 return true;
@@ -327,10 +343,7 @@ namespace SUSModder.ViewModels
                 // Jeśli potwierdziliśmy środowisko Velopack, nie próbujemy legacy.
                 return velopackEnvironmentDetected;
             }
-            finally
-            {
-                velopackUpdateService?.Dispose();
-            }
+            // NIE dispose'uj - service jest używany przez cały cykl życia aplikacji
         }
 
         private async Task HandleLegacyAppUpdatesAsync(IConfiguration configuration, IDiagnosticsOutput diagnosticsOutput, bool notifyWhenNoUpdates, bool showErrorsToUser)
@@ -368,7 +381,16 @@ namespace SUSModder.ViewModels
 
                 if (notifyWhenNoUpdates)
                 {
-                    await ShowMessageAsync(GetUpdateDialogTitle(), _localizationService?.Get("Updates.NoUpdatesAvailable") ?? "You're on the latest version");
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        var dialog = new NoUpdateDialog(AppVersion);
+                        var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+                        if (mainWindow != null)
+                        {
+                            await dialog.ShowDialog(mainWindow);
+                        }
+                    });
                 }
             }
             catch (Exception ex)
@@ -384,7 +406,7 @@ namespace SUSModder.ViewModels
 
         private string GetUpdateDialogTitle()
         {
-            return _localizationService?.Get("Updates.AppUpdateTitle") ?? "Application update";
+            return _localizationService?.Get("Updates.UpdateAvailable") ?? "Application update";
         }
 
         private string BuildUpdateErrorMessage(string? details)
@@ -578,6 +600,84 @@ namespace SUSModder.ViewModels
                 Console.WriteLine($"[InstallationMap] Stack trace: {ex.StackTrace}");
                 System.Diagnostics.Debug.WriteLine($"[InstallationMap] Błąd podczas migracji: {ex.Message}");
                 // Nie pokazujemy błędu użytkownikowi - migracja nie jest krytyczna
+            }
+        }
+
+        /// <summary>
+        /// Sprawdza czy aplikacja jest zarejestrowana w Windows Registry i pyta użytkownika o rejestrację jeśli nie
+        /// </summary>
+        private async void CheckWindowsRegistryRegistration()
+        {
+            try
+            {
+                await Task.Delay(3000); // Opóźnienie aby UI był w pełni gotowy
+
+                if (RegistryInstaller.IsRegistered())
+                {
+                    System.Diagnostics.Debug.WriteLine("[Registry] Application already registered in Windows");
+                    _diagnosticsOutput?.Write("[Registry] Aplikacja jest już zarejestrowana w systemie Windows");
+                    return;
+                }
+
+                _diagnosticsOutput?.Write("[Registry] Aplikacja nie jest zarejestrowana w systemie Windows");
+                System.Diagnostics.Debug.WriteLine("[Registry] Application not registered, asking user...");
+
+                // Pokaż dialog pytając użytkownika
+                var shouldRegister = await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    var dialog = new ConfirmDialog(
+                        "Rejestracja w systemie Windows",
+                        "SUSModder nie jest zarejestrowany w systemie Windows.\n\n" +
+                        "Czy chcesz zarejestrować aplikację w \"Dodaj/usuń programy\"?\n\n" +
+                        "Umożliwi to łatwą deinstalację przez panel Windows."
+                    );
+                    dialog.OkButtonText = "Zarejestruj";
+                    dialog.CancelButtonText = "Pomiń";
+
+                    var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+                    if (mainWindow != null)
+                        await dialog.ShowDialog(mainWindow);
+
+                    return dialog.Result;
+                });
+
+                if (shouldRegister)
+                {
+                    System.Diagnostics.Debug.WriteLine("[Registry] User chose to register");
+                    var success = RegistryInstaller.RegisterApplication(AppVersion);
+
+                    if (success)
+                    {
+                        _diagnosticsOutput?.Write("[Registry] Aplikacja została zarejestrowana pomyślnie");
+                        System.Diagnostics.Debug.WriteLine("[Registry] Application registered successfully");
+
+                        await Dispatcher.UIThread.InvokeAsync(async () =>
+                        {
+                            await ShowMessageAsync("Sukces", "Aplikacja została zarejestrowana w systemie Windows.");
+                        });
+                    }
+                    else
+                    {
+                        _diagnosticsOutput?.Write("[Registry] Nie udało się zarejestrować aplikacji");
+                        System.Diagnostics.Debug.WriteLine("[Registry] Failed to register application");
+
+                        await Dispatcher.UIThread.InvokeAsync(async () =>
+                        {
+                            await ShowErrorDialogAsync("Nie udało się zarejestrować aplikacji.", "Błąd rejestracji");
+                        });
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[Registry] User skipped registration");
+                    _diagnosticsOutput?.Write("[Registry] Użytkownik pominął rejestrację");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Registry] Error during registration check: {ex.Message}");
+                _diagnosticsOutput?.Write($"[Registry] Błąd podczas sprawdzania rejestracji: {ex.Message}");
+                // Nie pokazujemy błędu użytkownikowi - rejestracja nie jest krytyczna
             }
         }
     }
