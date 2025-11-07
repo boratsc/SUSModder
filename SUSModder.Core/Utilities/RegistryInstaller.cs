@@ -1,12 +1,14 @@
 using Microsoft.Win32;
 using System;
 using System.IO;
+using System.Runtime.Versioning;
 
 namespace SUSModder.Core.Utilities
 {
     /// <summary>
     /// Zarządza rejestracją aplikacji w Windows Registry (Dodaj/usuń programy)
     /// </summary>
+    [SupportedOSPlatform("windows")]
     public static class RegistryInstaller
     {
         private const string UNINSTALL_KEY = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\SUSModder";

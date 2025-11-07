@@ -113,8 +113,11 @@ namespace SUSModder.ViewModels
                 await CheckForModUpdatesForStatusBarAsync();
                 progressCallback?.Invoke(1.0, "Gotowe!");
 
-                // KROK 9: Sprawdź rejestrację w Windows Registry (nie blokuje)
-                CheckWindowsRegistryRegistration();
+                // KROK 9: Sprawdź rejestrację w Windows Registry (nie blokuje, tylko na Windows)
+                if (OperatingSystem.IsWindows())
+                {
+                    CheckWindowsRegistryRegistration();
+                }
 
                 // Uruchom sprawdzanie aktualizacji aplikacji w tle (nie blokuje)
                 CheckForAppUpdatesOnStartup();
@@ -239,13 +242,7 @@ namespace SUSModder.ViewModels
                     System.Diagnostics.Debug.WriteLine($"[AppUpdate] {message}");
                 });
 
-                var handledByVelopack = await TryHandleVelopackAppUpdatesAsync(configuration, diagnosticsOutput, notifyWhenNoUpdates, showErrorsToUser);
-                if (handledByVelopack)
-                {
-                    return;
-                }
-
-                await HandleLegacyAppUpdatesAsync(configuration, diagnosticsOutput, notifyWhenNoUpdates, showErrorsToUser);
+                await TryHandleVelopackAppUpdatesAsync(configuration, diagnosticsOutput, notifyWhenNoUpdates, showErrorsToUser);
             }
             catch (Exception ex)
             {
@@ -258,10 +255,8 @@ namespace SUSModder.ViewModels
             }
         }
 
-        private async Task<bool> TryHandleVelopackAppUpdatesAsync(IConfiguration configuration, IDiagnosticsOutput diagnosticsOutput, bool notifyWhenNoUpdates, bool showErrorsToUser)
+        private async Task TryHandleVelopackAppUpdatesAsync(IConfiguration configuration, IDiagnosticsOutput diagnosticsOutput, bool notifyWhenNoUpdates, bool showErrorsToUser)
         {
-            bool velopackEnvironmentDetected = false;
-
             try
             {
                 // Utwórz VelopackUpdateService jeśli nie istnieje (tylko raz)
@@ -269,15 +264,19 @@ namespace SUSModder.ViewModels
                 {
                     _velopackUpdateService = new VelopackUpdateService(AppVersion, configuration, diagnosticsOutput);
                 }
-                
-                velopackEnvironmentDetected = await _velopackUpdateService.IsInstalledAsync();
+
+                bool velopackEnvironmentDetected = await _velopackUpdateService.IsInstalledAsync();
 
                 diagnosticsOutput.Write($"[AppUpdate] Velopack environment detected: {velopackEnvironmentDetected}");
 
                 if (!velopackEnvironmentDetected)
                 {
-                    diagnosticsOutput.Write("[AppUpdate] Velopack not detected, falling back to legacy updater");
-                    return false;
+                    diagnosticsOutput.Write("[AppUpdate] Velopack not detected. Please ensure application is installed via Velopack installer.");
+                    if (showErrorsToUser)
+                    {
+                        await ShowErrorDialogAsync("Aplikacja nie została zainstalowana poprawnie. Pobierz najnowszą wersję z oficjalnej strony.", GetUpdateDialogTitle());
+                    }
+                    return;
                 }
 
                 diagnosticsOutput.Write($"[AppUpdate] Checking for Velopack updates...");
@@ -294,7 +293,7 @@ namespace SUSModder.ViewModels
                         await ShowErrorDialogAsync(BuildUpdateErrorMessage(velopackResult.ErrorMessage), GetUpdateDialogTitle());
                     }
 
-                    return true;
+                    return;
                 }
 
                 if (velopackResult.IsUpdateAvailable && velopackResult.UpdateInfo != null)
@@ -311,7 +310,7 @@ namespace SUSModder.ViewModels
                         }
                     });
 
-                    return true;
+                    return;
                 }
 
                 diagnosticsOutput.Write("[AppUpdate] No Velopack updates available");
@@ -328,8 +327,6 @@ namespace SUSModder.ViewModels
                         }
                     });
                 }
-
-                return true;
             }
             catch (Exception ex)
             {
@@ -339,69 +336,8 @@ namespace SUSModder.ViewModels
                 {
                     await ShowErrorDialogAsync(BuildUpdateErrorMessage(ex.Message), GetUpdateDialogTitle());
                 }
-
-                // Jeśli potwierdziliśmy środowisko Velopack, nie próbujemy legacy.
-                return velopackEnvironmentDetected;
             }
             // NIE dispose'uj - service jest używany przez cały cykl życia aplikacji
-        }
-
-        private async Task HandleLegacyAppUpdatesAsync(IConfiguration configuration, IDiagnosticsOutput diagnosticsOutput, bool notifyWhenNoUpdates, bool showErrorsToUser)
-        {
-            try
-            {
-                var legacyUpdateService = new AppUpdateService(AppVersion, configuration, diagnosticsOutput);
-                var updateCheck = await legacyUpdateService.CheckForUpdateAsync();
-
-                if (!updateCheck.Success)
-                {
-                    if (showErrorsToUser)
-                    {
-                        await ShowErrorDialogAsync(BuildUpdateErrorMessage(updateCheck.ErrorMessage), GetUpdateDialogTitle());
-                    }
-
-                    return;
-                }
-
-                if (updateCheck.IsUpdateAvailable)
-                {
-                    await Dispatcher.UIThread.InvokeAsync(async () =>
-                    {
-                        var updateDialog = new AppUpdateDialog(updateCheck.CurrentVersion, updateCheck.LatestVersion);
-                        var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-
-                        if (mainWindow != null)
-                        {
-                            await updateDialog.ShowDialog(mainWindow);
-                        }
-                    });
-
-                    return;
-                }
-
-                if (notifyWhenNoUpdates)
-                {
-                    await Dispatcher.UIThread.InvokeAsync(async () =>
-                    {
-                        var dialog = new NoUpdateDialog(AppVersion);
-                        var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-
-                        if (mainWindow != null)
-                        {
-                            await dialog.ShowDialog(mainWindow);
-                        }
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                diagnosticsOutput.Write($"[AppUpdate] Legacy check failed: {ex.Message}");
-
-                if (showErrorsToUser)
-                {
-                    await ShowErrorDialogAsync(BuildUpdateErrorMessage(ex.Message), GetUpdateDialogTitle());
-                }
-            }
         }
 
         private string GetUpdateDialogTitle()
@@ -606,6 +542,7 @@ namespace SUSModder.ViewModels
         /// <summary>
         /// Sprawdza czy aplikacja jest zarejestrowana w Windows Registry i pyta użytkownika o rejestrację jeśli nie
         /// </summary>
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         private async void CheckWindowsRegistryRegistration()
         {
             try
