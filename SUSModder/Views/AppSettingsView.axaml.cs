@@ -17,6 +17,7 @@ namespace SUSModder.Views
 
             // Subskrybuj event zapisania ustawień
             _viewModel.SettingsSaved += OnSettingsSaved;
+            _viewModel.UpdateChannelChanged += OnUpdateChannelChanged;
         }
 
         private void OnSettingsSaved()
@@ -29,6 +30,19 @@ namespace SUSModder.Views
                 Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
                 {
                     await mainVM.RefreshAfterSettingsChangeAsync();
+                });
+            }
+        }
+        
+        private void OnUpdateChannelChanged(string newChannel)
+        {
+            // Powiadom MainWindowViewModel o zmianie kanału
+            var mainWindow = this.FindLogicalAncestorOfType<MainWindow>();
+            if (mainWindow?.DataContext is MainWindowViewModel mainVM)
+            {
+                Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    mainVM.HandleUpdateChannelChange(newChannel);
                 });
             }
         }

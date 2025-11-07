@@ -2,6 +2,7 @@ using System;
 using System.Windows.Input;
 using ReactiveUI;
 using SUSModder.Core.Configuration;
+using SUSModder.Core.Services;
 using SUSModder.Core.Services.Localization;
 using SUSModder.Views;
 
@@ -10,6 +11,7 @@ namespace SUSModder.ViewModels
     public class LanguageSelectionViewModel : ReactiveObject
     {
         private readonly LanguageSelectionDialog _dialog;
+        private readonly UserSettingsService _userSettingsService;
 
         public ICommand SelectPolishCommand { get; }
         public ICommand SelectEnglishCommand { get; }
@@ -17,6 +19,7 @@ namespace SUSModder.ViewModels
         public LanguageSelectionViewModel(LanguageSelectionDialog dialog)
         {
             _dialog = dialog;
+            _userSettingsService = new UserSettingsService();
 
             SelectPolishCommand = ReactiveCommand.Create(SelectPolish);
             SelectEnglishCommand = ReactiveCommand.Create(SelectEnglish);
@@ -36,8 +39,8 @@ namespace SUSModder.ViewModels
         {
             try
             {
-                // Zapisz wybrany język do appsettings.json
-                ConfigManager.SaveLanguageSetting(languageCode);
+                // Zapisz wybrany język do user-settings.json
+                _userSettingsService.UpdateUserSetting(settings => settings.Language = languageCode);
 
                 // Zastosuj zmianę w LocalizationService
                 var locService = App.GetService<ILocalizationService>();

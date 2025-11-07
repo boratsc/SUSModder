@@ -57,7 +57,9 @@ namespace SUSModder.ViewModels
 
                 if (modConfig == null)
                 {
-                    await _userInteractionService.ShowErrorAsync("Nie znaleziono konfiguracji moda.", "Błąd");
+                    await _userInteractionService.ShowErrorAsync(
+                        _localizationService.Get("ModOperations.ConfigNotFound"),
+                        _localizationService.Get("MainWindow.ErrorTitle"));
                     return;
                 }
 
@@ -120,7 +122,9 @@ namespace SUSModder.ViewModels
 
                 if (modConfig == null)
                 {
-                    await _userInteractionService.ShowErrorAsync("Nie znaleziono konfiguracji moda.", "Błąd");
+                    await _userInteractionService.ShowErrorAsync(
+                        _localizationService.Get("ModOperations.ConfigNotFound"),
+                        _localizationService.Get("MainWindow.ErrorTitle"));
                     return;
                 }
 
@@ -131,7 +135,7 @@ namespace SUSModder.ViewModels
                 var configuration = configBuilder.Build();
 
                 // Utwórz ViewModel dialogu
-                var versionSelectionVM = new VersionSelectionViewModel(modConfig, configuration);
+                var versionSelectionVM = new VersionSelectionViewModel(modConfig, configuration, _localizationService);
 
                 // Pokaż dialog
                 var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
@@ -159,7 +163,9 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[InstallWithVersionSelection] Błąd: {ex.Message}");
-                await _userInteractionService.ShowErrorAsync($"Błąd podczas instalacji: {ex.Message}", "Błąd");
+                await _userInteractionService.ShowErrorAsync(
+                    _localizationService.GetFormatted("ModOperations.InstallError", ex.Message),
+                    _localizationService.Get("MainWindow.ErrorTitle"));
             }
         }
 
@@ -218,7 +224,9 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[InstallSpecificVersion] Exception: {ex.Message}");
-                await _userInteractionService.ShowErrorAsync($"Błąd podczas instalacji: {ex.Message}", "Błąd");
+                await _userInteractionService.ShowErrorAsync(
+                    _localizationService.GetFormatted("ModOperations.InstallError", ex.Message),
+                    _localizationService.Get("MainWindow.ErrorTitle"));
             }
             finally
             {
@@ -470,7 +478,7 @@ namespace SUSModder.ViewModels
 
                 if (updatedModConfig == null)
                 {
-                    currentSelectedMod.InstallStatusMessage = "Brak dostępnych aktualizacji";
+                    currentSelectedMod.InstallStatusMessage = _localizationService.Get("ModOperations.NoUpdatesAvailable");
                     currentSelectedMod.InstallProgress = 100;
                     await Task.Delay(1500);
                     showNoUpdateMessage = true;
@@ -481,12 +489,14 @@ namespace SUSModder.ViewModels
                 currentSelectedMod.InstallProgress = 20;
 
                 // 3. Aktualizuj konfigurację w pliku
-                currentSelectedMod.InstallStatusMessage = "Aktualizowanie konfiguracji...";
+                currentSelectedMod.InstallStatusMessage = _localizationService.Get("ModOperations.UpdatingConfiguration");
                 bool configUpdated = await configService.UpdateSingleModConfigAsync(updatedModConfig);
 
                 if (!configUpdated)
                 {
-                    await ShowErrorDialogAsync("Nie udało się zaktualizować konfiguracji moda.", "Błąd aktualizacji");
+                    await ShowErrorDialogAsync(
+                        _localizationService.Get("ModOperations.UpdateConfigFailed"),
+                        _localizationService.Get("ModOperations.UpdateConfigError"));
                     return;
                 }
 
@@ -520,19 +530,21 @@ namespace SUSModder.ViewModels
 
                 // 6. Finalizacja
                 currentSelectedMod.InstallProgress = 100;
-                currentSelectedMod.InstallStatusMessage = "Aktualizacja zakończona";
+                currentSelectedMod.InstallStatusMessage = _localizationService.Get("ModOperations.UpdateComplete");
 
                 // Odśwież sortowanie zachowując zaznaczenie
                 RefreshModsSortingKeepSelection(currentSelectedMod);
 
                 await Task.Delay(1500);
                 updateSuccessful = true;
-                successMessage = $"Mod '{currentSelectedMod.Name}' został pomyślnie zaktualizowany do wersji {updatedModConfig.ModVersion}.";
+                successMessage = _localizationService.GetFormatted("ModOperations.ModUpdatedSuccess", currentSelectedMod.Name, updatedModConfig.ModVersion);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Update] Exception: {ex.Message}");
-                await ShowErrorDialogAsync($"Błąd podczas aktualizacji: {ex.Message}", "Błąd aktualizacji");
+                await ShowErrorDialogAsync(
+                    _localizationService.GetFormatted("ModOperations.UpdateError", ex.Message),
+                    _localizationService.Get("ModOperations.UpdateConfigError"));
             }
             finally
             {
@@ -552,18 +564,20 @@ namespace SUSModder.ViewModels
             // Pokaż komunikaty po zakończeniu finally (poza blokiem try-finally)
             if (showNoUpdateMessage)
             {
-                await ShowMessageAsync("Informacja", $"Mod '{currentSelectedMod.Name}' jest już w najnowszej wersji.");
+                await ShowMessageAsync(
+                    _localizationService.Get("ModOperations.InfoTitle"),
+                    _localizationService.GetFormatted("ModOperations.AlreadyLatestVersion", currentSelectedMod.Name));
             }
             else if (updateSuccessful && successMessage != null)
             {
-                await ShowMessageAsync("Sukces", successMessage);
+                await ShowMessageAsync(_localizationService.Get("ModOperations.SuccessTitle"), successMessage);
             }
         }
 
         private async Task ReinstallModAsync(ModItem currentSelectedMod, ConfigService configService, ModConfiguration updatedModConfig)
         {
             // UNINSTALL
-            currentSelectedMod.InstallStatusMessage = "Odinstalowywanie starej wersji...";
+            currentSelectedMod.InstallStatusMessage = _localizationService.Get("ModOperations.UninstallingOldVersion");
 
             if (Directory.Exists(currentSelectedMod.InstallPath))
             {
@@ -584,7 +598,7 @@ namespace SUSModder.ViewModels
             currentSelectedMod.InstallProgress = 60;
 
             // INSTALL
-            currentSelectedMod.InstallStatusMessage = "Instalowanie nowej wersji...";
+            currentSelectedMod.InstallStatusMessage = _localizationService.Get("ModOperations.InstallingNewVersion");
 
             // Pobierz zaktualizowaną konfigurację
             var updatedConfigs = configService.LoadConfig();
@@ -597,7 +611,7 @@ namespace SUSModder.ViewModels
                 {
                     // Mapuj progress 60-100% dla install
                     currentSelectedMod.InstallProgress = 60 + (percentage * 40 / 100);
-                    currentSelectedMod.InstallStatusMessage = $"Instalowanie: {message}";
+                    currentSelectedMod.InstallStatusMessage = _localizationService.GetFormatted("ModOperations.InstallingProgress", message);
                 });
 
                 // Diagnostics output
@@ -610,12 +624,8 @@ namespace SUSModder.ViewModels
                 var silentUserInteraction = new InstallationSilentUserInteraction();
 
                 // Sprawdź platformę
-                var configBuilder = new ConfigurationBuilder()
-                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                var configuration = configBuilder.Build();
-
-                string platform = configuration.GetSection("Configuration")["Mode"] ?? "steam";
+                var userSettings = _userSettingsService.LoadUserSettings();
+                string platform = userSettings.Mode;
 
                 if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
                 {
@@ -628,6 +638,11 @@ namespace SUSModder.ViewModels
                 else
                 {
                     // Steam installation
+                    var configBuilder = new ConfigurationBuilder()
+                        .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                    var configuration = configBuilder.Build();
+                    
                     var modManager = new ModManager(configuration);
                     var callbacks = new ModManagerUserCallbacks
                     {
@@ -677,7 +692,7 @@ namespace SUSModder.ViewModels
                 currentSelectedMod.ShowProgress = true;
                 currentSelectedMod.IsInstalling = true;
                 currentSelectedMod.InstallProgress = 25;
-                currentSelectedMod.InstallStatusMessage = "Rozpoczynanie odinstalowywania...";
+                currentSelectedMod.InstallStatusMessage = _localizationService.Get("ModOperations.StartingUninstall");
 
                 // Pokaż ładny dialog potwierdzenia usunięcia
                 bool confirmed = false;
@@ -703,7 +718,7 @@ namespace SUSModder.ViewModels
                 }
 
                 currentSelectedMod.InstallProgress = 25;
-                currentSelectedMod.InstallStatusMessage = "Usuwanie plików...";
+                currentSelectedMod.InstallStatusMessage = _localizationService.Get("ModOperations.DeletingFiles");
 
                 // Użyj nowego FileSystemUtilities z Core
                 var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
@@ -721,10 +736,8 @@ namespace SUSModder.ViewModels
                 if (!deleteSuccess)
                 {
                     await ShowErrorDialogAsync(
-                        $"Nie udało się całkowicie usunąć katalogu moda '{currentSelectedMod.Name}'.\n\n" +
-                        $"Katalog: {currentSelectedMod.InstallPath}\n\n" +
-                        "Niektóre pliki mogą nadal istnieć. Spróbuj usunąć je ręcznie lub zrestartować komputer i spróbować ponownie.",
-                        "Ostrzeżenie - Niepełne usunięcie"
+                        _localizationService.GetFormatted("ModOperations.IncompleteUninstall", currentSelectedMod.Name, currentSelectedMod.InstallPath),
+                        _localizationService.Get("ModOperations.IncompleteUninstallTitle")
                     );
 
                     // Mimo niepełnego usunięcia, kontynuuj proces odinstalowania
@@ -736,7 +749,7 @@ namespace SUSModder.ViewModels
                 }
 
                 currentSelectedMod.InstallProgress = 75;
-                currentSelectedMod.InstallStatusMessage = "Aktualizowanie konfiguracji...";
+                currentSelectedMod.InstallStatusMessage = _localizationService.Get("ModOperations.UpdatingConfig");
 
                 // Aktualizuj konfigurację
                 var configService = new ConfigService();
@@ -752,7 +765,7 @@ namespace SUSModder.ViewModels
                 // Aktualizuj UI
                 currentSelectedMod.InstallPath = string.Empty;
                 currentSelectedMod.InstallProgress = 100;
-                currentSelectedMod.InstallStatusMessage = "Odinstalowanie zakończone";
+                currentSelectedMod.InstallStatusMessage = _localizationService.Get("ModOperations.UninstallComplete");
 
                 // Odśwież sortowanie bez utraty zaznaczenia
                 RefreshModsSortingKeepSelection(currentSelectedMod);

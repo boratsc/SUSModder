@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using SUSModder.Core.Utilities;
 using SUSModder.Core.Repositories;
+using SUSModder.Core.Services;
 using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
@@ -23,12 +24,15 @@ namespace SUSModder.ViewModels
     {
         private readonly Control _control;
         private readonly ILocalizationService? _localizationService;
+        private readonly UserSettingsService _userSettingsService;
         private string _modsInstallPath = string.Empty;
         private bool _developerMode = false;
+        private string _updateChannel = "release";
         private string _gameMode = "steam";
         private LanguageOption? _selectedLanguage;
         private string _originalModsInstallPath = string.Empty;
         private bool _originalDeveloperMode = false;
+        private string _originalUpdateChannel = "release";
         private string _originalGameMode = "steam";
         private string _originalLanguage = "pl";
         private bool _hasUnsavedChanges = false;
@@ -42,23 +46,55 @@ namespace SUSModder.ViewModels
             new LanguageOption { Code = "en", DisplayName = "English" }
         };
 
+        // Lista dostępnych kanałów aktualizacji (nazwy będą pobierane z lokalizacji)
+        private List<UpdateChannelOption> _availableUpdateChannels = null!;
+
         // Dodaj event dla powiadomienia o zapisaniu
         public event Action? SettingsSaved;
 
         // Dodaj event dla powiadomienia o zmianie trybu gry
         public static event Action? GameModeChanged;
+        
+        // Dodaj event dla powiadomienia o zmianie kanału aktualizacji
+        public event Action<string>? UpdateChannelChanged;
 
         public AppSettingsViewModel(Control control)
         {
             _control = control;
+            _userSettingsService = new UserSettingsService();
+
+            // Pobierz serwis lokalizacji
+            _localizationService = App.GetService<ILocalizationService>();
+
+            // Załaduj listę kanałów aktualizacji z tłumaczeniami
+            _availableUpdateChannels = new List<UpdateChannelOption>
+            {
+                new UpdateChannelOption
+                {
+                    Code = "release",
+                    DisplayName = _localizationService?.Get("Settings.UpdateChannel.Channels.Release") ?? "Release (Stabilne wydania)"
+                },
+                new UpdateChannelOption
+                {
+                    Code = "beta",
+                    DisplayName = _localizationService?.Get("Settings.UpdateChannel.Channels.Beta") ?? "Beta (Wersje testowe)"
+                }
+            };
 
             // Załaduj obecne ustawienia
             LoadCurrentSettings();
 
-            // Pobierz serwis lokalizacji z DI
+            // Załaduj kanał aktualizacji
+            var userSettings = _userSettingsService.LoadUserSettings();
+            _updateChannel = userSettings.UpdateChannel;
+            _originalUpdateChannel = _updateChannel;
+            _selectedUpdateChannel = AvailableUpdateChannels.FirstOrDefault(c => c.Code == _updateChannel);
+            this.RaisePropertyChanged(nameof(SelectedUpdateChannel));
+            this.RaisePropertyChanged(nameof(AvailableUpdateChannels));
+
+            // Kontynuuj inicjalizację z serwisem lokalizacji
             try
             {
-                _localizationService = App.GetService<ILocalizationService>();
                 var currentCulture = _localizationService?.CurrentCulture ?? "pl";
 
                 Console.WriteLine($"[AppSettingsViewModel] CurrentCulture z serwisu: {currentCulture}");
@@ -118,6 +154,38 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _developerMode, value);
                 CheckForChanges();
+            }
+        }
+
+        public string UpdateChannel
+        {
+            get => _updateChannel;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _updateChannel, value);
+                CheckForChanges();
+            }
+        }
+
+        public List<UpdateChannelOption> AvailableUpdateChannels
+        {
+            get => _availableUpdateChannels;
+            set => this.RaiseAndSetIfChanged(ref _availableUpdateChannels, value);
+        }
+
+        private UpdateChannelOption? _selectedUpdateChannel;
+
+        public UpdateChannelOption? SelectedUpdateChannel
+        {
+            get => _selectedUpdateChannel;
+            set
+            {
+                var oldValue = _selectedUpdateChannel;
+                this.RaiseAndSetIfChanged(ref _selectedUpdateChannel, value);
+                if (oldValue != value && value != null)
+                {
+                    UpdateChannel = value.Code;
+                }
             }
         }
 
@@ -198,8 +266,8 @@ namespace SUSModder.ViewModels
             // Zmień język w serwisie (live switch)
             _localizationService?.ChangeCulture(_selectedLanguage.Code);
 
-            // Zapisz wybór do appsettings.json natychmiast (live switch)
-            ConfigManager.SaveLanguageSetting(_selectedLanguage.Code);
+            // Zapisz wybór do user-settings.json natychmiast (live switch)
+            _userSettingsService.UpdateUserSetting(settings => settings.Language = _selectedLanguage.Code);
 
             System.Diagnostics.Debug.WriteLine($"Język zmieniony na: {_selectedLanguage.Code}");
         }
@@ -222,23 +290,28 @@ namespace SUSModder.ViewModels
         {
             try
             {
+                var userSettings = _userSettingsService.LoadUserSettings();
+
                 // Załaduj ModsInstallPath
-                _modsInstallPath = PathSettings.ModsInstallPath;
+                _modsInstallPath = string.IsNullOrEmpty(userSettings.ModsInstallPath) 
+                    ? PathSettings.DefaultModsPath 
+                    : userSettings.ModsInstallPath;
                 _originalModsInstallPath = _modsInstallPath;
 
                 // Załaduj DeveloperMode
                 _developerMode = DeveloperModeSettings.IsEnabled;
                 _originalDeveloperMode = _developerMode;
 
-                // Załaduj GameMode z appsettings.json
-                LoadGameModeFromAppSettings();
+                // Załaduj GameMode z user settings
+                _gameMode = userSettings.Mode;
+                _originalGameMode = _gameMode;
 
                 System.Diagnostics.Debug.WriteLine($"Loaded current settings - ModsInstallPath: {_modsInstallPath}, DeveloperMode: {_developerMode}, GameMode: {_gameMode}");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading settings: {ex.Message}");
-                _modsInstallPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Among Us - Mody");
+                _modsInstallPath = PathSettings.DefaultModsPath;
                 _originalModsInstallPath = _modsInstallPath;
                 _developerMode = false;
                 _originalDeveloperMode = false;
@@ -249,34 +322,12 @@ namespace SUSModder.ViewModels
 
         private void LoadGameModeFromAppSettings()
         {
+            // Ta metoda jest już nieużywana - GameMode jest wczytywany z UserSettings
             try
             {
-                string exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                string appSettingsPath = Path.Combine(exeDir, "appsettings.json");
-
-                if (File.Exists(appSettingsPath))
-                {
-                    string jsonContent = File.ReadAllText(appSettingsPath);
-                    var jsonDocument = JsonDocument.Parse(jsonContent);
-                    var root = jsonDocument.RootElement;
-
-                    if (root.TryGetProperty("Configuration", out var config) && 
-                        config.TryGetProperty("Mode", out var mode))
-                    {
-                        _gameMode = mode.GetString() ?? "steam";
-                        _originalGameMode = _gameMode;
-                    }
-                    else
-                    {
-                        _gameMode = "steam";
-                        _originalGameMode = "steam";
-                    }
-                }
-                else
-                {
-                    _gameMode = "steam";
-                    _originalGameMode = "steam";
-                }
+                var userSettings = _userSettingsService.LoadUserSettings();
+                _gameMode = userSettings.Mode;
+                _originalGameMode = _gameMode;
 
                 // Powiadom o zmianie właściwości radio buttonów
                 this.RaisePropertyChanged(nameof(IsSteamMode));
@@ -296,6 +347,7 @@ namespace SUSModder.ViewModels
         {
             HasUnsavedChanges = !string.Equals(_modsInstallPath, _originalModsInstallPath, StringComparison.OrdinalIgnoreCase) ||
                                _developerMode != _originalDeveloperMode ||
+                               _updateChannel != _originalUpdateChannel ||
                                _gameMode != _originalGameMode ||
                                (_selectedLanguage?.Code ?? "pl") != _originalLanguage ||
                                _telemetryEnabled != _originalTelemetryEnabled;
@@ -306,39 +358,9 @@ namespace SUSModder.ViewModels
         {
             try
             {
-                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                var appSettingsPath = Path.Combine(exeDir, "appsettings.json");
-
-                if (File.Exists(appSettingsPath))
-                {
-                    var jsonContent = File.ReadAllText(appSettingsPath);
-                    var jsonDocument = JsonDocument.Parse(jsonContent);
-                    var root = jsonDocument.RootElement;
-
-                    if (root.TryGetProperty("Configuration", out var config) &&
-                        config.TryGetProperty("TelemetryEnabled", out var telemetryEnabledElement))
-                    {
-                        // Accept both boolean and string values for backward compatibility
-                        if (telemetryEnabledElement.ValueKind == JsonValueKind.True || telemetryEnabledElement.ValueKind == JsonValueKind.False)
-                        {
-                            _telemetryEnabled = telemetryEnabledElement.GetBoolean();
-                        }
-                        else if (telemetryEnabledElement.ValueKind == JsonValueKind.String)
-                        {
-                            var str = telemetryEnabledElement.GetString();
-                            if (!bool.TryParse(str, out _telemetryEnabled))
-                            {
-                                _telemetryEnabled = true; // default on invalid value
-                            }
-                        }
-                        else
-                        {
-                            _telemetryEnabled = true; // sensible default
-                        }
-
-                        _originalTelemetryEnabled = _telemetryEnabled;
-                    }
-                }
+                var userSettings = _userSettingsService.LoadUserSettings();
+                _telemetryEnabled = userSettings.TelemetryEnabled;
+                _originalTelemetryEnabled = _telemetryEnabled;
 
                 this.RaisePropertyChanged(nameof(TelemetryEnabled));
             }
@@ -471,21 +493,41 @@ namespace SUSModder.ViewModels
 
                 // Sprawdź czy tryb gry się zmienił
                 bool gameModeChanged = _gameMode != _originalGameMode;
+                
+                // Sprawdź czy kanał aktualizacji się zmienił
+                bool updateChannelChanged = _updateChannel != _originalUpdateChannel;
 
-                // Zapisz wszystkie ustawienia do appsettings.json
-                await SaveAllSettingsToAppSettings();
+                // Zapisz wszystkie ustawienia do UserSettingsService
+                _userSettingsService.UpdateUserSetting(settings =>
+                {
+                    settings.Mode = GameMode;
+                    settings.ModsInstallPath = ModsInstallPath;
+                    settings.TelemetryEnabled = TelemetryEnabled;
+                    settings.UpdateChannel = UpdateChannel;
+                    if (_selectedLanguage != null)
+                    {
+                        settings.Language = _selectedLanguage.Code;
+                    }
+                });
 
                 // Zapisz DeveloperMode używając nowej klasy
                 DeveloperModeSettings.SetDeveloperMode(DeveloperMode);
 
                 _originalModsInstallPath = ModsInstallPath;
                 _originalDeveloperMode = DeveloperMode;
+                _originalUpdateChannel = UpdateChannel;
                 _originalGameMode = GameMode;
                 _originalTelemetryEnabled = TelemetryEnabled;
                 HasUnsavedChanges = false;
 
                 // Powiadom o zapisaniu ustawień
                 SettingsSaved?.Invoke();
+                
+                // Jeśli kanał aktualizacji się zmienił, powiadom o tym
+                if (updateChannelChanged)
+                {
+                    UpdateChannelChanged?.Invoke(UpdateChannel);
+                }
 
                 // Jeśli tryb gry się zmienił, pokaż komunikat o restarcie i restartuj aplikację
                 if (gameModeChanged)
@@ -818,6 +860,15 @@ namespace SUSModder.ViewModels
     /// Model dla opcji języka w ComboBox.
     /// </summary>
     public class LanguageOption
+    {
+        public string Code { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Model dla opcji kanału aktualizacji w ComboBox.
+    /// </summary>
+    public class UpdateChannelOption
     {
         public string Code { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;

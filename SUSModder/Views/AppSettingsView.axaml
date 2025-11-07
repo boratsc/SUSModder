@@ -189,6 +189,41 @@
 					</StackPanel>
 				</Border>
 
+				<!-- Sekcja wyboru kanału aktualizacji -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="12">
+						<TextBlock Text="{local:Localize Settings.UpdateChannel.Title}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+						<TextBlock Text="{local:Localize Settings.UpdateChannel.Description}"
+								   FontSize="12"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   TextWrapping="Wrap"/>
+
+						<ComboBox ItemsSource="{Binding AvailableUpdateChannels}"
+								  SelectedItem="{Binding SelectedUpdateChannel, Mode=TwoWay}"
+								  Width="200"
+								  HorizontalAlignment="Left"
+								  FontSize="12"
+								  Padding="10,8"
+								  Background="{DynamicResource SecondaryBackgroundBrush}"
+								  BorderBrush="{DynamicResource BorderBrush}"
+								  BorderThickness="1"
+								  CornerRadius="4">
+							<ComboBox.ItemTemplate>
+								<DataTemplate>
+									<TextBlock Text="{Binding DisplayName}"/>
+								</DataTemplate>
+							</ComboBox.ItemTemplate>
+						</ComboBox>
+					</StackPanel>
+				</Border>
+
 				<!-- Sekcja ustawień deweloperskich -->
 				<Border Background="{DynamicResource ModCardBackgroundBrush}"
 						BorderBrush="{DynamicResource ModCardBorderBrush}"

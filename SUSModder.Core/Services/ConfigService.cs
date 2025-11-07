@@ -36,24 +36,15 @@ namespace SUSModder.Core.Services
         {
             try
             {
-                var exeDir = AppDomain.CurrentDomain.BaseDirectory;
-                var configRepo = new ConfigRepository(exeDir);
-                var appSettings = configRepo.LoadAppSettings();
-
-                if (appSettings != null &&
-                    appSettings.TryGetValue("Configuration", out var configObj) &&
-                    configObj is JsonElement configElement &&
-                    configElement.TryGetProperty("CurrentVersion", out var versionElement))
-                {
-                    return versionElement.GetString() ?? "Nieznana";
-                }
+                var userSettingsService = new UserSettingsService();
+                var appVersion = userSettingsService.LoadAppVersion();
+                return appVersion.CurrentVersion;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading app version: {ex.Message}");
+                return "Nieznana";
             }
-
-            return "Nieznana";
         }
 
         public async Task<ModConfiguration?> CheckSingleModUpdateAsync(string modName)

@@ -129,10 +129,10 @@ namespace SUSModder.ViewModels
 
         public string ApiStatusText => ApiStatus switch
         {
-            ApiConnectionStatus.Online => $"Online ({ApiPingMs}ms)",
-            ApiConnectionStatus.Offline => "Offline",
-            ApiConnectionStatus.Checking => "Sprawdzanie...",
-            _ => "Nieznany"
+            ApiConnectionStatus.Online => _localizationService.GetFormatted("UI.StatusBar.ApiOnline", ApiPingMs),
+            ApiConnectionStatus.Offline => _localizationService.Get("UI.StatusBar.ApiOffline"),
+            ApiConnectionStatus.Checking => _localizationService.Get("UI.StatusBar.ApiChecking"),
+            _ => _localizationService.Get("UI.StatusBar.ApiUnknown")
         };
 
         public string ApiStatusColor => ApiStatus switch
@@ -236,7 +236,8 @@ namespace SUSModder.ViewModels
 
                 if (Mods.Count(m => m.IsInstalled) > 10)
                 {
-                    installedMods.Add($"...i {Mods.Count(m => m.IsInstalled) - 10} więcej");
+                    var moreCount = Mods.Count(m => m.IsInstalled) - 10;
+                    installedMods.Add(_localizationService.GetFormatted("UI.StatusBar.AndMoreMods", moreCount));
                 }
 
                 InstalledModsList = installedMods;
@@ -259,14 +260,14 @@ namespace SUSModder.ViewModels
             if (AvailableUpdatesCount > 0)
             {
                 // Gdy są aktualizacje - pokazujemy je w głównym tekście
-                ModsStatusMainText = $"Dostępne aktualizacje: {AvailableUpdatesCount}";
+                ModsStatusMainText = _localizationService.GetFormatted("UI.StatusBar.AvailableUpdatesCount", AvailableUpdatesCount);
                 // A poniżej pokazujemy liczbę zainstalowanych
-                ModsStatusSubText = $"Zainstalowanych modów: {InstalledFullModsCount}";
+                ModsStatusSubText = _localizationService.GetFormatted("UI.StatusBar.InstalledModsCount", InstalledFullModsCount);
             }
             else
             {
                 // Gdy nie ma aktualizacji - pokazujemy tylko zainstalowane w głównym tekście
-                ModsStatusMainText = $"Zainstalowanych modów: {InstalledFullModsCount}";
+                ModsStatusMainText = _localizationService.GetFormatted("UI.StatusBar.InstalledModsCount", InstalledFullModsCount);
                 // Ukrywamy tekst pomocniczy (pusty string)
                 ModsStatusSubText = string.Empty;
             }
@@ -285,7 +286,7 @@ namespace SUSModder.ViewModels
             // Sekcja zainstalowanych modów
             if (InstalledModsList.Any())
             {
-                tooltipBuilder.AppendLine("📦 Zainstalowane mody:");
+                tooltipBuilder.AppendLine(_localizationService.Get("UI.StatusBar.InstalledModsList"));
                 foreach (var mod in InstalledModsList)
                 {
                     tooltipBuilder.AppendLine($"  • {mod}");
@@ -298,7 +299,7 @@ namespace SUSModder.ViewModels
                 if (tooltipBuilder.Length > 0)
                     tooltipBuilder.AppendLine();
 
-                tooltipBuilder.AppendLine("⚠️ Wymagają aktualizacji:");
+                tooltipBuilder.AppendLine(_localizationService.Get("UI.StatusBar.UpdatesRequiredList"));
                 foreach (var update in AvailableUpdatesList)
                 {
                     tooltipBuilder.AppendLine($"  • {update}");
@@ -322,7 +323,7 @@ namespace SUSModder.ViewModels
                     ModsFolderSizeGB = 0;
                     TotalDiskSpaceGB = 0;
                     DiskUsagePercentage = 0;
-                    DiskSpaceDetailsTooltip = "Folder modów nie istnieje";
+                    DiskSpaceDetailsTooltip = _localizationService.Get("UI.StatusBar.ModsFolderNotExist");
                     return;
                 }
 
@@ -344,10 +345,10 @@ namespace SUSModder.ViewModels
                     : 0;
 
                 // Tooltip ze szczegółami
-                DiskSpaceDetailsTooltip = $"Folder modów: {ModsFolderSizeGB:F2} GB\n" +
-                                         $"Wolne miejsce na dysku: {FreeDiskSpaceGB:F2} GB\n" +
-                                         $"Całkowita przestrzeń: {TotalDiskSpaceGB:F2} GB\n" +
-                                         $"Ścieżka: {modsPath}";
+                DiskSpaceDetailsTooltip = $"{_localizationService.GetFormatted("UI.StatusBar.ModsFolder", ModsFolderSizeGB)}\n" +
+                                         $"{_localizationService.GetFormatted("UI.StatusBar.FreeSpace", FreeDiskSpaceGB)}\n" +
+                                         $"{_localizationService.GetFormatted("UI.StatusBar.TotalSpace", TotalDiskSpaceGB)}\n" +
+                                         $"{_localizationService.GetFormatted("UI.StatusBar.Path", modsPath)}";
             }
             catch (Exception ex)
             {
@@ -355,7 +356,7 @@ namespace SUSModder.ViewModels
                 ModsFolderSizeGB = 0;
                 TotalDiskSpaceGB = 0;
                 DiskUsagePercentage = 0;
-                DiskSpaceDetailsTooltip = $"Błąd: {ex.Message}";
+                DiskSpaceDetailsTooltip = _localizationService.GetFormatted("UI.StatusBar.Error", ex.Message);
             }
         }
 

@@ -189,9 +189,14 @@
 																	   Foreground="{DynamicResource TextSecondaryBrush}"
 																	   TextWrapping="Wrap"
 																	   MaxWidth="200"/>
-															<TextBlock Text="{Binding ModVersion, StringFormat='Wersja: {0}'}"
-																	   FontSize="11"
-																	   Foreground="{DynamicResource TextSecondaryBrush}"/>
+															<TextBlock FontSize="11"
+																	   Foreground="{DynamicResource TextSecondaryBrush}">
+															<TextBlock.Text>
+																<MultiBinding StringFormat="{loc:Localize StringFormats.DllModVersion}">
+																	<Binding Path="ModVersion"/>
+																</MultiBinding>
+															</TextBlock.Text>
+														</TextBlock>
 														</StackPanel>
 														<!-- Przycisk wyboru -->
 														<Button Grid.Column="2"
@@ -489,12 +494,12 @@
 											<!-- Flyout menu -->
 											<Button.Flyout>
 												<MenuFlyout>
-													<MenuItem Header="Usuń SingleInstance">
+													<MenuItem Header="{loc:Localize MainWindow.DeveloperMenu.RemoveSingleInstance}">
 														<MenuItem.Command>
 															<Binding Path="$parent[local:MainWindow].RemoveSingleInstanceCommand"/>
 														</MenuItem.Command>
 													</MenuItem>
-													<MenuItem Header="Uruchom wybraną ilość instancji">
+													<MenuItem Header="{loc:Localize MainWindow.DeveloperMenu.LaunchMultipleInstances}">
 														<MenuItem.Command>
 															<Binding Path="$parent[local:MainWindow].LaunchMultipleInstancesCommand"/>
 														</MenuItem.Command>
@@ -905,6 +910,14 @@
 				<StackPanel Orientation="Horizontal" Spacing="12">
 					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Toolbox}" FontSize="20" Foreground="#FF9800"/>
 					<TextBlock Text="{loc:Localize UI.Menu.RepairGame}" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Button>
+
+			<Button Classes="fab-menu-item"
+					Command="{Binding CheckForAppUpdatesCommand}">
+				<StackPanel Orientation="Horizontal" Spacing="12">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowClockwise}" FontSize="20" Foreground="#03A9F4"/>
+					<TextBlock Text="{loc:Localize UI.Menu.CheckAppUpdates}" VerticalAlignment="Center"/>
 				</StackPanel>
 			</Button>
 

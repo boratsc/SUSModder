@@ -217,11 +217,15 @@ namespace SUSModder.Views
 
                         System.Diagnostics.Debug.WriteLine("[UI] Konfiguracja wczytana pomyślnie");
 
-                        // Pokaż komunikat sukcesu
-                        var successDialog = new MessageDialog(
-                            _localizationService.Get("Dialogs.Info.Title"),
-                            _localizationService.Get("Tools.ServerLoadSuccess"));
-                        await successDialog.ShowDialog(mainWindow);
+                        // Pokaż komunikat sukcesu - musimy ponownie pobrać okno bo mogło się zmienić
+                        var successWindow = GetMainWindow();
+                        if (successWindow != null)
+                        {
+                            var successDialog = new MessageDialog(
+                                _localizationService?.Get("Dialogs.Info.Title") ?? "Info",
+                                _localizationService?.Get("Tools.ServerLoadSuccess") ?? "Configuration loaded successfully");
+                            await successDialog.ShowDialog(successWindow);
+                        }
                     }
                 }
             }
