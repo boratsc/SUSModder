@@ -49,15 +49,6 @@
 		<PackageReference Include="Velopack" Version="0.0.1298" />
 	</ItemGroup>
 
-	<!-- Pliki które mają być wyodrębnione z single-file (zewnętrzne zależności) -->
-	<ItemGroup>
-		<Content Include="..\publish\updater\**\*.*">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-			<TargetPath>updater\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
-		</Content>
-	</ItemGroup>
-
 	<ItemGroup>
 		<AvaloniaXaml Remove="styles\LinkButtonStyle.axaml" />
 		<AvaloniaXaml Remove="themes\PinkTheme.axaml" />
@@ -103,9 +94,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Compile Update="Views\AppUpdateDialog.axaml.cs">
-	    <DependentUpon>AppUpdateDialog.axaml</DependentUpon>
-	  </Compile>
 	  <Compile Update="Views\VelopackUpdateDialog.axaml.cs">
 	    <DependentUpon>VelopackUpdateDialog.axaml</DependentUpon>
 	  </Compile>

@@ -85,13 +85,10 @@ public partial class App : Application
     {
         try
         {
-            // KROK 1: Przywracanie ustawień użytkownika (10%)
+            // KROK 1: Inicjalizacja ustawień (10%)
             _splashWindow?.UpdateProgress(0.0, "Inicjalizacja...");
             await Task.Run(() =>
             {
-                var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
-                AppUpdateService.RestoreUserSettingsIfNeeded(appSettingsPath, null);
-                
                 // Upewnij się, że TelemetryEnabled istnieje w appsettings.json
                 ConfigManager.EnsureTelemetryEnabledExists();
             });
