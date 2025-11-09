@@ -246,6 +246,9 @@ Od wersji 2.2.0 aplikacja używa:
 
 ### Quick Start - Budowanie Release
 
+**WAŻNE: Kompletny przewodnik deploymentu z podpisywaniem:** `DOC/Updater-Refactoring/SIGNED_DEPLOYMENT_GUIDE.md`
+
+**Skrócona wersja (bez pełnego podpisywania):**
 ```powershell
 # 1. Zainstaluj wymagane narzędzia (jednorazowo)
 dotnet tool install -g vpk
@@ -437,69 +440,64 @@ scp releases-beta/* \
         └── releases.beta.json
 ```
 
-### Code Signing (Opcjonalne, ale Zalecane)
+### Code Signing (WYMAGANE dla produkcji!)
+
+**WAŻNE:** Pełny deployment z podpisywaniem WSZYSTKICH plików .exe opisany w:
+📖 **`DOC/Updater-Refactoring/SIGNED_DEPLOYMENT_GUIDE.md`**
 
 **Obecna konfiguracja:**
-- Dostawca: **Certum** (http://time.certum.pl)
-- Metoda: Certyfikat w **Windows Certificate Store**
+- Dostawca: **Certum Code Signing 2021 CA** (http://time.certum.pl)
+- Właściciel: Open Source Developer, Bartosz Gradzik
 - Thumbprint: `97171de086564a84fa22a72c4260f72ba13096c6`
+- Ważny do: 2026-05-21
 
-**Dlaczego?**
-- Windows nie pokazuje "Unknown publisher"
-- Mniejsza szansa na blokowanie przez SmartScreen
-- Lepszy reputation w antywirusach
-- Profesjonalny wizerunek
+**Dlaczego podpisywanie jest WYMAGANE?**
+- ✅ Windows nie pokazuje "Unknown publisher"
+- ✅ Brak blokowania przez SmartScreen
+- ✅ Lepszy reputation w antywirusach (nie flagowane jako malware)
+- ✅ Profesjonalny wizerunek
+- ✅ Użytkownicy ufają aplikacji
 
-**Jak podpisać? (3 metody)**
+**Pliki wymagające podpisu (43 pliki .exe!):**
+1. **SUSModder.exe** - główna aplikacja (KRYTYCZNE!)
+2. **tools/7z.exe** - narzędzie do rozpakowywania
+3. **createdump.exe** - .NET diagnostic tool
+4. **Update.exe** - Velopack updater (KRYTYCZNE!)
+5. **Setup.exe** - instalator (KRYTYCZNE!)
+6. **~38 innych .exe** w pakiecie (DLL dependencies)
 
-**Metoda 1: Interaktywny helper (REKOMENDOWANE)** ⭐
-```powershell
-# Skrypt zapyta o thumbprint certyfikatu
-.\SKRYPTY\Build\sign-and-build.ps1 `
-    -ReleaseVersion "2.2.0" `
-    -NextBetaVersion "2.3.0-beta"
-
-# Domyślny thumbprint Certum: 97171de086564a84fa22a72c4260f72ba13096c6
-# Wystarczy nacisnąć ENTER aby użyć domyślnego
+**Poprawna składnia signtool (WAŻNE!):**
+```bash
+signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "plik.exe"
 ```
 
-**Metoda 2: Z thumbprint (Certum - obecna)**
-```powershell
-.\SKRYPTY\Build\build-release-2.2.0.ps1 `
-    -ReleaseVersion "2.2.0" `
-    -NextBetaVersion "2.3.0-beta" `
-    -CertificateThumbprint "97171de086564a84fa22a72c4260f72ba13096c6"
+**Parametry:**
+- `/fd sha256` - MUSI być PIERWSZE! (algorytm digest pliku)
+- `/sha1 "thumbprint"` - identyfikator certyfikatu
+- `/tr URL` - timestamp server (RFC 3161)
+- `/td sha256` - algorytm digest timestamp
+- `/v` - verbose output
 
-# Znajdź dostępne certyfikaty w systemie:
-Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert | 
-    Where-Object { $_.NotAfter -gt (Get-Date) } |
-    Format-Table Thumbprint, Subject, NotAfter
+**Quick Deploy z podpisywaniem (beta):**
+```powershell
+# 1. Update version.json -> 2.3.13-beta
+# 2. Build + Sign plików PRZED pakowaniem
+cd D:\Development\SUSModder
+dotnet publish "SUSModder\SUSModder.csproj" -c Release -r win-x64 --self-contained -o "publish-beta" -p:PublishSingleFile=false
+
+# 3. Podpisz pliki .exe
+cd publish-beta
+signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "SUSModder.exe"
+signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "tools\7z.exe"
+signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "createdump.exe"
+
+# 4. Pakuj z podpisywaniem Update.exe i Setup.exe
+cd ..
+vpk pack --packId SUSModder --packVersion "2.3.13-beta" --packDir "publish-beta" --outputDir "releases-beta" --channel beta --signTemplate "signtool sign /fd sha256 /sha1 97171de086564a84fa22a72c4260f72ba13096c6 /tr http://time.certum.pl /td sha256 {{file}}"
 ```
 
-**Metoda 3: Z plikiem PFX (alternatywna)**
-```powershell
-.\SKRYPTY\Build\build-release-2.2.0.ps1 `
-    -ReleaseVersion "2.2.0" `
-    -NextBetaVersion "2.3.0-beta" `
-    -CertificatePath "C:\Certs\susmodder.pfx" `
-    -CertificatePassword "YourPassword"
-```
-
-**Manualne podpisywanie (signtool):**
-```powershell
-# Pojedynczy plik
-signtool sign /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" `
-    /tr http://time.certum.pl `
-    /td sha256 /fd sha256 /v "SUSModder.exe"
-
-# Wiele plików
-signtool sign /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" `
-    /tr http://time.certum.pl `
-    /td sha256 /fd sha256 /v `
-    "SUSModder.exe" "Updater.exe"
-```
-
-**Szczegóły:** Zobacz `DOC/Updater-Refactoring/CODE_SIGNING_GUIDE.md`
+**Kompletny przewodnik:** `DOC/Updater-Refactoring/SIGNED_DEPLOYMENT_GUIDE.md`
+**Troubleshooting:** `DOC/Updater-Refactoring/CODE_SIGNING_GUIDE.md`
 
 ### Numeracja Wersji (Kernel Style)
 
@@ -1164,3 +1162,42 @@ Set-SCPItem -ComputerName "vps-b99a39c3.vps.ovh.net" -Credential $credential `
 - Weryfikacja: `ls -lh /srv/.../susmodder/releases/{channel}/ | grep -E 'Setup|Portable'`
 
 **Note:** Setup.exe i Portable.zip mają nazwę z sufiksem kanału (np. `SUSModder-release-Setup.exe`, `SUSModder-beta-Setup.exe`), NIE z numerem wersji.
+
+### Issue: Pliki .exe w pakiecie nie są podpisane
+
+**Symptom:**
+- Setup.exe jest podpisany
+- Ale SUSModder.exe, Update.exe, 7z.exe wewnątrz pakietu NIE są podpisane
+- Windows/antywirus flagują aplikację jako potencjalne zagrożenie
+
+**Root Cause:**
+Podpisanie tylko Setup.exe nie podpisuje plików wewnątrz pakietu .nupkg.
+
+**Solution (2-krokowe podpisywanie):**
+
+1. **KROK 1: Podpisz pliki PRZED pakowaniem**
+   ```powershell
+   cd publish-beta
+   signtool sign /fd sha256 /sha1 "thumbprint" /tr http://time.certum.pl /td sha256 /v "SUSModder.exe"
+   signtool sign /fd sha256 /sha1 "thumbprint" /tr http://time.certum.pl /td sha256 /v "tools\7z.exe"
+   signtool sign /fd sha256 /sha1 "thumbprint" /tr http://time.certum.pl /td sha256 /v "createdump.exe"
+   ```
+
+2. **KROK 2: Pakuj z --signTemplate (podpisze Update.exe + Setup.exe)**
+   ```powershell
+   vpk pack ... --signTemplate "signtool sign /fd sha256 /sha1 thumbprint /tr http://time.certum.pl /td sha256 {{file}}"
+   ```
+
+**Verification:**
+```powershell
+# Sprawdź czy SUSModder.exe jest podpisany
+signtool verify /pa "publish-beta\SUSModder.exe"
+# Powinno zwrócić: "Successfully verified"
+
+# Sprawdź Setup.exe
+signtool verify /pa "releases-beta\SUSModder-beta-Setup.exe"
+```
+
+**Kompletny przewodnik:** `DOC/Updater-Refactoring/SIGNED_DEPLOYMENT_GUIDE.md`
+
+**Data naprawy:** 2025-11-09 (v2.3.12-beta)

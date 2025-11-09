@@ -608,6 +608,18 @@
     "FetchError": "Error fetching versions: {0}"
   },
   "SUStatsConfig": {
+    "Header": "SUStats Configuration",
+    "Subtitle": "Manage game statistics recording",
+    "PasswordSection": "Server Login",
+    "PasswordPrompt": "Enter server password to connect to the statistics system:",
+    "PasswordPlaceholder": "Enter server password...",
+    "CheckButton": "Check",
+    "RememberLogin": "Remember login",
+    "ServerConnected": "Connected to server:",
+    "EnableStats": "Enable statistics recording",
+    "EnableStatsDescription": "Game will save statistics to SUStats server",
+    "LogoutButton": "Logout",
+    "CloseButton": "Close",
     "PasswordCorrectFromSession": "✅ Password correct (from saved session)",
     "StatsEnabled": "Results recording is enabled",
     "StatsDisabled": "Results recording is disabled",
