@@ -46,15 +46,15 @@ cd publish-beta
 @'
 @echo off
 echo Signing SUSModder.exe...
-signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "SUSModder.exe"
+signtool sign /fd sha256 /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" /tr http://time.certum.pl /td sha256 /v "SUSModder.exe"
 
 echo.
 echo Signing 7z.exe...
-signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "tools\7z.exe"
+signtool sign /fd sha256 /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" /tr http://time.certum.pl /td sha256 /v "tools\7z.exe"
 
 echo.
 echo Signing createdump.exe...
-signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "createdump.exe"
+signtool sign /fd sha256 /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" /tr http://time.certum.pl /td sha256 /v "createdump.exe"
 
 echo.
 echo All files signed successfully!
@@ -85,7 +85,7 @@ vpk pack `
     --packAuthors "SUSModder Team" `
     --icon "SUSModder\Assets\icon.ico" `
     --splashImage "SUSModder\Assets\splashscreen.jpg" `
-    --signTemplate "signtool sign /fd sha256 /sha1 97171de086564a84fa22a72c4260f72ba13096c6 /tr http://time.certum.pl /td sha256 {{file}}"
+    --signTemplate "signtool sign /fd sha256 /sha1 YOUR_CERTIFICATE_THUMBPRINT_HERE /tr http://time.certum.pl /td sha256 {{file}}"
 ```
 
 **Co robi --signTemplate:**
@@ -182,13 +182,13 @@ plink -pw "HASLO" debian@vps-b99a39c3.vps.ovh.net "cat /srv/synapsekit-boracik/n
 **Obecny certyfikat:**
 - Dostawca: Certum Code Signing 2021 CA
 - Właściciel: Open Source Developer, Bartosz Gradzik
-- Thumbprint: `97171de086564a84fa22a72c4260f72ba13096c6`
+- Thumbprint: `YOUR_CERTIFICATE_THUMBPRINT_HERE`
 - Timestamp server: `http://time.certum.pl`
 - Ważny do: 2026-05-21
 
 **Składnia signtool:**
 ```bash
-signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "plik.exe"
+signtool sign /fd sha256 /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" /tr http://time.certum.pl /td sha256 /v "plik.exe"
 ```
 
 **Parametry:**
@@ -316,16 +316,16 @@ function Deploy-Beta {
     cd publish-beta
     @'
 @echo off
-signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "SUSModder.exe"
-signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "tools\7z.exe"
-signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "createdump.exe"
+signtool sign /fd sha256 /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" /tr http://time.certum.pl /td sha256 /v "SUSModder.exe"
+signtool sign /fd sha256 /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" /tr http://time.certum.pl /td sha256 /v "tools\7z.exe"
+signtool sign /fd sha256 /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" /tr http://time.certum.pl /td sha256 /v "createdump.exe"
 '@ | Out-File "sign-all.bat" -Encoding ASCII
     .\sign-all.bat
     Write-Host "✅ Files signed" -ForegroundColor Green
 
     # 5. Package with signing
     cd ..
-    vpk pack --packId SUSModder --packVersion "$Version-beta" --packDir "publish-beta" --outputDir "releases-beta" --channel beta --packTitle "SUSModder" --packAuthors "SUSModder Team" --icon "SUSModder\Assets\icon.ico" --splashImage "SUSModder\Assets\splashscreen.jpg" --signTemplate "signtool sign /fd sha256 /sha1 97171de086564a84fa22a72c4260f72ba13096c6 /tr http://time.certum.pl /td sha256 {{file}}"
+    vpk pack --packId SUSModder --packVersion "$Version-beta" --packDir "publish-beta" --outputDir "releases-beta" --channel beta --packTitle "SUSModder" --packAuthors "SUSModder Team" --icon "SUSModder\Assets\icon.ico" --splashImage "SUSModder\Assets\splashscreen.jpg" --signTemplate "signtool sign /fd sha256 /sha1 YOUR_CERTIFICATE_THUMBPRINT_HERE /tr http://time.certum.pl /td sha256 {{file}}"
     Write-Host "✅ Package created" -ForegroundColor Green
 
     # 6. Copy RELEASES

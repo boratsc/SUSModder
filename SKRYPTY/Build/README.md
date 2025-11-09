@@ -15,7 +15,7 @@ Interaktywny helper do budowania z podpisywaniem.
 **Co robi:**
 1. Sprawdza dostępność `signtool.exe`
 2. Lista certyfikatów w Windows Store
-3. Pyta o thumbprint (domyślny Certum: `97171de086564a84fa22a72c4260f72ba13096c6`)
+3. Pyta o thumbprint (domyślny Certum: `YOUR_CERTIFICATE_THUMBPRINT_HERE`)
 4. Pokazuje podsumowanie i pyta o potwierdzenie
 5. Uruchamia `build-release-2.2.0.ps1` z właściwymi parametrami
 
@@ -35,7 +35,7 @@ Główny skrypt budowania - 3 formaty w jednym.
 .\build-release-2.2.0.ps1 `
     -ReleaseVersion "2.2.0" `
     -NextBetaVersion "2.3.0-beta" `
-    -CertificateThumbprint "97171de086564a84fa22a72c4260f72ba13096c6"
+    -CertificateThumbprint "YOUR_CERTIFICATE_THUMBPRINT_HERE"
 
 # Z plikiem PFX
 .\build-release-2.2.0.ps1 `
@@ -154,7 +154,7 @@ winget install PuTTY.PuTTY
 **Obecna konfiguracja:**
 - Dostawca: Certum (http://time.certum.pl)
 - Metoda: Windows Certificate Store
-- Thumbprint: `97171de086564a84fa22a72c4260f72ba13096c6`
+- Thumbprint: `YOUR_CERTIFICATE_THUMBPRINT_HERE`
 
 **Znajdź certyfikaty:**
 ```powershell
@@ -165,7 +165,7 @@ Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert |
 
 **Manualne podpisywanie:**
 ```powershell
-signtool sign /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" `
+signtool sign /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" `
     /tr http://time.certum.pl `
     /td sha256 /fd sha256 /v "SUSModder.exe"
 ```

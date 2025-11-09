@@ -61,13 +61,13 @@
 .\SKRYPTY\Build\sign-and-build.ps1 `
     -ReleaseVersion "2.2.0" `
     -NextBetaVersion "2.3.0-beta"
-# Domyślny Certum thumbprint: 97171de086564a84fa22a72c4260f72ba13096c6
+# Domyślny Certum thumbprint: YOUR_CERTIFICATE_THUMBPRINT_HERE
 
 # Metoda 2: Z thumbprint (Certum - obecna konfiguracja)
 .\SKRYPTY\Build\build-release-2.2.0.ps1 `
     -ReleaseVersion "2.2.0" `
     -NextBetaVersion "2.3.0-beta" `
-    -CertificateThumbprint "97171de086564a84fa22a72c4260f72ba13096c6"
+    -CertificateThumbprint "YOUR_CERTIFICATE_THUMBPRINT_HERE"
 
 # Metoda 3: Z plikiem PFX (alternatywna)
 .\SKRYPTY\Build\build-release-2.2.0.ps1 `
@@ -255,7 +255,7 @@ releases-beta/
 ### Obecna Konfiguracja
 - **Dostawca**: Certum (http://time.certum.pl)
 - **Metoda**: Certyfikat w Windows Certificate Store
-- **Thumbprint**: `97171de086564a84fa22a72c4260f72ba13096c6`
+- **Thumbprint**: `YOUR_CERTIFICATE_THUMBPRINT_HERE`
 
 ### Dlaczego?
 - ✅ Windows nie pokazuje "Unknown publisher"
@@ -275,7 +275,7 @@ releases-beta/
 ```powershell
 # Użyj istniejącego certyfikatu Certum
 .\SKRYPTY\Build\build-release-2.2.0.ps1 `
-    -CertificateThumbprint "97171de086564a84fa22a72c4260f72ba13096c6"
+    -CertificateThumbprint "YOUR_CERTIFICATE_THUMBPRINT_HERE"
 
 # Znajdź certyfikaty w systemie
 Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert

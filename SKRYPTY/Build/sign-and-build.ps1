@@ -57,13 +57,13 @@ Write-Host "Available certificates:" -ForegroundColor Green
 $certs | Format-Table -AutoSize
 
 # Domyślny thumbprint (Certum)
-$defaultThumbprint = "97171de086564a84fa22a72c4260f72ba13096c6"
+$defaultThumbprint = "YOUR_CERTIFICATE_THUMBPRINT_HERE"
 
 # Sprawdź czy domyślny certyfikat istnieje
 $certExists = $certs | Where-Object { $_.Thumbprint -eq $defaultThumbprint }
 
 if ($certExists) {
-    Write-Host "Found Certum certificate (SHA1: $defaultThumbprint)" -ForegroundColor Green
+    Write-Host "Found Certum certificate (SHA1: [REDACTED])" -ForegroundColor Green
     Write-Host "Subject: $($certExists.Subject)" -ForegroundColor Gray
     Write-Host "Valid until: $($certExists.NotAfter.ToString('yyyy-MM-dd'))" -ForegroundColor Gray
     Write-Host ""

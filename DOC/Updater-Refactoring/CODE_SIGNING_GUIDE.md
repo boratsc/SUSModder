@@ -7,7 +7,7 @@ Automatyczne podpisywanie plików .exe zwiększa zaufanie użytkowników i reduk
 **Obecna konfiguracja SUSModder:**
 - Dostawca: **Certum** (http://time.certum.pl)
 - Metoda: Certyfikat w **Windows Certificate Store**
-- Thumbprint: `97171de086564a84fa22a72c4260f72ba13096c6`
+- Thumbprint: `YOUR_CERTIFICATE_THUMBPRINT_HERE`
 
 ## Opcje Podpisywania
 
@@ -33,7 +33,7 @@ Automatyczne podpisywanie plików .exe zwiększa zaufanie użytkowników i reduk
 .\SKRYPTY\Build\build-release-2.2.0.ps1 `
     -ReleaseVersion "2.2.0" `
     -NextBetaVersion "2.3.0-beta" `
-    -CertificateThumbprint "97171de086564a84fa22a72c4260f72ba13096c6"
+    -CertificateThumbprint "YOUR_CERTIFICATE_THUMBPRINT_HERE"
 
 # Znajdź dostępne certyfikaty
 Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert | 
@@ -44,14 +44,14 @@ Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert |
 **Manualne podpisywanie (signtool):**
 ```powershell
 # Pojedynczy plik
-signtool sign /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" `
+signtool sign /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" `
     /tr http://time.certum.pl `
     /td sha256 `
     /fd sha256 `
     /v "SUSModder.exe"
 
 # Wiele plików
-signtool sign /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" `
+signtool sign /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" `
     /tr http://time.certum.pl `
     /td sha256 `
     /fd sha256 `
