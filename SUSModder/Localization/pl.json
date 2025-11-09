@@ -608,6 +608,18 @@
     "FetchError": "Błąd podczas pobierania wersji: {0}"
   },
   "SUStatsConfig": {
+    "Header": "Konfiguracja SUStats",
+    "Subtitle": "Zarządzanie zapisywaniem statystyk gry",
+    "PasswordSection": "Logowanie do serwera",
+    "PasswordPrompt": "Wprowadź hasło serwera, aby połączyć się z systemem statystyk:",
+    "PasswordPlaceholder": "Wpisz hasło serwera...",
+    "CheckButton": "Sprawdź",
+    "RememberLogin": "Zapamiętaj logowanie",
+    "ServerConnected": "Połączono z serwerem:",
+    "EnableStats": "Włącz rejestrowanie statystyk",
+    "EnableStatsDescription": "Gra będzie zapisywać statystyki na serwerze SUStats",
+    "LogoutButton": "Wyloguj",
+    "CloseButton": "Zamknij",
     "PasswordCorrectFromSession": "✅ Hasło poprawne (z zapisanej sesji)",
     "StatsEnabled": "Rejestrowanie wyników jest włączone",
     "StatsDisabled": "Rejestrowanie wyników jest wyłączone",
