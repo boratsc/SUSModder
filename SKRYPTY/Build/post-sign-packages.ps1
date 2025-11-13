@@ -6,7 +6,7 @@ param(
     [ValidateSet("release", "beta", "both")]
     [string]$Channel,
     
-    [string]$CertThumbprint = "97171de086564a84fa22a72c4260f72ba13096c6"
+    [string]$CertThumbprint = "YOUR_CERTIFICATE_THUMBPRINT_HERE"
 )
 
 $ErrorActionPreference = "Stop"

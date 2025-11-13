@@ -5,9 +5,10 @@
         x:Class="SUSModder.Views.PromptDialog"
         x:DataType="views:PromptDialog"
         Title="{Binding DialogTitle}"
-        Width="400" Height="200"
+        Width="600" Height="400"
+        MinWidth="500" MinHeight="300"
         WindowStartupLocation="CenterOwner"
-        CanResize="False"
+        CanResize="True"
         Background="{DynamicResource WindowBackgroundBrush}">
 
 	<Window.Styles>
@@ -15,20 +16,31 @@
 	</Window.Styles>
 
 	<Grid Margin="20" RowDefinitions="Auto,*,Auto">
-		<TextBlock Grid.Row="0"
-                   Text="{Binding Message}"
-                   TextWrapping="Wrap"
-                   Margin="0,0,0,15"
-                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+		<ScrollViewer Grid.Row="0" MaxHeight="150" Margin="0,0,0,15"
+		              VerticalScrollBarVisibility="Auto">
+			<TextBlock Text="{Binding Message}"
+			           TextWrapping="Wrap"
+			           Foreground="{DynamicResource TextPrimaryBrush}"/>
+		</ScrollViewer>
 
-		<TextBox Grid.Row="1"
-                 x:Name="InputTextBox"
-                 Text="{Binding InputText}"
-                 Watermark="Wpisz nazwę..."
-                 VerticalAlignment="Top"
-                 Background="{DynamicResource SecondaryBackgroundBrush}"
-                 Foreground="{DynamicResource TextPrimaryBrush}"
-                 BorderBrush="{DynamicResource BorderBrush}"/>
+		<Border Grid.Row="1"
+		        BorderBrush="{DynamicResource BorderBrush}"
+		        BorderThickness="1"
+		        CornerRadius="4"
+		        Background="{DynamicResource SecondaryBackgroundBrush}">
+			<TextBox x:Name="InputTextBox"
+			         Text="{Binding InputText}"
+			         Watermark="Wklej JSON, URL lub kod..."
+			         AcceptsReturn="True"
+			         TextWrapping="Wrap"
+			         VerticalAlignment="Stretch"
+			         VerticalContentAlignment="Top"
+			         Background="Transparent"
+			         Foreground="{DynamicResource TextPrimaryBrush}"
+			         BorderThickness="0"
+			         Padding="10"
+			         FontFamily="Consolas, Courier New, monospace"/>
+		</Border>
 
 		<StackPanel Grid.Row="2"
                     Orientation="Horizontal"

@@ -546,11 +546,11 @@ Write-Host "  1. Upload legacy ZIP to: /api/download-latest" -ForegroundColor Gr
 Write-Host "  2. Upload release channel to: https://susmodder.app/releases/release/" -ForegroundColor Gray
 Write-Host "  3. Upload beta channel to: https://susmodder.app/releases/beta/" -ForegroundColor Gray
 Write-Host "  4. Update backend API:" -ForegroundColor Gray
-Write-Host "     - /api/susmodder-current-version → return 2.2.0" -ForegroundColor Gray
-Write-Host "     - /api/releases?channel=release → release manifest" -ForegroundColor Gray
-Write-Host "     - /api/releases?channel=beta → beta manifest" -ForegroundColor Gray
-Write-Host "  5. Test migration path: v2.0.1 → v2.2.0 (legacy)" -ForegroundColor Gray
-Write-Host "  6. Test update path: v2.2.0 → future versions (Velopack)" -ForegroundColor Gray
+Write-Host "     - /api/susmodder-current-version -> return 2.2.0" -ForegroundColor Gray
+Write-Host "     - /api/releases?channel=release -> release manifest" -ForegroundColor Gray
+Write-Host "     - /api/releases?channel=beta -> beta manifest" -ForegroundColor Gray
+Write-Host "  5. Test migration path: v2.0.1 -> v2.2.0 (legacy)" -ForegroundColor Gray
+Write-Host "  6. Test update path: v2.2.0 -> future versions (Velopack)" -ForegroundColor Gray
 Write-Host ""
 
 Write-Host "Deployment checklist:" -ForegroundColor Yellow
@@ -558,6 +558,6 @@ Write-Host "  [ ] Backend updated with new endpoints" -ForegroundColor Gray
 Write-Host "  [ ] Legacy ZIP uploaded and accessible" -ForegroundColor Gray
 Write-Host "  [ ] Velopack packages uploaded to both channels" -ForegroundColor Gray
 Write-Host "  [ ] Test update from v2.0.1" -ForegroundColor Gray
-Write-Host "  [ ] Test channel switching (release <-> beta)" -ForegroundColor Gray
+Write-Host "  [ ] Test channel switching (release and beta)" -ForegroundColor Gray
 Write-Host "  [ ] Monitor telemetry for migration success rate" -ForegroundColor Gray
 Write-Host ""

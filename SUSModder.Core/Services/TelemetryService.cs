@@ -22,7 +22,9 @@ namespace SUSModder.Core.Services
         private readonly IConfiguration _configuration;
         private readonly HttpClient _httpClient;
         private readonly SessionTracker _sessionTracker;
+        private readonly UserSettingsService _userSettingsService;
         private readonly string _userHash;
+        private readonly string _appVersion;
         private bool _isEnabled;
 
         public TelemetryService(IConfiguration configuration)
@@ -33,14 +35,17 @@ namespace SUSModder.Core.Services
                 Timeout = TimeSpan.FromSeconds(2) // Krótki timeout - nie blokujemy UI
             };
             _sessionTracker = new SessionTracker();
+            _userSettingsService = new UserSettingsService();
 
             // Generuj/wczytaj anonimowy hash użytkownika
             _userHash = HardwareIdProvider.GetAnonymousUserHash();
 
-            // Sprawdź czy telemetria jest włączona
-            bool.TryParse(_configuration["Configuration:TelemetryEnabled"], out _isEnabled);
-            if (_configuration["Configuration:TelemetryEnabled"] == null)
-                _isEnabled = true; // Domyślnie włączona
+            // Wczytaj wersję z version.json
+            _appVersion = LoadAppVersionFromFile();
+
+            // Sprawdź czy telemetria jest włączona (z UserSettings)
+            var userSettings = _userSettingsService.LoadUserSettings();
+            _isEnabled = userSettings.TelemetryEnabled;
         }
 
         /// <summary>
@@ -66,19 +71,21 @@ namespace SUSModder.Core.Services
 
                 var telemetryUrl = $"{baseUrl}/api/telemetry/heartbeat";
 
-                // Zbierz dane do wysłania
-                var language = _configuration["Configuration:Language"];
+                // Zbierz dane do wysłania z UserSettings
+                var userSettings = _userSettingsService.LoadUserSettings();
+
+                var language = userSettings.Language;
                 if (string.IsNullOrWhiteSpace(language))
                 {
                     // Fallback do system locale jeśli nie ustawiono
                     language = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
                 }
-                
+
                 var data = new
                 {
                     userHash = _userHash,
-                    appVersion = _configuration["Configuration:CurrentVersion"] ?? "unknown",
-                    platform = _configuration["Configuration:Mode"] ?? "unknown",
+                    appVersion = _appVersion,
+                    platform = userSettings.Mode,
                     language = language,
                     installedModIds = GetInstalledModIds(),
                     sessionTimeSeconds = _sessionTracker.GetSessionTimeSeconds(),
@@ -238,47 +245,39 @@ namespace SUSModder.Core.Services
         {
             _isEnabled = enabled;
 
-            // Zapisz do appsettings.json
-            SaveTelemetryEnabledToConfig(enabled);
+            // Zapisz do user-settings.json
+            _userSettingsService.UpdateUserSetting(settings => settings.TelemetryEnabled = enabled);
         }
 
         /// <summary>
-        /// Zapisuje ustawienie telemetrii do appsettings.json
+        /// Wczytuje wersję aplikacji z version.json
         /// </summary>
-        private void SaveTelemetryEnabledToConfig(bool enabled)
+        private string LoadAppVersionFromFile()
         {
             try
             {
                 var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                var appSettingsPath = Path.Combine(exeDir, "appsettings.json");
+                var versionFilePath = Path.Combine(exeDir, "version.json");
 
-                if (!File.Exists(appSettingsPath))
-                    return;
-
-                var json = File.ReadAllText(appSettingsPath);
-                var settings = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-
-                if (settings == null)
-                    return;
-
-                // Zaktualizuj wartość TelemetryEnabled
-                if (settings.TryGetValue("Configuration", out var configObj) && configObj is JsonElement configElement)
+                if (File.Exists(versionFilePath))
                 {
-                    var configDict = JsonSerializer.Deserialize<Dictionary<string, object>>(configElement.GetRawText());
-                    if (configDict != null)
+                    var json = File.ReadAllText(versionFilePath);
+                    var versionData = JsonSerializer.Deserialize<Configuration.AppVersion>(json);
+
+                    if (versionData != null && !string.IsNullOrWhiteSpace(versionData.CurrentVersion))
                     {
-                        configDict["TelemetryEnabled"] = enabled;
-                        settings["Configuration"] = configDict;
+                        System.Diagnostics.Debug.WriteLine($"[Telemetry] Loaded version from version.json: {versionData.CurrentVersion}");
+                        return versionData.CurrentVersion;
                     }
                 }
 
-                // Zapisz z powrotem
-                var updatedJson = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(appSettingsPath, updatedJson);
+                System.Diagnostics.Debug.WriteLine("[Telemetry] version.json not found or invalid - using fallback");
+                return "unknown";
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to save telemetry setting: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[Telemetry] Failed to load version: {ex.Message}");
+                return "unknown";
             }
         }
 

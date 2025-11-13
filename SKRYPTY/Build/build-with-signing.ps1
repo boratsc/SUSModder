@@ -5,7 +5,7 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$Version,
     
-    [string]$CertThumbprint = "97171de086564a84fa22a72c4260f72ba13096c6",
+    [string]$CertThumbprint = "YOUR_CERTIFICATE_THUMBPRINT_HERE",
     
     [switch]$SkipBeta,
     [switch]$SkipRelease

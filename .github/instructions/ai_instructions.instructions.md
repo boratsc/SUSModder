@@ -448,7 +448,7 @@ scp releases-beta/* \
 **Obecna konfiguracja:**
 - Dostawca: **Certum Code Signing 2021 CA** (http://time.certum.pl)
 - Właściciel: Open Source Developer, Bartosz Gradzik
-- Thumbprint: `97171de086564a84fa22a72c4260f72ba13096c6`
+- Thumbprint: `YOUR_CERTIFICATE_THUMBPRINT_HERE`
 - Ważny do: 2026-05-21
 
 **Dlaczego podpisywanie jest WYMAGANE?**
@@ -468,7 +468,7 @@ scp releases-beta/* \
 
 **Poprawna składnia signtool (WAŻNE!):**
 ```bash
-signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "plik.exe"
+signtool sign /fd sha256 /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" /tr http://time.certum.pl /td sha256 /v "plik.exe"
 ```
 
 **Parametry:**
@@ -487,13 +487,13 @@ dotnet publish "SUSModder\SUSModder.csproj" -c Release -r win-x64 --self-contain
 
 # 3. Podpisz pliki .exe
 cd publish-beta
-signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "SUSModder.exe"
-signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "tools\7z.exe"
-signtool sign /fd sha256 /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" /tr http://time.certum.pl /td sha256 /v "createdump.exe"
+signtool sign /fd sha256 /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" /tr http://time.certum.pl /td sha256 /v "SUSModder.exe"
+signtool sign /fd sha256 /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" /tr http://time.certum.pl /td sha256 /v "tools\7z.exe"
+signtool sign /fd sha256 /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" /tr http://time.certum.pl /td sha256 /v "createdump.exe"
 
 # 4. Pakuj z podpisywaniem Update.exe i Setup.exe
 cd ..
-vpk pack --packId SUSModder --packVersion "2.3.13-beta" --packDir "publish-beta" --outputDir "releases-beta" --channel beta --signTemplate "signtool sign /fd sha256 /sha1 97171de086564a84fa22a72c4260f72ba13096c6 /tr http://time.certum.pl /td sha256 {{file}}"
+vpk pack --packId SUSModder --packVersion "2.3.13-beta" --packDir "publish-beta" --outputDir "releases-beta" --channel beta --signTemplate "signtool sign /fd sha256 /sha1 YOUR_CERTIFICATE_THUMBPRINT_HERE /tr http://time.certum.pl /td sha256 {{file}}"
 ```
 
 **Kompletny przewodnik:** `DOC/Updater-Refactoring/SIGNED_DEPLOYMENT_GUIDE.md`
@@ -834,7 +834,7 @@ cd D:\Development\SUSModder
 **KROK 3: Podpisz Setup.exe**
 ```powershell
 $signtool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe"
-& $signtool sign /sha1 "97171de086564a84fa22a72c4260f72ba13096c6" `
+& $signtool sign /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" `
     /tr http://time.certum.pl /td sha256 /fd sha256 /v `
     "releases-beta\SUSModder-beta-Setup.exe"
 ```
