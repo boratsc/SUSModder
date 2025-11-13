@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -21,6 +22,13 @@ namespace SUSModder.Core.GameIntegration
     {
         bool Confirm(string message);
         void ShowError(string message);
+        string? Prompt(string message, string title = "");
+        /// <summary>
+        /// Pokazuje dedykowany dialog authentication dla Epic Games (async).
+        /// </summary>
+        /// <param name="browserUrl">URL do otwarcia w przeglądarce (legendary OAuth URL)</param>
+        /// <returns>User input (JSON, URL lub kod) lub null jeśli anulowano</returns>
+        Task<string?> ShowEpicAuthDialogAsync(string browserUrl);
     }
 
 
@@ -104,6 +112,16 @@ namespace SUSModder.Core.GameIntegration
         private void ShowError(string msg) => _userInteraction?.ShowError(msg);
 
         private bool Confirm(string msg) => _userInteraction?.Confirm(msg) ?? false;
+
+        private string? Prompt(string msg, string title = "") => _userInteraction?.Prompt(msg, title);
+
+        private async Task<string?> ShowEpicAuthDialogAsync(string browserUrl)
+        {
+            if (_userInteraction == null)
+                return null;
+
+            return await _userInteraction.ShowEpicAuthDialogAsync(browserUrl);
+        }
 
         private async Task<string?> CheckInstalledAppsAsync()
         {
@@ -393,6 +411,423 @@ namespace SUSModder.Core.GameIntegration
             InstallationCompleted?.Invoke(modConfig);
         }
 
+        /// <summary>
+        /// DEPRECATED - NIE UŻYWAĆ
+        /// Epic OAuth nie pozwala na custom redirect_uri (localhost).
+        /// Można używać tylko redirect URIs zarejestrowanych dla client_id.
+        /// Zamiast tego używamy manual entry z smart parser.
+        ///
+        /// Próbowała automatycznie przechwycić authorization code używając lokalnego HTTP listener.
+        /// </summary>
+        [Obsolete("Epic OAuth nie wspiera custom redirect_uri. Użyj manual entry z smart parser.")]
+        private async Task<string?> CaptureAuthorizationCodeWithHttpListenerAsync(int timeoutSeconds = 180)
+        {
+            const string callbackPath = "/epic-auth-callback";
+            const int port = 28562;
+            string? capturedCode = null;
+            HttpListener? listener = null;
+
+            try
+            {
+                // Uruchom HttpListener
+                listener = new HttpListener();
+                listener.Prefixes.Add($"http://localhost:{port}{callbackPath}/");
+
+                try
+                {
+                    listener.Start();
+                    Write($"HTTP Listener uruchomiony na http://localhost:{port}{callbackPath}/");
+                }
+                catch (HttpListenerException ex)
+                {
+                    Write($"Nie można uruchomić HTTP Listener (port zajęty?): {ex.Message}");
+                    return null;
+                }
+
+                // Epic OAuth credentials (z legendary source code)
+                const string clientId = "34a02cf8f4414e29b15921876da36f9a";
+
+                // Zbuduj OAuth URL z redirect_uri wskazującym na nasz localhost
+                string redirectUri = Uri.EscapeDataString($"http://localhost:{port}{callbackPath}");
+                string authUrl = $"https://www.epicgames.com/id/login?redirectUrl=https://www.epicgames.com/id/api/redirect?clientId={clientId}&responseType=code";
+
+                Write($"Otwieranie przeglądarki z Epic OAuth URL...");
+                Write($"Oczekiwanie na callback (timeout: {timeoutSeconds}s)...");
+
+                // Otwórz przeglądarkę
+                var psi = new ProcessStartInfo
+                {
+                    FileName = authUrl,
+                    UseShellExecute = true
+                };
+                Process.Start(psi);
+
+                // Czekaj na callback z timeout
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+
+                try
+                {
+                    var context = await listener.GetContextAsync().WaitAsync(cts.Token);
+                    var request = context.Request;
+                    var response = context.Response;
+
+                    Write($"Otrzymano callback: {request.Url}");
+
+                    // Spróbuj wyciągnąć kod z query string lub z body
+                    string? code = request.QueryString["code"];
+
+                    if (string.IsNullOrWhiteSpace(code))
+                    {
+                        // Spróbuj z authorizationCode parameter
+                        code = request.QueryString["authorizationCode"];
+                    }
+
+                    if (string.IsNullOrWhiteSpace(code) && request.HasEntityBody)
+                    {
+                        // Spróbuj przeczytać z body (może być JSON)
+                        using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
+                        string body = await reader.ReadToEndAsync();
+                        Write($"Request body: {body}");
+
+                        // Użyj istniejącego parsera
+                        code = ExtractAuthorizationCode(body);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(code))
+                    {
+                        capturedCode = code;
+                        Write($"✓ Przechwycono authorization code: {code}");
+
+                        // Wyślij success page do przeglądarki
+                        string responseHtml = @"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Logowanie pomyślne - SUSModder</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #eee;
+               display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { text-align: center; padding: 40px; background: #16213e; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .success { color: #4ecca3; font-size: 60px; margin-bottom: 20px; }
+        h1 { color: #4ecca3; margin: 20px 0; }
+        p { font-size: 18px; margin: 15px 0; }
+        .note { color: #888; font-size: 14px; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='success'>✓</div>
+        <h1>Logowanie pomyślne!</h1>
+        <p>Zostałeś pomyślnie zalogowany do Epic Games.</p>
+        <p>Możesz teraz zamknąć tę kartę i wrócić do SUSModder.</p>
+        <div class='note'>To okno zamknie się automatycznie za 5 sekund...</div>
+    </div>
+    <script>setTimeout(() => window.close(), 5000);</script>
+</body>
+</html>";
+                        byte[] buffer = Encoding.UTF8.GetBytes(responseHtml);
+                        response.ContentLength64 = buffer.Length;
+                        response.ContentType = "text/html; charset=utf-8";
+                        response.StatusCode = 200;
+                        await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+                        response.Close();
+                    }
+                    else
+                    {
+                        Write("✗ Nie znaleziono authorization code w callback");
+
+                        // Wyślij error page
+                        string errorHtml = @"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Błąd logowania - SUSModder</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #eee;
+               display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { text-align: center; padding: 40px; background: #16213e; border-radius: 10px; }
+        .error { color: #e74c3c; font-size: 60px; margin-bottom: 20px; }
+        h1 { color: #e74c3c; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='error'>✗</div>
+        <h1>Nie znaleziono kodu autoryzacji</h1>
+        <p>SUSModder nie mógł automatycznie przechwycić kodu.</p>
+        <p>Spróbuj ponownie lub użyj ręcznego wprowadzania.</p>
+    </div>
+</body>
+</html>";
+                        byte[] buffer = Encoding.UTF8.GetBytes(errorHtml);
+                        response.ContentLength64 = buffer.Length;
+                        response.ContentType = "text/html; charset=utf-8";
+                        response.StatusCode = 400;
+                        await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+                        response.Close();
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    Write($"Timeout ({timeoutSeconds}s) - użytkownik nie zalogował się w czasie");
+                }
+            }
+            catch (Exception ex)
+            {
+                Write($"Błąd podczas przechwytywania authorization code: {ex.Message}");
+            }
+            finally
+            {
+                // Zamknij listener
+                if (listener != null && listener.IsListening)
+                {
+                    listener.Stop();
+                    listener.Close();
+                    Write("HTTP Listener zamknięty");
+                }
+            }
+
+            return capturedCode;
+        }
+
+        /// <summary>
+        /// Finalizuje uwierzytelnienie używając authorization code.
+        /// Wywołuje legendary auth --code {authCode}
+        /// </summary>
+        /// <param name="authCode">Authorization code z Epic OAuth</param>
+        /// <returns>True jeśli uwierzytelnienie się powiodło, false w przeciwnym razie</returns>
+        private async Task<bool> AuthenticateWithCodeAsync(string authCode)
+        {
+            try
+            {
+                Write($"Finalizowanie uwierzytelnienia z kodem...");
+
+                var codePsi = new ProcessStartInfo
+                {
+                    FileName = legendaryPath,
+                    Arguments = $"auth --code {authCode}",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var codeProcess = Process.Start(codePsi);
+                if (codeProcess == null)
+                {
+                    Write("Nie udało się uruchomić legendary.exe z kodem");
+                    return false;
+                }
+
+                var codeStderr = await codeProcess.StandardError.ReadToEndAsync();
+                var codeStdout = await codeProcess.StandardOutput.ReadToEndAsync();
+                await codeProcess.WaitForExitAsync();
+
+                if (codeProcess.ExitCode == 0)
+                {
+                    Write("✓ Pomyślnie uwierzytelniono z kodem autoryzacji!");
+                    Write(codeStdout);
+                    return true;
+                }
+                else
+                {
+                    Write($"✗ Błąd uwierzytelnienia: {codeStderr}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Write($"Błąd podczas finalizacji uwierzytelnienia: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Wyciąga authorization code z różnych formatów wejściowych:
+        /// - JSON response od Epic Games
+        /// - Redirect URL (https://localhost/launcher/authorized?code=...)
+        /// - Bezpośredni kod autoryzacji
+        /// </summary>
+        private string? ExtractAuthorizationCode(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return null;
+
+            input = input.Trim();
+
+            // 1. Spróbuj JSON
+            try
+            {
+                using var jsonDoc = JsonDocument.Parse(input);
+                if (jsonDoc.RootElement.TryGetProperty("authorizationCode", out var codeElement))
+                {
+                    var code = codeElement.GetString();
+                    if (!string.IsNullOrWhiteSpace(code))
+                    {
+                        Write($"Wyciągnięto kod z JSON: {code}");
+                        return code;
+                    }
+                }
+            }
+            catch
+            {
+                // Nie jest JSON, kontynuuj
+            }
+
+            // 2. Spróbuj URL z query parameter ?code=
+            if (input.Contains("?code=") || input.Contains("&code="))
+            {
+                try
+                {
+                    var codeIndex = input.IndexOf("?code=");
+                    if (codeIndex < 0)
+                        codeIndex = input.IndexOf("&code=");
+
+                    if (codeIndex >= 0)
+                    {
+                        var startIndex = input.IndexOf('=', codeIndex) + 1;
+                        var endIndex = input.IndexOf('&', startIndex);
+                        var code = endIndex > startIndex
+                            ? input.Substring(startIndex, endIndex - startIndex)
+                            : input.Substring(startIndex);
+
+                        if (!string.IsNullOrWhiteSpace(code))
+                        {
+                            Write($"Wyciągnięto kod z URL: {code}");
+                            return code.Trim();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Write($"Błąd parsowania URL: {ex.Message}");
+                }
+            }
+
+            // 3. Użyj bezpośrednio jako kod (usuń whitespace i cudzysłowy)
+            var cleanCode = input.Trim().Trim('"', '\'').Trim();
+            // Epic authorization codes są zazwyczaj 32-znakowe hex stringi, ale akceptujmy 20-64 znaki alfanumeryczne
+            if (cleanCode.Length >= 20 && cleanCode.Length <= 64 &&
+                !cleanCode.Contains(" ") && !cleanCode.Contains("\n") && !cleanCode.Contains("\r"))
+            {
+                // Sprawdź czy to wygląda jak authorization code (alfanumeryczny)
+                if (System.Text.RegularExpressions.Regex.IsMatch(cleanCode, @"^[a-zA-Z0-9]+$"))
+                {
+                    Write($"Użyto bezpośredniego kodu: {cleanCode}");
+                    return cleanCode;
+                }
+            }
+
+            Write($"Nie można wyciągnąć kodu z: {input.Substring(0, Math.Min(50, input.Length))}...");
+            return null;
+        }
+
+        /// <summary>
+        /// Próbuje uwierzytelnić użytkownika w Epic Games Store.
+        /// Kolejność metod:
+        /// 1. Import sesji z Epic Games Launcher (automatic) - legendary auth --import
+        /// 2. Manual code entry z smart parser (fallback) - legendary auth --disable-webview + user input
+        ///    Smart parser automatycznie wyciąga kod z JSON/URL/direct code.
+        /// </summary>
+        /// <returns>True jeśli uwierzytelnienie się powiodło, false w przeciwnym razie</returns>
+        private async Task<bool> AuthenticateAsync()
+        {
+            try
+            {
+                // === METODA 1: Próba importu sesji z Epic Games Launcher ===
+                Write("Próba importu sesji z Epic Games Launcher...");
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = legendaryPath,
+                    Arguments = "auth --import",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var process = Process.Start(psi);
+                if (process == null)
+                {
+                    Write("Nie udało się uruchomić legendary.exe");
+                    return false;
+                }
+
+                var stderr = await process.StandardError.ReadToEndAsync();
+                var stdout = await process.StandardOutput.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                // Jeśli import się powiódł, zakończ
+                if (process.ExitCode == 0 && !stderr.Contains("ERROR") && !stderr.Contains("No EGS login session found"))
+                {
+                    Write("✓ Pomyślnie zaimportowano sesję z Epic Games Launcher");
+                    return true;
+                }
+
+                // === METODA 2: Dedykowany dialog authentication (UX-friendly) ===
+                Write("Import sesji nie powiódł się. Pokazuję dialog logowania...");
+                Write(stderr);
+
+                // Przygotuj OAuth URL (używamy standardowego legendary URL)
+                // WAŻNE: redirectUrl musi być URL-encoded! (jak w legendary Python: urllib.parse.quote)
+                const string clientId = "34a02cf8f4414e29b15921876da36f9a";
+                string redirectUrl = $"https://www.epicgames.com/id/api/redirect?clientId={clientId}&responseType=code";
+                string encodedRedirectUrl = Uri.EscapeDataString(redirectUrl);
+                string oauthUrl = $"https://www.epicgames.com/id/login?redirectUrl={encodedRedirectUrl}";
+
+                Write($"OAuth URL: {oauthUrl}");
+
+                // Pokaż dedykowany dialog (async - nie blokuje UI thread)
+                string? userInput = await ShowEpicAuthDialogAsync(oauthUrl);
+
+                if (string.IsNullOrWhiteSpace(userInput))
+                {
+                    Write("Użytkownik anulował wprowadzanie kodu autoryzacji");
+                    ShowError("Logowanie do Epic Games zostało anulowane.");
+                    return false;
+                }
+
+                // Wyciągnij kod z różnych formatów (JSON, URL, bezpośredni kod)
+                string? manualCode = ExtractAuthorizationCode(userInput);
+
+                if (string.IsNullOrWhiteSpace(manualCode))
+                {
+                    Write($"Nie udało się wyciągnąć kodu autoryzacji z: {userInput.Substring(0, Math.Min(100, userInput.Length))}");
+                    ShowError("Nie można wyciągnąć kodu autoryzacji z podanych danych.\n\n" +
+                             "Upewnij się, że wkleiłeś:\n" +
+                             "- Cały JSON z przeglądarki\n" +
+                             "- Lub redirect URL\n" +
+                             "- Lub sam kod autoryzacji (20-64 znaki alfanumeryczne)");
+                    return false;
+                }
+
+                // Użyj kodu do uwierzytelnienia
+                Write($"Użyto kodu z manual entry: {manualCode}");
+                var authResult = await AuthenticateWithCodeAsync(manualCode);
+
+                if (authResult)
+                {
+                    Write("✓ Uwierzytelnienie ręczne zakończone sukcesem!");
+                    return true;
+                }
+                else
+                {
+                    ShowError("Nie udało się uwierzytelnić z podanym kodem.\n\n" +
+                             "Spróbuj ponownie lub sprawdź czy kod jest poprawny.");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Write($"Błąd podczas uwierzytelniania: {ex.Message}");
+                ShowError($"Wystąpił błąd podczas logowania do Epic Games:\n{ex.Message}");
+                return false;
+            }
+        }
+
         public async Task HandleEpicGameAsync(ModConfiguration modConfig)
         {
             if (modConfig == null || string.IsNullOrEmpty(modConfig.AmongVersion))
@@ -406,7 +841,13 @@ namespace SUSModder.Core.GameIntegration
                 await DownloadLegendaryAsync();
             }
 
-            await RunLegendaryCommandAsync("auth --import");
+            // Uwierzytelnij użytkownika (spróbuj import, jeśli nie uda się - manual code entry)
+            bool authenticated = await AuthenticateAsync();
+            if (!authenticated)
+            {
+                Write("Nie udało się uwierzytelnić użytkownika. Przerywam operację.");
+                return;
+            }
 
             string installDirectory;
             int lastLaunchId = GetLastLaunchId();
