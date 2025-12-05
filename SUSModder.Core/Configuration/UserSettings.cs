@@ -9,10 +9,10 @@ namespace SUSModder.Core.Configuration
     public class UserSettings
     {
         /// <summary>
-        /// Tryb gry: "steam" lub "epic"
+        /// Tryb gry: "steam" lub "epic" (pusty = nie wybrano, wymusza dialog wyboru)
         /// </summary>
         [JsonPropertyName("mode")]
-        public string Mode { get; set; } = "steam";
+        public string Mode { get; set; } = string.Empty;
 
         /// <summary>
         /// ID ostatniego uruchomienia

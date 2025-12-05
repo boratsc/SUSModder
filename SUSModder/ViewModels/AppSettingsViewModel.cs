@@ -839,7 +839,16 @@ namespace SUSModder.ViewModels
                     File.Delete(configPath);
                 }
 
-                // Opcjonalnie: przywróć domyślne appsettings.json (możesz tu dodać kod jeśli chcesz nadpisać plik domyślną wersją)
+                // Usuń user-settings.json z %APPDATA%/SUSModder/ (resetuje język i platformę)
+                var userSettingsPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "SUSModder",
+                    "user-settings.json"
+                );
+                if (File.Exists(userSettingsPath))
+                {
+                    File.Delete(userSettingsPath);
+                }
 
                 // Restart aplikacji
                 Process.Start(new ProcessStartInfo

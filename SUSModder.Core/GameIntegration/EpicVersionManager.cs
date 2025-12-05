@@ -55,6 +55,8 @@ namespace SUSModder.Core.GameIntegration
         public event Action<string, string>? EpicLaunchError; // ModName, LogContent
         private bool _hasLaunchError = false;
         private bool _isRetryingInstallation = false;
+        private int _retryCount = 0;
+        private const int MaxRetryAttempts = 2;
 
         public void ClearLegendaryLog()
         {
@@ -683,33 +685,55 @@ namespace SUSModder.Core.GameIntegration
 
                 try
                 {
-                    // Resetuj flagę błędu przed próbą uruchomienia
+                    // Resetuj licznik retry na początku nowej sesji uruchomienia
+                    _retryCount = 0;
                     _hasLaunchError = false;
+
+                    // Weryfikuj czy pliki gry faktycznie istnieją przed importem
+                    string gameExePath = Path.Combine(installDirectory, "Among Us.exe");
+                    if (!File.Exists(gameExePath))
+                    {
+                        Write($"OSTRZEŻENIE: Plik gry nie istnieje w {installDirectory}");
+                        Write("Wymuszanie pełnej reinstalacji zamiast importu...");
+                        
+                        // Wymuś pełną reinstalację zamiast importu
+                        _retryCount++;
+                        await PerformReinstallationSequence(modConfig);
+                        return;
+                    }
 
                     await RunLegendaryCommandAsync($"import 963137e4c29d4c79a81323b8fab03a40 \"{installDirectory}\" -y");
                     await LaunchGameAsync();
 
-                    // Jeśli wystąpił błąd uruchamiania i nie próbowaliśmy jeszcze reinstalacji
-                    if (_hasLaunchError && !_isRetryingInstallation)
+                    // Jeśli wystąpił błąd uruchamiania i nie przekroczyliśmy limitu prób
+                    if (_hasLaunchError && !_isRetryingInstallation && _retryCount < MaxRetryAttempts)
                     {
-                        Write("Wykryto błąd uruchamiania - próba automatycznej reinstalacji...");
+                        Write($"Wykryto błąd uruchamiania - próba automatycznej reinstalacji ({_retryCount + 1}/{MaxRetryAttempts})...");
                         _isRetryingInstallation = true;
+                        _retryCount++;
 
                         // Wykonaj sekwencję reinstalacji
                         await PerformReinstallationSequence(modConfig);
 
                         _isRetryingInstallation = false;
                     }
+                    else if (_hasLaunchError && _retryCount >= MaxRetryAttempts)
+                    {
+                        Write($"Przekroczono limit prób reinstalacji ({MaxRetryAttempts}). Zgłaszanie błędu...");
+                        string logContent = GetLegendaryLogContent();
+                        EpicLaunchError?.Invoke(modConfig.ModName, logContent);
+                    }
                 }
                 catch (Exception ex)
                 {
                     Write($"Błąd podczas uruchamiania: {ex.Message}");
 
-                    // Jeśli nie próbowaliśmy jeszcze reinstalacji
-                    if (!_isRetryingInstallation)
+                    // Jeśli nie przekroczyliśmy limitu prób reinstalacji
+                    if (!_isRetryingInstallation && _retryCount < MaxRetryAttempts)
                     {
-                        Write("Próba automatycznej reinstalacji po błędzie...");
+                        Write($"Próba automatycznej reinstalacji po błędzie ({_retryCount + 1}/{MaxRetryAttempts})...");
                         _isRetryingInstallation = true;
+                        _retryCount++;
 
                         try
                         {
@@ -718,14 +742,25 @@ namespace SUSModder.Core.GameIntegration
                         catch (Exception reinstallEx)
                         {
                             Write($"Błąd podczas reinstalacji: {reinstallEx.Message}");
-                            // Tutaj już zgłaszamy błąd do frontu
-                            string logContent = GetLegendaryLogContent();
-                            EpicLaunchError?.Invoke(modConfig.ModName, logContent);
+                            
+                            // Jeśli przekroczyliśmy limit, zgłoś błąd
+                            if (_retryCount >= MaxRetryAttempts)
+                            {
+                                Write($"Przekroczono limit prób reinstalacji ({MaxRetryAttempts}). Zgłaszanie błędu...");
+                                string logContent = GetLegendaryLogContent();
+                                EpicLaunchError?.Invoke(modConfig.ModName, logContent);
+                            }
                         }
                         finally
                         {
                             _isRetryingInstallation = false;
                         }
+                    }
+                    else if (_retryCount >= MaxRetryAttempts)
+                    {
+                        Write($"Przekroczono limit prób ({MaxRetryAttempts}). Zgłaszanie błędu...");
+                        string logContent = GetLegendaryLogContent();
+                        EpicLaunchError?.Invoke(modConfig.ModName, logContent);
                     }
                 }
 
@@ -807,7 +842,7 @@ namespace SUSModder.Core.GameIntegration
         {
             try
             {
-                Write($"Rozpoczynam automatyczną reinstalację dla moda: {modConfig.ModName}");
+                Write($"Rozpoczynam automatyczną reinstalację dla moda: {modConfig.ModName} (próba {_retryCount}/{MaxRetryAttempts})");
 
                 string amongVersionFormatted = modConfig.AmongVersion?.Replace("-", ".") ?? string.Empty;
 
@@ -824,6 +859,32 @@ namespace SUSModder.Core.GameIntegration
                 Write("Instalowanie gry...");
                 await InstallGameAsync(modConfig, amongVersionFormatted);
 
+                // Weryfikuj czy instalacja się powiodła przed launchem
+                string installDirectory;
+                if (modConfig.Id == 0)
+                {
+                    installDirectory = modConfig.InstallPath?.Replace("AmongUs", "").TrimEnd(Path.DirectorySeparatorChar) ?? "";
+                }
+                else
+                {
+                    installDirectory = Path.Combine(PathSettings.ModsInstallPath, modConfig.ModName);
+                }
+                
+                string gameExePath = Path.Combine(installDirectory, "AmongUs", "Among Us.exe");
+                if (!File.Exists(gameExePath))
+                {
+                    Write($"BŁĄD: Instalacja nie powiodła się - brak pliku gry: {gameExePath}");
+                    _hasLaunchError = true;
+                    
+                    // Jeśli przekroczyliśmy limit, zgłoś błąd
+                    if (_retryCount >= MaxRetryAttempts)
+                    {
+                        string logContent = GetLegendaryLogContent();
+                        EpicLaunchError?.Invoke(modConfig.ModName, logContent);
+                    }
+                    return;
+                }
+
                 Write("Uruchamianie gry po reinstalacji...");
                 // Resetuj flagę błędu przed ponowną próbą uruchomienia
                 _hasLaunchError = false;
@@ -837,14 +898,33 @@ namespace SUSModder.Core.GameIntegration
                 else
                 {
                     Write("Automatyczna reinstalacja nie rozwiązała problemu.");
-                    // Zgłoś błąd do frontu
-                    string logContent = GetLegendaryLogContent();
-                    EpicLaunchError?.Invoke(modConfig.ModName, logContent);
+                    
+                    // Jeśli to nie była ostatnia próba, spróbuj jeszcze raz
+                    if (_retryCount < MaxRetryAttempts)
+                    {
+                        Write($"Ponawiam próbę... ({_retryCount + 1}/{MaxRetryAttempts})");
+                        _retryCount++;
+                        await PerformReinstallationSequence(modConfig);
+                    }
+                    else
+                    {
+                        // Zgłoś błąd do frontu
+                        string logContent = GetLegendaryLogContent();
+                        EpicLaunchError?.Invoke(modConfig.ModName, logContent);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Write($"Błąd podczas automatycznej reinstalacji: {ex.Message}");
+                
+                // Jeśli przekroczyliśmy limit prób, zgłoś błąd
+                if (_retryCount >= MaxRetryAttempts)
+                {
+                    string logContent = GetLegendaryLogContent();
+                    EpicLaunchError?.Invoke(modConfig.ModName, logContent);
+                }
+                
                 throw; // Przekaż wyjątek wyżej
             }
         }
@@ -903,6 +983,18 @@ namespace SUSModder.Core.GameIntegration
                 commandArguments = $"install {EpicAppId} -y --manifest \"{manifestFilePath}\" --base-path \"{installDirectory}\"";
             }
             await RunLegendaryCommandAsync(commandArguments);
+            
+            // Weryfikacja czy instalacja się powiodła
+            string gameExePath = Path.Combine(installDirectory, "AmongUs", "Among Us.exe");
+            if (!File.Exists(gameExePath))
+            {
+                Write($"OSTRZEŻENIE: Plik gry nie został znaleziony po instalacji: {gameExePath}");
+                Write($"Instalacja mogła się nie powieść. Sprawdź logi legendary.");
+            }
+            else
+            {
+                Write($"Weryfikacja instalacji OK: {gameExePath}");
+            }
         }
 
         public async Task LaunchGameAsync()
@@ -1157,7 +1249,7 @@ namespace SUSModder.Core.GameIntegration
 
         private async Task DownloadLegendaryAsync()
         {
-            string url = "https://github.com/whichtwix/legendary/releases/latest/download/legendary.exe";
+            string url = "https://github.com/Heroic-Games-Launcher/legendary/releases/download/0.20.38/legendary_windows_x86_64.exe";
             await DownloadFileAsync(url, legendaryPath);
             Write("Legendary downloaded.");
         }

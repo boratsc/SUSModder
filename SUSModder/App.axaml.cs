@@ -114,6 +114,18 @@ public partial class App : Application
                 }
             }
 
+            // KROK 1.6: Sprawdź czy platforma jest ustawiona, jeśli nie - pokaż dialog wyboru platformy
+            var currentMode = userSettingsService.LoadUserSettings().Mode;
+            if (string.IsNullOrEmpty(currentMode))
+            {
+                // Platforma nie jest ustawiona - pokaż dialog wyboru (wymagany wybór!)
+                await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    var platformDialog = new PlatformSelectionDialog();
+                    await platformDialog.ShowDialog<string>(_splashWindow);
+                });
+            }
+
             // KROK 2: Inicjalizacja ConsoleLogger i Telemetrii (20%)
             _splashWindow?.UpdateProgress(0.1, "Uruchamianie logowania...");
             await Dispatcher.UIThread.InvokeAsync(() => ConsoleLogger.Initialize());

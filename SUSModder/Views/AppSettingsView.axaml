@@ -9,30 +9,30 @@
 		<vm:AppSettingsViewModel/>
 	</Design.DataContext>
 
-	<ScrollViewer>
-		<Grid RowDefinitions="Auto,*,Auto" Margin="0">
+	<Grid RowDefinitions="Auto,*,Auto">
 
-			<!-- Header -->
-			<Border Grid.Row="0"
-					Background="{DynamicResource AccentBrush}"
-					CornerRadius="8"
-					Padding="15"
-					Margin="0,0,0,20">
-				<StackPanel Orientation="Horizontal" Spacing="15">
-					<TextBlock Text="⚙️" FontSize="32" VerticalAlignment="Center"/>
-					<StackPanel VerticalAlignment="Center">
-						<TextBlock Text="{local:Localize Settings.WindowTitle}"
-								   FontSize="20" FontWeight="Bold"
-								   Foreground="White"/>
-						<TextBlock Text="{local:Localize Settings.WindowSubtitle}"
-								   FontSize="12"
-								   Foreground="#E0FFFFFF"/>
-					</StackPanel>
+		<!-- Header -->
+		<Border Grid.Row="0"
+				Background="{DynamicResource AccentBrush}"
+				CornerRadius="8"
+				Padding="15"
+				Margin="0,0,0,20">
+			<StackPanel Orientation="Horizontal" Spacing="15">
+				<TextBlock Text="⚙️" FontSize="32" VerticalAlignment="Center"/>
+				<StackPanel VerticalAlignment="Center">
+					<TextBlock Text="{local:Localize Settings.WindowTitle}"
+							   FontSize="20" FontWeight="Bold"
+							   Foreground="White"/>
+					<TextBlock Text="{local:Localize Settings.WindowSubtitle}"
+							   FontSize="12"
+							   Foreground="#E0FFFFFF"/>
 				</StackPanel>
-			</Border>
+			</StackPanel>
+		</Border>
 
-			<!-- Główna zawartość -->
-			<StackPanel Grid.Row="1" Spacing="15">
+		<!-- Główna zawartość - scrollowalna -->
+		<ScrollViewer Grid.Row="1">
+			<StackPanel Spacing="15">
 
 				<!-- Sekcja wyboru trybu gry -->
 				<Border Background="{DynamicResource ModCardBackgroundBrush}"
@@ -315,36 +315,37 @@
 				</Border>
 
 			</StackPanel>
+		</ScrollViewer>
 
-			<!-- Footer z przyciskami -->
-			<Border Grid.Row="2"
-					BorderBrush="{DynamicResource BorderBrush}"
-					BorderThickness="0,1,0,0"
-					Padding="0,15,0,0"
-				Margin="0,20,0,0">
+		<!-- Footer z przyciskami - floating, zawsze widoczny -->
+		<Border Grid.Row="2"
+				Background="{DynamicResource SecondaryBackgroundBrush}"
+				BorderBrush="{DynamicResource BorderBrush}"
+				BorderThickness="0,1,0,0"
+				Padding="15"
+				Margin="0,10,0,0">
 			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
 				<Button Content="{local:Localize UI.Buttons.Close}"
 						Click="CancelButton_Click"
 						Background="{DynamicResource ModCardBackgroundBrush}"
-							Foreground="{DynamicResource TextPrimaryBrush}"
-							BorderBrush="{DynamicResource ModCardBorderBrush}"
-							BorderThickness="1"
-							CornerRadius="6"
-							Padding="15,8"
-							FontSize="13"/>
-					<Button Content="{local:Localize UI.Buttons.Save}"
-							Command="{Binding SaveCommand}"
-							Background="{DynamicResource AccentBrush}"
-							Foreground="White"
-							BorderBrush="{DynamicResource AccentBrush}"
-							BorderThickness="1"
-							CornerRadius="6"
-							Padding="15,8"
-							FontSize="13"
-							FontWeight="SemiBold"
-							IsEnabled="{Binding HasUnsavedChanges}"/>
-				</StackPanel>
-			</Border>
-		</Grid>
-	</ScrollViewer>
+						Foreground="{DynamicResource TextPrimaryBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="6"
+						Padding="15,8"
+						FontSize="13"/>
+				<Button Content="{local:Localize UI.Buttons.Save}"
+						Command="{Binding SaveCommand}"
+						Background="{DynamicResource AccentBrush}"
+						Foreground="White"
+						BorderBrush="{DynamicResource AccentBrush}"
+						BorderThickness="1"
+						CornerRadius="6"
+						Padding="15,8"
+						FontSize="13"
+						FontWeight="SemiBold"
+						IsEnabled="{Binding HasUnsavedChanges}"/>
+			</StackPanel>
+		</Border>
+	</Grid>
 </UserControl>

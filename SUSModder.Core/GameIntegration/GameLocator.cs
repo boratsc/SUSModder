@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using SUSModder.Core.Utilities;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Services;
 
 namespace SUSModder.Core.GameIntegration
 {
@@ -31,31 +32,33 @@ namespace SUSModder.Core.GameIntegration
             "D:/Gry/Epic"
         };
 
-        public static string? TryFindAmongUsPath(out string? mode)
+        /// <summary>
+        /// Wyszukuje ścieżkę do Among Us. Platforma (Steam/Epic) jest określana przez użytkownika w dialogu przy pierwszym uruchomieniu.
+        /// </summary>
+        public static string? TryFindAmongUsPath()
         {
             Console.WriteLine("Rozpoczęto wyszukiwanie Among Us.");
-            mode = null;
 
+            // Sprawdź najpierw w ścieżkach Steam
             foreach (var basePath in CommonSteamPaths)
             {
                 var path = Path.Combine(basePath, "steamapps", "common", "Among Us");
                 Console.WriteLine($"Sprawdzam ścieżkę: {path}");
                 if (Directory.Exists(path) && File.Exists(Path.Combine(path, "Among Us.exe")))
                 {
-                    Console.WriteLine($"Znaleziono grę w Steam: {path}");
-                    mode = "steam";
+                    Console.WriteLine($"Znaleziono grę: {path}");
                     return path.Replace("\\\\", "\\").Replace("/", "\\");
                 }
             }
 
+            // Sprawdź w ścieżkach Epic
             foreach (var basePath in CommonEpicPaths)
             {
                 var path = Path.Combine(basePath, "AmongUs");
                 Console.WriteLine($"Sprawdzam ścieżkę: {path}");
-                if (Directory.Exists(path) && File.Exists(Path.Combine(path, "Among Us.exe")) && Directory.Exists(Path.Combine(path, ".egstore")))
+                if (Directory.Exists(path) && File.Exists(Path.Combine(path, "Among Us.exe")))
                 {
-                    Console.WriteLine($"Znaleziono grę w Epic: {path}");
-                    mode = "epic";
+                    Console.WriteLine($"Znaleziono grę: {path}");
                     return path.Replace("\\\\", "\\").Replace("/", "\\");
                 }
             }
@@ -64,7 +67,10 @@ namespace SUSModder.Core.GameIntegration
             return null;
         }
 
-        // Dodaj asynchroniczną metodę - zwraca ModConfiguration jeśli wykryto/dodano nową grę, null jeśli już istnieje lub błąd
+        /// <summary>
+        /// Sprawdza i konfiguruje Vanilla mod (podstawowa gra Among Us).
+        /// Platforma (Steam/Epic) jest pobierana z UserSettings - użytkownik wybiera ją przy pierwszym uruchomieniu.
+        /// </summary>
         public static async Task<ModConfiguration?> CheckAndSetupVanillaModAsync(
             System.Collections.Generic.List<ModConfiguration> modConfigs,
             IConfiguration configuration,
@@ -80,7 +86,17 @@ namespace SUSModder.Core.GameIntegration
                 return null; // już istnieje
             }
 
-            string? foundPath = TryFindAmongUsPath(out string? detectedMode);
+            // Pobierz platformę z UserSettings (wybraną przez użytkownika przy pierwszym uruchomieniu)
+            var userSettingsService = new UserSettingsService();
+            var userMode = userSettingsService.LoadUserSettings().Mode;
+            
+            if (string.IsNullOrEmpty(userMode))
+            {
+                Console.WriteLine("Platforma nie została wybrana przez użytkownika.");
+                return null;
+            }
+
+            string? foundPath = TryFindAmongUsPath();
 
             if (foundPath == null)
             {
@@ -95,19 +111,6 @@ namespace SUSModder.Core.GameIntegration
                     if (!string.IsNullOrEmpty(userSelectedPath) && File.Exists(userSelectedPath))
                     {
                         foundPath = Path.GetDirectoryName(userSelectedPath);
-
-                        // Sprawdź czy to Steam czy Epic na podstawie struktury folderów
-                        if (foundPath != null && (
-                            Directory.Exists(Path.Combine(foundPath, ".egstore")) ||
-                            Directory.Exists(Path.Combine(foundPath, "Among Us_Data", "StreamingAssets", "aa", "EGS"))
-                        ))
-                        {
-                            detectedMode = "epic";
-                        }
-                        else if (foundPath != null)
-                        {
-                            detectedMode = "steam";
-                        }
                     }
                     else
                     {
@@ -125,7 +128,7 @@ namespace SUSModder.Core.GameIntegration
                 }
             }
 
-            if (detectedMode != null && foundPath != null)
+            if (foundPath != null)
             {
                 var vanillaMod = new ModConfiguration
                 {
@@ -139,20 +142,20 @@ namespace SUSModder.Core.GameIntegration
                     ModVersion = "",
                     LastUpdated = DateTime.Now,
                     AmongVersion = GetGameVersion(foundPath),
-                    Description = $"Detected as {detectedMode}"
+                    Description = $"Platform: {userMode}"
                 };
 
                 // Dodaj do listy i zapisz
                 modConfigs.Add(vanillaMod);
                 ConfigManager.SaveConfig(modConfigs);
 
-                configuration["Configuration:Mode"] = detectedMode;
-                ConfigManager.SaveConfigurationSetting("Mode", detectedMode);
+                // Synchronizuj Mode z UserSettings do appsettings.json (dla kompatybilności)
+                configuration["Configuration:Mode"] = userMode;
+                ConfigManager.SaveConfigurationSetting("Mode", userMode);
 
-                // Dialog usunięty - użytkownik zobaczy grę na liście modów
-                Console.WriteLine($"Among Us ({detectedMode}) został automatycznie wykryty i dodany do listy modów.");
+                Console.WriteLine($"Among Us ({userMode}) został dodany do listy modów.");
 
-                return vanillaMod; // zwróć nowo utworzony mod
+                return vanillaMod;
             }
 
             return null;
