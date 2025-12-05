@@ -14,8 +14,8 @@ param(
 $ErrorActionPreference = "Stop"
 
 # Paths
-$rootDir = "D:\Development\SUSModder"
-$signtool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe"
+$rootDir = $PSScriptRoot | Split-Path -Parent | Split-Path -Parent
+$signtool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64\signtool.exe"
 $timestampServer = "http://time.certum.pl"
 
 # Check signtool
