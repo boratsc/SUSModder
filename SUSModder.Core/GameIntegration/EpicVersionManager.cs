@@ -1249,7 +1249,7 @@ namespace SUSModder.Core.GameIntegration
 
         private async Task DownloadLegendaryAsync()
         {
-            string url = "https://github.com/whichtwix/legendary/releases/latest/download/legendary.exe";
+            string url = "https://github.com/Heroic-Games-Launcher/legendary/releases/download/0.20.38/legendary_windows_x86_64.exe";
             await DownloadFileAsync(url, legendaryPath);
             Write("Legendary downloaded.");
         }

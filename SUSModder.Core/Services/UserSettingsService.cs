@@ -212,7 +212,7 @@ namespace SUSModder.Core.Services
                 if (root.TryGetProperty("Configuration", out var config))
                 {
                     if (config.TryGetProperty("Mode", out var mode))
-                        settings.Mode = mode.GetString() ?? "steam";
+                        settings.Mode = mode.GetString() ?? string.Empty;  // Pusty = wymusza dialog wyboru platformy
 
                     if (config.TryGetProperty("lastLaunchId", out var lastLaunch))
                         settings.LastLaunchId = lastLaunch.GetInt32();
