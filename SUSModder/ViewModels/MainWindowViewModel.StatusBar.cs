@@ -92,6 +92,19 @@ namespace SUSModder.ViewModels
         private int _apiPingMs;
         private DateTime _lastApiCheck = DateTime.Now;
         private string _apiBaseUrl = string.Empty;
+        private int _onlineUsersCount;
+
+        public int OnlineUsersCount
+        {
+            get => _onlineUsersCount;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _onlineUsersCount, value);
+                this.RaisePropertyChanged(nameof(OnlineUsersText));
+            }
+        }
+
+        public string OnlineUsersText => _localizationService.GetFormatted("UI.StatusBar.OnlineUsers", OnlineUsersCount);
 
         public ApiConnectionStatus ApiStatus
         {
@@ -440,10 +453,14 @@ namespace SUSModder.ViewModels
                 {
                     ApiStatus = ApiConnectionStatus.Online;
                     ApiPingMs = (int)stopwatch.ElapsedMilliseconds;
+                    
+                    // Pobierz liczbę użytkowników online
+                    await FetchOnlineUsersAsync(baseUrl, client);
                 }
                 else
                 {
                     ApiStatus = ApiConnectionStatus.Offline;
+                    OnlineUsersCount = 0;
                 }
 
                 LastApiCheck = DateTime.Now;
@@ -453,6 +470,34 @@ namespace SUSModder.ViewModels
                 System.Diagnostics.Debug.WriteLine($"API connection check failed: {ex.Message}");
                 ApiStatus = ApiConnectionStatus.Offline;
                 LastApiCheck = DateTime.Now;
+            }
+        }
+
+        /// <summary>
+        /// Pobiera liczbę użytkowników online z API
+        /// </summary>
+        private async Task FetchOnlineUsersAsync(string baseUrl, HttpClient client)
+        {
+            try
+            {
+                var onlineUsersUrl = $"{baseUrl}/api/online-users";
+                var response = await client.GetAsync(onlineUsersUrl);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var data = System.Text.Json.JsonSerializer.Deserialize<OnlineUsersResponse>(json);
+                    OnlineUsersCount = data?.Online ?? 0;
+                }
+                else
+                {
+                    OnlineUsersCount = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error fetching online users: {ex.Message}");
+                OnlineUsersCount = 0;
             }
         }
 

@@ -111,6 +111,7 @@
       "ApiOffline": "Offline",
       "ApiChecking": "Checking...",
       "ApiUnknown": "Unknown",
+      "OnlineUsers": "Users: {0}",
       "AndMoreMods": "...and {0} more"
     },
     "Theme": {

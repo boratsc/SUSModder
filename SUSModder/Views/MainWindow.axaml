@@ -190,13 +190,8 @@
 																	   TextWrapping="Wrap"
 																	   MaxWidth="200"/>
 															<TextBlock FontSize="11"
-																	   Foreground="{DynamicResource TextSecondaryBrush}">
-															<TextBlock.Text>
-																<MultiBinding StringFormat="{loc:Localize StringFormats.DllModVersion}">
-																	<Binding Path="ModVersion"/>
-																</MultiBinding>
-															</TextBlock.Text>
-														</TextBlock>
+																	   Foreground="{DynamicResource TextSecondaryBrush}"
+																	   Text="{Binding ModVersion, StringFormat='Wersja: {0}'}"/>
 														</StackPanel>
 														<!-- Przycisk wyboru -->
 														<Button Grid.Column="2"
@@ -822,6 +817,9 @@
 								<StackPanel VerticalAlignment="Center">
 									<TextBlock Classes="status-main-text" Text="{loc:Localize UI.StatusBar.API}"/>
 									<TextBlock Classes="status-sub-text" Text="{Binding ApiStatusText}"/>
+									<TextBlock Classes="status-sub-text" 
+											   Text="{Binding OnlineUsersText}"
+											   IsVisible="{Binding IsApiOnline}"/>
 								</StackPanel>
 							</StackPanel>
 						
