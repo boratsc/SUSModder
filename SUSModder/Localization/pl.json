@@ -136,6 +136,49 @@
       "ViewSubtitle": "Wybierz modyfikacje DLL (zaznaczone = zainstalowane)",
       "StatusInstalled": "[ZAINSTALOWANY]",
       "VersionLabel": "Wersja: {0}"
+    },
+    "Repair": {
+      "DialogTitle": "Napraw grę",
+      "BlackScreen": {
+        "Title": "Napraw czarny ekran",
+        "Description": "Resetuje ustawienia gry Among Us (usuwa pliki konfiguracyjne, zachowuje konfiguracje lobby).",
+        "ConfirmMessage": "Czy jesteś pewny, że chcesz zresetować ustawienia gry?",
+        "Success": "Ustawienia gry zostały zresetowane pomyślnie."
+      },
+      "Certificates": {
+        "Title": "Napraw certyfikaty",
+        "Description": "Importuje certyfikaty Windows Update do magazynu systemowego. Może pomóc przy problemach z połączeniem.",
+        "AdminRequired": "Administrator",
+        "ConfirmMessage": "Ta operacja wymaga uprawnień administratora. Czy chcesz kontynuować?",
+        "Success": "Certyfikaty zostały zaimportowane pomyślnie.",
+        "Error": "Błąd podczas naprawy certyfikatów: {0}",
+        "ProcessError": "Nie udało się uruchomić procesu.",
+        "CertutilError": "Certutil zakończył się kodem błędu: {0}",
+        "ImportError": "PowerShell zakończył się kodem błędu: {0}",
+        "SstNotFound": "Nie udało się utworzyć pliku SST z certyfikatami."
+      },
+      "Regions": {
+        "Title": "Napraw regiony",
+        "Description": "Usuwa plik regionInfo.json. Pomaga przy problemach z wyborem regionu lub serwerów.",
+        "ConfirmMessage": "Czy na pewno chcesz usunąć konfigurację regionów?",
+        "Success": "Konfiguracja regionów została usunięta pomyślnie.",
+        "NotFound": "Plik regionInfo.json nie istnieje."
+      },
+      "Firewall": {
+        "Title": "Wyjątki firewalla",
+        "Description": "Dodaje reguły przychodzące i wychodzące dla Among Us.exe w zaporze Windows (tylko Steam).",
+        "SelectModTitle": "Wybierz mod dla firewalla",
+        "SelectModDescription": "Wybierz zainstalowany mod, dla którego chcesz dodać wyjątki do zapory Windows.",
+        "AddException": "Dodaj wyjątek",
+        "ConfirmMessage": "Czy chcesz dodać wyjątki firewalla dla moda {0}? Wymaga uprawnień administratora.",
+        "Success": "Wyjątki firewalla dla moda {0} zostały dodane pomyślnie.",
+        "Error": "Błąd podczas dodawania wyjątków firewalla: {0}",
+        "ProcessError": "Nie udało się uruchomić procesu netsh.",
+        "ExeNotFound": "Nie znaleziono pliku Among Us.exe w ścieżce: {0}",
+        "NoModsInstalled": "Brak zainstalowanych modów typu full. Zainstaluj najpierw jakiś mod."
+      },
+      "Cancelled": "Operacja anulowana przez użytkownika.",
+      "Error": "Wystąpił błąd podczas naprawy: {0}"
     }
   },
   "DllManager": {
@@ -182,6 +225,9 @@
     }
   },
   "Dialogs": {
+    "Success": {
+      "Title": "Sukces"
+    },
     "Error": {
       "Title": "Błąd",
       "Header": "Wystąpił błąd:",

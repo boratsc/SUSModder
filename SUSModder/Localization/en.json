@@ -136,6 +136,49 @@
       "ViewSubtitle": "Select DLL modifications (checked = installed)",
       "StatusInstalled": "[INSTALLED]",
       "VersionLabel": "Version: {0}"
+    },
+    "Repair": {
+      "DialogTitle": "Repair Game",
+      "BlackScreen": {
+        "Title": "Fix Black Screen",
+        "Description": "Resets Among Us game settings (deletes configuration files, keeps lobby settings).",
+        "ConfirmMessage": "Are you sure you want to reset game settings?",
+        "Success": "Game settings have been reset successfully."
+      },
+      "Certificates": {
+        "Title": "Fix Certificates",
+        "Description": "Imports Windows Update certificates to system store. May help with connection issues.",
+        "AdminRequired": "Administrator",
+        "ConfirmMessage": "This operation requires administrator privileges. Do you want to continue?",
+        "Success": "Certificates have been imported successfully.",
+        "Error": "Error while repairing certificates: {0}",
+        "ProcessError": "Failed to start process.",
+        "CertutilError": "Certutil exited with error code: {0}",
+        "ImportError": "PowerShell exited with error code: {0}",
+        "SstNotFound": "Failed to create SST file with certificates."
+      },
+      "Regions": {
+        "Title": "Fix Regions",
+        "Description": "Deletes regionInfo.json file. Helps with region selection or server issues.",
+        "ConfirmMessage": "Are you sure you want to delete region configuration?",
+        "Success": "Region configuration has been deleted successfully.",
+        "NotFound": "regionInfo.json file does not exist."
+      },
+      "Firewall": {
+        "Title": "Firewall Exceptions",
+        "Description": "Adds inbound and outbound rules for Among Us.exe to Windows Firewall (Steam only).",
+        "SelectModTitle": "Select mod for firewall",
+        "SelectModDescription": "Select an installed mod for which you want to add Windows Firewall exceptions.",
+        "AddException": "Add Exception",
+        "ConfirmMessage": "Do you want to add firewall exceptions for mod {0}? Requires administrator privileges.",
+        "Success": "Firewall exceptions for mod {0} have been added successfully.",
+        "Error": "Error while adding firewall exceptions: {0}",
+        "ProcessError": "Failed to start netsh process.",
+        "ExeNotFound": "Among Us.exe not found at path: {0}",
+        "NoModsInstalled": "No full mods installed. Install a mod first."
+      },
+      "Cancelled": "Operation cancelled by user.",
+      "Error": "Error during repair: {0}"
     }
   },
   "DllManager": {
@@ -182,6 +225,9 @@
     }
   },
   "Dialogs": {
+    "Success": {
+      "Title": "Success"
+    },
     "Error": {
       "Title": "Error",
       "Header": "An error occurred:",

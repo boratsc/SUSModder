@@ -1,0 +1,137 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SUSModder.Services.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:fic="using:FluentIcons.Common"
+        xmlns:views="using:SUSModder.Views"
+        x:Class="SUSModder.Views.FirewallModSelectionDialog"
+        Title="{loc:Localize UI.Repair.Firewall.SelectModTitle}"
+        Width="450" Height="400"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+    <Window.Styles>
+        <FluentTheme />
+        
+        <!-- Style dla elementów listy -->
+        <Style Selector="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="2"/>
+        </Style>
+        
+        <Style Selector="ListBoxItem:selected">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        
+        <Style Selector="ListBoxItem:pointerover">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        
+        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        
+        <!-- Podświetlenie zaznaczonego elementu -->
+        <Style Selector="ListBoxItem:selected Border.mod-item">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+        </Style>
+        
+        <!-- Efekt hover -->
+        <Style Selector="ListBoxItem:pointerover Border.mod-item">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Opacity" Value="0.8"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid Margin="24" RowDefinitions="Auto,*,Auto">
+
+        <!-- Nagłówek -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
+                <ic:SymbolIcon Symbol="{x:Static fic:Symbol.ShieldKeyhole}" FontSize="24" Foreground="#FF5722"/>
+                <TextBlock Text="{loc:Localize UI.Repair.Firewall.SelectModTitle}"
+                           FontSize="18" FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock Text="{loc:Localize UI.Repair.Firewall.SelectModDescription}"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       Margin="0,8,0,0"/>
+        </StackPanel>
+
+        <!-- Lista modów -->
+        <Border Grid.Row="1" 
+                Background="{DynamicResource ModCardBackgroundBrush}"
+                BorderBrush="{DynamicResource ModCardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="4">
+            <ScrollViewer>
+                <ListBox x:Name="ModsListBox"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         SelectionMode="Single">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="views:FirewallModItem">
+                            <Border Classes="mod-item"
+                                    Background="{DynamicResource SecondaryBackgroundBrush}"
+                                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                                    BorderThickness="2"
+                                    CornerRadius="8"
+                                    Padding="12,10"
+                                    Margin="2">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <ic:SymbolIcon Grid.Column="0" 
+                                                   Symbol="{x:Static fic:Symbol.Cube}" 
+                                                   FontSize="20" 
+                                                   Foreground="{DynamicResource AccentBrush}"
+                                                   Margin="0,0,12,0"
+                                                   VerticalAlignment="Center"/>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}"
+                                                   FontSize="14" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                        <TextBlock Text="{Binding InstallPath}"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Przyciski -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12" Margin="0,16,0,0">
+            <Button x:Name="CancelButton"
+                    Content="{loc:Localize UI.Buttons.Cancel}"
+                    Width="120" Height="36"
+                    Background="{DynamicResource ModCardBackgroundBrush}"
+                    Foreground="{DynamicResource TextPrimaryBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    CornerRadius="6"
+                    Click="OnCancelClick"/>
+            <Button x:Name="ConfirmButton"
+                    Content="{loc:Localize UI.Repair.Firewall.AddException}"
+                    Width="160" Height="36"
+                    Background="{DynamicResource AccentBrush}"
+                    Foreground="White"
+                    CornerRadius="6"
+                    Click="OnConfirmClick"
+                    IsEnabled="False"/>
+        </StackPanel>
+    </Grid>
+</Window>

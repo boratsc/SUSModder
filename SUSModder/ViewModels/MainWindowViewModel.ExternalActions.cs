@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -88,24 +89,377 @@ namespace SUSModder.ViewModels
             try
             {
                 IsPaneOpen = false;
-                // Dialog potwierdzenia na UI thread
-                var confirmResult = await ShowConfirmDialogAsync(
-                    "Czy jesteś pewny, że chcesz zrestartować ustawienia gry?",
-                    "Potwierdzenie");
 
-                if (!confirmResult)
+                // Sprawdź platformę dla opcji Firewall
+                string platform = DeterminePlatform().ToLower();
+                bool isSteamPlatform = platform == "steam";
+
+                // Pokaż dialog wyboru opcji naprawy
+                var dialog = new RepairOptionsDialog(isSteamPlatform);
+                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+                if (mainWindow != null)
+                {
+                    await dialog.ShowDialog(mainWindow);
+                }
+                else
+                {
+                    dialog.Show();
                     return;
+                }
 
-                // Operacje na plikach w background thread
-                await Task.Run(() => FixBlackScreen.ExecuteFixCore());
+                // Sprawdź wybraną opcję
+                switch (dialog.SelectedOption)
+                {
+                    case RepairOption.BlackScreen:
+                        // Potwierdzenie dla naprawy czarnego ekranu
+                        var confirmResult = await ShowConfirmDialogAsync(
+                            _localizationService.Get("UI.Repair.BlackScreen.ConfirmMessage"),
+                            _localizationService.Get("Dialogs.Confirm.Title"));
 
-                // Dialog sukcesu na UI thread
-                await ShowMessageAsync("Sukces", "Ustawienia gry zostały zresetowane.");
+                        if (!confirmResult)
+                            return;
+
+                        // Operacje na plikach w background thread
+                        await Task.Run(() => FixBlackScreen.ExecuteFixCore());
+
+                        // Dialog sukcesu na UI thread
+                        await ShowMessageAsync(
+                            _localizationService.Get("Dialogs.Success.Title"),
+                            _localizationService.Get("UI.Repair.BlackScreen.Success"));
+                        break;
+
+                    case RepairOption.Certificates:
+                        if (OperatingSystem.IsWindows())
+                        {
+                            await ExecuteFixCertificatesAsync();
+                        }
+                        else
+                        {
+                            await ShowMessageAsync(
+                                _localizationService.Get("Dialogs.Info.Title"),
+                                "This feature is only available on Windows.");
+                        }
+                        break;
+
+                    case RepairOption.Regions:
+                        await ExecuteFixRegionsAsync();
+                        break;
+
+                    case RepairOption.Firewall:
+                        if (OperatingSystem.IsWindows())
+                        {
+                            await ExecuteFixFirewallAsync();
+                        }
+                        else
+                        {
+                            await ShowMessageAsync(
+                                _localizationService.Get("Dialogs.Info.Title"),
+                                "This feature is only available on Windows.");
+                        }
+                        break;
+
+                    case RepairOption.None:
+                    default:
+                        // Użytkownik anulował
+                        break;
+                }
             }
             catch (Exception ex)
             {
                 // Dialog błędu na UI thread
-                await ShowErrorDialogAsync($"Wystąpił błąd podczas resetowania ustawień: {ex.Message}", "Błąd");
+                await ShowErrorDialogAsync(
+                    string.Format(_localizationService.Get("UI.Repair.Error"), ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
+            }
+        }
+
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        private async Task ExecuteFixCertificatesAsync()
+        {
+            string tempSstFile = Path.Combine(Path.GetTempPath(), "roots.sst");
+
+            try
+            {
+                // Potwierdzenie dla naprawy certyfikatów
+                var confirmResult = await ShowConfirmDialogAsync(
+                    _localizationService.Get("UI.Repair.Certificates.ConfirmMessage"),
+                    _localizationService.Get("Dialogs.Confirm.Title"));
+
+                if (!confirmResult)
+                    return;
+
+                System.Diagnostics.Debug.WriteLine("[FixCertificates] Rozpoczynam naprawę certyfikatów...");
+
+                // Krok 1: Generowanie pliku SST z certyfikatami Windows Update (certutil.exe)
+                System.Diagnostics.Debug.WriteLine("[FixCertificates] Krok 1: Generowanie pliku SST...");
+                
+                var certutilProcess = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c certutil.exe -generateSSTFromWU \"{tempSstFile}\"",
+                    UseShellExecute = true,
+                    Verb = "runas", // Wymaga uprawnień administratora
+                    CreateNoWindow = true
+                };
+
+                using (var process = Process.Start(certutilProcess))
+                {
+                    if (process == null)
+                    {
+                        throw new InvalidOperationException(_localizationService.Get("UI.Repair.Certificates.ProcessError"));
+                    }
+                    await Task.Run(() => process.WaitForExit());
+
+                    if (process.ExitCode != 0)
+                    {
+                        throw new InvalidOperationException(
+                            string.Format(_localizationService.Get("UI.Repair.Certificates.CertutilError"), process.ExitCode));
+                    }
+                }
+
+                // Sprawdź czy plik SST został utworzony
+                if (!File.Exists(tempSstFile))
+                {
+                    throw new FileNotFoundException(_localizationService.Get("UI.Repair.Certificates.SstNotFound"));
+                }
+
+                System.Diagnostics.Debug.WriteLine("[FixCertificates] Krok 2: Importowanie certyfikatów do magazynu...");
+
+                // Krok 2: Import certyfikatów do magazynu LocalMachine\Root (PowerShell)
+                string psScript = $@"
+                    $sstStore = Get-ChildItem -Path '{tempSstFile}'
+                    $sstStore | Import-Certificate -CertStoreLocation Cert:\LocalMachine\Root
+                ";
+
+                var psProcess = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-ExecutionPolicy Bypass -Command \"{psScript}\"",
+                    UseShellExecute = true,
+                    Verb = "runas", // Wymaga uprawnień administratora
+                    CreateNoWindow = true
+                };
+
+                using (var process = Process.Start(psProcess))
+                {
+                    if (process == null)
+                    {
+                        throw new InvalidOperationException(_localizationService.Get("UI.Repair.Certificates.ProcessError"));
+                    }
+                    await Task.Run(() => process.WaitForExit());
+
+                    if (process.ExitCode != 0)
+                    {
+                        throw new InvalidOperationException(
+                            string.Format(_localizationService.Get("UI.Repair.Certificates.ImportError"), process.ExitCode));
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine("[FixCertificates] Naprawa certyfikatów zakończona pomyślnie.");
+
+                // Dialog sukcesu
+                await ShowMessageAsync(
+                    _localizationService.Get("Dialogs.Success.Title"),
+                    _localizationService.Get("UI.Repair.Certificates.Success"));
+            }
+            catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+            {
+                // Użytkownik anulował UAC prompt
+                System.Diagnostics.Debug.WriteLine("[FixCertificates] Użytkownik anulował prompt UAC.");
+                await ShowMessageAsync(
+                    _localizationService.Get("Dialogs.Info.Title"),
+                    _localizationService.Get("UI.Repair.Cancelled"));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FixCertificates] Błąd: {ex.Message}");
+                await ShowErrorDialogAsync(
+                    string.Format(_localizationService.Get("UI.Repair.Certificates.Error"), ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
+            }
+            finally
+            {
+                // Posprzątaj plik tymczasowy
+                try
+                {
+                    if (File.Exists(tempSstFile))
+                    {
+                        File.Delete(tempSstFile);
+                        System.Diagnostics.Debug.WriteLine("[FixCertificates] Usunięto plik tymczasowy SST.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[FixCertificates] Nie udało się usunąć pliku tymczasowego: {ex.Message}");
+                }
+            }
+        }
+
+        private async Task ExecuteFixRegionsAsync()
+        {
+            try
+            {
+                // Potwierdzenie dla naprawy regionów
+                var confirmResult = await ShowConfirmDialogAsync(
+                    _localizationService.Get("UI.Repair.Regions.ConfirmMessage"),
+                    _localizationService.Get("Dialogs.Confirm.Title"));
+
+                if (!confirmResult)
+                    return;
+
+                string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                string regionInfoPath = Path.Combine(userProfile, @"AppData\LocalLow\Innersloth\Among Us\regionInfo.json");
+
+                System.Diagnostics.Debug.WriteLine($"[FixRegions] Próba usunięcia pliku: {regionInfoPath}");
+
+                if (File.Exists(regionInfoPath))
+                {
+                    await Task.Run(() => File.Delete(regionInfoPath));
+                    System.Diagnostics.Debug.WriteLine("[FixRegions] Plik regionInfo.json został usunięty.");
+
+                    await ShowMessageAsync(
+                        _localizationService.Get("Dialogs.Success.Title"),
+                        _localizationService.Get("UI.Repair.Regions.Success"));
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[FixRegions] Plik regionInfo.json nie istnieje.");
+                    await ShowMessageAsync(
+                        _localizationService.Get("Dialogs.Info.Title"),
+                        _localizationService.Get("UI.Repair.Regions.NotFound"));
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FixRegions] Błąd: {ex.Message}");
+                await ShowErrorDialogAsync(
+                    string.Format(_localizationService.Get("UI.Repair.Error"), ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
+            }
+        }
+
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        private async Task ExecuteFixFirewallAsync()
+        {
+            try
+            {
+                // Pobierz zainstalowane mody (full mods z InstallPath)
+                var installedMods = Mods
+                    .Where(m => !string.IsNullOrEmpty(m.InstallPath) && m.ModType == "full")
+                    .Select(m => new FirewallModItem { Name = m.Name, InstallPath = m.InstallPath! })
+                    .ToList();
+
+                if (!installedMods.Any())
+                {
+                    await ShowMessageAsync(
+                        _localizationService.Get("Dialogs.Info.Title"),
+                        _localizationService.Get("UI.Repair.Firewall.NoModsInstalled"));
+                    return;
+                }
+
+                // Pokaż dialog wyboru moda
+                var dialog = new FirewallModSelectionDialog(installedMods);
+                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+                if (mainWindow != null)
+                {
+                    await dialog.ShowDialog(mainWindow);
+                }
+                else
+                {
+                    dialog.Show();
+                    return;
+                }
+
+                // Sprawdź czy użytkownik wybrał mod
+                if (dialog.SelectedMod == null)
+                {
+                    return; // Anulowano
+                }
+
+                var selectedMod = dialog.SelectedMod;
+                string amongUsExePath = Path.Combine(selectedMod.InstallPath, "Among Us.exe");
+
+                // Sprawdź czy plik exe istnieje
+                if (!File.Exists(amongUsExePath))
+                {
+                    await ShowErrorDialogAsync(
+                        string.Format(_localizationService.Get("UI.Repair.Firewall.ExeNotFound"), amongUsExePath),
+                        _localizationService.Get("Dialogs.Error.Title"));
+                    return;
+                }
+
+                // Potwierdzenie
+                var confirmResult = await ShowConfirmDialogAsync(
+                    string.Format(_localizationService.Get("UI.Repair.Firewall.ConfirmMessage"), selectedMod.Name),
+                    _localizationService.Get("Dialogs.Confirm.Title"));
+
+                if (!confirmResult)
+                    return;
+
+                System.Diagnostics.Debug.WriteLine($"[FixFirewall] Dodawanie wyjątków dla: {amongUsExePath}");
+
+                // Nazwa reguły
+                string ruleName = $"Among Us - {selectedMod.Name}";
+                string escapedPath = amongUsExePath.Replace("\"", "\\\"");
+
+                // Komendy netsh do dodania reguł (przychodzące i wychodzące)
+                string addInboundRule = $"netsh advfirewall firewall add rule name=\"{ruleName} (Inbound)\" dir=in action=allow program=\"{escapedPath}\" enable=yes";
+                string addOutboundRule = $"netsh advfirewall firewall add rule name=\"{ruleName} (Outbound)\" dir=out action=allow program=\"{escapedPath}\" enable=yes";
+
+                // Najpierw usuń istniejące reguły (jeśli są) - by nie tworzyć duplikatów
+                string deleteInboundRule = $"netsh advfirewall firewall delete rule name=\"{ruleName} (Inbound)\"";
+                string deleteOutboundRule = $"netsh advfirewall firewall delete rule name=\"{ruleName} (Outbound)\"";
+
+                // Połącz wszystkie komendy
+                string combinedCommands = $"{deleteInboundRule} & {deleteOutboundRule} & {addInboundRule} & {addOutboundRule}";
+
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c {combinedCommands}",
+                    UseShellExecute = true,
+                    Verb = "runas", // Wymaga uprawnień administratora
+                    CreateNoWindow = true
+                };
+
+                using (var process = Process.Start(processInfo))
+                {
+                    if (process == null)
+                    {
+                        throw new InvalidOperationException(_localizationService.Get("UI.Repair.Firewall.ProcessError"));
+                    }
+                    await Task.Run(() => process.WaitForExit());
+
+                    // netsh zwraca 0 przy sukcesie
+                    if (process.ExitCode != 0)
+                    {
+                        // Niektóre komendy delete mogą zwrócić błąd jeśli reguła nie istnieje - to nie jest krytyczne
+                        System.Diagnostics.Debug.WriteLine($"[FixFirewall] Exit code: {process.ExitCode} - może być OK jeśli reguły nie istniały wcześniej");
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine("[FixFirewall] Reguły firewalla zostały dodane.");
+
+                await ShowMessageAsync(
+                    _localizationService.Get("Dialogs.Success.Title"),
+                    string.Format(_localizationService.Get("UI.Repair.Firewall.Success"), selectedMod.Name));
+            }
+            catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+            {
+                // Użytkownik anulował UAC prompt
+                System.Diagnostics.Debug.WriteLine("[FixFirewall] Użytkownik anulował prompt UAC.");
+                await ShowMessageAsync(
+                    _localizationService.Get("Dialogs.Info.Title"),
+                    _localizationService.Get("UI.Repair.Cancelled"));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FixFirewall] Błąd: {ex.Message}");
+                await ShowErrorDialogAsync(
+                    string.Format(_localizationService.Get("UI.Repair.Firewall.Error"), ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
             }
         }
 
