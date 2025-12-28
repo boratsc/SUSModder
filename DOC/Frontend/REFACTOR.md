@@ -123,7 +123,7 @@ Prawdopodobnie podczas refaktoryzacji architektury:
 **Nie** – folder zawiera również `Role.cs`, który **jest aktywnie używany**:
 - `RolesService.cs` (pobieranie ról z API)
 - `RolesWindow.axaml.cs` (wyświetlanie listy ról)
-- `RoleDetailWindow.axaml.cs` (szczegóły roli)
+- `RoleDetailWindow` usunięte (szczegóły roli w side sheet RolesWindow)
 
 ---
 

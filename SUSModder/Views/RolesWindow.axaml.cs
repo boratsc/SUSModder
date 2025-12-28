@@ -1,6 +1,8 @@
-﻿using Avalonia.Controls;
+﻿using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using SUSModder.Models;
 using SUSModder.Services;
 using SUSModder.Core.Services.Localization;
@@ -21,6 +23,9 @@ namespace SUSModder.Views
         private readonly int _configId;
         private readonly int _modId; // Zmienione z _modName na _modId
         private readonly string _modName;
+        private Role? _selectedRole;
+        private bool _overlayVisible;
+        private const int OverlayAnimationMs = 180;
 
         public RolesWindow()
         {
@@ -34,6 +39,8 @@ namespace SUSModder.Views
             Title = _localizationService.Get("RolesWindow.WindowTitle");
             TitleText.Text = _localizationService.Get("RolesWindow.Header");
             SubtitleText.Text = _localizationService.Get("RolesWindow.LoadingSubtitle");
+
+            KeyDown += OnWindowKeyDown;
         }
 
         public RolesWindow(int configId, int modId, string modName) // Dodany parametr modId
@@ -51,6 +58,7 @@ namespace SUSModder.Views
 
             Loaded += OnWindowLoaded;
             Closing += OnWindowClosing;
+            KeyDown += OnWindowKeyDown;
         }
 
         // Konstruktor dla kompatybilności wstecznej
@@ -227,8 +235,82 @@ namespace SUSModder.Views
 
         private void ShowRoleDetails(Role role)
         {
-            var detailWindow = new RoleDetailWindow(role);
-            detailWindow.ShowDialog(this);
+            _selectedRole = role;
+
+            DetailSheet.DataContext = role;
+            DetailAbilitiesPanel.IsVisible = role.Abilities.Any();
+
+            DetailOverlay.IsVisible = true;
+            DetailSheet.IsVisible = true;
+            DetailOverlay.IsHitTestVisible = true;
+            DetailSheet.IsHitTestVisible = true;
+
+            DetailOverlay.Opacity = 0;
+            DetailSheet.Opacity = 0;
+            DetailSheet.Margin = new Thickness(0, 0, -12, 0);
+
+            _overlayVisible = true;
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (!_overlayVisible)
+                {
+                    return;
+                }
+
+                DetailOverlay.Opacity = 1;
+                DetailSheet.Margin = new Thickness(0);
+                DetailSheet.Opacity = 1;
+                DetailSheet.Focus();
+            }, DispatcherPriority.Background);
+        }
+
+        private async Task HideRoleDetailsAsync()
+        {
+            if (!_overlayVisible)
+            {
+                return;
+            }
+
+            _overlayVisible = false;
+
+            DetailOverlay.IsHitTestVisible = false;
+            DetailSheet.IsHitTestVisible = false;
+
+            DetailOverlay.Opacity = 0;
+            DetailSheet.Opacity = 0;
+            DetailSheet.Margin = new Thickness(0, 0, -12, 0);
+
+            await Task.Delay(OverlayAnimationMs);
+
+            DetailOverlay.IsVisible = false;
+            DetailSheet.IsVisible = false;
+            _selectedRole = null;
+
+            SearchBox.Focus();
+        }
+
+        private async void OnOverlayBackgroundPointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            if (sender == DetailOverlay)
+            {
+                await HideRoleDetailsAsync();
+                e.Handled = true;
+            }
+        }
+
+        private async void OnCloseOverlayClick(object? sender, RoutedEventArgs e)
+        {
+            await HideRoleDetailsAsync();
+        }
+
+        private async void OnWindowKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape && _overlayVisible)
+            {
+                await HideRoleDetailsAsync();
+                e.Handled = true;
+            }
         }
     }
 }

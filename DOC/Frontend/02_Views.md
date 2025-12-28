@@ -747,12 +747,12 @@ Widok wyboru i instalacji modyfikacji DLL do wybranego moda full.
 
 Okno wyświetlające listę ról w modzie Town of Us / innych modach. Użytkownik może:
 - Przeglądać role (filtrowanie po kategorii: Crewmate, Impostor, Neutral, Modifier)
-- Kliknąć rolę → otwiera `RoleDetailWindow` z szczegółami
+- Kliknąć rolę → otwiera szczegóły w prawym side sheet (overlay z blurem), bez osobnego okna
 
 #### Struktura XAML
 
 ```xml
-<Window Title="Role - {ModName}" Width="800" Height="600">
+<Window Title="Role - {ModName}" Width="1200" Height="800">
     <Grid>
         <!-- Filtry kategorii -->
         <StackPanel Orientation="Horizontal">
@@ -764,19 +764,21 @@ Okno wyświetlające listę ról w modzie Town of Us / innych modach. Użytkowni
         </StackPanel>
         
         <!-- Lista ról -->
-        <ListBox ItemsSource="{Binding FilteredRoles}">
-            <ListBox.ItemTemplate>
+        <ItemsControl ItemsSource="{Binding FilteredRoles}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Grid>
-                        <TextBlock Text="{Binding Name}" FontSize="16" />
-                        <TextBlock Text="{Binding Category}" />
-                        <TextBlock Text="{Binding Type}" />
-                        <Button Content="Zobacz szczegóły" Click="OnShowDetailsClick" 
-                                Tag="{Binding}" />
-                    </Grid>
+                    <Border Classes="role-card"
+                            PointerPressed="OnRoleCardClick">
+                        <!-- karta roli z nagłówkiem, opisem, abilities tagami, mod name -->
+                    </Border>
                 </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
     </Grid>
 </Window>
 ```
@@ -784,58 +786,44 @@ Okno wyświetlające listę ról w modzie Town of Us / innych modach. Użytkowni
 #### Code-behind
 
 ```csharp
-private async void OnShowDetailsClick(object? sender, RoutedEventArgs e)
+private void OnRoleCardClick(object? sender, PointerPressedEventArgs e)
 {
-    var button = sender as Button;
-    var role = button?.Tag as Role;
-    
-    if (role != null)
+    if (sender is Border { DataContext: Role role })
     {
-        var detailWindow = new RoleDetailWindow(role);
-        detailWindow.Show();
+        ShowRoleDetails(role); // otwiera side sheet (overlay)
     }
 }
 ```
 
 ---
 
-### RoleDetailWindow
+### Side sheet szczegółów roli (wbudowany w RolesWindow)
 
-**Pliki:** `RoleDetailWindow.axaml` + `RoleDetailWindow.axaml.cs`
+**Plik:** `RolesWindow.axaml` (sekcja overlay + side sheet) + `RolesWindow.axaml.cs` (logika otwierania/zamykania)
 
 #### Odpowiedzialności
 
-Okno szczegółów pojedynczej roli. Wyświetla:
+Pływający panel (overlay z blurem) pokazujący szczegóły roli w tym samym oknie. Wyświetla:
 - Nazwę roli
-- Kategorię (Crewmate/Impostor/Neutral)
+- Kategorię/typ z kolorowym nagłówkiem
 - Opis
-- Listę umiejętności (Abilities)
+- Listę umiejętności (Abilities) – ukrywana, jeśli brak
+- Nazwę moda
 
-#### Struktura XAML
+#### Struktura (skrót)
 
 ```xml
-<Window Title="{Binding RoleName}" Width="500" Height="600">
+<Border x:Name="DetailOverlay" Background="#B3000000" Effect="Blur(10)" />
+<Border x:Name="DetailSheet" HorizontalAlignment="Right" MinWidth="360" MaxWidth="520">
     <StackPanel>
-        <TextBlock Text="{Binding RoleName}" FontSize="24" />
-        <TextBlock Text="{Binding Category}" />
-        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
-        
-        <TextBlock Text="Umiejętności:" FontSize="18" />
-        <ItemsControl ItemsSource="{Binding Abilities}">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel>
-                        <TextBlock Text="{Binding Name}" FontWeight="Bold" />
-                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
-                    </StackPanel>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <!-- nagłówek z kategorią/typem i przyciskiem zamknięcia -->
+        <!-- opis -->
+        <!-- abilities list (ItemsControl) -->
+        <!-- mod info -->
     </StackPanel>
-</Window>
+</Border>
 ```
-
----
+Zamykanie: klik tła, przycisk ✕, klawisz Esc. Animacje: fade + lekki slide (Margin).```
 
 ### ConsoleWindow
 

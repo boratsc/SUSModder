@@ -233,11 +233,11 @@ Aplikacja SUSModder została w pełni zmigrowana do systemu dwujęzycznego (pols
 - [x] SUStatsConfigView.axaml ✅
 - [x] SUStatsConfigWindow.axaml ✅
 - [x] RolesWindow.axaml + .cs ✅
-- [x] RoleDetailWindow.axaml ✅
+- [x] RoleDetailWindow (scalone z RolesWindow – brak osobnego widoku) ✅
 - [x] RecommendedDiscordsWindow.axaml ✅
 - [x] SplashWindow.axaml ✅
 
-**Podsumowanie**: Wszystkie widoki (31/31) zostały w pełni zmigrowane do systemu lokalizacji ✨
+**Podsumowanie**: Wszystkie widoki (30/30, po scaleniu RoleDetailWindow w RolesWindow) zostały w pełni zmigrowane do systemu lokalizacji ✨
 - [x] RecommendedDiscordsWindow.axaml ✅
 - [x] SplashWindow.axaml ✅
 - [x] MainWindow.axaml (StatusBar, Labels, Tooltips) ✅
@@ -273,10 +273,9 @@ Aplikacja SUSModder została w pełni zmigrowana do systemu dwujęzycznego (pols
 24. SUStatsConfirmDialog.axaml ✅
 25. SUStatsConfigView.axaml ✅
 26. RolesWindow.axaml + .cs ✅
-27. RoleDetailWindow.axaml ✅
-28. RecommendedDiscordsWindow.axaml ✅
-29. SplashWindow.axaml ✅
-30. MainWindow.axaml (StatusBar) ✅
+27. RecommendedDiscordsWindow.axaml ✅
+28. SplashWindow.axaml ✅
+29. MainWindow.axaml (StatusBar) ✅
 
 **Uwaga**: Pozostałe widoki (~15) to mniej istotne komponenty lub widoki techniczne/wewnętrzne, które nie wymagają lokalizacji lub zostaną zmigowane w razie potrzeby.
 23. ChangePresetNamesDialog.axaml ✅

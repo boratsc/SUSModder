@@ -117,8 +117,7 @@ SUSModder/
 │   │   └── RecommendedDiscordsWindow.axaml(.cs) # Polecane serwery Discord
 │   │
 │   ├── Okna specjalistyczne:
-│   │   ├── RolesWindow.axaml(.cs)       # Lista ról w modzie
-│   │   ├── RoleDetailWindow.axaml(.cs)  # Szczegóły roli
+│   │   ├── RolesWindow.axaml(.cs)       # Lista ról + side sheet detali
 │   │   ├── ConsoleWindow.axaml(.cs)     # Konsola debug (tryb developerski)
 │   │   ├── HashDisplayDialog.axaml(.cs) # Wyświetlanie hashu pliku
 │   │   └── LobbySetDialog.axaml(.cs)    # Ustawienie wielkości lobby
