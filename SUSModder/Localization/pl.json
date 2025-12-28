@@ -178,6 +178,18 @@
         "ExeNotFound": "Nie znaleziono pliku Among Us.exe w ścieżce: {0}",
         "NoModsInstalled": "Brak zainstalowanych modów typu full. Zainstaluj najpierw jakiś mod."
       },
+      "EpicAuth": {
+        "Title": "Konto Epic Games",
+        "Description": "Wyloguj lub zaloguj się ponownie do Epic Games Store. Użyj w przypadku problemów z autoryzacją.",
+        "Logout": "Wyloguj",
+        "Login": "Zaloguj",
+        "LogoutConfirm": "Czy na pewno chcesz wylogować się z konta Epic Games? Będziesz musiał zalogować się ponownie przy następnym uruchomieniu gry.",
+        "LogoutSuccess": "Pomyślnie wylogowano z konta Epic Games.",
+        "LogoutError": "Nie udało się wylogować z konta Epic Games.",
+        "LoginSuccess": "Pomyślnie zalogowano do konta Epic Games.",
+        "LoginError": "Nie udało się zalogować do konta Epic Games.",
+        "Error": "Wystąpił błąd podczas operacji Epic Games: {0}"
+      },
       "Cancelled": "Operacja anulowana przez użytkownika.",
       "Error": "Wystąpił błąd podczas naprawy: {0}"
     }

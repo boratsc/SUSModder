@@ -648,6 +648,88 @@ namespace SUSModder.Core.GameIntegration
             }
         }
 
+        /// <summary>
+        /// Wylogowuje użytkownika z Epic Games Store (legendary auth --delete).
+        /// Usuwa zapisane dane uwierzytelniania.
+        /// </summary>
+        /// <returns>True jeśli wylogowanie się powiodło, false w przeciwnym razie</returns>
+        public async Task<bool> LogoutAsync()
+        {
+            try
+            {
+                if (!File.Exists(legendaryPath))
+                {
+                    Write("Legendary.exe nie znaleziony.");
+                    ShowError("Legendary.exe nie został znaleziony. Nie można wylogować.");
+                    return false;
+                }
+
+                Write("Wylogowywanie z Epic Games Store...");
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = legendaryPath,
+                    Arguments = "auth --delete",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var process = Process.Start(psi);
+                if (process == null)
+                {
+                    Write("Nie udało się uruchomić legendary.exe");
+                    ShowError("Nie udało się uruchomić procesu wylogowywania.");
+                    return false;
+                }
+
+                var stderr = await process.StandardError.ReadToEndAsync();
+                var stdout = await process.StandardOutput.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode == 0)
+                {
+                    Write("✓ Pomyślnie wylogowano z Epic Games Store");
+                    return true;
+                }
+                else
+                {
+                    Write($"✗ Błąd wylogowywania: {stderr}");
+                    // Nawet jeśli zwróci błąd, często działa (np. gdy już byliśmy wylogowani)
+                    if (stderr.Contains("No saved credentials") || stderr.Contains("not logged in"))
+                    {
+                        Write("Użytkownik nie był zalogowany - traktowane jako sukces");
+                        return true;
+                    }
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Write($"Błąd podczas wylogowywania: {ex.Message}");
+                ShowError($"Wystąpił błąd podczas wylogowywania z Epic Games:\n{ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Loguje użytkownika do Epic Games Store.
+        /// Publiczna wersja AuthenticateAsync do wywołania z UI.
+        /// </summary>
+        /// <returns>True jeśli logowanie się powiodło, false w przeciwnym razie</returns>
+        public async Task<bool> LoginAsync()
+        {
+            if (!File.Exists(legendaryPath))
+            {
+                Write("Legendary.exe nie znaleziony.");
+                ShowError("Legendary.exe nie został znaleziony. Nie można zalogować.");
+                return false;
+            }
+
+            return await AuthenticateAsync();
+        }
+
         public async Task HandleEpicGameAsync(ModConfiguration modConfig)
         {
             if (modConfig == null || string.IsNullOrEmpty(modConfig.AmongVersion))

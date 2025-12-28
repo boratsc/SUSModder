@@ -178,6 +178,18 @@
         "ExeNotFound": "Among Us.exe not found at path: {0}",
         "NoModsInstalled": "No full mods installed. Install a mod first."
       },
+      "EpicAuth": {
+        "Title": "Epic Games Account",
+        "Description": "Log out or log in again to Epic Games Store. Use this if you have authorization issues.",
+        "Logout": "Log Out",
+        "Login": "Log In",
+        "LogoutConfirm": "Are you sure you want to log out of your Epic Games account? You will need to log in again when launching a game.",
+        "LogoutSuccess": "Successfully logged out of Epic Games account.",
+        "LogoutError": "Failed to log out of Epic Games account.",
+        "LoginSuccess": "Successfully logged in to Epic Games account.",
+        "LoginError": "Failed to log in to Epic Games account.",
+        "Error": "Error during Epic Games operation: {0}"
+      },
       "Cancelled": "Operation cancelled by user.",
       "Error": "Error during repair: {0}"
     }

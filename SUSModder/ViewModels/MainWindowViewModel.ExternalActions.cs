@@ -8,6 +8,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using SUSModder.Core.Utilities;
 using SUSModder.Views;
+using SUSModder.ViewModels.Helpers;
 
 namespace SUSModder.ViewModels
 {
@@ -159,6 +160,14 @@ namespace SUSModder.ViewModels
                         }
                         break;
 
+                    case RepairOption.EpicLogout:
+                        await ExecuteEpicLogoutAsync();
+                        break;
+
+                    case RepairOption.EpicLogin:
+                        await ExecuteEpicLoginAsync();
+                        break;
+
                     case RepairOption.None:
                     default:
                         // Użytkownik anulował
@@ -170,6 +179,88 @@ namespace SUSModder.ViewModels
                 // Dialog błędu na UI thread
                 await ShowErrorDialogAsync(
                     string.Format(_localizationService.Get("UI.Repair.Error"), ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
+            }
+        }
+
+        private async Task ExecuteEpicLogoutAsync()
+        {
+            try
+            {
+                // Potwierdzenie przed wylogowaniem
+                var confirmResult = await ShowConfirmDialogAsync(
+                    _localizationService.Get("UI.Repair.EpicAuth.LogoutConfirm"),
+                    _localizationService.Get("Dialogs.Confirm.Title"));
+
+                if (!confirmResult)
+                    return;
+
+                // Utwórz instancję EpicVersionManager
+                var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EpicAuth] {message}");
+                });
+                
+                var epicManager = new SUSModder.Core.GameIntegration.EpicVersionManager(
+                    diagnosticsOutput,
+                    new EpicUserInteractionAdapter(_userInteractionService)
+                );
+
+                var result = await epicManager.LogoutAsync();
+
+                if (result)
+                {
+                    await ShowMessageAsync(
+                        _localizationService.Get("Dialogs.Success.Title"),
+                        _localizationService.Get("UI.Repair.EpicAuth.LogoutSuccess"));
+                }
+                else
+                {
+                    await ShowErrorDialogAsync(
+                        _localizationService.Get("UI.Repair.EpicAuth.LogoutError"),
+                        _localizationService.Get("Dialogs.Error.Title"));
+                }
+            }
+            catch (Exception ex)
+            {
+                await ShowErrorDialogAsync(
+                    string.Format(_localizationService.Get("UI.Repair.EpicAuth.Error"), ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
+            }
+        }
+
+        private async Task ExecuteEpicLoginAsync()
+        {
+            try
+            {
+                // Utwórz instancję EpicVersionManager
+                var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EpicAuth] {message}");
+                });
+                
+                var epicManager = new SUSModder.Core.GameIntegration.EpicVersionManager(
+                    diagnosticsOutput,
+                    new EpicUserInteractionAdapter(_userInteractionService)
+                );
+
+                var result = await epicManager.LoginAsync();
+
+                if (result)
+                {
+                    await ShowMessageAsync(
+                        _localizationService.Get("Dialogs.Success.Title"),
+                        _localizationService.Get("UI.Repair.EpicAuth.LoginSuccess"));
+                }
+                else
+                {
+                    // Użytkownik anulował lub wystąpił błąd - obsługa jest już w EpicVersionManager
+                }
+            }
+            catch (Exception ex)
+            {
+                await ShowErrorDialogAsync(
+                    string.Format(_localizationService.Get("UI.Repair.EpicAuth.Error"), ex.Message),
                     _localizationService.Get("Dialogs.Error.Title"));
             }
         }

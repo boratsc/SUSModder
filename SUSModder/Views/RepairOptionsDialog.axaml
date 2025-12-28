@@ -222,6 +222,109 @@
                     </StackPanel>
                 </Grid>
             </Button>
+            
+            <!-- Opcja 5: Epic Games Authentication (tylko Epic) -->
+            <Border x:Name="EpicAuthSection"
+                    HorizontalAlignment="Stretch"
+                    Padding="16"
+                    Background="{DynamicResource ModCardBackgroundBrush}"
+                    BorderBrush="{DynamicResource ModCardBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="10">
+                <Border.Styles>
+                    <Style Selector="Border.epic-auth:disabled">
+                        <Setter Property="Opacity" Value="0.5"/>
+                    </Style>
+                </Border.Styles>
+                
+                <Grid RowDefinitions="Auto,Auto">
+                    <!-- Nagłówek z ikoną i opisem -->
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
+                        <Border Grid.Column="0" 
+                                Width="48" Height="48" 
+                                CornerRadius="8"
+                                Background="#E91E63"
+                                Margin="0,0,16,0">
+                            <ic:SymbolIcon Symbol="{x:Static fic:Symbol.PersonKey}" FontSize="24" Foreground="White"/>
+                        </Border>
+                        
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="{loc:Localize UI.Repair.EpicAuth.Title}"
+                                           FontSize="16" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <!-- Badge Epic only -->
+                                <Border Background="#E91E63" CornerRadius="4" Padding="6,2">
+                                    <TextBlock Text="Epic"
+                                               FontSize="10" FontWeight="SemiBold"
+                                               Foreground="White"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="{loc:Localize UI.Repair.EpicAuth.Description}"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                    
+                    <!-- Przyciski Wyloguj / Zaloguj -->
+                    <Grid Grid.Row="1" ColumnDefinitions="*,12,*" Margin="0,12,0,0">
+                        <Button x:Name="EpicLogoutButton"
+                                Grid.Column="0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                Height="36"
+                                Background="#D32F2F"
+                                Foreground="White"
+                                CornerRadius="6"
+                                Cursor="Hand"
+                                Click="OnEpicLogoutClick">
+                            <Button.Styles>
+                                <Style Selector="Button:pointerover">
+                                    <Setter Property="Background" Value="#B71C1C"/>
+                                </Style>
+                                <Style Selector="Button:disabled">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Style>
+                            </Button.Styles>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ic:SymbolIcon Symbol="{x:Static fic:Symbol.SignOut}" FontSize="16" Foreground="White"/>
+                                <TextBlock Text="{loc:Localize UI.Repair.EpicAuth.Logout}"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <Button x:Name="EpicLoginButton"
+                                Grid.Column="2"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                Height="36"
+                                Background="#4CAF50"
+                                Foreground="White"
+                                CornerRadius="6"
+                                Cursor="Hand"
+                                Click="OnEpicLoginClick">
+                            <Button.Styles>
+                                <Style Selector="Button:pointerover">
+                                    <Setter Property="Background" Value="#388E3C"/>
+                                </Style>
+                                <Style Selector="Button:disabled">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Style>
+                            </Button.Styles>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ic:SymbolIcon Symbol="{x:Static fic:Symbol.PersonAdd}" FontSize="16" Foreground="White"/>
+                                <TextBlock Text="{loc:Localize UI.Repair.EpicAuth.Login}"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Grid>
+            </Border>
 
         </StackPanel>
         </ScrollViewer>

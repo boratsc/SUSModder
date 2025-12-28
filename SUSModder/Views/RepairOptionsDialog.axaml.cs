@@ -9,7 +9,9 @@ namespace SUSModder.Views
         BlackScreen,
         Certificates,
         Regions,
-        Firewall
+        Firewall,
+        EpicLogout,
+        EpicLogin
     }
 
     public partial class RepairOptionsDialog : Window
@@ -30,6 +32,7 @@ namespace SUSModder.Views
         {
             IsSteamPlatform = isSteamPlatform;
             UpdateFirewallButtonState();
+            UpdateEpicAuthSectionState();
         }
         
         private void UpdateFirewallButtonState()
@@ -38,6 +41,27 @@ namespace SUSModder.Views
             {
                 FirewallButton.IsEnabled = IsSteamPlatform;
                 FirewallButton.Opacity = IsSteamPlatform ? 1.0 : 0.5;
+            }
+        }
+        
+        private void UpdateEpicAuthSectionState()
+        {
+            bool isEpicPlatform = !IsSteamPlatform;
+            
+            if (EpicAuthSection != null)
+            {
+                EpicAuthSection.IsEnabled = isEpicPlatform;
+                EpicAuthSection.Opacity = isEpicPlatform ? 1.0 : 0.5;
+            }
+            
+            if (EpicLogoutButton != null)
+            {
+                EpicLogoutButton.IsEnabled = isEpicPlatform;
+            }
+            
+            if (EpicLoginButton != null)
+            {
+                EpicLoginButton.IsEnabled = isEpicPlatform;
             }
         }
 
@@ -64,6 +88,24 @@ namespace SUSModder.Views
             if (IsSteamPlatform)
             {
                 SelectedOption = RepairOption.Firewall;
+                Close();
+            }
+        }
+        
+        private void OnEpicLogoutClick(object? sender, RoutedEventArgs e)
+        {
+            if (!IsSteamPlatform) // Epic platform
+            {
+                SelectedOption = RepairOption.EpicLogout;
+                Close();
+            }
+        }
+        
+        private void OnEpicLoginClick(object? sender, RoutedEventArgs e)
+        {
+            if (!IsSteamPlatform) // Epic platform
+            {
+                SelectedOption = RepairOption.EpicLogin;
                 Close();
             }
         }
