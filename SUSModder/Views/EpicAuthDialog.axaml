@@ -106,18 +106,17 @@
 					     Foreground="{DynamicResource TextSecondaryBrush}"/>
 					<LineBreak/>
 					<LineBreak/>
-					<Run Text="4️⃣  ZAZNACZ CAŁY TEKST (Ctrl+A)" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
+					<Run Text="4️⃣  ZAZNACZ CAŁY TEKST (Ctrl+A) i SKOPIUJ (Ctrl+C)" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
 					<LineBreak/>
 					<LineBreak/>
-					<Run Text="5️⃣  SKOPIUJ (Ctrl+C)" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
-					<LineBreak/>
-					<LineBreak/>
-					<Run Text="6️⃣  WKLEJ PONIŻEJ (Ctrl+V)" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
-					<LineBreak/>
-					<LineBreak/>
-					<Run Text="✅ Aplikacja automatycznie wyciągnie kod autoryzacji!"
+					<Run Text="✨ Kod zostanie AUTOMATYCZNIE wykryty i logowanie nastąpi!"
 					     FontWeight="Bold"
 					     Foreground="#4ecca3"/>
+					<LineBreak/>
+					<LineBreak/>
+					<Run Text="💡 Możesz też ręcznie wkleić kod poniżej (Ctrl+V)"
+					     FontSize="12"
+					     Foreground="{DynamicResource TextSecondaryBrush}"/>
 				</TextBlock>
 			</StackPanel>
 		</Border>
@@ -168,13 +167,24 @@
 		        BorderThickness="1"
 		        CornerRadius="6"
 		        Padding="15,10"
-		        Margin="0,0,0,15">
-			<TextBlock Text="{Binding AutoOpenMessage}"
-			           FontSize="13"
-			           FontWeight="SemiBold"
-			           Foreground="{DynamicResource AccentBrush}"
-			           TextAlignment="Center"
-			           TextWrapping="Wrap"/>
+		        Margin="0,0,0,10">
+			<StackPanel>
+				<TextBlock Text="{Binding AutoOpenMessage}"
+				           FontSize="13"
+				           FontWeight="SemiBold"
+				           Foreground="{DynamicResource AccentBrush}"
+				           TextAlignment="Center"
+				           TextWrapping="Wrap"/>
+				
+				<!-- Status monitorowania schowka -->
+				<TextBlock Text="{Binding ClipboardMonitorStatus}"
+				           FontSize="12"
+				           Foreground="#4ecca3"
+				           TextAlignment="Center"
+				           TextWrapping="Wrap"
+				           Margin="0,8,0,0"
+				           IsVisible="{Binding ClipboardMonitorStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+			</StackPanel>
 		</Border>
 
 		<!-- Przyciski -->

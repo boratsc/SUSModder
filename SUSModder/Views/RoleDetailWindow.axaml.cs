@@ -15,21 +15,12 @@ namespace SUSModder.Views
         {
             InitializeComponent();
             DataContext = role;
-            LoadRoleData(role);
-        }
-
-        private void LoadRoleData(Role role)
-        {
+            
+            // Ustaw tytuł okna
             Title = $"Szczegóły roli - {role.Name}";
-            RoleName.Text = role.Name;
-            RoleCategory.Text = role.Category;
-            RoleType.Text = role.Type;
-            RoleDescription.Text = role.Description;
-            ModName.Text = role.ModName;
-
+            
             // Pokaż panel zdolności tylko jeśli rola ma zdolności
             AbilitiesPanel.IsVisible = role.Abilities.Any();
-            AbilitiesItemsControl.ItemsSource = role.Abilities;
         }
 
         private void OnCloseClick(object? sender, RoutedEventArgs e)
