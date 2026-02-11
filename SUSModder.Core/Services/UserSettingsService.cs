@@ -155,6 +155,23 @@ namespace SUSModder.Core.Services
         }
 
         /// <summary>
+        /// Aktualizuje pole tylko jeśli aktualna wartość jest pusta.
+        /// </summary>
+        public void UpdateIfEmpty(Func<UserSettings, string?> getCurrentValue, Action<UserSettings, string> setValue, string? newValue)
+        {
+            if (string.IsNullOrWhiteSpace(newValue))
+                return;
+
+            var settings = LoadUserSettings();
+            var current = getCurrentValue(settings);
+            if (!string.IsNullOrWhiteSpace(current))
+                return;
+
+            setValue(settings, newValue);
+            SaveUserSettings(settings);
+        }
+
+        /// <summary>
         /// Resetuje cache - używaj po aktualizacji aplikacji.
         /// </summary>
         public void ClearCache()

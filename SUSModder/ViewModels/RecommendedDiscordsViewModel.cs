@@ -3,20 +3,29 @@ using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Diagnostics;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using SUSModder.Core.Models;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using System.IO;
 using System.Threading.Tasks;
+using System.Threading;
 using Avalonia.Threading;
 using System.Linq;
 using SUSModder.Services;
+using System.Net;
+using System.Net.Http;
 
 namespace SUSModder.ViewModels
 {
     public class RecommendedDiscordsViewModel : ViewModelBase
     {
+        private static readonly HttpClient _inviteValidationClient = CreateInviteValidationClient();
+        private static readonly ConcurrentDictionary<string, (bool IsValid, DateTimeOffset CheckedAt)> _inviteValidationCache = new();
+        private static readonly TimeSpan _inviteCacheTtl = TimeSpan.FromMinutes(30);
+
         private bool _isLoading = true;
         private string _statusMessage = "Ładowanie serwerów Discord...";
 
@@ -60,15 +69,17 @@ namespace SUSModder.ViewModels
 
                 if (preloadedServers != null && preloadedServers.Any())
                 {
+                    var filteredPreloadedServers = await FilterValidInvitesAsync(preloadedServers);
+
                     // Użyj preloadowanych ViewModels z ikonami
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         DiscordServers.Clear();
-                        foreach (var serverVM in preloadedServers)
+                        foreach (var serverVM in filteredPreloadedServers)
                         {
                             DiscordServers.Add(serverVM);
                         }
-                        StatusMessage = $"Załadowano {preloadedServers.Count} serwerów Discord";
+                        StatusMessage = $"Załadowano {filteredPreloadedServers.Count} serwerów Discord";
                     });
                 }
                 else
@@ -89,26 +100,34 @@ namespace SUSModder.ViewModels
                     var discordService = new DiscordFavoritesService(configuration, diagnosticsOutput);
                     var serverDataList = await discordService.GetDiscordFavoritesAsync();
                     var discordServers = DiscordServerAdapter.FromServerDataList(serverDataList);
+                    var filteredDiscordServers = await FilterValidInvitesAsync(discordServers);
 
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         DiscordServers.Clear();
 
-                        if (discordServers.Any())
+                        if (filteredDiscordServers.Any())
                         {
-                            foreach (var server in discordServers)
+                            foreach (var server in filteredDiscordServers)
                             {
                                 var serverVM = new DiscordServerViewModel(server);
                                 DiscordServers.Add(serverVM);
                                 // Załaduj ikony w tle
                                 _ = Task.Run(async () => await serverVM.LoadIconAsync());
                             }
-                            StatusMessage = $"Załadowano {discordServers.Count} serwerów Discord";
+                            StatusMessage = $"Załadowano {filteredDiscordServers.Count} serwerów Discord";
                         }
                         else
                         {
-                            LoadPlaceholderData();
-                            StatusMessage = "Używam danych przykładowych (problem z połączeniem)";
+                            if (!discordServers.Any())
+                            {
+                                LoadPlaceholderData();
+                                StatusMessage = "Używam danych przykładowych (problem z połączeniem)";
+                            }
+                            else
+                            {
+                                StatusMessage = "Załadowano 0 serwerów Discord";
+                            }
                         }
                     });
                 }
@@ -188,6 +207,245 @@ namespace SUSModder.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"Nie udało się otworzyć linku Discord: {ex.Message}");
             }
+        }
+
+        private static async Task<List<DiscordServer>> FilterValidInvitesAsync(List<DiscordServer> servers)
+        {
+            if (servers.Count == 0)
+            {
+                return servers;
+            }
+
+            using var semaphore = new SemaphoreSlim(4);
+
+            var tasks = servers.Select(async server =>
+            {
+                await semaphore.WaitAsync().ConfigureAwait(false);
+                try
+                {
+                    var isValid = await IsInviteValidAsync(server.InviteLink).ConfigureAwait(false);
+                    return (Server: server, IsValid: isValid);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }).ToArray();
+
+            var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+
+            return results
+                .Where(result => result.IsValid)
+                .Select(result => result.Server)
+                .ToList();
+        }
+
+        private static async Task<List<DiscordServerViewModel>> FilterValidInvitesAsync(List<DiscordServerViewModel> servers)
+        {
+            if (servers.Count == 0)
+            {
+                return servers;
+            }
+
+            using var semaphore = new SemaphoreSlim(4);
+
+            var tasks = servers.Select(async server =>
+            {
+                await semaphore.WaitAsync().ConfigureAwait(false);
+                try
+                {
+                    var isValid = await IsInviteValidAsync(server.InviteLink).ConfigureAwait(false);
+                    return (Server: server, IsValid: isValid);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }).ToArray();
+
+            var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+
+            return results
+                .Where(result => result.IsValid)
+                .Select(result => result.Server)
+                .ToList();
+        }
+
+        private static async Task<bool> IsInviteValidAsync(string inviteLink)
+        {
+            if (string.IsNullOrWhiteSpace(inviteLink))
+            {
+                return false;
+            }
+
+            if (!TryExtractInviteCode(inviteLink, out var code))
+            {
+                // Jeśli nie potrafimy wyciągnąć kodu, nie blokujmy wyświetlania.
+                return true;
+            }
+
+            if (TryGetCachedInviteValidation(code, out var cached))
+            {
+                return cached;
+            }
+
+            try
+            {
+                var url = $"https://discord.com/api/v10/invites/{code}?with_counts=false&with_expiration=true";
+                using var response = await _inviteValidationClient.GetAsync(url).ConfigureAwait(false);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    CacheInviteValidation(code, true);
+                    return true;
+                }
+
+                if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.Gone)
+                {
+                    CacheInviteValidation(code, false);
+                    return false;
+                }
+
+                if (response.StatusCode == (HttpStatusCode)429)
+                {
+                    // Rate limit - nie ukrywaj przy ograniczeniu.
+                    return true;
+                }
+
+                var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                if (body.Contains("\"code\": 10006", StringComparison.OrdinalIgnoreCase) ||
+                    body.Contains("Unknown Invite", StringComparison.OrdinalIgnoreCase))
+                {
+                    CacheInviteValidation(code, false);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Discord Invite Validation] Error: {ex.Message}");
+            }
+
+            return true;
+        }
+
+        private static bool TryExtractInviteCode(string inviteLink, out string code)
+        {
+            code = string.Empty;
+
+            var trimmed = inviteLink.Trim();
+            if (trimmed.Length == 0)
+            {
+                return false;
+            }
+
+            if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+            {
+                if (IsLikelyInviteCode(trimmed))
+                {
+                    code = trimmed;
+                    return true;
+                }
+
+                return false;
+            }
+
+            var host = uri.Host.ToLowerInvariant();
+            var path = uri.AbsolutePath.Trim('/');
+
+            if (host.EndsWith("discord.gg"))
+            {
+                if (path.StartsWith("invite/", StringComparison.OrdinalIgnoreCase))
+                {
+                    path = path.Substring("invite/".Length);
+                }
+
+                var candidate = path.Split('/')[0];
+                if (IsLikelyInviteCode(candidate))
+                {
+                    code = candidate;
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (host.EndsWith("discord.com") || host.EndsWith("discordapp.com"))
+            {
+                var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                if (segments.Length >= 2 && segments[0].Equals("invite", StringComparison.OrdinalIgnoreCase))
+                {
+                    var candidate = segments[1];
+                    if (IsLikelyInviteCode(candidate))
+                    {
+                        code = candidate;
+                        return true;
+                    }
+                }
+                else if (segments.Length >= 3 &&
+                         segments[0].Equals("api", StringComparison.OrdinalIgnoreCase) &&
+                         segments[1].Equals("invites", StringComparison.OrdinalIgnoreCase))
+                {
+                    var candidate = segments[2];
+                    if (IsLikelyInviteCode(candidate))
+                    {
+                        code = candidate;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsLikelyInviteCode(string candidate)
+        {
+            if (string.IsNullOrWhiteSpace(candidate))
+            {
+                return false;
+            }
+
+            if (candidate.Length < 2 || candidate.Length > 64)
+            {
+                return false;
+            }
+
+            return candidate.All(ch => char.IsLetterOrDigit(ch) || ch == '-' || ch == '_');
+        }
+
+        private static bool TryGetCachedInviteValidation(string code, out bool isValid)
+        {
+            isValid = false;
+
+            if (_inviteValidationCache.TryGetValue(code, out var cached))
+            {
+                if (DateTimeOffset.UtcNow - cached.CheckedAt <= _inviteCacheTtl)
+                {
+                    isValid = cached.IsValid;
+                    return true;
+                }
+
+                _inviteValidationCache.TryRemove(code, out _);
+            }
+
+            return false;
+        }
+
+        private static void CacheInviteValidation(string code, bool isValid)
+        {
+            _inviteValidationCache[code] = (isValid, DateTimeOffset.UtcNow);
+        }
+
+        private static HttpClient CreateInviteValidationClient()
+        {
+            var client = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(8)
+            };
+
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("SUSModder/1.0");
+            client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+
+            return client;
         }
     }
 

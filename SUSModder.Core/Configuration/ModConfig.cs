@@ -1,13 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using SUSModder.Core.Repositories;
+using SUSModder.Core.Services;
+using SUSModder.Core.Utilities;
 
 namespace SUSModder.Core.Configuration
 {
@@ -160,11 +164,34 @@ namespace SUSModder.Core.Configuration
 
             if (localConfigs.Count > 0)
             {
+                var vanillaUpdated = EnsureVanillaConfigPresent(localConfigs);
+                if (vanillaUpdated)
+                {
+                    configRepo.SaveConfig(localConfigs);
+                    System.Diagnostics.Debug.WriteLine("[ConfigManager] Vanilla config restored/updated in local config.");
+                }
+                else
+                {
+                    PersistVanillaPathIfNeeded(localConfigs);
+                }
+
                 System.Diagnostics.Debug.WriteLine("Using local config");
                 return localConfigs;
             }
 
             System.Diagnostics.Debug.WriteLine("Local config not found, fetching from API...");
+
+            // Spróbuj wczytać config z poprzedniej wersji (Velopack)
+            List<ModConfiguration>? previousConfigs = null;
+            var previousConfigPath = PreviousVersionLocator.TryGetPreviousConfigPath();
+            if (!string.IsNullOrWhiteSpace(previousConfigPath))
+            {
+                previousConfigs = LoadConfigFromFile(previousConfigPath);
+                if (previousConfigs != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ConfigManager] Loaded previous config: {previousConfigPath} (count: {previousConfigs.Count})");
+                }
+            }
 
             try
             {
@@ -174,19 +201,35 @@ namespace SUSModder.Core.Configuration
 
                 if (apiConfigs.Count > 0)
                 {
+                    if (previousConfigs != null && previousConfigs.Count > 0)
+                    {
+                        MergeInstallDataFromPrevious(apiConfigs, previousConfigs);
+                        EnsureVanillaConfigPresent(apiConfigs, previousConfigs);
+                    }
+
                     System.Diagnostics.Debug.WriteLine("Saving API config locally...");
                     configRepo.SaveConfig(apiConfigs);
                     System.Diagnostics.Debug.WriteLine("Config saved successfully");
-                }
 
-                return apiConfigs;
+                    PersistVanillaPathIfNeeded(apiConfigs);
+                    return apiConfigs;
+                }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"API fetch failed: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                return new List<ModConfiguration>();
             }
+
+            if (previousConfigs != null && previousConfigs.Count > 0)
+            {
+                EnsureVanillaConfigPresent(previousConfigs);
+                configRepo.SaveConfig(previousConfigs);
+                PersistVanillaPathIfNeeded(previousConfigs);
+                return previousConfigs;
+            }
+
+            return new List<ModConfiguration>();
         }
 
         private static async Task<List<ModConfiguration>> FetchConfigFromApiAsync()
@@ -263,6 +306,230 @@ namespace SUSModder.Core.Configuration
             }
             var json = JsonSerializer.Serialize(configs, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(configFilePath, json);
+        }
+
+        private static List<ModConfiguration>? LoadConfigFromFile(string? filePath)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+                    return null;
+
+                var json = File.ReadAllText(filePath);
+                return JsonSerializer.Deserialize<List<ModConfiguration>>(json) ?? new List<ModConfiguration>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ConfigManager] Failed to load config from {filePath}: {ex.Message}");
+                return null;
+            }
+        }
+
+        private static bool IsVanillaConfig(ModConfiguration config)
+        {
+            if (config == null) return false;
+            return config.ModName.Equals("AmongUs", StringComparison.OrdinalIgnoreCase) ||
+                   config.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryGetVanillaInstallPath(IEnumerable<ModConfiguration> configs, out string? installPath, out ModConfiguration? vanillaConfig)
+        {
+            vanillaConfig = configs.FirstOrDefault(IsVanillaConfig);
+            if (vanillaConfig != null && !string.IsNullOrWhiteSpace(vanillaConfig.InstallPath))
+            {
+                installPath = vanillaConfig.InstallPath;
+                return true;
+            }
+
+            installPath = null;
+            return false;
+        }
+
+        private static bool EnsureVanillaConfigPresent(List<ModConfiguration> configs, List<ModConfiguration>? previousConfigs = null)
+        {
+            if (TryGetVanillaInstallPath(configs, out var existingPath, out _))
+            {
+                PersistVanillaPathIfNeeded(existingPath);
+                return false;
+            }
+
+            // 1) Spróbuj z poprzedniego configu (Velopack)
+            ModConfiguration? sourceVanilla = null;
+            if (previousConfigs != null)
+            {
+                sourceVanilla = previousConfigs.FirstOrDefault(IsVanillaConfig);
+            }
+            else
+            {
+                var prevPath = PreviousVersionLocator.TryGetPreviousConfigPath();
+                var prevConfigs = LoadConfigFromFile(prevPath);
+                sourceVanilla = prevConfigs?.FirstOrDefault(IsVanillaConfig);
+            }
+
+            if (sourceVanilla != null && !string.IsNullOrWhiteSpace(sourceVanilla.InstallPath))
+            {
+                var normalized = NormalizeAmongUsPath(sourceVanilla.InstallPath);
+                if (!string.IsNullOrWhiteSpace(normalized))
+                {
+                    sourceVanilla.InstallPath = normalized;
+                    var updated = EnsureVanillaFromSource(configs, sourceVanilla);
+                    System.Diagnostics.Debug.WriteLine($"[ConfigManager] Restored Vanilla path from previous config: {normalized}");
+                    PersistVanillaPathIfNeeded(normalized);
+                    return updated;
+                }
+            }
+
+            // 2) Fallback do user-settings
+            var userSettingsService = new UserSettingsService();
+            var settings = userSettingsService.LoadUserSettings();
+            var userPath = NormalizeAmongUsPath(settings.VanillaInstallPath);
+            if (!string.IsNullOrWhiteSpace(userPath))
+            {
+                var vanillaFromUser = CreateVanillaConfig(userPath);
+                var updated = EnsureVanillaFromSource(configs, vanillaFromUser);
+                System.Diagnostics.Debug.WriteLine($"[ConfigManager] Restored Vanilla path from user-settings: {userPath}");
+                return updated;
+            }
+
+            return false;
+        }
+
+        private static void PersistVanillaPathIfNeeded(List<ModConfiguration> configs)
+        {
+            if (TryGetVanillaInstallPath(configs, out var installPath, out _))
+            {
+                PersistVanillaPathIfNeeded(installPath);
+            }
+        }
+
+        private static void PersistVanillaPathIfNeeded(string? installPath)
+        {
+            var normalized = NormalizeAmongUsPath(installPath);
+            if (string.IsNullOrWhiteSpace(normalized))
+                return;
+
+            var userSettingsService = new UserSettingsService();
+            userSettingsService.UpdateIfEmpty(
+                settings => settings.VanillaInstallPath,
+                (settings, value) => settings.VanillaInstallPath = value,
+                normalized
+            );
+        }
+
+        private static string? NormalizeAmongUsPath(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return null;
+
+            // Jeśli podano bezpośrednio plik EXE
+            if (File.Exists(path))
+            {
+                var fileName = Path.GetFileName(path);
+                if (string.Equals(fileName, "Among Us.exe", StringComparison.OrdinalIgnoreCase))
+                    return Path.GetDirectoryName(path);
+
+                return null;
+            }
+
+            var exePath = Path.Combine(path, "Among Us.exe");
+            return File.Exists(exePath) ? path : null;
+        }
+
+        private static ModConfiguration CreateVanillaConfig(string installPath)
+        {
+            return new ModConfiguration
+            {
+                Id = 0,
+                ModName = "AmongUs",
+                PngFileName = "Vanilla.png",
+                InstallPath = installPath,
+                GitHubRepoOrLink = string.Empty,
+                EpicGitHubRepoOrLink = string.Empty,
+                ModType = "Vanilla",
+                DllInstallPath = null,
+                ModVersion = string.Empty,
+                LastUpdated = DateTime.Now,
+                AmongVersion = GetGameVersionSafe(installPath),
+                Description = "Platform: unknown"
+            };
+        }
+
+        private static string GetGameVersionSafe(string installPath)
+        {
+            try
+            {
+                var exePath = Path.Combine(installPath, "Among Us.exe");
+                var versionInfo = FileVersionInfo.GetVersionInfo(exePath);
+                return versionInfo.FileVersion ?? "Nieznana";
+            }
+            catch
+            {
+                return "Nieznana";
+            }
+        }
+
+        private static bool EnsureVanillaFromSource(List<ModConfiguration> configs, ModConfiguration source)
+        {
+            var existing = configs.FirstOrDefault(IsVanillaConfig);
+            if (existing != null)
+            {
+                if (!string.IsNullOrWhiteSpace(existing.InstallPath))
+                    return false;
+
+                existing.InstallPath = source.InstallPath;
+                if (string.IsNullOrWhiteSpace(existing.AmongVersion))
+                    existing.AmongVersion = source.AmongVersion;
+                if (string.IsNullOrWhiteSpace(existing.ModVersion))
+                    existing.ModVersion = source.ModVersion;
+                if (!existing.LastUpdated.HasValue)
+                    existing.LastUpdated = source.LastUpdated;
+
+                return true;
+            }
+
+            // Brak wpisu Vanilla - dodaj nowy
+            configs.Add(new ModConfiguration
+            {
+                Id = source.Id,
+                ModName = source.ModName,
+                PngFileName = source.PngFileName,
+                InstallPath = source.InstallPath,
+                GitHubRepoOrLink = source.GitHubRepoOrLink,
+                EpicGitHubRepoOrLink = source.EpicGitHubRepoOrLink,
+                ModType = source.ModType,
+                DllInstallPath = source.DllInstallPath,
+                ModVersion = source.ModVersion,
+                LastUpdated = source.LastUpdated,
+                AmongVersion = source.AmongVersion,
+                Description = source.Description,
+                HasRoles = source.HasRoles
+            });
+
+            return true;
+        }
+
+        private static void MergeInstallDataFromPrevious(List<ModConfiguration> target, List<ModConfiguration> previous)
+        {
+            foreach (var targetMod in target)
+            {
+                var prev = previous.FirstOrDefault(p =>
+                    p.ModName.Equals(targetMod.ModName, StringComparison.OrdinalIgnoreCase));
+
+                if (prev == null)
+                    continue;
+
+                if (string.IsNullOrWhiteSpace(targetMod.InstallPath) && !string.IsNullOrWhiteSpace(prev.InstallPath))
+                    targetMod.InstallPath = prev.InstallPath;
+
+                if (string.IsNullOrWhiteSpace(targetMod.ModVersion) && !string.IsNullOrWhiteSpace(prev.ModVersion))
+                    targetMod.ModVersion = prev.ModVersion;
+
+                if (string.IsNullOrWhiteSpace(targetMod.AmongVersion) && !string.IsNullOrWhiteSpace(prev.AmongVersion))
+                    targetMod.AmongVersion = prev.AmongVersion;
+
+                if (!targetMod.LastUpdated.HasValue && prev.LastUpdated.HasValue)
+                    targetMod.LastUpdated = prev.LastUpdated;
+            }
         }
 
         public static void SaveConfigurationSetting(string key, string value)

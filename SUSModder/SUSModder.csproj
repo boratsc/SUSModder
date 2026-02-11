@@ -50,8 +50,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<AvaloniaXaml Remove="styles\LinkButtonStyle.axaml" />
-		<AvaloniaXaml Remove="themes\PinkTheme.axaml" />
+		<AvaloniaXaml Remove="styles\*.axaml" />
+		<AvaloniaXaml Remove="themes\*.axaml" />
 	</ItemGroup>
 
 	<ItemGroup>

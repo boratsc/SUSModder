@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using SUSModder.Core.Utilities;
@@ -15,21 +16,22 @@ namespace SUSModder.Core.GameIntegration
     {
         private static readonly string[] CommonSteamPaths =
         {
-            Environment.ExpandEnvironmentVariables("%PROGRAMFILES(X86)%/Steam"),
-            Environment.ExpandEnvironmentVariables("%PROGRAMFILES%/Steam"),
-            Environment.ExpandEnvironmentVariables("%LOCALAPPDATA%/Steam"),
-            "D:/Steam",
-            "D:/",
-            "D:/Gry/Steam"
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Steam"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Steam"),
+            @"D:\SteamLibrary",
+            @"D:\Steam",
+            @"D:\",
+            @"D:\Gry\Steam"
         };
 
         private static readonly string[] CommonEpicPaths =
         {
-            Environment.ExpandEnvironmentVariables("%PROGRAMFILES(X86)%/Epic Games"),
-            Environment.ExpandEnvironmentVariables("%PROGRAMFILES%/Epic Games"),
-            "D:/Epic Games",
-            "D:/Gry/Epic Games",
-            "D:/Gry/Epic"
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Epic Games"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Epic Games"),
+            @"D:\Epic Games",
+            @"D:\Gry\Epic Games",
+            @"D:\Gry\Epic"
         };
 
         /// <summary>
@@ -40,31 +42,196 @@ namespace SUSModder.Core.GameIntegration
             Console.WriteLine("Rozpoczęto wyszukiwanie Among Us.");
 
             // Sprawdź najpierw w ścieżkach Steam
-            foreach (var basePath in CommonSteamPaths)
+            foreach (var basePath in GetSteamLibraryPaths())
             {
-                var path = Path.Combine(basePath, "steamapps", "common", "Among Us");
+                var path = NormalizePath(Path.Combine(basePath, "steamapps", "common", "Among Us"));
                 Console.WriteLine($"Sprawdzam ścieżkę: {path}");
                 if (Directory.Exists(path) && File.Exists(Path.Combine(path, "Among Us.exe")))
                 {
                     Console.WriteLine($"Znaleziono grę: {path}");
-                    return path.Replace("\\\\", "\\").Replace("/", "\\");
+                    return path;
                 }
             }
 
-            // Sprawdź w ścieżkach Epic
-            foreach (var basePath in CommonEpicPaths)
+            // Sprawdź w ścieżkach Epic (manifesty + fallback)
+            foreach (var basePath in GetEpicInstallPaths())
             {
-                var path = Path.Combine(basePath, "AmongUs");
+                var path = NormalizePath(basePath);
                 Console.WriteLine($"Sprawdzam ścieżkę: {path}");
                 if (Directory.Exists(path) && File.Exists(Path.Combine(path, "Among Us.exe")))
                 {
                     Console.WriteLine($"Znaleziono grę: {path}");
-                    return path.Replace("\\\\", "\\").Replace("/", "\\");
+                    return path;
                 }
             }
 
             Console.WriteLine("Nie znaleziono gry Among Us.");
             return null;
+        }
+
+        private static IEnumerable<string> GetSteamLibraryPaths()
+        {
+            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var basePath in CommonSteamPaths)
+            {
+                if (string.IsNullOrWhiteSpace(basePath))
+                    continue;
+
+                var normalizedBase = NormalizePath(basePath);
+                if (Directory.Exists(normalizedBase))
+                {
+                    result.Add(normalizedBase);
+                }
+
+                var libraryFoldersPath = Path.Combine(normalizedBase, "steamapps", "libraryfolders.vdf");
+                if (!File.Exists(libraryFoldersPath))
+                    continue;
+
+                try
+                {
+                    var content = File.ReadAllText(libraryFoldersPath);
+                    foreach (var libraryPath in ParseSteamLibraryFolders(content))
+                    {
+                        var normalizedLibrary = NormalizePath(libraryPath);
+                        if (Directory.Exists(normalizedLibrary))
+                        {
+                            result.Add(normalizedLibrary);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Nie udało się odczytać libraryfolders.vdf: {ex.Message}");
+                }
+            }
+
+            return result;
+        }
+
+        private static IEnumerable<string> ParseSteamLibraryFolders(string content)
+        {
+            // Obsługa formatu VDF: "path" "D:\\SteamLibrary"
+            var matches = Regex.Matches(content, "\"path\"\\s*\"([^\"]+)\"", RegexOptions.IgnoreCase);
+            foreach (Match match in matches)
+            {
+                if (match.Groups.Count < 2)
+                    continue;
+
+                var raw = match.Groups[1].Value;
+                if (string.IsNullOrWhiteSpace(raw))
+                    continue;
+
+                yield return raw.Replace("\\\\", "\\");
+            }
+        }
+
+        private static IEnumerable<string> GetEpicInstallPaths()
+        {
+            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var basePath in CommonEpicPaths)
+            {
+                if (string.IsNullOrWhiteSpace(basePath))
+                    continue;
+
+                var candidate = NormalizePath(Path.Combine(basePath, "AmongUs"));
+                if (Directory.Exists(candidate))
+                {
+                    result.Add(candidate);
+                }
+            }
+
+            var manifestsPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "Epic",
+                "EpicGamesLauncher",
+                "Data",
+                "Manifests"
+            );
+
+            if (!Directory.Exists(manifestsPath))
+                return result;
+
+            try
+            {
+                foreach (var itemFile in Directory.EnumerateFiles(manifestsPath, "*.item", SearchOption.TopDirectoryOnly))
+                {
+                    try
+                    {
+                        var json = File.ReadAllText(itemFile);
+                        using var doc = JsonDocument.Parse(json);
+                        var root = doc.RootElement;
+
+                        var installLocation = GetJsonString(root, "InstallLocation");
+                        if (string.IsNullOrWhiteSpace(installLocation))
+                            continue;
+
+                        var isAmongUs = IsAmongUsEpicManifest(root);
+                        if (!isAmongUs)
+                            continue;
+
+                        var normalized = NormalizePath(installLocation);
+                        if (Directory.Exists(normalized))
+                        {
+                            result.Add(normalized);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Błąd parsowania manifestu Epic ({Path.GetFileName(itemFile)}): {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Nie udało się odczytać manifestów Epic: {ex.Message}");
+            }
+
+            return result;
+        }
+
+        private static bool IsAmongUsEpicManifest(JsonElement root)
+        {
+            var displayName = GetJsonString(root, "DisplayName");
+            if (!string.IsNullOrWhiteSpace(displayName) &&
+                displayName.Contains("Among Us", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            var appName = GetJsonString(root, "AppName");
+            if (!string.IsNullOrWhiteSpace(appName) &&
+                (appName.Equals("AmongUs", StringComparison.OrdinalIgnoreCase) ||
+                 appName.Equals("Among Us", StringComparison.OrdinalIgnoreCase)))
+                return true;
+
+            var launchExe = GetJsonString(root, "LaunchExecutable");
+            if (!string.IsNullOrWhiteSpace(launchExe) &&
+                launchExe.EndsWith("Among Us.exe", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            return false;
+        }
+
+        private static string? GetJsonString(JsonElement root, string propertyName)
+        {
+            if (root.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.String)
+                return prop.GetString();
+
+            return null;
+        }
+
+        private static string NormalizePath(string path)
+        {
+            try
+            {
+                return Path.GetFullPath(path)
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            }
+            catch
+            {
+                return path.Replace('/', Path.DirectorySeparatorChar)
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            }
         }
 
         /// <summary>
@@ -108,18 +275,25 @@ namespace SUSModder.Core.GameIntegration
                         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)
                     );
 
-                    if (!string.IsNullOrEmpty(userSelectedPath) && File.Exists(userSelectedPath))
+                    if (string.IsNullOrWhiteSpace(userSelectedPath))
                     {
-                        foundPath = Path.GetDirectoryName(userSelectedPath);
-                    }
-                    else
-                    {
-                        await userInteraction.ShowErrorAsync(
-                            "Nie wybrano prawidłowego pliku Among Us.exe. Aplikacja będzie działać bez podstawowej wersji gry.",
-                            "Ostrzeżenie"
-                        );
+                        Console.WriteLine("Użytkownik anulował wybór pliku Among Us.exe.");
                         return null;
                     }
+
+                    if (!File.Exists(userSelectedPath))
+                    {
+                        Console.WriteLine($"Wybrany plik nie istnieje: {userSelectedPath}");
+                        return null;
+                    }
+
+                    if (!string.Equals(Path.GetFileName(userSelectedPath), "Among Us.exe", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Console.WriteLine($"Wybrany plik nie jest Among Us.exe: {userSelectedPath}");
+                        return null;
+                    }
+
+                    foundPath = Path.GetDirectoryName(userSelectedPath);
                 }
                 else
                 {
@@ -148,6 +322,9 @@ namespace SUSModder.Core.GameIntegration
                 // Dodaj do listy i zapisz
                 modConfigs.Add(vanillaMod);
                 ConfigManager.SaveConfig(modConfigs);
+
+                // Zapisz ścieżkę Vanilla do user-settings (fallback po update)
+                userSettingsService.UpdateUserSetting(settings => settings.VanillaInstallPath = foundPath);
 
                 // Synchronizuj Mode z UserSettings do appsettings.json (dla kompatybilności)
                 configuration["Configuration:Mode"] = userMode;

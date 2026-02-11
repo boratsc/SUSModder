@@ -61,5 +61,11 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         [JsonPropertyName("updateChannel")]
         public string UpdateChannel { get; set; } = "release";
+
+        /// <summary>
+        /// Ostatnio wykryta ścieżka do Vanilla Among Us (katalog zawierający Among Us.exe)
+        /// </summary>
+        [JsonPropertyName("vanillaInstallPath")]
+        public string VanillaInstallPath { get; set; } = string.Empty;
     }
 }

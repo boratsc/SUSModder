@@ -173,18 +173,23 @@ namespace SUSModder.ViewModels
                 }
 
                 // Dialog z wyborem: Spróbuj ponownie / Zamknij
-                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-                var dialog = new ConfirmDialog(
-                    "Nie wybrano pliku Among Us.exe",
-                    "Nie udało się wykryć poprawnej instalacji gry Among Us. Wybierz poprawny plik Among Us.exe lub zamknij aplikację."
-                );
-                dialog.OkButtonText = "Spróbuj ponownie";
-                dialog.CancelButtonText = "Zamknij";
+                var shouldRetry = await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+                    var dialog = new ConfirmDialog(
+                        "Nie wybrano pliku Among Us.exe",
+                        "Nie wybrałeś pliku Among Us.exe. Spróbuj ponownie albo zamknij aplikację."
+                    );
+                    dialog.OkButtonText = "Spróbuj ponownie";
+                    dialog.CancelButtonText = "Zamknij";
 
-                if (mainWindow != null)
-                    await dialog.ShowDialog(mainWindow);
+                    if (mainWindow != null)
+                        await dialog.ShowDialog(mainWindow);
 
-                if (dialog.Result)
+                    return dialog.Result;
+                });
+
+                if (shouldRetry)
                 {
                     // Spróbuj ponownie
                     continue;

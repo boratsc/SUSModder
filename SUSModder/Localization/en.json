@@ -694,6 +694,11 @@
     "TestServerOffline": "Test server (offline)"
   },
   "RecommendedDiscords": {
+    "WindowTitle": "Recommended Discords",
+    "Header": "Recommended Discords",
+    "Subtitle": "Join the Among Us and mods community",
+    "JoinButton": "Join",
+    "CloseButton": "Close",
     "LoadingServers": "Loading Discord servers...",
     "ServersLoaded": "Loaded {0} Discord servers",
     "FetchingServers": "Fetching Discord servers list...",
