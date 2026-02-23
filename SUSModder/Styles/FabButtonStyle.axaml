@@ -125,4 +125,51 @@
         <Setter Property="Opacity" Value="0.3"/>
     </Style>
 
+    <!-- Compact promo card displayed next to FAB -->
+    <Style Selector="Border.fab-discord-promo-panel">
+        <Setter Property="Background" Value="{DynamicResource PaneBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="10,8"/>
+        <Setter Property="Width" Value="320"/>
+        <Setter Property="MinWidth" Value="220"/>
+        <Setter Property="MaxWidth" Value="380"/>
+        <Setter Property="BoxShadow" Value="0 6 20 0 #50000000"/>
+    </Style>
+
+    <Style Selector="Button.fab-discord-promo-join">
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="MinWidth" Value="70"/>
+    </Style>
+
+    <Style Selector="Button.fab-discord-promo-join:pointerover">
+        <Setter Property="Background" Value="{DynamicResource AccentBrushHover}"/>
+    </Style>
+
+    <!-- Slide/fade animation for rotating promo content -->
+    <Style Selector="Grid.fab-discord-promo-content">
+        <Setter Property="Opacity" Value="0"/>
+        <Setter Property="RenderTransform" Value="translateY(12px)"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.28" Easing="CubicEaseOut"/>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.28" Easing="CubicEaseOut"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Grid.fab-discord-promo-content.visible">
+        <Setter Property="Opacity" Value="1"/>
+        <Setter Property="RenderTransform" Value="translateY(0px)"/>
+    </Style>
+
 </Styles>

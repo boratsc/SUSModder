@@ -39,6 +39,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         _fabButton = this.FindControl<Button>("FabButton");
         _fabMenuPanel = this.FindControl<Border>("FabMenuPanel");
+        _fabDiscordPromoPanel = this.FindControl<Border>("FabDiscordPromoPanel");
+        _fabDiscordPromoContent = this.FindControl<Grid>("FabDiscordPromoContent");
         _fabHost = this.FindControl<Canvas>("FabHost");
         _statusBar = this.FindControl<Border>("StatusBar");
 
@@ -57,6 +59,12 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         {
             _fabMenuPanel.GetObservable(Visual.BoundsProperty)
                          .Subscribe(_ => UpdateFabMenuPosition(_fabCurrentPosition.X, _fabCurrentPosition.Y));
+        }
+
+        if (_fabDiscordPromoPanel != null)
+        {
+            _fabDiscordPromoPanel.GetObservable(Visual.BoundsProperty)
+                                 .Subscribe(_ => UpdateFabPromoPosition(_fabCurrentPosition.X, _fabCurrentPosition.Y));
         }
 
         if (_fabHost != null)
@@ -85,6 +93,14 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
                 vm.WhenAnyValue(x => x.IsPaneOpen)
                   .Subscribe(_ => UpdateFabMenuPosition(_fabCurrentPosition.X, _fabCurrentPosition.Y))
+                  .DisposeWith(disposables);
+
+                vm.WhenAnyValue(x => x.CurrentPromotedDiscord)
+                  .Subscribe(_ =>
+                  {
+                      UpdateFabPromoPosition(_fabCurrentPosition.X, _fabCurrentPosition.Y);
+                      TriggerDiscordPromoScrollAnimation();
+                  })
                   .DisposeWith(disposables);
             }
         });
@@ -511,9 +527,13 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     // FAB Button drag & drop functionality
     private const double FabEdgePadding = 24d;
     private const double FabPanelSpacing = 16d;
+    private const double FabPromoMinWidth = 220d;
+    private const double FabPromoMaxWidth = 380d;
 
     private Button? _fabButton;
     private Border? _fabMenuPanel;
+    private Border? _fabDiscordPromoPanel;
+    private Grid? _fabDiscordPromoContent;
     private Canvas? _fabHost;
     private Border? _statusBar;
 
@@ -527,6 +547,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     
     // Przechowujemy offset od dolnej krawędzi, aby FAB "trzymał się" dołu przy zmianie rozmiaru
     private double _fabOffsetFromBottom;
+    private int _discordPromoAnimationVersion;
 
     private void OnFabPointerPressed(object? sender, PointerPressedEventArgs e)
     {
@@ -642,6 +663,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         _fabOffsetFromBottom = maxTop - clampedTop;
 
         UpdateFabMenuPosition(clampedLeft, clampedTop);
+        UpdateFabPromoPosition(clampedLeft, clampedTop);
     }
 
     private void UpdateFabMenuPosition(double buttonLeft, double buttonTop)
@@ -713,6 +735,84 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         Canvas.SetLeft(_fabMenuPanel, left);
         Canvas.SetTop(_fabMenuPanel, top);
+    }
+
+    private void UpdateFabPromoPosition(double buttonLeft, double buttonTop)
+    {
+        if (_fabDiscordPromoPanel == null || _fabButton == null)
+        {
+            SetFabPromoSpaceAvailability(false);
+            return;
+        }
+
+        if (DataContext is not MainWindowViewModel vm || !vm.HasPromotedDiscord)
+        {
+            SetFabPromoSpaceAvailability(false);
+            return;
+        }
+
+        var hostWidth = GetHostWidth();
+        var hostHeight = GetHostHeight();
+        var buttonWidth = _fabButton.Bounds.Width > 0 ? _fabButton.Bounds.Width : _fabButton.Width;
+        var buttonHeight = _fabButton.Bounds.Height > 0 ? _fabButton.Bounds.Height : _fabButton.Height;
+
+        var left = buttonLeft + buttonWidth + FabPanelSpacing;
+        var availableWidth = hostWidth - FabEdgePadding - left;
+
+        if (availableWidth < FabPromoMinWidth)
+        {
+            SetFabPromoSpaceAvailability(false);
+            return;
+        }
+
+        _fabDiscordPromoPanel.Width = ClampToBounds(availableWidth, FabPromoMinWidth, FabPromoMaxWidth);
+
+        var panelHeight = _fabDiscordPromoPanel.Bounds.Height;
+        if (panelHeight <= 0)
+        {
+            panelHeight = _fabDiscordPromoPanel.DesiredSize.Height;
+        }
+        if (panelHeight <= 0)
+        {
+            panelHeight = 88;
+        }
+
+        var maxTop = hostHeight - GetStatusBarHeight() - panelHeight - FabEdgePadding;
+        if (maxTop < FabEdgePadding)
+        {
+            maxTop = FabEdgePadding;
+        }
+
+        var preferredTop = buttonTop + ((buttonHeight - panelHeight) / 2d);
+        var top = ClampToBounds(preferredTop, FabEdgePadding, maxTop);
+
+        Canvas.SetLeft(_fabDiscordPromoPanel, left);
+        Canvas.SetTop(_fabDiscordPromoPanel, top);
+        SetFabPromoSpaceAvailability(true);
+    }
+
+    private void SetFabPromoSpaceAvailability(bool isAvailable)
+    {
+        if (DataContext is MainWindowViewModel vm && vm.IsFloatingPromoSpaceAvailable != isAvailable)
+        {
+            vm.IsFloatingPromoSpaceAvailable = isAvailable;
+        }
+    }
+
+    private async void TriggerDiscordPromoScrollAnimation()
+    {
+        if (_fabDiscordPromoContent == null)
+            return;
+
+        var animationVersion = ++_discordPromoAnimationVersion;
+        _fabDiscordPromoContent.Classes.Remove("visible");
+
+        await Task.Delay(45);
+
+        if (animationVersion != _discordPromoAnimationVersion || _fabDiscordPromoContent == null)
+            return;
+
+        _fabDiscordPromoContent.Classes.Add("visible");
     }
 
     private void EnsureFabWithinBounds()

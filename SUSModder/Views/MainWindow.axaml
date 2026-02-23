@@ -13,7 +13,7 @@
         Title="{Binding WindowTitle}"
         x:Class="SUSModder.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Width="890" Height="820"
+        Width="890" Height="835"
         MinWidth="890" MinHeight="820">
 	<Window.Resources>
 		<converters:StringNotNullOrEmptyToBoolConverter x:Key="StringNotNullOrEmptyToBoolConverter"/>
@@ -953,6 +953,67 @@
 						</StackPanel>
 					</Button>
 				</StackPanel>
+				</Border>
+
+				<!-- Rotacyjna reklama polecanego Discorda przy FAB -->
+				<Border x:Name="FabDiscordPromoPanel"
+						Classes="fab-discord-promo-panel"
+						Canvas.Left="96"
+						Canvas.Top="0">
+					<Border.IsVisible>
+						<MultiBinding Converter="{x:Static BoolConverters.And}">
+							<Binding Path="HasPromotedDiscord"/>
+							<Binding Path="IsFloatingPromoSpaceAvailable"/>
+						</MultiBinding>
+					</Border.IsVisible>
+
+					<Grid x:Name="FabDiscordPromoContent"
+						  Classes="fab-discord-promo-content visible"
+						  ColumnDefinitions="Auto,*,Auto"
+						  ColumnSpacing="10">
+						<Grid Grid.Column="0" Width="40" Height="40">
+							<Border Width="40" Height="40"
+									CornerRadius="20"
+									Background="{DynamicResource AccentBrush}"
+									IsVisible="{Binding CurrentPromotedDiscord.HasIcon, Converter={x:Static BoolConverters.Not}}">
+								<TextBlock Text="💬"
+										   FontSize="16"
+										   HorizontalAlignment="Center"
+										   VerticalAlignment="Center"
+										   Foreground="White"/>
+							</Border>
+
+							<Border Width="40" Height="40"
+									CornerRadius="20"
+									ClipToBounds="True"
+									IsVisible="{Binding CurrentPromotedDiscord.HasIcon}">
+								<Image Source="{Binding CurrentPromotedDiscord.IconBitmap}"
+									   Width="40"
+									   Height="40"
+									   Stretch="UniformToFill"/>
+							</Border>
+						</Grid>
+
+						<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+							<TextBlock Text="{Binding CurrentPromotedDiscord.Name}"
+									   FontSize="13"
+									   FontWeight="SemiBold"
+									   TextTrimming="CharacterEllipsis"
+									   Foreground="{DynamicResource TextPrimaryBrush}"/>
+							<TextBlock Text="{Binding CurrentPromotedDiscord.Description}"
+									   FontSize="11"
+									   MaxLines="2"
+									   TextWrapping="Wrap"
+									   TextTrimming="CharacterEllipsis"
+									   Foreground="{DynamicResource TextSecondaryBrush}"/>
+						</StackPanel>
+
+						<Button Grid.Column="2"
+								Classes="fab-discord-promo-join"
+								Content="{loc:Localize RecommendedDiscords.JoinButton}"
+								Command="{Binding OpenPromotedDiscordInviteCommand}"
+								CommandParameter="{Binding CurrentPromotedDiscord.InviteLink}"/>
+					</Grid>
 				</Border>
 
 				<!-- FAB Button (draggable, initially bottom-left) -->

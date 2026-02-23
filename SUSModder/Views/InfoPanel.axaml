@@ -106,7 +106,7 @@
 							           VerticalAlignment="Center"/>
 						</Border>
 						<TextBlock Classes="person-name" 
-						           Text="B'Яacik" 
+						           Text="boracik" 
 						           FontSize="13"
 						           VerticalAlignment="Center"/>
 					</StackPanel>

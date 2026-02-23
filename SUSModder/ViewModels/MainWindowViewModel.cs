@@ -412,6 +412,7 @@ namespace SUSModder.ViewModels
                 await DiscordIconPreloader.PreloadDiscordIconsAsync();
                 System.Diagnostics.Debug.WriteLine("[MainWindowViewModel] Preloader task completed");
             });
+            InitializeDiscordPromo();
 
             ClearEpicLogsOnStartup();
             LoadSavedTheme();
