@@ -1,0 +1,124 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             x:Class="SUSModder.Views.RecommendedDiscordsPanel"
+             x:CompileBindings="False">
+	<Grid x:Name="Root" RowDefinitions="Auto,*" RowSpacing="14">
+		<Border Grid.Row="0"
+				Background="{DynamicResource AccentBrush}"
+				CornerRadius="10"
+				Padding="16,14">
+			<StackPanel Spacing="4">
+				<TextBlock Text="{loc:Localize RecommendedDiscords.Header}"
+						   FontSize="24"
+						   FontWeight="Bold"
+						   Foreground="White"/>
+				<TextBlock Text="{loc:Localize RecommendedDiscords.Subtitle}"
+						   FontSize="13"
+						   Foreground="#E8FFFFFF"/>
+			</StackPanel>
+		</Border>
+
+		<Grid Grid.Row="1" RowDefinitions="Auto,*" RowSpacing="10">
+			<TextBlock Grid.Row="0"
+					   Text="{Binding StatusMessage}"
+					   FontSize="12"
+					   Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+			<ScrollViewer Grid.Row="1">
+				<ItemsControl ItemsSource="{Binding DiscordServers}">
+					<ItemsControl.ItemsPanel>
+						<ItemsPanelTemplate>
+							<WrapPanel Orientation="Horizontal"/>
+						</ItemsPanelTemplate>
+					</ItemsControl.ItemsPanel>
+					<ItemsControl.ItemTemplate>
+						<DataTemplate>
+							<Border Background="{DynamicResource ModCardBackgroundBrush}"
+									BorderBrush="{DynamicResource ModCardBorderBrush}"
+									BorderThickness="1"
+									CornerRadius="10"
+									Margin="0,0,12,12"
+									Padding="14"
+									Width="330"
+									Height="240">
+								<Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
+									<Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+										<Grid Grid.Column="0" Width="56" Height="56">
+											<Border Width="56" Height="56"
+													CornerRadius="28"
+													Background="{DynamicResource AccentBrush}"
+													IsVisible="{Binding HasIcon, Converter={x:Static BoolConverters.Not}}">
+												<TextBlock Text="💬"
+														   FontSize="22"
+														   HorizontalAlignment="Center"
+														   VerticalAlignment="Center"
+														   Foreground="White"/>
+											</Border>
+
+											<Border Width="56" Height="56"
+													CornerRadius="28"
+													ClipToBounds="True"
+													IsVisible="{Binding HasIcon}">
+												<Image Source="{Binding IconBitmap}"
+													   Width="56"
+													   Height="56"
+													   Stretch="UniformToFill"/>
+											</Border>
+
+											<Border Width="56" Height="56"
+													CornerRadius="28"
+													Background="{DynamicResource AccentBrush}"
+													Opacity="0.75"
+													IsVisible="{Binding IsIconLoading}">
+												<TextBlock Text="..."
+														   FontSize="12"
+														   HorizontalAlignment="Center"
+														   VerticalAlignment="Center"
+														   Foreground="White"/>
+											</Border>
+										</Grid>
+
+										<StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+											<TextBlock Text="{Binding Name}"
+													   FontSize="16"
+													   FontWeight="Bold"
+													   TextWrapping="Wrap"
+													   Foreground="{DynamicResource TextPrimaryBrush}"/>
+											<TextBlock FontSize="12"
+													   Foreground="{DynamicResource AccentBrush}">
+												<Run Text="👥 "/>
+												<Run Text="{Binding MemberCountDisplay}"/>
+											</TextBlock>
+										</StackPanel>
+									</Grid>
+
+									<TextBlock Grid.Row="1"
+											   Text="{Binding Description}"
+											   FontSize="12"
+											   TextWrapping="Wrap"
+											   MaxLines="4"
+											   TextTrimming="CharacterEllipsis"
+											   VerticalAlignment="Top"
+											   Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+									<Button Grid.Row="2"
+											Content="{loc:Localize RecommendedDiscords.JoinButton}"
+											HorizontalAlignment="Stretch"
+											Padding="12,8"
+											CornerRadius="6"
+											Background="{DynamicResource AccentBrush}"
+											Foreground="White"
+											FontWeight="SemiBold"
+											Command="{Binding #Root.DataContext.OpenDiscordLinkCommand}"
+											CommandParameter="{Binding InviteLink}"/>
+								</Grid>
+							</Border>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+			</ScrollViewer>
+		</Grid>
+	</Grid>
+</UserControl>

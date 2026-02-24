@@ -4,6 +4,8 @@ using SUSModder.Core.Models;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System;
+using System.Linq;
 
 namespace SUSModder.Core.Configuration
 {
@@ -122,6 +124,97 @@ namespace SUSModder.Core.Configuration
             {
                 _diagnosticsOutput.Write($"Unexpected Error: {ex.Message}");
                 return new List<AmongToken>();
+            }
+        }
+
+        public async Task<AmongToken?> ValidateServerBySecretAsync(string secret)
+        {
+            if (string.IsNullOrWhiteSpace(secret))
+            {
+                return null;
+            }
+
+            try
+            {
+                _diagnosticsOutput.Write("Rozpoczynanie walidacji klucza SUStats...");
+
+                var baseUrl = _configuration.GetSection("Configuration")["BaseUrl"];
+                var apiConfig = _configuration.GetSection("Configuration")["ApiConfig"];
+
+                if (string.IsNullOrEmpty(baseUrl) || string.IsNullOrEmpty(apiConfig))
+                {
+                    _diagnosticsOutput.Write("BŁĄD: Brak BaseUrl lub ApiConfig w konfiguracji");
+                    return null;
+                }
+
+                var fullUrl = $"{baseUrl.TrimEnd('/')}{apiConfig}?secret={Uri.EscapeDataString(secret)}";
+
+                var token = SecretProvider.GetDownloadToken();
+                if (string.IsNullOrEmpty(token))
+                {
+                    _diagnosticsOutput.Write("BŁĄD: Download token is empty");
+                    return null;
+                }
+
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Add("Authorization", token);
+                _httpClient.DefaultRequestHeaders.Add("User-Agent", "SUSModder/1.0");
+
+                var response = await _httpClient.GetAsync(fullUrl);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _diagnosticsOutput.Write($"BŁĄD: Walidacja klucza HTTP {response.StatusCode} - {errorContent}");
+                    return null;
+                }
+
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                var tokensResponse = JsonSerializer.Deserialize<AmongTokensResponse>(jsonContent, options);
+                if (tokensResponse?.Success != true || tokensResponse.Tokens.Count == 0)
+                {
+                    _diagnosticsOutput.Write("Walidacja klucza: brak pasującego serwera");
+                    return null;
+                }
+
+                var matchingServer = tokensResponse.Tokens.FirstOrDefault(s =>
+                    s.Secret.Equals(secret, StringComparison.Ordinal));
+
+                if (matchingServer == null && tokensResponse.Tokens.Count == 1)
+                {
+                    matchingServer = tokensResponse.Tokens[0];
+                }
+
+                if (matchingServer == null)
+                {
+                    _diagnosticsOutput.Write("Walidacja klucza: API zwróciło dane bez zgodnego klucza");
+                }
+
+                return matchingServer;
+            }
+            catch (HttpRequestException ex)
+            {
+                _diagnosticsOutput.Write($"HTTP Request Error: {ex.Message}");
+                return null;
+            }
+            catch (TaskCanceledException ex)
+            {
+                _diagnosticsOutput.Write($"Request Timeout: {ex.Message}");
+                return null;
+            }
+            catch (JsonException ex)
+            {
+                _diagnosticsOutput.Write($"JSON Parse Error: {ex.Message}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput.Write($"Unexpected Error: {ex.Message}");
+                return null;
             }
         }
 

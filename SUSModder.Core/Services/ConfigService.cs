@@ -172,6 +172,11 @@ namespace SUSModder.Core.Services
             }
         }
 
+        public async Task<bool> RefreshConfigFromApiAsync()
+        {
+            return await ConfigManager.RefreshConfigFromApiAsync();
+        }
+
 
     }
 }

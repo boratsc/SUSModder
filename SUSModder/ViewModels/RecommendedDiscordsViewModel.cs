@@ -64,58 +64,63 @@ namespace SUSModder.ViewModels
                 IsLoading = true;
                 StatusMessage = "Ładowanie serwerów Discord...";
 
+                var configBuilder = new ConfigurationBuilder()
+                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                var configuration = configBuilder.Build();
+
+                var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Discord Service] {message}");
+                });
+
+                var discordService = new DiscordFavoritesService(configuration, diagnosticsOutput);
+                var serverCounts = await discordService.GetDiscordServerCountsAsync();
+
                 // Sprawdź czy ikony są już preloadowane
                 var preloadedServers = DiscordIconPreloader.GetPreloadedServers();
 
                 if (preloadedServers != null && preloadedServers.Any())
                 {
                     var filteredPreloadedServers = await FilterValidInvitesAsync(preloadedServers);
+                    var sortedPreloadedServers = ApplyCountsAndSort(filteredPreloadedServers, serverCounts);
 
                     // Użyj preloadowanych ViewModels z ikonami
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         DiscordServers.Clear();
-                        foreach (var serverVM in filteredPreloadedServers)
+                        foreach (var serverVM in sortedPreloadedServers)
                         {
                             DiscordServers.Add(serverVM);
                         }
-                        StatusMessage = $"Załadowano {filteredPreloadedServers.Count} serwerów Discord";
+                        StatusMessage = $"Załadowano {sortedPreloadedServers.Count} serwerów Discord";
                     });
                 }
                 else
                 {
                     // Fallback - stwórz ViewModels bez ikon
                     StatusMessage = "Pobieranie listy serwerów Discord...";
-
-                    var configBuilder = new ConfigurationBuilder()
-                        .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                    var configuration = configBuilder.Build();
-
-                    var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[Discord Service] {message}");
-                    });
-
-                    var discordService = new DiscordFavoritesService(configuration, diagnosticsOutput);
                     var serverDataList = await discordService.GetDiscordFavoritesAsync();
                     var discordServers = DiscordServerAdapter.FromServerDataList(serverDataList);
                     var filteredDiscordServers = await FilterValidInvitesAsync(discordServers);
+                    var discordServerViewModels = filteredDiscordServers
+                        .Select(server => new DiscordServerViewModel(server))
+                        .ToList();
+                    var sortedDiscordServers = ApplyCountsAndSort(discordServerViewModels, serverCounts);
 
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         DiscordServers.Clear();
 
-                        if (filteredDiscordServers.Any())
+                        if (sortedDiscordServers.Any())
                         {
-                            foreach (var server in filteredDiscordServers)
+                            foreach (var serverVM in sortedDiscordServers)
                             {
-                                var serverVM = new DiscordServerViewModel(server);
                                 DiscordServers.Add(serverVM);
                                 // Załaduj ikony w tle
                                 _ = Task.Run(async () => await serverVM.LoadIconAsync());
                             }
-                            StatusMessage = $"Załadowano {filteredDiscordServers.Count} serwerów Discord";
+                            StatusMessage = $"Załadowano {sortedDiscordServers.Count} serwerów Discord";
                         }
                         else
                         {
@@ -159,38 +164,76 @@ namespace SUSModder.ViewModels
             {
                 new DiscordServer
                 {
+                    Id = 1001,
                     Name = "Among Us Polska",
                     InviteLink = "https://discord.gg/example1",
                     Description = "Największa polska społeczność Among Us. Znajdziesz tu graczy, turnieje i najnowsze informacje o grze.",
-                    IconPath = null
+                    IconPath = null,
+                    MemberCount = 420
                 },
                 new DiscordServer
                 {
+                    Id = 1002,
                     Name = "Town of Us Community",
                     InviteLink = "https://discord.gg/example2",
                     Description = "Oficjalny serwer moda Town of Us. Wsparcie techniczne, aktualizacje i społeczność.",
-                    IconPath = null
+                    IconPath = null,
+                    MemberCount = 320
                 },
                 new DiscordServer
                 {
+                    Id = 1003,
                     Name = "The Other Roles",
                     InviteLink = "https://discord.gg/example3",
                     Description = "Społeczność moda The Other Roles. Dyskusje o nowych rolach i strategiach gry.",
-                    IconPath = null
+                    IconPath = null,
+                    MemberCount = 280
                 },
                 new DiscordServer
                 {
+                    Id = 1004,
                     Name = "SUSModder Support",
                     InviteLink = "https://discord.gg/example4",
                     Description = "Oficjalny serwer wsparcia dla SUSModder. Pomoc techniczna i zgłaszanie błędów.",
-                    IconPath = null
+                    IconPath = null,
+                    MemberCount = 180
                 }
             };
 
-            foreach (var server in placeholderServers)
+            foreach (var server in placeholderServers.OrderByDescending(server => server.MemberCount))
             {
                 DiscordServers.Add(new DiscordServerViewModel(server));
             }
+        }
+
+        private static List<DiscordServerViewModel> ApplyCountsAndSort(
+            IEnumerable<DiscordServerViewModel> servers,
+            IReadOnlyDictionary<string, int> countsByInvite)
+        {
+            var list = servers.ToList();
+            var countsByInviteCode = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var (inviteKey, count) in countsByInvite)
+            {
+                if (TryExtractInviteCode(inviteKey, out var inviteCode))
+                {
+                    countsByInviteCode[inviteCode] = count;
+                }
+            }
+
+            foreach (var server in list)
+            {
+                if (TryExtractInviteCode(server.InviteLink, out var inviteCode) &&
+                    countsByInviteCode.TryGetValue(inviteCode, out var count))
+                {
+                    server.MemberCount = count;
+                }
+            }
+
+            return list
+                .OrderByDescending(server => server.MemberCount)
+                .ThenBy(server => server.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         private void OpenDiscordLink(string inviteLink)

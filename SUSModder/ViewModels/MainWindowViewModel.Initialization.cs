@@ -173,21 +173,11 @@ namespace SUSModder.ViewModels
                 }
 
                 // Dialog z wyborem: Spróbuj ponownie / Zamknij
-                var shouldRetry = await Dispatcher.UIThread.InvokeAsync(async () =>
-                {
-                    var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-                    var dialog = new ConfirmDialog(
-                        "Nie wybrano pliku Among Us.exe",
-                        "Nie wybrałeś pliku Among Us.exe. Spróbuj ponownie albo zamknij aplikację."
-                    );
-                    dialog.OkButtonText = "Spróbuj ponownie";
-                    dialog.CancelButtonText = "Zamknij";
-
-                    if (mainWindow != null)
-                        await dialog.ShowDialog(mainWindow);
-
-                    return dialog.Result;
-                });
+                var shouldRetry = await ShowInlineConfirmAsync(
+                    "Nie wybrano pliku Among Us.exe",
+                    "Nie wybrałeś pliku Among Us.exe. Spróbuj ponownie albo zamknij aplikację.",
+                    "Spróbuj ponownie",
+                    "Zamknij");
 
                 if (shouldRetry)
                 {
@@ -565,23 +555,13 @@ namespace SUSModder.ViewModels
                 System.Diagnostics.Debug.WriteLine("[Registry] Application not registered, asking user...");
 
                 // Pokaż dialog pytając użytkownika
-                var shouldRegister = await Dispatcher.UIThread.InvokeAsync(async () =>
-                {
-                    var dialog = new ConfirmDialog(
-                        "Rejestracja w systemie Windows",
-                        "SUSModder nie jest zarejestrowany w systemie Windows.\n\n" +
-                        "Czy chcesz zarejestrować aplikację w \"Dodaj/usuń programy\"?\n\n" +
-                        "Umożliwi to łatwą deinstalację przez panel Windows."
-                    );
-                    dialog.OkButtonText = "Zarejestruj";
-                    dialog.CancelButtonText = "Pomiń";
-
-                    var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-                    if (mainWindow != null)
-                        await dialog.ShowDialog(mainWindow);
-
-                    return dialog.Result;
-                });
+                var shouldRegister = await ShowInlineConfirmAsync(
+                    "Rejestracja w systemie Windows",
+                    "SUSModder nie jest zarejestrowany w systemie Windows.\n\n" +
+                    "Czy chcesz zarejestrować aplikację w \"Dodaj/usuń programy\"?\n\n" +
+                    "Umożliwi to łatwą deinstalację przez panel Windows.",
+                    "Zarejestruj",
+                    "Pomiń");
 
                 if (shouldRegister)
                 {

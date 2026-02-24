@@ -112,7 +112,9 @@
       "ApiChecking": "Sprawdzanie...",
       "ApiUnknown": "Nieznany",
       "OnlineUsers": "Użytkownicy: {0}",
-      "AndMoreMods": "...i {0} więcej"
+      "AndMoreMods": "...i {0} więcej",
+      "SwitchToSystemStatus": "Pokaż status systemu",
+      "SwitchToDiscordPromo": "Pokaż polecane Discordy"
     },
     "Theme": {
       "SwitchToLight": "Motyw jasny",
@@ -669,6 +671,14 @@
   "SUStatsConfig": {
     "Header": "Konfiguracja SUStats",
     "Subtitle": "Zarządzanie zapisywaniem statystyk gry",
+    "SetupGuideTitle": "Jak to działa?",
+    "SetupGuideIntro": "Aby prowadzić rankingi i przesyłać dane na serwer Discord, wykonaj poniższe kroki:",
+    "SetupGuideStep1": "1. Na swoim serwerze Discord dodaj bota Clair (link poniżej).",
+    "SetupGuideStep2": "2. W hubie wygeneruj klucz połączenia (link poniżej): Integracje -> Generuj token.",
+    "SetupGuideStep3": "3. Skopiuj wygenerowany secret i wklej go tutaj w polu hasła.",
+    "SetupGuideStep4": "4. Skonfiguruj kanały Discord, na których mają pojawiać się wyniki.",
+    "SetupGuideStep5": "5. Zbieranie statystyk działa na modach: Syzyfowy Town of Us oraz ToU: Mira (po doinstalowaniu DLL Mira - Stats Exporter).",
+    "SetupGuideStep6": "6. Wystarczy, że host lub jedna osoba z lobby ma to włączone.",
     "PasswordSection": "Logowanie do serwera",
     "PasswordPrompt": "Wprowadź hasło serwera, aby połączyć się z systemem statystyk:",
     "PasswordPlaceholder": "Wpisz hasło serwera...",
@@ -697,6 +707,7 @@
     "WindowTitle": "Polecane Discordy",
     "Header": "Polecane Discordy",
     "Subtitle": "Dołącz do społeczności Among Us i modów",
+    "MemberCountLabel": "👥 {0} użytkowników",
     "JoinButton": "Dołącz",
     "CloseButton": "Zamknij",
     "LoadingServers": "Ładowanie serwerów Discord...",

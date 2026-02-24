@@ -77,6 +77,11 @@ namespace SUSModder.ViewModels
         private bool _isModContentVisible = false;
         private bool _isSUStatsConfigVisible = false;
         private bool _isAppSettingsVisible = false;
+        private bool _isRecommendedDiscordsVisible = false;
+        private bool _isRepairOptionsVisible = false;
+        private bool _isRepairSteamPlatform = true;
+        private bool _isDllSelectionModalVisible = false;
+        private DllModSelectionViewModel? _dllSelectionModalViewModel;
 
         // Zarządzanie wielokrotnymi instalacjami i dialogami DLL
         private int _activeInstallationsCount = 0;
@@ -90,19 +95,27 @@ namespace SUSModder.ViewModels
 
         #region Public Properties
 
-        public bool IsModPanelVisible => IsModSelected && !IsInfoPanelVisible && !IsAdditionalActionsVisible;
+        public bool IsModPanelVisible => IsModSelected && !IsAnyToolModalOpen;
         public bool IsDeveloperMode => DeveloperModeSettings.IsEnabled;
 
         public bool IsAdditionalActionsVisible
         {
             get => _isAdditionalActionsVisible;
-            set => this.RaiseAndSetIfChanged(ref _isAdditionalActionsVisible, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isAdditionalActionsVisible, value);
+                NotifyToolModalStateChanged();
+            }
         }
 
         public bool IsInfoPanelVisible
         {
             get => _isInfoPanelVisible;
-            set => this.RaiseAndSetIfChanged(ref _isInfoPanelVisible, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isInfoPanelVisible, value);
+                NotifyToolModalStateChanged();
+            }
         }
 
         public string AppVersion
@@ -126,19 +139,79 @@ namespace SUSModder.ViewModels
         public bool IsDllModificationsVisible
         {
             get => _isDllModificationsVisible;
-            set => this.RaiseAndSetIfChanged(ref _isDllModificationsVisible, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isDllModificationsVisible, value);
+                NotifyToolModalStateChanged();
+            }
         }
 
         public bool IsSUStatsConfigVisible
         {
             get => _isSUStatsConfigVisible;
-            set => this.RaiseAndSetIfChanged(ref _isSUStatsConfigVisible, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isSUStatsConfigVisible, value);
+                NotifyToolModalStateChanged();
+            }
         }
 
         public bool IsAppSettingsVisible
         {
             get => _isAppSettingsVisible;
-            set => this.RaiseAndSetIfChanged(ref _isAppSettingsVisible, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isAppSettingsVisible, value);
+                NotifyToolModalStateChanged();
+            }
+        }
+
+        public bool IsRecommendedDiscordsVisible
+        {
+            get => _isRecommendedDiscordsVisible;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isRecommendedDiscordsVisible, value);
+                NotifyToolModalStateChanged();
+            }
+        }
+
+        public bool IsRepairOptionsVisible
+        {
+            get => _isRepairOptionsVisible;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isRepairOptionsVisible, value);
+                NotifyToolModalStateChanged();
+            }
+        }
+
+        public bool IsRepairSteamPlatform
+        {
+            get => _isRepairSteamPlatform;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isRepairSteamPlatform, value);
+                this.RaisePropertyChanged(nameof(IsRepairEpicPlatform));
+            }
+        }
+
+        public bool IsRepairEpicPlatform => !IsRepairSteamPlatform;
+
+        public bool IsDllSelectionModalVisible
+        {
+            get => _isDllSelectionModalVisible;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isDllSelectionModalVisible, value);
+                NotifyToolModalStateChanged();
+            }
+        }
+
+        public DllModSelectionViewModel? DllSelectionModalViewModel
+        {
+            get => _dllSelectionModalViewModel;
+            set => this.RaiseAndSetIfChanged(ref _dllSelectionModalViewModel, value);
         }
 
         public ObservableCollection<ModItem> DllMods
@@ -162,7 +235,11 @@ namespace SUSModder.ViewModels
         public bool IsDllInstallDialogVisible
         {
             get => _isDllInstallDialogVisible;
-            set => this.RaiseAndSetIfChanged(ref _isDllInstallDialogVisible, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isDllInstallDialogVisible, value);
+                NotifyToolModalStateChanged();
+            }
         }
 
         public ObservableCollection<ModItem> ModsWithDllInstalled
@@ -249,7 +326,10 @@ namespace SUSModder.ViewModels
                             IsDllModificationsVisible = false;
                             IsSUStatsConfigVisible = false;
                             IsAppSettingsVisible = false;
+                            IsRecommendedDiscordsVisible = false;
+                            IsRepairOptionsVisible = false;
                             IsDllInstallDialogVisible = false;
+                            CloseDllSelectionModal();
                             
                             // Pokaż nową zawartość (fade in)
                             IsModContentVisible = true;
@@ -272,7 +352,10 @@ namespace SUSModder.ViewModels
                     IsDllModificationsVisible = false;
                     IsSUStatsConfigVisible = false;
                     IsAppSettingsVisible = false;
+                    IsRecommendedDiscordsVisible = false;
+                    IsRepairOptionsVisible = false;
                     IsDllInstallDialogVisible = false;
+                    CloseDllSelectionModal();
                     
                     Task.Delay(50).ContinueWith(_ =>
                     {
@@ -326,6 +409,7 @@ namespace SUSModder.ViewModels
     public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
     public ReactiveCommand<Unit, Unit> ShowDllSelectionCommand { get; }
     public ReactiveCommand<Unit, Unit> CheckForAppUpdatesCommand { get; }
+    public ReactiveCommand<string, Unit> ExecuteRepairOptionCommand { get; }
     public ReactiveCommand<ModItem, Unit> ModDoubleClickCommand { get; }
 
         #endregion
@@ -388,6 +472,8 @@ namespace SUSModder.ViewModels
             this.RaisePropertyChanged(nameof(IsDeveloperMode));
             ShowRecommendedDiscordsCommand = ReactiveCommand.Create(ShowRecommendedDiscords);
             ShowSUStatsConfigCommand = ReactiveCommand.Create(ShowSUStatsConfig);
+            ExecuteRepairOptionCommand = ReactiveCommand.CreateFromTask<string>(ExecuteRepairOptionFromModalAsync);
+            InitializeFrontendLayout();
             
             // Subscribe to language changes to update theme button text
             if (_localizationService is INotifyPropertyChanged localizationNotify)
@@ -395,6 +481,7 @@ namespace SUSModder.ViewModels
                 localizationNotify.PropertyChanged += (s, e) =>
                 {
                     this.RaisePropertyChanged(nameof(ThemeButtonText));
+                    this.RaisePropertyChanged(nameof(ToolModalTitle));
                 };
             }
 
@@ -427,35 +514,7 @@ namespace SUSModder.ViewModels
             // Subskrybuj do zmiany trybu gry
             AppSettingsViewModel.GameModeChanged += LoadWindowTitle;
 
-            ShowDllSelectionCommand = ReactiveCommand.Create(() =>
-            {
-                if (SelectedMod == null || string.IsNullOrEmpty(SelectedMod.InstallPath))
-                    return;
-
-                // Zamiast używać właściwości IsEpic, użyj funkcji DeterminePlatform
-                string platform = DeterminePlatform().ToLower(); // ToLower() żeby było zgodne z wartościami "epic" i "steam"
-
-                // Tworzymy nowe okno DllModSelectionView
-                var dllSelectionWindow = new Window
-                {
-                    Title = $"Dodatkowe modyfikacje DLL dla {SelectedMod.Name}",
-                    Width = 650,
-                    Height = 600,
-                    Content = new DllModSelectionView
-                    {
-                        DataContext = new DllModSelectionViewModel(
-                            _dllModificationService,
-                            ModItemAdapter.ToConfig(SelectedMod),
-                            platform, // Użyj zmiennej platform zamiast SelectedMod.IsEpic
-                            _configuration, // Przekaż konfigurację dla CompatibilityService
-                            _diagnosticsOutput // Przekaż diagnostykę dla CompatibilityService
-                        )
-                    }
-                };
-
-                System.Diagnostics.Debug.WriteLine($"DEBUG: Otwieranie okna DLL dla platformy: {platform}");
-                dllSelectionWindow.Show();
-            });
+            ShowDllSelectionCommand = ReactiveCommand.Create(ShowDllSelectionFromSelectedMod);
 
             // Komenda dla dwukliku na modzie
             ModDoubleClickCommand = ReactiveCommand.Create<ModItem>(async (mod) =>

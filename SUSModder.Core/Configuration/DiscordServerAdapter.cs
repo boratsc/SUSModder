@@ -8,6 +8,7 @@ namespace SUSModder.Core.Configuration
         {
             return new DiscordServer
             {
+                Id = serverData.Id,
                 Name = serverData.Name,
                 InviteLink = serverData.Link,
                 Description = serverData.Description,

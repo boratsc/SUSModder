@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using SUSModder.ViewModels;
+using System.Diagnostics;
 
 namespace SUSModder.Views
 {
@@ -21,6 +22,23 @@ namespace SUSModder.Views
             {
                 // Bezpośrednie ustawienie właściwości
                 vm.IsSUStatsConfigVisible = false;
+            }
+        }
+
+        private void OpenClairbotLink_Click(object? sender, RoutedEventArgs e)
+            => OpenUrl("https://clairbot.app");
+
+        private void OpenClairHubLink_Click(object? sender, RoutedEventArgs e)
+            => OpenUrl("https://hub.clairbot.app/among-us");
+
+        private static void OpenUrl(string url)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch
+            {
             }
         }
     }

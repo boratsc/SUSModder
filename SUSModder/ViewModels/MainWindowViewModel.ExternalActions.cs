@@ -22,28 +22,16 @@ namespace SUSModder.ViewModels
         private void ShowRecommendedDiscords()
         {
             IsPaneOpen = false;
-            try
-            {
-                var discordsWindow = new RecommendedDiscordsWindow();
-                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-
-                if (mainWindow != null)
-                {
-                    discordsWindow.Show(mainWindow);
-                }
-                else
-                {
-                    discordsWindow.Show();
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error opening Discord servers window: {ex.Message}");
-                Dispatcher.UIThread.InvokeAsync(async () =>
-                {
-                    await ShowErrorDialogAsync($"Nie udało się otworzyć okna Discord serwerów: {ex.Message}", "Błąd");
-                });
-            }
+            IsInfoPanelVisible = false;
+            IsAdditionalActionsVisible = false;
+            IsDllModificationsVisible = false;
+            IsSUStatsConfigVisible = false;
+            IsAppSettingsVisible = false;
+            IsDllInstallDialogVisible = false;
+            IsRecommendedDiscordsVisible = true;
+            IsRepairOptionsVisible = false;
+            CloseDllSelectionModal();
+            SelectedMod = null;
         }
 
         private async void ShowSUStatsConfig()
@@ -56,6 +44,9 @@ namespace SUSModder.ViewModels
                 IsAdditionalActionsVisible = false;
                 IsDllModificationsVisible = false;
                 IsAppSettingsVisible = false;
+                IsRecommendedDiscordsVisible = false;
+                IsRepairOptionsVisible = false;
+                CloseDllSelectionModal();
                 IsSUStatsConfigVisible = true;
                 SelectedMod = null; // Zamknij panel wybranego moda
             }
@@ -91,88 +82,21 @@ namespace SUSModder.ViewModels
             {
                 IsPaneOpen = false;
 
-                // Sprawdź platformę dla opcji Firewall
                 string platform = DeterminePlatform().ToLower();
-                bool isSteamPlatform = platform == "steam";
+                IsRepairSteamPlatform = platform == "steam";
 
-                // Pokaż dialog wyboru opcji naprawy
-                var dialog = new RepairOptionsDialog(isSteamPlatform);
-                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+                IsInfoPanelVisible = false;
+                IsAdditionalActionsVisible = false;
+                IsDllModificationsVisible = false;
+                IsSUStatsConfigVisible = false;
+                IsAppSettingsVisible = false;
+                IsRecommendedDiscordsVisible = false;
+                IsDllInstallDialogVisible = false;
+                IsRepairOptionsVisible = true;
+                CloseDllSelectionModal();
+                SelectedMod = null;
 
-                if (mainWindow != null)
-                {
-                    await dialog.ShowDialog(mainWindow);
-                }
-                else
-                {
-                    dialog.Show();
-                    return;
-                }
-
-                // Sprawdź wybraną opcję
-                switch (dialog.SelectedOption)
-                {
-                    case RepairOption.BlackScreen:
-                        // Potwierdzenie dla naprawy czarnego ekranu
-                        var confirmResult = await ShowConfirmDialogAsync(
-                            _localizationService.Get("UI.Repair.BlackScreen.ConfirmMessage"),
-                            _localizationService.Get("Dialogs.Confirm.Title"));
-
-                        if (!confirmResult)
-                            return;
-
-                        // Operacje na plikach w background thread
-                        await Task.Run(() => FixBlackScreen.ExecuteFixCore());
-
-                        // Dialog sukcesu na UI thread
-                        await ShowMessageAsync(
-                            _localizationService.Get("Dialogs.Success.Title"),
-                            _localizationService.Get("UI.Repair.BlackScreen.Success"));
-                        break;
-
-                    case RepairOption.Certificates:
-                        if (OperatingSystem.IsWindows())
-                        {
-                            await ExecuteFixCertificatesAsync();
-                        }
-                        else
-                        {
-                            await ShowMessageAsync(
-                                _localizationService.Get("Dialogs.Info.Title"),
-                                "This feature is only available on Windows.");
-                        }
-                        break;
-
-                    case RepairOption.Regions:
-                        await ExecuteFixRegionsAsync();
-                        break;
-
-                    case RepairOption.Firewall:
-                        if (OperatingSystem.IsWindows())
-                        {
-                            await ExecuteFixFirewallAsync();
-                        }
-                        else
-                        {
-                            await ShowMessageAsync(
-                                _localizationService.Get("Dialogs.Info.Title"),
-                                "This feature is only available on Windows.");
-                        }
-                        break;
-
-                    case RepairOption.EpicLogout:
-                        await ExecuteEpicLogoutAsync();
-                        break;
-
-                    case RepairOption.EpicLogin:
-                        await ExecuteEpicLoginAsync();
-                        break;
-
-                    case RepairOption.None:
-                    default:
-                        // Użytkownik anulował
-                        break;
-                }
+                await Task.CompletedTask;
             }
             catch (Exception ex)
             {
@@ -180,6 +104,91 @@ namespace SUSModder.ViewModels
                 await ShowErrorDialogAsync(
                     string.Format(_localizationService.Get("UI.Repair.Error"), ex.Message),
                     _localizationService.Get("Dialogs.Error.Title"));
+            }
+        }
+
+        private async Task ExecuteRepairOptionFromModalAsync(string optionKey)
+        {
+            if (!Enum.TryParse<RepairOption>(optionKey, ignoreCase: true, out var selectedOption))
+            {
+                return;
+            }
+
+            try
+            {
+                IsRepairOptionsVisible = false;
+                await ExecuteRepairOptionAsync(selectedOption);
+            }
+            catch (Exception ex)
+            {
+                await ShowErrorDialogAsync(
+                    string.Format(_localizationService.Get("UI.Repair.Error"), ex.Message),
+                    _localizationService.Get("Dialogs.Error.Title"));
+            }
+        }
+
+        private async Task ExecuteRepairOptionAsync(RepairOption selectedOption)
+        {
+            switch (selectedOption)
+            {
+                case RepairOption.BlackScreen:
+                    var confirmResult = await ShowConfirmDialogAsync(
+                        _localizationService.Get("UI.Repair.BlackScreen.ConfirmMessage"),
+                        _localizationService.Get("Dialogs.Confirm.Title"));
+
+                    if (!confirmResult)
+                    {
+                        return;
+                    }
+
+                    await Task.Run(() => FixBlackScreen.ExecuteFixCore());
+
+                    await ShowMessageAsync(
+                        _localizationService.Get("Dialogs.Success.Title"),
+                        _localizationService.Get("UI.Repair.BlackScreen.Success"));
+                    break;
+
+                case RepairOption.Certificates:
+                    if (OperatingSystem.IsWindows())
+                    {
+                        await ExecuteFixCertificatesAsync();
+                    }
+                    else
+                    {
+                        await ShowMessageAsync(
+                            _localizationService.Get("Dialogs.Info.Title"),
+                            "This feature is only available on Windows.");
+                    }
+                    break;
+
+                case RepairOption.Regions:
+                    await ExecuteFixRegionsAsync();
+                    break;
+
+                case RepairOption.Firewall:
+                    if (OperatingSystem.IsWindows())
+                    {
+                        await ExecuteFixFirewallAsync();
+                    }
+                    else
+                    {
+                        await ShowMessageAsync(
+                            _localizationService.Get("Dialogs.Info.Title"),
+                            "This feature is only available on Windows.");
+                    }
+                    break;
+
+                case RepairOption.EpicLogout:
+                    await ExecuteEpicLogoutAsync();
+                    break;
+
+                case RepairOption.EpicLogin:
+                    await ExecuteEpicLoginAsync();
+                    break;
+
+                case RepairOption.None:
+                default:
+                    break;
             }
         }
 

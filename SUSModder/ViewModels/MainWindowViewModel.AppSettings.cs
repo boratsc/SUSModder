@@ -25,6 +25,9 @@ namespace SUSModder.ViewModels
                 IsAdditionalActionsVisible = false;
                 IsDllModificationsVisible = false;
                 IsSUStatsConfigVisible = false;
+                IsRecommendedDiscordsVisible = false;
+                IsRepairOptionsVisible = false;
+                CloseDllSelectionModal();
                 IsAppSettingsVisible = true;
                 SelectedMod = null;
             }
@@ -102,7 +105,10 @@ namespace SUSModder.ViewModels
                 IsDllModificationsVisible = false;
                 IsSUStatsConfigVisible = false;
                 IsAppSettingsVisible = false;
+                IsRecommendedDiscordsVisible = false;
+                IsRepairOptionsVisible = false;
                 IsDllInstallDialogVisible = false;
+                CloseDllSelectionModal();
                 SelectedMod = null;
             }
 
@@ -120,7 +126,10 @@ namespace SUSModder.ViewModels
                 IsDllModificationsVisible = false;
                 IsSUStatsConfigVisible = false;
                 IsAppSettingsVisible = false;
+                IsRecommendedDiscordsVisible = false;
+                IsRepairOptionsVisible = false;
                 IsDllInstallDialogVisible = false;
+                CloseDllSelectionModal();
                 SelectedMod = null;
             }
 

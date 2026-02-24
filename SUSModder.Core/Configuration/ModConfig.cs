@@ -232,6 +232,43 @@ namespace SUSModder.Core.Configuration
             return new List<ModConfiguration>();
         }
 
+        public static async Task<bool> RefreshConfigFromApiAsync()
+        {
+            try
+            {
+                var currentExeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+                var configRepo = new ConfigRepository(currentExeDir);
+
+                var localConfigs = configRepo.LoadConfig();
+                var apiConfigs = await FetchConfigFromApiAsync();
+
+                if (apiConfigs.Count == 0)
+                    return false;
+
+                if (localConfigs.Count > 0)
+                {
+                    MergeInstallDataFromPrevious(apiConfigs, localConfigs);
+                    EnsureVanillaConfigPresent(apiConfigs, localConfigs);
+                }
+                else
+                {
+                    EnsureVanillaConfigPresent(apiConfigs);
+                }
+
+                if (AreConfigsEquivalent(localConfigs, apiConfigs))
+                    return false;
+
+                configRepo.SaveConfig(apiConfigs);
+                PersistVanillaPathIfNeeded(apiConfigs);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ConfigManager] RefreshConfigFromApiAsync failed: {ex.Message}");
+                return false;
+            }
+        }
+
         private static async Task<List<ModConfiguration>> FetchConfigFromApiAsync()
         {
             using (var httpClient = new HttpClient())
@@ -530,6 +567,41 @@ namespace SUSModder.Core.Configuration
                 if (!targetMod.LastUpdated.HasValue && prev.LastUpdated.HasValue)
                     targetMod.LastUpdated = prev.LastUpdated;
             }
+        }
+
+        private static bool AreConfigsEquivalent(List<ModConfiguration> left, List<ModConfiguration> right)
+        {
+            if (left.Count != right.Count)
+                return false;
+
+            var leftSignature = BuildConfigSignature(left);
+            var rightSignature = BuildConfigSignature(right);
+
+            return string.Equals(leftSignature, rightSignature, StringComparison.Ordinal);
+        }
+
+        private static string BuildConfigSignature(List<ModConfiguration> configs)
+        {
+            var normalized = configs
+                .OrderBy(c => c.Id)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.ModName,
+                    c.PngFileName,
+                    InstallPath = c.InstallPath ?? string.Empty,
+                    c.GitHubRepoOrLink,
+                    EpicGitHubRepoOrLink = c.EpicGitHubRepoOrLink ?? string.Empty,
+                    c.ModType,
+                    DllInstallPath = c.DllInstallPath ?? string.Empty,
+                    c.ModVersion,
+                    c.AmongVersion,
+                    c.Description,
+                    LastUpdated = c.LastUpdated?.ToString("O") ?? string.Empty,
+                    HasRoles = c.HasRoles
+                });
+
+            return JsonSerializer.Serialize(normalized);
         }
 
         public static void SaveConfigurationSetting(string key, string value)

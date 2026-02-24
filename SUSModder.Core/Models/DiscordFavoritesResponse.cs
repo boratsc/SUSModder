@@ -17,7 +17,7 @@ namespace SUSModder.Core.Models
     public class DiscordServerData
     {
         [JsonPropertyName("id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [JsonPropertyName("icon")]
         public string? Icon { get; set; }

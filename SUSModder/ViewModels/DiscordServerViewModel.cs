@@ -15,17 +15,31 @@ namespace SUSModder.ViewModels
         private Bitmap? _iconBitmap;
         private bool _isIconLoading = false;
         private readonly DiscordServer _model;
+        private int _memberCount;
 
         public DiscordServerViewModel(DiscordServer model)
         {
             _model = model;
+            _memberCount = model.MemberCount;
         }
 
         // Właściwości z modelu
+        public long Id => _model.Id;
         public string Name => _model.Name;
         public string InviteLink => _model.InviteLink;
         public string Description => _model.Description;
         public string? IconPath => _model.IconPath;
+        public int MemberCount
+        {
+            get => _memberCount;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _memberCount, value);
+                this.RaisePropertyChanged(nameof(MemberCountDisplay));
+            }
+        }
+
+        public string MemberCountDisplay => MemberCount.ToString("N0");
 
         // Właściwości UI
         public Bitmap? IconBitmap

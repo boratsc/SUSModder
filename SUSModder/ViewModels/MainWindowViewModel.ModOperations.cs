@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using Microsoft.Extensions.Configuration;
+using ReactiveUI;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Services;
@@ -361,11 +362,22 @@ namespace SUSModder.ViewModels
             }
         }
 
+        private void ShowDllSelectionFromSelectedMod()
+        {
+            if (SelectedMod == null || string.IsNullOrEmpty(SelectedMod.InstallPath))
+            {
+                return;
+            }
+
+            string platform = DeterminePlatform().ToLower();
+            ShowDllSelectionWindow(SelectedMod, platform);
+        }
+
         private void ShowDllSelectionWindow(ModItem mod, string platform)
         {
             lock (_installationLock)
             {
-                if (_activeInstallationsCount > 0)
+                if (_activeInstallationsCount > 0 || IsDllSelectionModalVisible)
                 {
                     // Jeśli są aktywne instalacje, dodaj dialog do kolejki
                     _pendingDllDialogs.Add((mod, platform));
@@ -394,60 +406,71 @@ namespace SUSModder.ViewModels
             
             System.Diagnostics.Debug.WriteLine($"[DLL Dialog] Załadowano konfigurację: InstallPath = {targetModConfig.InstallPath}");
             
-            var dllSelectionWindow = new Window
-            {
-                Title = $"Dodatkowe modyfikacje DLL dla {mod.Name}",
-                Width = 650,
-                Height = 600,
-                Content = new DllModSelectionView
-                {
-                    DataContext = new DllModSelectionViewModel(
-                        _dllModificationService,
-                        targetModConfig, // Użyj świeżo załadowanej konfiguracji zamiast konwersji z ModItem
-                        platform,
-                        _configuration, // Przekaż konfigurację dla CompatibilityService
-                        _diagnosticsOutput // Przekaż diagnostykę dla CompatibilityService
-                    )
-                }
-            };
+            CloseDllSelectionModal();
+
+            var dllSelectionVm = new DllModSelectionViewModel(
+                _dllModificationService,
+                targetModConfig, // Użyj świeżo załadowanej konfiguracji zamiast konwersji z ModItem
+                platform,
+                _configuration, // Przekaż konfigurację dla CompatibilityService
+                _diagnosticsOutput // Przekaż diagnostykę dla CompatibilityService
+            );
+            dllSelectionVm.CloseRequested += OnDllSelectionCloseRequested;
+            DllSelectionModalViewModel = dllSelectionVm;
+
+            IsPaneOpen = false;
+            IsInfoPanelVisible = false;
+            IsAdditionalActionsVisible = false;
+            IsDllModificationsVisible = false;
+            IsSUStatsConfigVisible = false;
+            IsAppSettingsVisible = false;
+            IsRecommendedDiscordsVisible = false;
+            IsRepairOptionsVisible = false;
+            IsDllInstallDialogVisible = false;
+            IsDllSelectionModalVisible = true;
+
+            this.RaisePropertyChanged(nameof(IsModPanelVisible));
             System.Diagnostics.Debug.WriteLine($"DEBUG {platform} Path: {targetModConfig.InstallPath}");
-            dllSelectionWindow.Show();
+        }
+
+        private void OnDllSelectionCloseRequested(object? sender, EventArgs e)
+        {
+            CloseDllSelectionModal();
+            ShowNextQueuedDllSelectionIfNeeded();
+        }
+
+        private void CloseDllSelectionModal()
+        {
+            if (DllSelectionModalViewModel != null)
+            {
+                DllSelectionModalViewModel.CloseRequested -= OnDllSelectionCloseRequested;
+                DllSelectionModalViewModel = null;
+            }
+
+            IsDllSelectionModalVisible = false;
+        }
+
+        private void ShowNextQueuedDllSelectionIfNeeded()
+        {
+            (ModItem mod, string platform)? nextDialog = null;
+
+            lock (_installationLock)
+            {
+                if (_activeInstallationsCount > 0 || _pendingDllDialogs.Count == 0 || IsDllSelectionModalVisible)
+                {
+                    return;
+                }
+
+                nextDialog = _pendingDllDialogs[0];
+                _pendingDllDialogs.RemoveAt(0);
+            }
+
+            ShowDllSelectionWindowInternal(nextDialog.Value.mod, nextDialog.Value.platform);
         }
 
         private async Task ShowPendingDllDialogsIfNeeded()
         {
-            List<(ModItem mod, string platform)> dialogsToShow;
-            
-            lock (_installationLock)
-            {
-                // Sprawdź czy są jeszcze aktywne instalacje
-                if (_activeInstallationsCount > 0)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[DLL Dialog] Wciąż są aktywne instalacje ({_activeInstallationsCount}), czekam...");
-                    return;
-                }
-
-                // Pobierz wszystkie oczekujące dialogi
-                dialogsToShow = new List<(ModItem, string)>(_pendingDllDialogs);
-                _pendingDllDialogs.Clear();
-            }
-
-            // Pokaż wszystkie oczekujące dialogi
-            if (dialogsToShow.Count > 0)
-            {
-                System.Diagnostics.Debug.WriteLine($"[DLL Dialog] Pokazywanie {dialogsToShow.Count} oczekujących dialogów...");
-                
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    foreach (var (mod, platform) in dialogsToShow)
-                    {
-                        ShowDllSelectionWindowInternal(mod, platform);
-                        
-                        // Małe opóźnienie między dialogami, aby się nie nałożyły wizualnie
-                        Task.Delay(100).Wait();
-                    }
-                });
-            }
+            await Dispatcher.UIThread.InvokeAsync(ShowNextQueuedDllSelectionIfNeeded);
         }
 
         #endregion

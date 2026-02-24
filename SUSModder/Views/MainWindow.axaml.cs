@@ -37,44 +37,11 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         InitializeComponent();
 
-        _fabButton = this.FindControl<Button>("FabButton");
-        _fabMenuPanel = this.FindControl<Border>("FabMenuPanel");
-        _fabDiscordPromoPanel = this.FindControl<Border>("FabDiscordPromoPanel");
         _fabDiscordPromoContent = this.FindControl<Grid>("FabDiscordPromoContent");
-        _fabHost = this.FindControl<Canvas>("FabHost");
-        _statusBar = this.FindControl<Border>("StatusBar");
 
         // Inicjalizuj komendy
         RemoveSingleInstanceCommand = ReactiveCommand.CreateFromTask(RemoveSingleInstanceAsync);
         LaunchMultipleInstancesCommand = ReactiveCommand.CreateFromTask(LaunchMultipleInstancesAsync);
-
-        // Ustaw początkową pozycję FAB po załadowaniu okna
-        this.Opened += (_, _) =>
-        {
-            _fabInitialPlacementDone = false;
-            InitializeFabPosition();
-        };
-
-        if (_fabMenuPanel != null)
-        {
-            _fabMenuPanel.GetObservable(Visual.BoundsProperty)
-                         .Subscribe(_ => UpdateFabMenuPosition(_fabCurrentPosition.X, _fabCurrentPosition.Y));
-        }
-
-        if (_fabDiscordPromoPanel != null)
-        {
-            _fabDiscordPromoPanel.GetObservable(Visual.BoundsProperty)
-                                 .Subscribe(_ => UpdateFabPromoPosition(_fabCurrentPosition.X, _fabCurrentPosition.Y));
-        }
-
-        if (_fabHost != null)
-        {
-            _fabHost.GetObservable(Visual.BoundsProperty)
-                    .Subscribe(_ => EnsureFabWithinBounds());
-        }
-
-        this.GetObservable(Visual.BoundsProperty)
-            .Subscribe(_ => EnsureFabWithinBounds());
 
         // Nasłuchuj zmiany wybranego moda i aktualizuj opis
         this.WhenActivated(disposables =>
@@ -91,42 +58,11 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                   })
                   .DisposeWith(disposables);
 
-                vm.WhenAnyValue(x => x.IsPaneOpen)
-                  .Subscribe(_ => UpdateFabMenuPosition(_fabCurrentPosition.X, _fabCurrentPosition.Y))
-                  .DisposeWith(disposables);
-
                 vm.WhenAnyValue(x => x.CurrentPromotedDiscord)
-                  .Subscribe(_ =>
-                  {
-                      UpdateFabPromoPosition(_fabCurrentPosition.X, _fabCurrentPosition.Y);
-                      TriggerDiscordPromoScrollAnimation();
-                  })
+                  .Subscribe(_ => TriggerDiscordPromoScrollAnimation())
                   .DisposeWith(disposables);
             }
         });
-    }
-
-    private void InitializeFabPosition()
-    {
-        if (_fabButton == null)
-            return;
-
-        var hostHeight = GetHostHeight();
-        var hostWidth = GetHostWidth();
-        var buttonHeight = _fabButton.Bounds.Height > 0 ? _fabButton.Bounds.Height : _fabButton.Height;
-
-        if (hostHeight <= 0 || buttonHeight <= 0)
-            return;
-
-        var initialLeft = FabEdgePadding;
-        var initialTop = CalculateMaxTop(hostHeight, buttonHeight);
-
-        UpdateFabVisuals(initialLeft, initialTop);
-        
-        // Zapisz offset od dołu (początkowo FAB jest na maxTop, więc offset = 0)
-        _fabOffsetFromBottom = 0;
-        
-        _fabInitialPlacementDone = true;
     }
 
     private void ModDeveloperMenuButton_Click(object sender, RoutedEventArgs e)
@@ -213,21 +149,28 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     // Dodaj pomocnicze metody dla dialog�w
     private async Task<bool> ShowConfirmDialogAsync(string message, string title)
     {
-        var dialog = new SUSModder.Views.ConfirmDialog(title, message);
-        await dialog.ShowDialog(this);
-        return dialog.Result;
+        if (DataContext is MainWindowViewModel vm)
+        {
+            return await vm.ShowInlineConfirmAsync(title, message);
+        }
+
+        return false;
     }
 
     private async Task ShowInfoDialogAsync(string title, string message)
     {
-        var dialog = new SUSModder.Views.MessageDialog(title, message);
-        await dialog.ShowDialog(this);
+        if (DataContext is MainWindowViewModel vm)
+        {
+            await vm.ShowInlineMessageAsync(title, message);
+        }
     }
 
     private async Task ShowErrorDialogAsync(string title, string message)
     {
-        var dialog = new SUSModder.Views.MessageDialog(title, message);
-        await dialog.ShowDialog(this);
+        if (DataContext is MainWindowViewModel vm)
+        {
+            await vm.ShowInlineErrorAsync(title, message);
+        }
     }
 
 
@@ -524,280 +467,53 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         }
     }
 
-    // FAB Button drag & drop functionality
-    private const double FabEdgePadding = 24d;
-    private const double FabPanelSpacing = 16d;
-    private const double FabPromoMinWidth = 220d;
-    private const double FabPromoMaxWidth = 380d;
-
-    private Button? _fabButton;
-    private Border? _fabMenuPanel;
-    private Border? _fabDiscordPromoPanel;
-    private Grid? _fabDiscordPromoContent;
-    private Canvas? _fabHost;
-    private Border? _statusBar;
-
-    private bool _isDraggingFab;
-    private Point _fabDragStartPoint;
-    private bool _wasDragged;
-    private Point _fabOriginalPosition;
-    private Point _fabCurrentPosition = new Point(FabEdgePadding, FabEdgePadding);
-    private bool _fabInitialPlacementDone;
-    private IPointer? _fabActivePointer;
-    
-    // Przechowujemy offset od dolnej krawędzi, aby FAB "trzymał się" dołu przy zmianie rozmiaru
-    private double _fabOffsetFromBottom;
-    private int _discordPromoAnimationVersion;
-
-    private void OnFabPointerPressed(object? sender, PointerPressedEventArgs e)
+    private void OnToolModalOverlayPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (_fabButton == null)
-            return;
-
-        var properties = e.GetCurrentPoint(this).Properties;
-        if (properties.IsLeftButtonPressed)
+        if (DataContext is MainWindowViewModel vm)
         {
-            _isDraggingFab = true;
-            _wasDragged = false;
-            _fabDragStartPoint = e.GetPosition(this); // Pozycja względem okna
-            _fabOriginalPosition = _fabCurrentPosition;
-
-            // Przechwyć wskaźnik, aby otrzymywać zdarzenia nawet poza przyciskiem
-            _fabActivePointer = e.Pointer;
-            _fabActivePointer.Capture(this); // Przechwytujemy na poziomie okna
+            vm.CloseToolModalCommand.Execute().Subscribe();
             e.Handled = true;
         }
     }
 
-    private void OnFabPointerMoved(object? sender, PointerEventArgs e)
+    private void OnToolModalPanelPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (!_isDraggingFab || !ReferenceEquals(e.Pointer, _fabActivePointer))
-            return;
-
-        var currentPoint = e.GetPosition(this);
-        var delta = currentPoint - _fabDragStartPoint;
-
-        if (!_wasDragged && (Math.Abs(delta.X) > 3 || Math.Abs(delta.Y) > 3))
-        {
-            _wasDragged = true;
-        }
-
-        if (_wasDragged)
-        {
-            var newLeft = _fabOriginalPosition.X + delta.X;
-            var newTop = _fabOriginalPosition.Y + delta.Y;
-            UpdateFabVisuals(newLeft, newTop);
-        }
         e.Handled = true;
     }
 
-    private void OnFabPointerReleased(object? sender, PointerReleasedEventArgs e)
+    private void OnInlineDialogOverlayPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (!_isDraggingFab || !ReferenceEquals(e.Pointer, _fabActivePointer))
-            return;
-
-        if (_wasDragged && _fabButton != null)
+        if (DataContext is MainWindowViewModel vm && vm.IsInlineDialogDismissible)
         {
-            // Zapisz ostatnią pozycję
-            _fabCurrentPosition = new Point(Canvas.GetLeft(_fabButton), Canvas.GetTop(_fabButton));
-            e.Handled = true;
-        }
-        else
-        {
-            // Jeśli nie było przeciągnięcia, potraktuj to jako kliknięcie
-            if (DataContext is MainWindowViewModel vm)
-            {
-                vm.TogglePaneCommand.Execute(Unit.Default);
-            }
+            vm.ResolveInlineDialog(false);
         }
 
-        // Zawsze zwalniaj zasoby przeciągania
-        _isDraggingFab = false;
-        _fabActivePointer?.Capture(null);
-        _fabActivePointer = null;
+        e.Handled = true;
     }
 
-    private void UpdateFabVisuals(double desiredLeft, double desiredTop)
+    private void OnInlineDialogCardPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (_fabButton == null)
-            return;
-
-        var hostWidth = GetHostWidth();
-        var hostHeight = GetHostHeight();
-
-        if (hostWidth <= 0)
-        {
-            hostWidth = _fabButton.Width + (FabEdgePadding * 2);
-        }
-
-        if (hostHeight <= 0)
-        {
-            hostHeight = _fabButton.Height + (FabEdgePadding * 2);
-        }
-
-        var buttonWidth = _fabButton.Bounds.Width > 0 ? _fabButton.Bounds.Width : _fabButton.Width;
-    var buttonHeight = _fabButton.Bounds.Height > 0 ? _fabButton.Bounds.Height : _fabButton.Height;
-
-    var maxLeft = hostWidth - buttonWidth - FabEdgePadding;
-    var maxTop = CalculateMaxTop(hostHeight, buttonHeight);
-
-        if (maxLeft < FabEdgePadding)
-        {
-            maxLeft = FabEdgePadding;
-        }
-
-        if (maxTop < FabEdgePadding)
-        {
-            maxTop = FabEdgePadding;
-        }
-
-        var clampedLeft = ClampToBounds(desiredLeft, FabEdgePadding, maxLeft);
-        var clampedTop = ClampToBounds(desiredTop, FabEdgePadding, maxTop);
-
-        Canvas.SetLeft(_fabButton, clampedLeft);
-        Canvas.SetTop(_fabButton, clampedTop);
-
-        _fabCurrentPosition = new Point(clampedLeft, clampedTop);
-        
-        // Zapisz offset od dolnej krawędzi (maxTop to pozycja przy samym dole)
-        _fabOffsetFromBottom = maxTop - clampedTop;
-
-        UpdateFabMenuPosition(clampedLeft, clampedTop);
-        UpdateFabPromoPosition(clampedLeft, clampedTop);
+        e.Handled = true;
     }
 
-    private void UpdateFabMenuPosition(double buttonLeft, double buttonTop)
+    private void OnInlineDialogPrimaryClick(object? sender, RoutedEventArgs e)
     {
-        if (_fabMenuPanel == null || _fabButton == null)
-            return;
-
-    var hostWidth = GetHostWidth();
-    var hostHeight = GetHostHeight();
-
-        if (hostWidth <= 0)
+        if (DataContext is MainWindowViewModel vm)
         {
-            hostWidth = _fabButton.Width + (FabEdgePadding * 2);
+            vm.ResolveInlineDialog(true);
         }
-
-        if (hostHeight <= 0)
-        {
-            hostHeight = _fabButton.Height + (FabEdgePadding * 2);
-        }
-
-        var panelWidth = _fabMenuPanel.Bounds.Width;
-        if (panelWidth <= 0)
-        {
-            panelWidth = _fabMenuPanel.DesiredSize.Width;
-        }
-        if (panelWidth <= 0)
-        {
-            panelWidth = Math.Max(_fabMenuPanel.MinWidth, 200);
-        }
-
-        var panelHeight = _fabMenuPanel.Bounds.Height;
-        if (panelHeight <= 0)
-        {
-            panelHeight = _fabMenuPanel.DesiredSize.Height;
-        }
-        if (panelHeight <= 0)
-        {
-            panelHeight = 320;
-        }
-
-        var buttonHeight = _fabButton.Bounds.Height > 0 ? _fabButton.Bounds.Height : _fabButton.Height;
-
-        var left = buttonLeft;
-        var top = buttonTop - panelHeight - FabPanelSpacing;
-
-        if (left + panelWidth > hostWidth - FabEdgePadding)
-        {
-            left = hostWidth - panelWidth - FabEdgePadding;
-        }
-        if (left < FabEdgePadding)
-        {
-            left = FabEdgePadding;
-        }
-
-        if (top < FabEdgePadding)
-        {
-            top = buttonTop + buttonHeight + FabPanelSpacing;
-
-            if (top + panelHeight > hostHeight - FabEdgePadding)
-            {
-                top = hostHeight - panelHeight - FabEdgePadding;
-            }
-
-            if (top < FabEdgePadding)
-            {
-                top = FabEdgePadding;
-            }
-        }
-
-        Canvas.SetLeft(_fabMenuPanel, left);
-        Canvas.SetTop(_fabMenuPanel, top);
     }
 
-    private void UpdateFabPromoPosition(double buttonLeft, double buttonTop)
+    private void OnInlineDialogSecondaryClick(object? sender, RoutedEventArgs e)
     {
-        if (_fabDiscordPromoPanel == null || _fabButton == null)
+        if (DataContext is MainWindowViewModel vm)
         {
-            SetFabPromoSpaceAvailability(false);
-            return;
+            vm.ResolveInlineDialog(false);
         }
-
-        if (DataContext is not MainWindowViewModel vm || !vm.HasPromotedDiscord)
-        {
-            SetFabPromoSpaceAvailability(false);
-            return;
-        }
-
-        var hostWidth = GetHostWidth();
-        var hostHeight = GetHostHeight();
-        var buttonWidth = _fabButton.Bounds.Width > 0 ? _fabButton.Bounds.Width : _fabButton.Width;
-        var buttonHeight = _fabButton.Bounds.Height > 0 ? _fabButton.Bounds.Height : _fabButton.Height;
-
-        var left = buttonLeft + buttonWidth + FabPanelSpacing;
-        var availableWidth = hostWidth - FabEdgePadding - left;
-
-        if (availableWidth < FabPromoMinWidth)
-        {
-            SetFabPromoSpaceAvailability(false);
-            return;
-        }
-
-        _fabDiscordPromoPanel.Width = ClampToBounds(availableWidth, FabPromoMinWidth, FabPromoMaxWidth);
-
-        var panelHeight = _fabDiscordPromoPanel.Bounds.Height;
-        if (panelHeight <= 0)
-        {
-            panelHeight = _fabDiscordPromoPanel.DesiredSize.Height;
-        }
-        if (panelHeight <= 0)
-        {
-            panelHeight = 88;
-        }
-
-        var maxTop = hostHeight - GetStatusBarHeight() - panelHeight - FabEdgePadding;
-        if (maxTop < FabEdgePadding)
-        {
-            maxTop = FabEdgePadding;
-        }
-
-        var preferredTop = buttonTop + ((buttonHeight - panelHeight) / 2d);
-        var top = ClampToBounds(preferredTop, FabEdgePadding, maxTop);
-
-        Canvas.SetLeft(_fabDiscordPromoPanel, left);
-        Canvas.SetTop(_fabDiscordPromoPanel, top);
-        SetFabPromoSpaceAvailability(true);
     }
 
-    private void SetFabPromoSpaceAvailability(bool isAvailable)
-    {
-        if (DataContext is MainWindowViewModel vm && vm.IsFloatingPromoSpaceAvailable != isAvailable)
-        {
-            vm.IsFloatingPromoSpaceAvailable = isAvailable;
-        }
-    }
+    private Grid? _fabDiscordPromoContent;
+    private int _discordPromoAnimationVersion;
 
     private async void TriggerDiscordPromoScrollAnimation()
     {
@@ -813,122 +529,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             return;
 
         _fabDiscordPromoContent.Classes.Add("visible");
-    }
-
-    private void EnsureFabWithinBounds()
-    {
-        if (!_fabInitialPlacementDone)
-        {
-            InitializeFabPosition();
-            if (!_fabInitialPlacementDone)
-                return;
-        }
-
-        // Oblicz nową pozycję Y na podstawie offsetu od dołu
-        var hostHeight = GetHostHeight();
-        var buttonHeight = _fabButton?.Bounds.Height > 0 ? _fabButton.Bounds.Height : (_fabButton?.Height ?? 56);
-        var maxTop = CalculateMaxTop(hostHeight, buttonHeight);
-        
-        // FAB powinien pozostać w tej samej odległości od dolnej krawędzi
-        var newTop = maxTop - _fabOffsetFromBottom;
-        
-        // Zachowaj poprzednią pozycję X
-        UpdateFabVisuals(_fabCurrentPosition.X, newTop);
-    }
-
-    private static double ClampToBounds(double value, double min, double max)
-    {
-        if (!double.IsFinite(value))
-        {
-            return min;
-        }
-
-        var upper = max < min ? min : max;
-
-        if (value < min)
-            return min;
-
-        if (value > upper)
-            return upper;
-
-        return value;
-    }
-
-    private double CalculateMaxTop(double hostHeight, double buttonHeight)
-    {
-        var statusBarHeight = GetStatusBarHeight();
-        
-        // FAB powinien być zawsze tuż nad status barem (niebieską linią)
-        // hostHeight zawiera całą wysokość Canvas (z status barem)
-        // Więc odejmujemy wysokość status bara i dodatkowy padding
-        var maxTop = hostHeight - statusBarHeight - buttonHeight - FabEdgePadding;
-
-        // Zabezpieczenie przed ujemnymi wartościami
-        if (maxTop < FabEdgePadding)
-        {
-            maxTop = FabEdgePadding;
-        }
-
-        return maxTop;
-    }
-
-    private double GetStatusBarHeight()
-    {
-        if (_statusBar == null)
-            return 0;
-
-        var height = _statusBar.Bounds.Height;
-
-        if (height <= 0 && _statusBar.DesiredSize.Height > 0)
-        {
-            height = _statusBar.DesiredSize.Height;
-        }
-
-        return height > 0 ? height : 0;
-    }
-
-    private double GetHostWidth()
-    {
-        double width = _fabHost?.Bounds.Width ?? 0;
-
-        if (!(width > 0))
-        {
-            width = this.Bounds.Width;
-        }
-
-        if (!(width > 0))
-        {
-            width = this.ClientSize.Width;
-        }
-
-        if (!(width > 0) && _fabButton != null)
-        {
-            width = _fabButton.Width + (FabEdgePadding * 2);
-        }
-
-        return width > 0 ? width : (_fabButton?.Width ?? 0) + (FabEdgePadding * 2);
-    }
-
-    private double GetHostHeight()
-    {
-        double height = _fabHost?.Bounds.Height ?? 0;
-
-        if (!(height > 0))
-        {
-            height = this.Bounds.Height;
-        }
-
-        if (!(height > 0))
-        {
-            height = this.ClientSize.Height;
-        }
-
-        if (!(height > 0) && _fabButton != null)
-        {
-            height = _fabButton.Height + (FabEdgePadding * 2);
-        }
-
-        return height > 0 ? height : (_fabButton?.Height ?? 0) + (FabEdgePadding * 2);
     }
 
     private void OnMenuPanelPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)

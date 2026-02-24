@@ -67,7 +67,7 @@ namespace SUSModder.ViewModels
             SelectedMod = Mods.FirstOrDefault(m => m.Name == selectedMod.Name);
         }
 
-        private async Task RefreshModsListAsync()
+        private async Task RefreshModsListAsync(bool checkUpdates = true)
         {
             try
             {
@@ -156,7 +156,10 @@ namespace SUSModder.ViewModels
                 });
 
                 // Odśwież licznik dostępnych aktualizacji
-                await CheckForModUpdatesForStatusBarAsync();
+                if (checkUpdates)
+                {
+                    await CheckForModUpdatesForStatusBarAsync();
+                }
             }
             catch (Exception ex)
             {

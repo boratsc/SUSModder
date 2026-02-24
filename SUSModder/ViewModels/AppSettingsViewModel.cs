@@ -670,6 +670,12 @@ namespace SUSModder.ViewModels
 
         private async Task ShowErrorAsync(string title, string message)
         {
+            if (TryGetMainWindowViewModel(out var mainWindowViewModel))
+            {
+                await mainWindowViewModel.ShowInlineErrorAsync(title, message);
+                return;
+            }
+
             var parentWindow = GetParentWindow();
             if (parentWindow != null)
             {
@@ -680,6 +686,12 @@ namespace SUSModder.ViewModels
 
         private async Task ShowInfoAsync(string title, string message)
         {
+            if (TryGetMainWindowViewModel(out var mainWindowViewModel))
+            {
+                await mainWindowViewModel.ShowInlineMessageAsync(title, message);
+                return;
+            }
+
             var parentWindow = GetParentWindow();
             if (parentWindow != null)
             {
@@ -698,6 +710,11 @@ namespace SUSModder.ViewModels
 
         private async Task<bool?> ShowConfirmAsync(string title, string message, string ok, string cancel)
         {
+            if (TryGetMainWindowViewModel(out var mainWindowViewModel))
+            {
+                return await mainWindowViewModel.ShowInlineConfirmAsync(title, message, ok, cancel);
+            }
+
             var parentWindow = GetParentWindow();
             if (parentWindow == null) return null;
 
@@ -758,6 +775,20 @@ namespace SUSModder.ViewModels
             };
 
             return await dialog.ShowDialog<bool?>(parentWindow);
+        }
+
+        private bool TryGetMainWindowViewModel(out MainWindowViewModel mainWindowViewModel)
+        {
+            mainWindowViewModel = null!;
+
+            if ((Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow is MainWindow mainWindow &&
+                mainWindow.DataContext is MainWindowViewModel vm)
+            {
+                mainWindowViewModel = vm;
+                return true;
+            }
+
+            return false;
         }
 
         private async Task FactoryResetAsync()

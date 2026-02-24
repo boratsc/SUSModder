@@ -23,6 +23,9 @@ namespace SUSModder.ViewModels
                 IsAdditionalActionsVisible = false;
                 IsSUStatsConfigVisible = false;
                 IsAppSettingsVisible = false;
+                IsRecommendedDiscordsVisible = false;
+                IsRepairOptionsVisible = false;
+                CloseDllSelectionModal();
                 SelectedMod = null;
                 IsDllInstallDialogVisible = false;
 

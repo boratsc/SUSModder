@@ -41,6 +41,64 @@
 
 				<StackPanel Spacing="20">
 
+					<!-- Instrukcja konfiguracji (widoczna przed logowaniem) -->
+					<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+							BorderBrush="{DynamicResource BorderBrush}"
+							BorderThickness="1"
+							CornerRadius="6"
+							Padding="14"
+							IsVisible="{Binding IsPasswordValid, Converter={x:Static BoolConverters.Not}}">
+						<StackPanel Spacing="8">
+							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideTitle}"
+									   FontSize="13" FontWeight="SemiBold"
+									   Foreground="{DynamicResource TextPrimaryBrush}"/>
+							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideIntro}"
+									   FontSize="12"
+									   TextWrapping="Wrap"
+									   Foreground="{DynamicResource TextSecondaryBrush}"/>
+							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideStep1}"
+									   FontSize="12"
+									   TextWrapping="Wrap"
+									   Foreground="{DynamicResource TextSecondaryBrush}"/>
+							<Button Content="https://clairbot.app"
+									Padding="0"
+									HorizontalAlignment="Left"
+									Background="Transparent"
+									BorderThickness="0"
+									Foreground="{DynamicResource AccentBrush}"
+									FontSize="12"
+									Click="OpenClairbotLink_Click"/>
+							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideStep2}"
+									   FontSize="12"
+									   TextWrapping="Wrap"
+									   Foreground="{DynamicResource TextSecondaryBrush}"/>
+							<Button Content="https://hub.clairbot.app/among-us"
+									Padding="0"
+									HorizontalAlignment="Left"
+									Background="Transparent"
+									BorderThickness="0"
+									Foreground="{DynamicResource AccentBrush}"
+									FontSize="12"
+									Click="OpenClairHubLink_Click"/>
+							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideStep3}"
+									   FontSize="12"
+									   TextWrapping="Wrap"
+									   Foreground="{DynamicResource TextSecondaryBrush}"/>
+							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideStep4}"
+									   FontSize="12"
+									   TextWrapping="Wrap"
+									   Foreground="{DynamicResource TextSecondaryBrush}"/>
+							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideStep5}"
+									   FontSize="12"
+									   TextWrapping="Wrap"
+									   Foreground="{DynamicResource TextSecondaryBrush}"/>
+							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideStep6}"
+									   FontSize="12"
+									   TextWrapping="Wrap"
+									   Foreground="{DynamicResource TextSecondaryBrush}"/>
+						</StackPanel>
+					</Border>
+
 					<!-- Sekcja hasła -->
 					<StackPanel Spacing="12">
 						<TextBlock Text="{local:Localize SUStatsConfig.PasswordSection}"

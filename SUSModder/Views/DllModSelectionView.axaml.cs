@@ -1,14 +1,14 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.VisualTree; // Dla FindAncestorOfType
 using SUSModder.ViewModels;
-using System.Threading.Tasks;
 using System;
 
 namespace SUSModder.Views
 {
     public partial class DllModSelectionView : UserControl
     {
+        private DllModSelectionViewModel? _subscribedViewModel;
+
         public DllModSelectionView()
         {
             InitializeComponent();
@@ -19,19 +19,29 @@ namespace SUSModder.Views
 
         private void OnDataContextChanged(object? sender, EventArgs e)
         {
-            // Odłącz event od starego ViewModel (jeśli istnieje)
+            if (_subscribedViewModel != null)
+            {
+                _subscribedViewModel.CloseRequested -= ViewModel_CloseRequested;
+            }
+
             if (DataContext is DllModSelectionViewModel viewModel)
             {
                 viewModel.CloseRequested += ViewModel_CloseRequested;
+                _subscribedViewModel = viewModel;
+            }
+            else
+            {
+                _subscribedViewModel = null;
             }
         }
 
         protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
         {
             // Odłącz event przy zamykaniu widoku
-            if (DataContext is DllModSelectionViewModel viewModel)
+            if (_subscribedViewModel != null)
             {
-                viewModel.CloseRequested -= ViewModel_CloseRequested;
+                _subscribedViewModel.CloseRequested -= ViewModel_CloseRequested;
+                _subscribedViewModel = null;
             }
             
             base.OnDetachedFromVisualTree(e);
@@ -39,9 +49,7 @@ namespace SUSModder.Views
 
         private void ViewModel_CloseRequested(object? sender, System.EventArgs e)
         {
-            // Znajdź okno-rodzica i zamknij je
-            var window = this.FindAncestorOfType<Window>();
-            window?.Close();
+            // Zamknięcie jest obsługiwane przez właściciela widoku (MainWindowViewModel).
         }
     }
 }

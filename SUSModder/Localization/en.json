@@ -112,7 +112,9 @@
       "ApiChecking": "Checking...",
       "ApiUnknown": "Unknown",
       "OnlineUsers": "Users: {0}",
-      "AndMoreMods": "...and {0} more"
+      "AndMoreMods": "...and {0} more",
+      "SwitchToSystemStatus": "Show system status",
+      "SwitchToDiscordPromo": "Show Discord promotions"
     },
     "Theme": {
       "SwitchToLight": "Light theme",
@@ -669,6 +671,14 @@
   "SUStatsConfig": {
     "Header": "SUStats Configuration",
     "Subtitle": "Manage game statistics recording",
+    "SetupGuideTitle": "How does this work?",
+    "SetupGuideIntro": "To run rankings and send data to your Discord server, complete the steps below:",
+    "SetupGuideStep1": "1. Add the Clair bot to your Discord server (link below).",
+    "SetupGuideStep2": "2. Generate a connection key in the hub (link below): Integrations -> Generate token.",
+    "SetupGuideStep3": "3. Copy the generated secret and paste it here in the password field.",
+    "SetupGuideStep4": "4. Configure the Discord channels where results should be posted.",
+    "SetupGuideStep5": "5. Stats collection works with mods: Syzyfowy Town of Us and ToU: Mira (after installing the Mira - Stats Exporter DLL).",
+    "SetupGuideStep6": "6. Only the host or one lobby player needs to have this enabled.",
     "PasswordSection": "Server Login",
     "PasswordPrompt": "Enter server password to connect to the statistics system:",
     "PasswordPlaceholder": "Enter server password...",
@@ -697,6 +707,7 @@
     "WindowTitle": "Recommended Discords",
     "Header": "Recommended Discords",
     "Subtitle": "Join the Among Us and mods community",
+    "MemberCountLabel": "👥 {0} users",
     "JoinButton": "Join",
     "CloseButton": "Close",
     "LoadingServers": "Loading Discord servers...",

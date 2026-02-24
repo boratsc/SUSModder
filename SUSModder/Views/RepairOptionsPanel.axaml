@@ -1,0 +1,183 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:fic="using:FluentIcons.Common"
+             x:Class="SUSModder.Views.RepairOptionsPanel"
+             x:CompileBindings="False">
+    <Grid RowDefinitions="Auto,*" RowSpacing="14">
+        <Border Grid.Row="0"
+                Background="{DynamicResource AccentBrush}"
+                CornerRadius="10"
+                Padding="16,14">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Wrench}" FontSize="22" Foreground="White"/>
+                <TextBlock Text="{loc:Localize UI.Repair.DialogTitle}"
+                           FontSize="18"
+                           FontWeight="Bold"
+                           Foreground="White"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="12">
+                <Button HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Padding="14"
+                        Background="{DynamicResource ModCardBackgroundBrush}"
+                        BorderBrush="{DynamicResource ModCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Command="{Binding ExecuteRepairOptionCommand}"
+                        CommandParameter="BlackScreen">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <Border Width="44" Height="44" CornerRadius="8" Background="{DynamicResource AccentBrush}">
+                            <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Desktop}" FontSize="22" Foreground="White"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="3">
+                            <TextBlock Text="{loc:Localize UI.Repair.BlackScreen.Title}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"/>
+                            <TextBlock Text="{loc:Localize UI.Repair.BlackScreen.Description}"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                    </Grid>
+                </Button>
+
+                <Button HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Padding="14"
+                        Background="{DynamicResource ModCardBackgroundBrush}"
+                        BorderBrush="{DynamicResource ModCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Command="{Binding ExecuteRepairOptionCommand}"
+                        CommandParameter="Certificates">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <Border Width="44" Height="44" CornerRadius="8" Background="#0288D1">
+                            <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Certificate}" FontSize="22" Foreground="White"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="3">
+                            <TextBlock Text="{loc:Localize UI.Repair.Certificates.Title}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"/>
+                            <TextBlock Text="{loc:Localize UI.Repair.Certificates.Description}"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                    </Grid>
+                </Button>
+
+                <Button HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Padding="14"
+                        Background="{DynamicResource ModCardBackgroundBrush}"
+                        BorderBrush="{DynamicResource ModCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Command="{Binding ExecuteRepairOptionCommand}"
+                        CommandParameter="Regions">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <Border Width="44" Height="44" CornerRadius="8" Background="#4CAF50">
+                            <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Globe}" FontSize="22" Foreground="White"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="3">
+                            <TextBlock Text="{loc:Localize UI.Repair.Regions.Title}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"/>
+                            <TextBlock Text="{loc:Localize UI.Repair.Regions.Description}"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                    </Grid>
+                </Button>
+
+                <Button HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Padding="14"
+                        Background="{DynamicResource ModCardBackgroundBrush}"
+                        BorderBrush="{DynamicResource ModCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        IsEnabled="{Binding IsRepairSteamPlatform}"
+                        Command="{Binding ExecuteRepairOptionCommand}"
+                        CommandParameter="Firewall">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <Border Width="44" Height="44" CornerRadius="8" Background="#9C27B0">
+                            <ic:SymbolIcon Symbol="{x:Static fic:Symbol.ShieldKeyhole}" FontSize="22" Foreground="White"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="3">
+                            <TextBlock Text="{loc:Localize UI.Repair.Firewall.Title}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"/>
+                            <TextBlock Text="{loc:Localize UI.Repair.Firewall.Description}"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                    </Grid>
+                </Button>
+
+                <Border Background="{DynamicResource ModCardBackgroundBrush}"
+                        BorderBrush="{DynamicResource ModCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="14">
+                    <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Border Width="44" Height="44" CornerRadius="8" Background="#E91E63">
+                                <ic:SymbolIcon Symbol="{x:Static fic:Symbol.PersonKey}" FontSize="22" Foreground="White"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" Spacing="3">
+                                <TextBlock Text="{loc:Localize UI.Repair.EpicAuth.Title}"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"/>
+                                <TextBlock Text="{loc:Localize UI.Repair.EpicAuth.Description}"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Grid.Row="1" ColumnDefinitions="*,10,*">
+                            <Button Grid.Column="0"
+                                    Height="36"
+                                    CornerRadius="6"
+                                    Background="#D32F2F"
+                                    Foreground="White"
+                                    FontWeight="SemiBold"
+                                    IsEnabled="{Binding IsRepairEpicPlatform}"
+                                    Command="{Binding ExecuteRepairOptionCommand}"
+                                    CommandParameter="EpicLogout">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ic:SymbolIcon Symbol="{x:Static fic:Symbol.SignOut}" FontSize="16" Foreground="White"/>
+                                    <TextBlock Text="{loc:Localize UI.Repair.EpicAuth.Logout}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Grid.Column="2"
+                                    Height="36"
+                                    CornerRadius="6"
+                                    Background="#4CAF50"
+                                    Foreground="White"
+                                    FontWeight="SemiBold"
+                                    IsEnabled="{Binding IsRepairEpicPlatform}"
+                                    Command="{Binding ExecuteRepairOptionCommand}"
+                                    CommandParameter="EpicLogin">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ic:SymbolIcon Symbol="{x:Static fic:Symbol.PersonAdd}" FontSize="16" Foreground="White"/>
+                                    <TextBlock Text="{loc:Localize UI.Repair.EpicAuth.Login}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

@@ -9,7 +9,6 @@ using Microsoft.Extensions.Configuration;
 using System.IO;
 using SUSModder.Core.Diagnostics;
 using Avalonia.Threading;
-using System.Linq;
 using Avalonia.Media;
 using SUSModder.Services;
 
@@ -174,11 +173,23 @@ namespace SUSModder.ViewModels
             ResetCommand = ReactiveCommand.Create(ResetConfiguration);
             SaveSelectionCommand = ReactiveCommand.Create(() => { });
 
-            // Załaduj serwery przy inicjalizacji
-            _ = LoadServersAsync();
-
             // Synchronizuj stan z GlobalSelectedServer i zapisaną sesją
             _ = SyncWithSavedSessionAsync();
+        }
+
+        private static SUStatsService CreateSUStatsService()
+        {
+            var configBuilder = new ConfigurationBuilder()
+                .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+            var configuration = configBuilder.Build();
+
+            var diagnosticsOutput = new SUStatsDiagnosticsOutput((message) =>
+            {
+                System.Diagnostics.Debug.WriteLine($"[SUStats Service] {message}");
+            });
+
+            return new SUStatsService(configuration, diagnosticsOutput);
         }
 
         /// <summary>
@@ -195,22 +206,19 @@ namespace SUSModder.ViewModels
                     return;
                 }
 
-                // Poczekaj na załadowanie serwerów (max 3 sekundy)
-                var timeout = DateTime.Now.AddSeconds(3);
-                while (!Servers.Any() && DateTime.Now < timeout)
+                var suStatsService = CreateSUStatsService();
+                var savedServer = await suStatsService.ValidateServerBySecretAsync(session.Password);
+                if (savedServer == null)
                 {
-                    await Task.Delay(100);
-                }
-
-                if (!Servers.Any())
-                {
+                    SUStatsSessionManager.ClearSession();
+                    System.Diagnostics.Debug.WriteLine("[SUStats] ⚠️ Zapisana sesja jest nieaktualna - usunięto");
                     return;
                 }
 
-                // Znajdź serwer o zapisanym ID
-                var savedServer = Servers.FirstOrDefault(s => s.Id == session.ServerId);
-                if (savedServer == null)
+                if (savedServer.Id != session.ServerId)
                 {
+                    SUStatsSessionManager.ClearSession();
+                    System.Diagnostics.Debug.WriteLine("[SUStats] ⚠️ Zapisana sesja wskazuje inny serwer - usunięto");
                     return;
                 }
 
@@ -249,7 +257,7 @@ namespace SUSModder.ViewModels
             }
         }
 
-        private Task CheckPasswordAsync()
+        private async Task CheckPasswordAsync()
         {
             try
             {
@@ -263,11 +271,12 @@ namespace SUSModder.ViewModels
                 {
                     PasswordStatusMessage = "❌ Wprowadź hasło";
                     PasswordStatusColor = Brushes.Red;
-                    return Task.CompletedTask;
+                    return;
                 }
 
-                // Znajdź serwer z pasującym secretem
-                var matchingServer = Servers.FirstOrDefault(s => s.Secret.Equals(EnteredPassword, StringComparison.Ordinal));
+                // Waliduj klucz bezpośrednio przez API (bez użycia lokalnego cache)
+                var suStatsService = CreateSUStatsService();
+                var matchingServer = await suStatsService.ValidateServerBySecretAsync(EnteredPassword);
 
                 if (matchingServer != null)
                 {
@@ -321,8 +330,6 @@ namespace SUSModder.ViewModels
             {
                 IsCheckingPassword = false;
             }
-
-            return Task.CompletedTask;
         }
 
         private void OnStatsEnabledChanged(bool enabled)
@@ -429,40 +436,19 @@ namespace SUSModder.ViewModels
 
                 System.Diagnostics.Debug.WriteLine($"[SUStats] Znaleziono zapisaną sesję dla serwera ID: {session.ServerId}");
 
-                // Załaduj serwery
-                var configBuilder = new ConfigurationBuilder()
-                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                var configuration = configBuilder.Build();
-
-                var diagnosticsOutput = new SUStatsDiagnosticsOutput((message) =>
-                {
-                    System.Diagnostics.Debug.WriteLine($"[SUStats Service] {message}");
-                });
-
-                var suStatsService = new SUStatsService(configuration, diagnosticsOutput);
-                var serverDataList = await suStatsService.GetSUStatsServersAsync();
-
-                if (!serverDataList.Any())
-                {
-                    System.Diagnostics.Debug.WriteLine("[SUStats] ⚠️ Nie udało się załadować serwerów - auto-logowanie anulowane");
-                    return;
-                }
-
-                // Znajdź serwer o zapisanym ID
-                var savedServer = serverDataList.FirstOrDefault(s => s.Id == session.ServerId);
+                var suStatsService = CreateSUStatsService();
+                var savedServer = await suStatsService.ValidateServerBySecretAsync(session.Password);
                 if (savedServer == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[SUStats] ⚠️ Nie znaleziono serwera o ID: {session.ServerId}");
+                    System.Diagnostics.Debug.WriteLine("[SUStats] ⚠️ Nie udało się zwalidować klucza z sesji");
                     // Usuń nieważną sesję
                     SUStatsSessionManager.ClearSession();
                     return;
                 }
 
-                // Sprawdź hasło
-                if (!savedServer.Secret.Equals(session.Password, StringComparison.Ordinal))
+                if (savedServer.Id != session.ServerId)
                 {
-                    System.Diagnostics.Debug.WriteLine("[SUStats] ⚠️ Hasło w sesji nie pasuje do serwera");
+                    System.Diagnostics.Debug.WriteLine("[SUStats] ⚠️ Klucz w sesji wskazuje inny serwer");
                     SUStatsSessionManager.ClearSession();
                     return;
                 }
@@ -481,76 +467,6 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[SUStats] Błąd podczas auto-logowania: {ex.Message}");
-            }
-        }
-
-        private async Task LoadServersAsync()
-        {
-            try
-            {
-                System.Diagnostics.Debug.WriteLine("[SUStats] Ładowanie listy serwerów...");
-
-                // Stwórz konfigurację
-                var configBuilder = new ConfigurationBuilder()
-                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                var configuration = configBuilder.Build();
-
-                // Stwórz diagnostics output
-                var diagnosticsOutput = new SUStatsDiagnosticsOutput((message) =>
-                {
-                    System.Diagnostics.Debug.WriteLine($"[SUStats Service] {message}");
-                });
-
-                // Pobierz dane z API
-                var suStatsService = new SUStatsService(configuration, diagnosticsOutput);
-                var serverDataList = await suStatsService.GetSUStatsServersAsync();
-
-                // Aktualizuj UI na głównym wątku
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    Servers.Clear();
-
-                    if (serverDataList.Any())
-                    {
-                        foreach (var server in serverDataList)
-                        {
-                            Servers.Add(server);
-                        }
-                        System.Diagnostics.Debug.WriteLine($"[SUStats] Załadowano {serverDataList.Count} serwerów");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("[SUStats] ⚠️ Brak serwerów do załadowania");
-                        // Dodaj testowy serwer
-                        Servers.Add(new AmongToken
-                        {
-                            Id = 1,
-                            ServerName = "Testowy serwer SUStats",
-                            Token = "test_token",
-                            Secret = "secret",
-                            Endpoint = "https://example.com/api"
-                        });
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[SUStats] Błąd podczas ładowania serwerów: {ex.Message}");
-
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    // Fallback - dodaj przykładowy serwer do testów
-                    Servers.Clear();
-                    Servers.Add(new AmongToken
-                    {
-                        Id = 1,
-                        ServerName = "Serwer testowy (offline)",
-                        Token = "test_token",
-                        Secret = "secret",
-                        Endpoint = "https://example.com/api"
-                    });
-                });
             }
         }
     }

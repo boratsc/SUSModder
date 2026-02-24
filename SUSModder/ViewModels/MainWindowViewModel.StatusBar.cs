@@ -91,6 +91,8 @@ namespace SUSModder.ViewModels
         private ApiConnectionStatus _apiStatus = ApiConnectionStatus.Checking;
         private int _apiPingMs;
         private DateTime _lastApiCheck = DateTime.Now;
+        private DateTime _lastConfigSyncUtc = DateTime.MinValue;
+        private static readonly TimeSpan ConfigSyncInterval = TimeSpan.FromMinutes(15);
         private string _apiBaseUrl = string.Empty;
         private int _onlineUsersCount;
 
@@ -453,6 +455,20 @@ namespace SUSModder.ViewModels
                 {
                     ApiStatus = ApiConnectionStatus.Online;
                     ApiPingMs = (int)stopwatch.ElapsedMilliseconds;
+
+                    // Synchronizuj config z API nie częściej niż co 15 minut.
+                    var nowUtc = DateTime.UtcNow;
+                    if (nowUtc - _lastConfigSyncUtc >= ConfigSyncInterval)
+                    {
+                        var configService = new ConfigService();
+                        bool configRefreshed = await configService.RefreshConfigFromApiAsync();
+                        _lastConfigSyncUtc = nowUtc;
+
+                        if (configRefreshed)
+                        {
+                            await RefreshModsListAsync(checkUpdates: false);
+                        }
+                    }
                     
                     // Pobierz liczbę użytkowników online
                     await FetchOnlineUsersAsync(baseUrl, client);
@@ -533,6 +549,13 @@ namespace SUSModder.ViewModels
             {
                 var updateManager = new ModUpdateManager();
                 var result = await updateManager.CheckForUpdatesAsync();
+
+                // Jeśli config został zaktualizowany (np. doszły nowe mody),
+                // przeładuj listę modów od razu bez czekania na restart aplikacji.
+                if (result.ConfigWasUpdated)
+                {
+                    await RefreshModsListAsync(checkUpdates: false);
+                }
 
                 if (result.Success && result.InstalledModUpdates.Any())
                 {

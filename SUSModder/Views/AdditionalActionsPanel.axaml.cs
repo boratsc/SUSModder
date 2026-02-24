@@ -218,14 +218,9 @@ namespace SUSModder.Views
                         System.Diagnostics.Debug.WriteLine("[UI] Konfiguracja wczytana pomyślnie");
 
                         // Pokaż komunikat sukcesu - musimy ponownie pobrać okno bo mogło się zmienić
-                        var successWindow = GetMainWindow();
-                        if (successWindow != null)
-                        {
-                            var successDialog = new MessageDialog(
-                                _localizationService?.Get("Dialogs.Info.Title") ?? "Info",
-                                _localizationService?.Get("Tools.ServerLoadSuccess") ?? "Configuration loaded successfully");
-                            await successDialog.ShowDialog(successWindow);
-                        }
+                        await ShowMessageAsync(
+                            _localizationService?.Get("Dialogs.Info.Title") ?? "Info",
+                            _localizationService?.Get("Tools.ServerLoadSuccess") ?? "Configuration loaded successfully");
                     }
                 }
             }
@@ -351,6 +346,11 @@ namespace SUSModder.Views
         // Pomocnicze metody dla UserInteractionService
         private async Task<bool> ShowConfirmDialogAsync(string message, string title)
         {
+            if (DataContext is MainWindowViewModel vm)
+            {
+                return await vm.ShowInlineConfirmAsync(title, message);
+            }
+
             var dialog = new ConfirmDialog(title, message);
             var mainWindow = GetMainWindow();
             if (mainWindow != null)
@@ -363,6 +363,12 @@ namespace SUSModder.Views
 
         private async Task ShowMessageAsync(string title, string message)
         {
+            if (DataContext is MainWindowViewModel vm)
+            {
+                await vm.ShowInlineMessageAsync(title, message);
+                return;
+            }
+
             var dialog = new MessageDialog(title, message);
             var mainWindow = GetMainWindow();
             if (mainWindow != null)
@@ -371,6 +377,12 @@ namespace SUSModder.Views
 
         private async Task ShowErrorDialogAsync(string message, string title)
         {
+            if (DataContext is MainWindowViewModel vm)
+            {
+                await vm.ShowInlineErrorAsync(title, message);
+                return;
+            }
+
             var dialog = new MessageDialog(title, message);
             var mainWindow = GetMainWindow();
             if (mainWindow != null)
@@ -379,6 +391,11 @@ namespace SUSModder.Views
 
         private async Task<string?> ShowPromptDialogAsync(string message, string title)
         {
+            if (DataContext is MainWindowViewModel vm)
+            {
+                return await vm.ShowInlinePromptAsync(title, message);
+            }
+
             var dialog = new PromptDialog(title, message);
             var mainWindow = GetMainWindow();
             if (mainWindow != null)

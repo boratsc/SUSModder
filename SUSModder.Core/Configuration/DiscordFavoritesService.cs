@@ -130,5 +130,100 @@ namespace SUSModder.Core.Configuration
                 return new List<DiscordServerData>();
             }
         }
+
+        public async Task<Dictionary<string, int>> GetDiscordServerCountsAsync()
+        {
+            try
+            {
+                var baseUrl = _configuration.GetSection("Configuration")["BaseUrl"];
+                var countsEndpoint = _configuration.GetSection("Configuration")["DiscordServerCountsEndpoint"] ??
+                                     "/api/public/discord-server-counts";
+
+                if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(countsEndpoint))
+                {
+                    return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                }
+
+                var fullUrl = baseUrl.TrimEnd('/') + countsEndpoint;
+
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Add("User-Agent", "SUSModder/1.0");
+
+                var response = await _httpClient.GetAsync(fullUrl);
+                if (!response.IsSuccessStatusCode)
+                {
+                    return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                }
+
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                return ParseServerCounts(jsonContent);
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput.Write($"Discord counts fetch failed: {ex.Message}");
+                return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            }
+        }
+
+        private static Dictionary<string, int> ParseServerCounts(string jsonContent)
+        {
+            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            if (string.IsNullOrWhiteSpace(jsonContent))
+            {
+                return counts;
+            }
+
+            try
+            {
+                using var document = JsonDocument.Parse(jsonContent);
+                if (!document.RootElement.TryGetProperty("counts", out var countsElement))
+                {
+                    return counts;
+                }
+
+                if (countsElement.ValueKind != JsonValueKind.Object)
+                {
+                    return counts;
+                }
+
+                foreach (var property in countsElement.EnumerateObject())
+                {
+                    var key = property.Name?.Trim();
+                    if (string.IsNullOrWhiteSpace(key))
+                    {
+                        continue;
+                    }
+
+                    var memberCount = ReadCountValue(property.Value);
+                    if (memberCount.HasValue)
+                    {
+                        counts[key] = memberCount.Value;
+                    }
+                }
+            }
+            catch
+            {
+                return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            return counts;
+        }
+
+        private static int? ReadCountValue(JsonElement element)
+        {
+            if (element.ValueKind == JsonValueKind.Number && element.TryGetInt32(out var numberCount))
+            {
+                return numberCount;
+            }
+
+            if (element.ValueKind == JsonValueKind.String &&
+                int.TryParse(element.GetString(), out var stringCount))
+            {
+                return stringCount;
+            }
+
+            return null;
+        }
     }
 }

@@ -78,4 +78,53 @@
         </Style.Animations>
     </Style>
 
+    <Style Selector="Button.statusbar-toggle-button">
+        <Setter Property="Width" Value="40"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="CornerRadius" Value="20"/>
+        <Setter Property="Background" Value="{DynamicResource ModCardBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="0"/>
+    </Style>
+
+    <Style Selector="Button.statusbar-toggle-button:pointerover">
+        <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+    </Style>
+
+    <Style Selector="Border.statusbar-discord-promo">
+        <Setter Property="Background" Value="{DynamicResource PaneBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="10,8"/>
+        <Setter Property="Width" Value="NaN"/>
+        <Setter Property="MinWidth" Value="0"/>
+        <Setter Property="MaxWidth" Value="10000"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="Margin" Value="4,0"/>
+        <Setter Property="BoxShadow" Value="0 2 8 0 #30000000"/>
+    </Style>
+
+    <Style Selector="Border.tool-modal-overlay">
+        <Setter Property="Background" Value="#8A000000"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="VerticalAlignment" Value="Stretch"/>
+    </Style>
+
+    <Style Selector="Border.tool-modal-card">
+        <Setter Property="Background" Value="{DynamicResource PaneBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Width" Value="760"/>
+        <Setter Property="MaxWidth" Value="860"/>
+        <Setter Property="MaxHeight" Value="700"/>
+        <Setter Property="MinHeight" Value="280"/>
+        <Setter Property="BoxShadow" Value="0 12 32 0 #60000000"/>
+    </Style>
+
 </Styles>
