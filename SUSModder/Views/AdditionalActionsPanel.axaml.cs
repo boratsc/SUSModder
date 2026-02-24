@@ -30,7 +30,7 @@ namespace SUSModder.Views
         public AdditionalActionsPanel()
         {
             InitializeComponent();
-            _localizationService = (ILocalizationService)Application.Current!.Resources["LocalizationService"]!;
+            _localizationService = App.GetService<ILocalizationService>();
             InitializeServices();
         }
 
