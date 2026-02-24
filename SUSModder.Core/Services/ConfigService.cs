@@ -18,6 +18,15 @@ namespace SUSModder.Core.Services
         }
 
         /// <summary>
+        /// W pełni asynchroniczna wersja LoadConfig - unika blokującego .GetAwaiter().GetResult()
+        /// przy pobieraniu konfiguracji z API (15s timeout).
+        /// </summary>
+        public Task<List<ModConfiguration>> LoadConfigAsync()
+        {
+            return ConfigManager.LoadConfigAsync();
+        }
+
+        /// <summary>
         /// Zapisuje konfigurację modów do pliku config.json.
         /// </summary>
         public void SaveConfig(List<ModConfiguration> configs)

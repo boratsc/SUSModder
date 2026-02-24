@@ -151,8 +151,13 @@ namespace SUSModder.Core.Services
                     return null;
                 }
 
-                // Wyciągnij nazwę pliku z URL
-                string fileName = Path.GetFileName(new Uri(downloadUrl).LocalPath);
+                // Wyciągnij nazwę pliku z oryginalnego linku (nie CDN URL)
+                string fileName = GetDllFileName(dllMod, platform);
+                if (string.IsNullOrEmpty(fileName))
+                {
+                    _diagnosticsOutput.Write("Could not determine DLL file name from source URL");
+                    return null;
+                }
                 _diagnosticsOutput.Write($"DLL file name: {fileName}");
 
                 // Ścieżka docelowa - uwzględnij strukturę Epic (podkatalog AmongUs)
@@ -271,16 +276,13 @@ namespace SUSModder.Core.Services
                     return false;
                 }
 
-                // Wybierz odpowiedni link
-                string downloadUrl = GetDllDownloadUrl(dllMod, platform);
-                if (string.IsNullOrEmpty(downloadUrl))
+                // Wyciągnij nazwę pliku z oryginalnego linku (nie CDN URL)
+                string fileName = GetDllFileName(dllMod, platform);
+                if (string.IsNullOrEmpty(fileName))
                 {
                     _diagnosticsOutput.Write("Cannot determine file name for removal");
                     return false;
                 }
-
-                // Wyciągnij nazwę pliku z URL
-                string fileName = Path.GetFileName(new Uri(downloadUrl).LocalPath);
                 _diagnosticsOutput.Write($"DLL file name to remove: {fileName}");
 
                 // Ścieżka do pliku - uwzględnij strukturę Epic (podkatalog AmongUs)
@@ -351,10 +353,8 @@ namespace SUSModder.Core.Services
                     return false;
                 }
 
-                string downloadUrl = GetDllDownloadUrl(dllMod, platform);
-                if (string.IsNullOrEmpty(downloadUrl)) return false;
-
-                string fileName = Path.GetFileName(new Uri(downloadUrl).LocalPath);
+                string fileName = GetDllFileName(dllMod, platform);
+                if (string.IsNullOrEmpty(fileName)) return false;
                 
                 // Uwzględnij strukturę Epic (podkatalog AmongUs)
                 string actualModPath = PathSettings.GetActualModPath(targetMod.InstallPath);
@@ -371,15 +371,12 @@ namespace SUSModder.Core.Services
 
         private string GetDllDownloadUrl(ModConfiguration dllMod, string platform)
         {
-            // Jeśli Epic i ma EpicGitHubRepoOrLink
-            if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase) &&
-                !string.IsNullOrEmpty(dllMod.EpicGitHubRepoOrLink))
-            {
-                return dllMod.EpicGitHubRepoOrLink;
-            }
+            return ModDownloadUrlBuilder.Build(dllMod, platform);
+        }
 
-            // W przeciwnym razie użyj standardowego linku
-            return dllMod.GitHubRepoOrLink ?? string.Empty;
+        private string GetDllFileName(ModConfiguration dllMod, string platform)
+        {
+            return ModDownloadUrlBuilder.GetDllFileName(dllMod, platform);
         }
 
         public void Dispose()

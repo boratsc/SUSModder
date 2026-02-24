@@ -42,7 +42,7 @@ namespace SUSModder.Views
         /// <summary>
         /// Animuje pasek postępu do określonej wartości
         /// </summary>
-        public async Task AnimateProgressAsync(double targetProgress, int durationMs = 200)
+        public async Task AnimateProgressAsync(double targetProgress, int durationMs = 80)
         {
             if (_progressBar == null) return;
 
@@ -50,7 +50,7 @@ namespace SUSModder.Views
             {
                 var currentWidth = _progressBar.Width;
                 var targetWidth = this.Width * Math.Clamp(targetProgress, 0, 1);
-                var steps = 20;
+                var steps = 8;
                 var stepDuration = durationMs / steps;
                 var increment = (targetWidth - currentWidth) / steps;
 
@@ -71,12 +71,12 @@ namespace SUSModder.Views
         {
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                // Fade out animation
-                var steps = 10;
+                // Fade out animation (zoptymalizowana - 6 kroków × 25ms zamiast 10 × 30ms)
+                var steps = 6;
                 for (int i = 0; i < steps; i++)
                 {
                     this.Opacity = 1.0 - (i / (double)steps);
-                    await Task.Delay(30);
+                    await Task.Delay(25);
                 }
 
                 this.Close();

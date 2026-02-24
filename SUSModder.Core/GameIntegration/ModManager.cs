@@ -137,9 +137,8 @@ namespace SUSModder.Core.GameIntegration
                 progress.Report(30, "Pobieranie moda...");
                 Directory.CreateDirectory(tempDir);
 
-                string downloadUrl = !string.IsNullOrEmpty(modConfig.GitHubRepoOrLink)
-                    ? modConfig.GitHubRepoOrLink
-                    : throw new InvalidOperationException("Brak linku do pobrania moda.");
+                string downloadUrl = ModDownloadUrlBuilder.Build(modConfig, "steam");
+                log.Write($"[CDN] URL pobierania moda (Steam): {downloadUrl}");
 
                 bool retryMod;
                 do
@@ -364,7 +363,8 @@ namespace SUSModder.Core.GameIntegration
             List<ModConfiguration> selectedFullMods,
             IProgressReporter progress,
             IDiagnosticsOutput log,
-            ModManagerUserCallbacks userCallbacks)
+            ModManagerUserCallbacks userCallbacks,
+            string mode = "steam")
         {
             string modsInstallPath = PathSettings.ModsInstallPath;
             
@@ -374,9 +374,8 @@ namespace SUSModder.Core.GameIntegration
             Directory.CreateDirectory(tempDir);
 
             string modFile = Path.Combine(tempDir, "mod.dll");
-            string downloadUrl = !string.IsNullOrEmpty(modConfig.GitHubRepoOrLink)
-                ? modConfig.GitHubRepoOrLink
-                : throw new InvalidOperationException("Brak linku do pobrania DLL moda.");
+            string downloadUrl = ModDownloadUrlBuilder.Build(modConfig, mode);
+            log.Write($"[CDN] URL pobierania DLL moda ({mode}): {downloadUrl}");
 
             bool retry;
             do

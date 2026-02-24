@@ -29,13 +29,11 @@
 	</Design.DataContext>
 
 	<Window.Styles>
-		<FluentTheme />
 		<!-- Importowane style -->
 		<StyleInclude Source="/Styles/ModCardStyle.axaml"/>
 		<StyleInclude Source="/Styles/MenuButtonStyle.axaml"/>
 		<StyleInclude Source="/Styles/PanelStyles.axaml"/>
 		<StyleInclude Source="/Styles/StatusBarStyle.axaml"/>
-		<StyleInclude Source="/Styles/FabButtonStyle.axaml"/>
 	</Window.Styles>
 
 	<!-- Main Grid replacing SplitView -->

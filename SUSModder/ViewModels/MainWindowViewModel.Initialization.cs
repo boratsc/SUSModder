@@ -24,6 +24,17 @@ namespace SUSModder.ViewModels
     public partial class MainWindowViewModel
     {
         /// <summary>
+        /// Inicjalizuje ciężkie serwisy w tle (poza konstruktorem).
+        /// Wywoływane z App.axaml.cs po utworzeniu VM.
+        /// </summary>
+        public async Task InitializeServicesAsync()
+        {
+            // ClearEpicLogsOnStartup tworzy EpicVersionManager - ciężka operacja
+            // Przeniesione z konstruktora aby nie blokować UI thread
+            await Task.Run(() => ClearEpicLogsOnStartup());
+        }
+
+        /// <summary>
         /// Publiczna metoda inicjalizacji aplikacji wywoływana przez App.axaml.cs
         /// </summary>
         /// <param name="progressCallback">Callback do raportowania postępu (0.0 - 1.0, status text)</param>
@@ -36,25 +47,17 @@ namespace SUSModder.ViewModels
                 
                 // KROK 1: Ładowanie konfiguracji modów (10%)
                 progressCallback?.Invoke(0.0, "Ładowanie konfiguracji modów...");
-                await Task.Run(() =>
-                {
-                    var configService = new ConfigService();
-                    var configs = configService.LoadConfig();
-                    System.Diagnostics.Debug.WriteLine($"Loaded {configs.Count} configs from service");
-                    _loadedConfigs = configs;
-                });
+                var configService = new ConfigService();
+                var configs = await configService.LoadConfigAsync();
+                System.Diagnostics.Debug.WriteLine($"Loaded {configs.Count} configs from service");
+                _loadedConfigs = configs;
 
                 // KROK 2: Wyszukiwanie i konfiguracja Vanilla Among Us (30%)
                 progressCallback?.Invoke(0.1, "Wykrywanie Among Us...");
                 bool vanillaSetupSuccess = await SetupVanillaGameAsync();
 
-                // KROK 3: Przeładuj konfigurację (40%)
-                progressCallback?.Invoke(0.3, "Aktualizacja konfiguracji...");
-                await Task.Run(() =>
-                {
-                    var configService = new ConfigService();
-                    _loadedConfigs = configService.LoadConfig();
-                });
+                // KROK 3: Odświeżenie konfiguracji i interfejsu (40%)
+                // Pominięto redundantne przeładowanie configu - SetupVanillaGameAsync już zaktualizowało _loadedConfigs
 
                 // Odśwież tytuł okna po wykryciu platformy (zawsze, niezależnie czy Vanilla był nowy czy już istniał)
                 await Dispatcher.UIThread.InvokeAsync(() =>
@@ -64,7 +67,7 @@ namespace SUSModder.ViewModels
 
                 // KROK 4: Odświeżenie interfejsu (70%)
                 progressCallback?.Invoke(0.4, "Odświeżanie listy modów...");
-                await RefreshModsListAsync();
+                await RefreshModsListAsync(preloadedConfigs: _loadedConfigs);
 
                 // KROK 5: Równoległe operacje w tle (80%)
                 progressCallback?.Invoke(0.6, "Ładowanie zasobów...");
@@ -137,12 +140,8 @@ namespace SUSModder.ViewModels
                 {
                     System.Diagnostics.Debug.WriteLine("Starting Vanilla game setup...");
 
-                    // Stwórz IConfiguration z appsettings.json
-                    var configBuilder = new ConfigurationBuilder()
-                        .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-
-                    var configuration = configBuilder.Build();
+                    // Użyj cache'owanej konfiguracji z DI zamiast budowania nowej
+                    var configuration = _configuration!;
 
                     // Wywołaj asynchroniczną wersję z interfejsem użytkownika
                     var vanillaMod = await GameLocator.CheckAndSetupVanillaModAsync(
@@ -226,11 +225,8 @@ namespace SUSModder.ViewModels
         {
             try
             {
-                var basePath = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                var configuration = new ConfigurationBuilder()
-                    .SetBasePath(basePath)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                    .Build();
+                // Użyj cache'owanej konfiguracji z DI zamiast budowania nowej
+                var configuration = _configuration!;
 
                 var diagnosticsOutput = new UIDiagnosticsOutput(message =>
                 {

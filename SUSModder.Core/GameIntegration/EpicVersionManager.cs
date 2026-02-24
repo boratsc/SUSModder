@@ -237,39 +237,9 @@ namespace SUSModder.Core.GameIntegration
                 return;
             }
 
-            string downloadUrl;
-            bool usingFallback = false;
+            string downloadUrl = ModDownloadUrlBuilder.Build(modConfig, "epic");
 
-            if (!string.IsNullOrEmpty(modConfig.EpicGitHubRepoOrLink))
-            {
-                downloadUrl = modConfig.EpicGitHubRepoOrLink;
-                Write($"Używam dedykowanego linku Epic dla moda '{modConfig.ModName}': {downloadUrl}");
-            }
-            else if (!string.IsNullOrEmpty(modConfig.GitHubRepoOrLink))
-            {
-                downloadUrl = modConfig.GitHubRepoOrLink;
-                usingFallback = true;
-                Write($"FALLBACK: Używam standardowego linku Steam dla moda '{modConfig.ModName}' w wersji Epic: {downloadUrl}");
-            }
-            else
-            {
-                Write($"ERROR: Brak jakiegokolwiek adresu URL do pobrania dla moda '{modConfig.ModName}'");
-                ShowError($"Brak adresu URL do pobrania dla moda '{modConfig.ModName}' w wersji Epic.");
-                return;
-            }
-
-            if (usingFallback)
-            {
-                bool result = Confirm(
-                    $"Mod '{modConfig.ModName}' nie ma dedykowanej wersji Epic (x64). " +
-                    $"Zostanie użyta wersja Steam (x86), która może nie działać poprawnie.\n\n" +
-                    $"Czy chcesz kontynuować?");
-                if (!result)
-                {
-                    Write($"Użytkownik anulował instalację fallback dla moda '{modConfig.ModName}'");
-                    return;
-                }
-            }
+            Write($"[CDN] URL pobierania moda Epic '{modConfig.ModName}': {downloadUrl}");
 
             string baseDirectory = installDirectory;
             

@@ -439,12 +439,10 @@ namespace SUSModder.ViewModels
             var configService = new ConfigService();
             _dllModificationService = new DllModificationService(configService, _diagnosticsOutput);
             
-            // Załaduj konfigurację (dla CompatibilityService w dialogach DLL)
-            var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-            _configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
-                .AddJsonFile(Path.Combine(exeDir, "appsettings.json"), optional: false, reloadOnChange: true)
-                .Build();
+            // Załaduj konfigurację z DI (cache'owana - budowana raz w App.ConfigureServices)
+            _configuration = App.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
 
+            var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
             var configRepository = new ConfigRepository(exeDir);
             ModConfigHandler.Initialize(configRepository, _userInteractionService);
 
@@ -501,13 +499,12 @@ namespace SUSModder.ViewModels
             });
             InitializeDiscordPromo();
 
-            ClearEpicLogsOnStartup();
+            // ClearEpicLogsOnStartup przeniesione do InitializeServicesAsync (tworzy ciężki EpicVersionManager)
             LoadSavedTheme();
-            // InitializeApplicationAsync() jest teraz wywoływane z App.axaml.cs po pokazaniu splash screen
-            LoadAppVersion();
-            // LoadWindowTitle() jest teraz wywoływane wewnątrz InitializeApplicationAsync() po wykryciu platformy
-            // CheckForAppUpdatesOnStartup() jest teraz wywoływane wewnątrz InitializeApplicationAsync()
+            // LoadAppVersion() jest teraz wywoływane wewnątrz InitializeApplicationAsync() (KROK 0)
+            // ApplyTheme jest wywoływane po LoadSavedTheme
             ApplyTheme(CurrentTheme);
+            // InitializeApplicationAsync() jest teraz wywoływane z App.axaml.cs po pokazaniu splash screen
 
             // Migracja istniejących instalacji jest teraz wewnątrz InitializeApplicationAsync()
 

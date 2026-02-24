@@ -232,6 +232,90 @@ namespace SUSModder.Core.Configuration
             return new List<ModConfiguration>();
         }
 
+        /// <summary>
+        /// W pełni asynchroniczna wersja LoadConfig - unika blokującego .GetAwaiter().GetResult()
+        /// na wywołaniu FetchConfigFromApiAsync() (które ma 15s timeout).
+        /// </summary>
+        public static async Task<List<ModConfiguration>> LoadConfigAsync()
+        {
+            var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+            var configRepo = new ConfigRepository(exeDir);
+
+            System.Diagnostics.Debug.WriteLine($"[Async] Looking for config in: {exeDir}");
+
+            var localConfigs = configRepo.LoadConfig();
+            System.Diagnostics.Debug.WriteLine($"[Async] Local configs count: {localConfigs.Count}");
+
+            if (localConfigs.Count > 0)
+            {
+                var vanillaUpdated = EnsureVanillaConfigPresent(localConfigs);
+                if (vanillaUpdated)
+                {
+                    configRepo.SaveConfig(localConfigs);
+                    System.Diagnostics.Debug.WriteLine("[ConfigManager] Vanilla config restored/updated in local config.");
+                }
+                else
+                {
+                    PersistVanillaPathIfNeeded(localConfigs);
+                }
+
+                System.Diagnostics.Debug.WriteLine("[Async] Using local config");
+                return localConfigs;
+            }
+
+            System.Diagnostics.Debug.WriteLine("[Async] Local config not found, fetching from API...");
+
+            // Spróbuj wczytać config z poprzedniej wersji (Velopack)
+            List<ModConfiguration>? previousConfigs = null;
+            var previousConfigPath = PreviousVersionLocator.TryGetPreviousConfigPath();
+            if (!string.IsNullOrWhiteSpace(previousConfigPath))
+            {
+                previousConfigs = LoadConfigFromFile(previousConfigPath);
+                if (previousConfigs != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ConfigManager] Loaded previous config: {previousConfigPath} (count: {previousConfigs.Count})");
+                }
+            }
+
+            try
+            {
+                // W pełni asynchroniczne wywołanie - bez blokowania wątku
+                var apiConfigs = await FetchConfigFromApiAsync();
+                System.Diagnostics.Debug.WriteLine($"[Async] API returned {apiConfigs.Count} configs");
+
+                if (apiConfigs.Count > 0)
+                {
+                    if (previousConfigs != null && previousConfigs.Count > 0)
+                    {
+                        MergeInstallDataFromPrevious(apiConfigs, previousConfigs);
+                        EnsureVanillaConfigPresent(apiConfigs, previousConfigs);
+                    }
+
+                    System.Diagnostics.Debug.WriteLine("[Async] Saving API config locally...");
+                    configRepo.SaveConfig(apiConfigs);
+                    System.Diagnostics.Debug.WriteLine("[Async] Config saved successfully");
+
+                    PersistVanillaPathIfNeeded(apiConfigs);
+                    return apiConfigs;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Async] API fetch failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[Async] Stack trace: {ex.StackTrace}");
+            }
+
+            if (previousConfigs != null && previousConfigs.Count > 0)
+            {
+                EnsureVanillaConfigPresent(previousConfigs);
+                configRepo.SaveConfig(previousConfigs);
+                PersistVanillaPathIfNeeded(previousConfigs);
+                return previousConfigs;
+            }
+
+            return new List<ModConfiguration>();
+        }
+
         public static async Task<bool> RefreshConfigFromApiAsync()
         {
             try

@@ -33,6 +33,14 @@ public partial class App : Application
     {
         var services = new ServiceCollection();
 
+        // Zbuduj IConfiguration raz i zarejestruj jako singleton
+        var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+        var appSettingsPath = Path.Combine(exeDir, "appsettings.json");
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile(appSettingsPath, optional: false, reloadOnChange: true)
+            .Build();
+        services.AddSingleton<IConfiguration>(configuration);
+
         // Rejestracja serwisu lokalizacji
         services.AddSingleton<ILocalizationService>(sp =>
         {
@@ -126,17 +134,13 @@ public partial class App : Application
                 });
             }
 
-            // KROK 2: Inicjalizacja ConsoleLogger i Telemetrii (20%)
+            // KROK 2: Inicjalizacja ConsoleLogger (20%)
             _splashWindow?.UpdateProgress(0.1, "Uruchamianie logowania...");
             await Dispatcher.UIThread.InvokeAsync(() => ConsoleLogger.Initialize());
 
-            // Inicjalizuj telemetrię (tylko Windows)
-            if (OperatingSystem.IsWindows())
-            {
-                InitializeTelemetry();
-            }
+            // Telemetria jest teraz inicjalizowana po pokazaniu MainWindow (Point 1 optymalizacji)
 
-            await _splashWindow?.AnimateProgressAsync(0.2)!;;
+            await _splashWindow?.AnimateProgressAsync(0.2)!;
 
             // KROK 3: Tworzenie MainWindow i ViewModel (40%)
             _splashWindow?.UpdateProgress(0.2, "Ładowanie interfejsu...");
@@ -151,6 +155,13 @@ public partial class App : Application
                     DataContext = viewModel
                 };
             });
+
+            // Inicjalizuj ciężkie serwisy w tle (ClearEpicLogsOnStartup itd.)
+            if (viewModel != null)
+            {
+                _ = viewModel.InitializeServicesAsync();
+            }
+
             await _splashWindow?.AnimateProgressAsync(0.4)!;
 
             if (mainWindow == null || viewModel == null)
@@ -170,7 +181,6 @@ public partial class App : Application
 
             // KROK 5: Zamiana okien (100%)
             _splashWindow?.UpdateProgress(0.9, "Finalizacja...");
-            await Task.Delay(200); // Krótka pauza dla płynności
             await _splashWindow?.AnimateProgressAsync(1.0)!;
 
             await Dispatcher.UIThread.InvokeAsync(async () =>
@@ -188,10 +198,11 @@ public partial class App : Application
                 // Fire and forget - nie blokujemy UI
                 _ = viewModel.CheckForUpdatesAfterMainWindowLoadAsync();
 
-                // Wyślij pierwszy heartbeat telemetrii (tylko Windows)
-                if (OperatingSystem.IsWindows() && _telemetryService != null)
+                // Inicjalizuj telemetrię i wyślij heartbeat w tle (tylko Windows)
+                // Przeniesione z KROK 2 - WMI queries w HardwareIdProvider trwają 1-5s
+                if (OperatingSystem.IsWindows())
                 {
-                    _ = _telemetryService.SendHeartbeatAsync();
+                    _ = Task.Run(InitializeTelemetryAndSendHeartbeatAsync);
                 }
             });
 
@@ -219,19 +230,21 @@ public partial class App : Application
     {
         try
         {
-            var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-            var appSettingsPath = Path.Combine(exeDir, "appsettings.json");
-
-            var configuration = new ConfigurationBuilder()
-                .AddJsonFile(appSettingsPath, optional: false, reloadOnChange: true)
-                .Build();
-
+            var configuration = GetService<IConfiguration>();
             _telemetryService = new TelemetryService(configuration);
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to initialize telemetry: {ex.Message}");
         }
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private async Task InitializeTelemetryAndSendHeartbeatAsync()
+    {
+        InitializeTelemetry();
+        if (_telemetryService != null)
+            await _telemetryService.SendHeartbeatAsync();
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]

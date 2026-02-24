@@ -67,12 +67,21 @@ namespace SUSModder.ViewModels
             SelectedMod = Mods.FirstOrDefault(m => m.Name == selectedMod.Name);
         }
 
-        private async Task RefreshModsListAsync(bool checkUpdates = true)
+        private async Task RefreshModsListAsync(bool checkUpdates = true, List<ModConfiguration>? preloadedConfigs = null)
         {
             try
             {
-                var configService = new ConfigService();
-                var configs = configService.LoadConfig();
+                List<ModConfiguration> configs;
+                if (preloadedConfigs != null)
+                {
+                    // Użyj przekazanych konfiguracji zamiast ponownego ładowania z dysku/API
+                    configs = preloadedConfigs;
+                }
+                else
+                {
+                    var configService = new ConfigService();
+                    configs = configService.LoadConfig();
+                }
 
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {

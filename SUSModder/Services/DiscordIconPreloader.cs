@@ -28,10 +28,8 @@ namespace SUSModder.Services
             {
                 System.Diagnostics.Debug.WriteLine("[DiscordIconPreloader] Starting preload of Discord icons...");
 
-                var configBuilder = new ConfigurationBuilder()
-                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                var configuration = configBuilder.Build();
+                // Użyj cache'owanej konfiguracji z DI zamiast budowania nowej
+                var configuration = App.GetService<IConfiguration>();
 
                 var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
                 {

@@ -151,6 +151,7 @@ namespace SUSModder.ViewModels
         {
             _discordPromoServers = servers
                 .Where(server => !string.IsNullOrWhiteSpace(server.InviteLink))
+                .OrderBy(_ => Random.Shared.Next())
                 .ToList();
 
             _discordPromoIndex = -1;
