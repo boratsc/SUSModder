@@ -100,10 +100,10 @@
 							Padding="15"
 							Margin="0,0,0,20">
 						<StackPanel Orientation="Horizontal" Spacing="15">
-							<Image Source="{Binding SelectedDllMod.PngFileName, Converter={StaticResource StringToBitmapConverter}}"
-								   Width="48" Height="48"/>
-							<StackPanel VerticalAlignment="Center">
-								<TextBlock Text="{Binding SelectedDllMod.Name}"
+						<Image Source="{Binding SelectedDllMod.PngFileName, Converter={StaticResource StringToBitmapConverter}, FallbackValue={x:Null}, TargetNullValue={x:Null}}"
+							   Width="48" Height="48"/>
+						<StackPanel VerticalAlignment="Center">
+							<TextBlock Text="{Binding SelectedDllMod.Name, FallbackValue=''}"
 										   FontSize="18" FontWeight="Bold"
 										   Foreground="White"/>
 								<TextBlock Text="{loc:Localize UI.DllManager.ManageInstallation}"

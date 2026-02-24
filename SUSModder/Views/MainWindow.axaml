@@ -668,9 +668,15 @@
 
 								<local:DllManagementPanel IsVisible="{Binding IsDllModalVisible}"/>
 
-								<Panel IsVisible="{Binding IsDllSelectionModalVisible}" Classes="fade-in-panel">
-									<local:DllModSelectionView DataContext="{Binding DllSelectionModalViewModel}"/>
-								</Panel>
+							<ContentControl Content="{Binding DllSelectionModalViewModel}"
+												Classes="fade-in-panel"
+												IsVisible="{Binding IsDllSelectionModalVisible}">
+								<ContentControl.DataTemplates>
+									<DataTemplate DataType="vm:DllModSelectionViewModel">
+										<local:DllModSelectionView/>
+									</DataTemplate>
+								</ContentControl.DataTemplates>
+							</ContentControl>
 
 								<Panel IsVisible="{Binding IsRecommendedDiscordsVisible}" Classes="fade-in-panel">
 									<local:RecommendedDiscordsPanel/>
