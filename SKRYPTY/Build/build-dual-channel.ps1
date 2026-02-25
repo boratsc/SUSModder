@@ -194,13 +194,15 @@ try {
 
     if (-not $SkipRelease) {
         Write-Host "Release channel output:" -ForegroundColor Cyan
-        Write-Host "  $(Join-Path $ProjectRoot 'releases-release')" -ForegroundColor White
+        $releaseOutDir = Join-Path $ProjectRoot "releases-release"
+        Write-Host "  $releaseOutDir" -ForegroundColor White
         Write-Host ""
     }
 
     if (-not $SkipBeta) {
         Write-Host "Beta channel output:" -ForegroundColor Cyan
-        Write-Host "  $(Join-Path $ProjectRoot 'releases-beta')" -ForegroundColor White
+        $betaOutDir = Join-Path $ProjectRoot "releases-beta"
+        Write-Host "  $betaOutDir" -ForegroundColor White
         Write-Host ""
     }
 

@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,8 @@ using SUSModder.Services.Localization;
 using SUSModder.Core.Services;
 using SUSModder.Core.Services.Localization;
 using SUSModder.Core.Configuration;
+using SUSModder.Core.Diagnostics;
+using SUSModder.Core.GameIntegration;
 
 namespace SUSModder;
 
@@ -93,6 +96,9 @@ public partial class App : Application
     {
         try
         {
+            var forceOnboardingFlagPath = Path.Combine(UserSettingsService.GetAppDataFolder(), "force-onboarding.flag");
+            var forceOnboarding = File.Exists(forceOnboardingFlagPath);
+
             // KROK 1: Inicjalizacja ustawień (10%)
             _splashWindow?.UpdateProgress(0.0, "Inicjalizacja...");
             await Task.Run(() =>
@@ -104,6 +110,11 @@ public partial class App : Application
 
             // KROK 1.5: Sprawdź czy język jest ustawiony, jeśli nie - pokaż dialog wyboru języka
             var userSettingsService = new UserSettingsService();
+            if (forceOnboarding)
+            {
+                userSettingsService.UpdateUserSetting(settings => settings.Language = string.Empty);
+            }
+
             var currentLanguage = userSettingsService.LoadUserSettings().Language;
             if (string.IsNullOrEmpty(currentLanguage))
             {
@@ -120,11 +131,20 @@ public partial class App : Application
                 {
                     userSettingsService.UpdateUserSetting(settings => settings.Language = "pl");
                 }
+
+                // Dialog języka zapisuje ustawienia przez inny UserSettingsService (inna instancja).
+                // Odśwież cache bieżącej instancji, aby odczytać aktualną wartość z pliku.
+                userSettingsService.ClearCache();
             }
 
             // KROK 1.6: Sprawdź czy platforma jest ustawiona, jeśli nie - pokaż dialog wyboru platformy
+            if (forceOnboarding)
+            {
+                userSettingsService.UpdateUserSetting(settings => settings.Mode = string.Empty);
+            }
+
             var currentMode = userSettingsService.LoadUserSettings().Mode;
-            if (string.IsNullOrEmpty(currentMode))
+            if (forceOnboarding || string.IsNullOrEmpty(currentMode))
             {
                 // Platforma nie jest ustawiona - pokaż dialog wyboru (wymagany wybór!)
                 await Dispatcher.UIThread.InvokeAsync(async () =>
@@ -132,6 +152,43 @@ public partial class App : Application
                     var platformDialog = new PlatformSelectionDialog();
                     await platformDialog.ShowDialog<string>(_splashWindow);
                 });
+
+                // Dialog platformy zapisuje ustawienia przez inny UserSettingsService (inna instancja).
+                // Odśwież cache bieżącej instancji przed walidacją wyniku.
+                userSettingsService.ClearCache();
+
+                // Wymagany wybór: jeśli nadal pusto (np. zamknięto dialog), zamknij aplikację.
+                currentMode = userSettingsService.LoadUserSettings().Mode;
+                if (string.IsNullOrWhiteSpace(currentMode))
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktopLifetime)
+                            desktopLifetime.Shutdown();
+                        else
+                            Environment.Exit(0);
+                    });
+                    return;
+                }
+            }
+
+            if (forceOnboarding)
+            {
+                try
+                {
+                    File.Delete(forceOnboardingFlagPath);
+                }
+                catch
+                {
+                    // Flaga zostanie usunięta przy kolejnym poprawnym starcie.
+                }
+            }
+
+            // KROK 1.7: Jeśli tryb Epic – zweryfikuj logowanie (pobierz legendary jeśli trzeba)
+            var finalMode = userSettingsService.LoadUserSettings().Mode;
+            if (string.Equals(finalMode, "epic", StringComparison.OrdinalIgnoreCase))
+            {
+                await HandleEpicAuthenticationAsync(userSettingsService);
             }
 
             // KROK 2: Inicjalizacja ConsoleLogger (20%)
@@ -150,10 +207,7 @@ public partial class App : Application
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 viewModel = new MainWindowViewModel();
-                mainWindow = new MainWindow
-                {
-                    DataContext = viewModel
-                };
+                mainWindow = new MainWindow(viewModel);
             });
 
             // Inicjalizuj ciężkie serwisy w tle (ClearEpicLogsOnStartup itd.)
@@ -255,6 +309,151 @@ public partial class App : Application
         {
             await _telemetryService.SendShutdownHeartbeatAsync();
             _telemetryService.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Weryfikuje logowanie do Epic Games przy starcie aplikacji w trybie Epic.
+    /// Pobiera legendary.exe jeśli potrzeba, sprawdza status sesji,
+    /// i w pętli wyświetla EpicLoginRequiredDialog aż użytkownik się zaloguje,
+    /// przełączy na Steam lub zamknie aplikację.
+    /// </summary>
+    private async Task HandleEpicAuthenticationAsync(UserSettingsService userSettingsService)
+    {
+        try
+        {
+            _splashWindow?.UpdateProgress(0.1, "Sprawdzanie logowania Epic Games...");
+
+            var diagnostics = new StartupDiagnosticsOutput();
+            var userInteraction = new StartupEpicUserInteraction(_splashWindow);
+            var epicManager = new EpicVersionManager(diagnostics, userInteraction);
+
+            // Pobierz legendary.exe jeśli nie istnieje
+            _splashWindow?.UpdateProgress(0.1, "Przygotowywanie Epic Games...");
+            await epicManager.EnsureLegendaryExistsAsync();
+
+            // Sprawdź status logowania
+            _splashWindow?.UpdateProgress(0.12, "Weryfikacja sesji Epic Games...");
+            bool isLoggedIn = await epicManager.CheckAuthStatusAsync();
+
+            if (isLoggedIn)
+            {
+                Debug.WriteLine("[App] Epic Games: sesja aktywna, kontynuuję start aplikacji.");
+                return;
+            }
+
+            // Sesja nieaktywna – pokaż dialog w pętli
+            Debug.WriteLine("[App] Epic Games: brak aktywnej sesji, wyświetlam EpicLoginRequiredDialog.");
+
+            while (true)
+            {
+                string? dialogResult = null;
+                await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    var dialog = new EpicLoginRequiredDialog();
+                    if (_splashWindow != null)
+                        dialogResult = await dialog.ShowDialog<string>(_splashWindow);
+                    else
+                        dialogResult = "close";
+                });
+
+                if (dialogResult == "login")
+                {
+                    // Próba logowania przez EpicAuthDialog
+                    _splashWindow?.UpdateProgress(0.12, "Logowanie do Epic Games...");
+                    bool loginSuccess = await epicManager.LoginAsync();
+
+                    if (loginSuccess)
+                    {
+                        Debug.WriteLine("[App] Epic Games: logowanie pomyślne.");
+                        return;
+                    }
+
+                    // Logowanie nie powiodło się - pokaż dialog ponownie (pętla kontynuuje)
+                    Debug.WriteLine("[App] Epic Games: logowanie nieudane, wyświetlam dialog ponownie.");
+                }
+                else if (dialogResult == "steam")
+                {
+                    // Zmień tryb na Steam
+                    userSettingsService.UpdateUserSetting(settings => settings.Mode = "steam");
+                    Debug.WriteLine("[App] Zmieniono tryb na Steam.");
+                    return;
+                }
+                else
+                {
+                    // "close" lub null (dialog zamknięty) – zamknij aplikację
+                    Debug.WriteLine("[App] Użytkownik wybrał zamknięcie aplikacji.");
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                            desktop.Shutdown();
+                        else
+                            Environment.Exit(0);
+                    });
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[App] Błąd podczas weryfikacji Epic auth: {ex.Message}");
+            // Nie blokujemy startu aplikacji w przypadku błędu weryfikacji
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Adaptery uproszczone na potrzeby wczesnego startu (przed MainWindowViewModel)
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Uproszczony IDiagnosticsOutput używany podczas startup – loguje do Debug.
+    /// </summary>
+    private sealed class StartupDiagnosticsOutput : IDiagnosticsOutput
+    {
+        public void Write(string message)
+        {
+            Debug.WriteLine($"[EpicStartup] {message}");
+        }
+    }
+
+    /// <summary>
+    /// Uproszczony IEpicUserInteraction używany podczas startup.
+    /// ShowEpicAuthDialogAsync pokazuje EpicAuthDialog z splash window jako parentem.
+    /// </summary>
+    private sealed class StartupEpicUserInteraction : IEpicUserInteraction
+    {
+        private readonly SplashWindow? _parentWindow;
+
+        public StartupEpicUserInteraction(SplashWindow? parentWindow)
+        {
+            _parentWindow = parentWindow;
+        }
+
+        public bool Confirm(string message) => true;
+
+        public void ShowError(string message)
+        {
+            Debug.WriteLine($"[EpicStartup] Error: {message}");
+        }
+
+        public string? Prompt(string message, string title = "") => null;
+
+        public async Task<string?> ShowEpicAuthDialogAsync(string browserUrl)
+        {
+            return await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                var dialog = new EpicAuthDialog(browserUrl);
+                bool? dialogResult;
+                if (_parentWindow != null)
+                    dialogResult = await dialog.ShowDialog<bool?>(_parentWindow);
+                else
+                    dialogResult = await dialog.ShowDialog<bool?>(dialog);
+
+                if (dialogResult == true && dialog.DataContext is EpicAuthDialogViewModel vm)
+                    return vm.Result;
+
+                return null;
+            });
         }
     }
 }

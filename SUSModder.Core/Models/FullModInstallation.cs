@@ -49,5 +49,18 @@ namespace SUSModder.Core.Models
         /// </summary>
         [JsonPropertyName("lastUpdated")]
         public DateTime LastUpdated { get; set; }
+
+        /// <summary>
+        /// Wyłącz przypomnienia o aktualizacji dla tej instalacji
+        /// (używane gdy użytkownik celowo instaluje starszą wersję)
+        /// </summary>
+        [JsonPropertyName("disableAutoUpdatePrompt")]
+        public bool DisableAutoUpdatePrompt { get; set; }
+
+        /// <summary>
+        /// Przypięta wersja instalacji (jeśli DisableAutoUpdatePrompt = true)
+        /// </summary>
+        [JsonPropertyName("pinnedInstallVersion")]
+        public string? PinnedInstallVersion { get; set; }
     }
 }

@@ -5,6 +5,8 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$Version,
     
+    [string]$BetaVersion = "",
+    
     [string]$CertThumbprint = "YOUR_CERTIFICATE_THUMBPRINT_HERE",
     
     [switch]$SkipBeta,
@@ -15,14 +17,27 @@ $ErrorActionPreference = "Stop"
 
 # Paths
 $rootDir = $PSScriptRoot | Split-Path -Parent | Split-Path -Parent
-$signtool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64\signtool.exe"
 $timestampServer = "http://time.certum.pl"
 
-# Check signtool
-if (-not (Test-Path $signtool)) {
-    Write-Host "❌ signtool.exe not found at: $signtool" -ForegroundColor Red
-    exit 1
+# Find signtool - first try PATH, then common locations
+$signtoolCmd = Get-Command "signtool" -ErrorAction SilentlyContinue
+if ($signtoolCmd) {
+    $signtool = $signtoolCmd.Source
+} else {
+    $signtoolPaths = @(
+        "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe",
+        "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe",
+        "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe",
+        "C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64\signtool.exe"
+    )
+    $signtool = $signtoolPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $signtool) {
+        Write-Host "❌ signtool.exe not found in PATH or known locations" -ForegroundColor Red
+        exit 1
+    }
 }
+
+Write-Host "  signtool: $signtool" -ForegroundColor Gray
 
 function Sign-ExecutableFiles {
     param([string]$PublishDir)
@@ -201,8 +216,13 @@ if (-not $SkipRelease) {
 
 # Build beta channel  
 if (-not $SkipBeta) {
-    $betaVersion = if ($Version.Contains("-beta")) { $Version } else { "$Version-beta" }
-    Build-Channel -ChannelName "BETA (Testowe)" -ChannelVersion $betaVersion -ChannelCode "beta"
+    if ($BetaVersion -ne "") {
+        $betaVer = if ($BetaVersion.Contains("-beta")) { $BetaVersion } else { "$BetaVersion-beta" }
+    } else {
+        $baseVer = if ($Version.Contains("-beta")) { $Version.Replace("-beta", "") } else { $Version }
+        $betaVer = "$baseVer-beta"
+    }
+    Build-Channel -ChannelName "BETA (Testowe)" -ChannelVersion $betaVer -ChannelCode "beta"
 }
 
 Write-Host "════════════════════════════════════════" -ForegroundColor Green

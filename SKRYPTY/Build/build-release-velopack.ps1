@@ -15,7 +15,7 @@ Write-Host "══════════════════════�
 
 # --- Step 1: Validate environment -------------------------------------------------
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
-    throw "dotnet CLI not found in PATH. Install .NET 8 SDK."
+    throw "dotnet CLI not found in PATH. Install .NET 10 SDK."
 }
 
 if (-not (Get-Command vpk -ErrorAction SilentlyContinue)) {
@@ -34,7 +34,7 @@ $appSettingsContent = $appSettingsContent -replace '"CurrentVersion"\s*:\s*"[^"]
 Set-Content -Path $appSettingsPath -Value $appSettingsContent -Encoding UTF8
 
 # --- Step 3: Clean publish/output directories -------------------------------------
-$publishDir = Join-Path $PSScriptRoot 'SUSModder/bin/Release/net8.0/win-x64/publish'
+$publishDir = Join-Path $PSScriptRoot 'SUSModder/bin/Release/net10.0-windows/win-x64/publish'
 $releasesDir = Join-Path $PSScriptRoot 'Releases'
 
 Write-Host "[2/6] Cleaning previous artifacts" -ForegroundColor Yellow

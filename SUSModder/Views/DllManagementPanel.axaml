@@ -19,26 +19,8 @@
 				</MultiBinding>
 			</Panel.IsVisible>
 
-			<ScrollViewer>
+			<ScrollViewer Padding="0,0,10,0">
 				<StackPanel>
-					<!-- Header -->
-					<Border Background="{DynamicResource AccentBrush}"
-							CornerRadius="8"
-							Padding="15"
-							Margin="0,0,0,20">
-						<StackPanel Orientation="Horizontal" Spacing="15">
-							<TextBlock Text="🧩" FontSize="32" VerticalAlignment="Center"/>
-							<StackPanel VerticalAlignment="Center">
-								<TextBlock Text="{loc:Localize UI.DllManager.Title}"
-										   FontSize="20" FontWeight="Bold"
-										   Foreground="White"/>
-								<TextBlock Text="{loc:Localize UI.DllManager.SelectModification}"
-										   FontSize="12"
-										   Foreground="#E0FFFFFF"/>
-							</StackPanel>
-						</StackPanel>
-					</Border>
-
 					<!-- Lista modów DLL -->
 					<ItemsControl ItemsSource="{Binding DllMods}">
 						<ItemsControl.ItemTemplate>
@@ -92,23 +74,25 @@
 
 		<!-- Dialog instalacji/odinstalowania DLL -->
 		<Panel Classes="fade-in-panel" IsVisible="{Binding IsDllInstallDialogVisible}">
-			<ScrollViewer>
-				<StackPanel>
-					<!-- Header z informacją o wybranym DLL -->
-					<Border Background="{DynamicResource AccentBrush}"
+			<Grid RowDefinitions="*,Auto">
+				<ScrollViewer Grid.Row="0" Padding="0,0,10,0">
+					<StackPanel>
+					<Border Background="{DynamicResource ModCardBackgroundBrush}"
+							BorderBrush="{DynamicResource ModCardBorderBrush}"
+							BorderThickness="1"
 							CornerRadius="8"
-							Padding="15"
-							Margin="0,0,0,20">
-						<StackPanel Orientation="Horizontal" Spacing="15">
-						<Image Source="{Binding SelectedDllMod.PngFileName, Converter={StaticResource StringToBitmapConverter}, FallbackValue={x:Null}, TargetNullValue={x:Null}}"
-							   Width="48" Height="48"/>
-						<StackPanel VerticalAlignment="Center">
-							<TextBlock Text="{Binding SelectedDllMod.Name, FallbackValue=''}"
-										   FontSize="18" FontWeight="Bold"
-										   Foreground="White"/>
+							Padding="12"
+							Margin="0,0,0,12">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<Image Source="{Binding SelectedDllModPngFileName, Converter={StaticResource StringToBitmapConverter}, FallbackValue={x:Null}, TargetNullValue={x:Null}}"
+								   Width="32" Height="32"/>
+							<StackPanel VerticalAlignment="Center">
+								<TextBlock Text="{Binding SelectedDllModName, FallbackValue=''}"
+										   FontSize="15" FontWeight="SemiBold"
+										   Foreground="{DynamicResource TextPrimaryBrush}"/>
 								<TextBlock Text="{loc:Localize UI.DllManager.ManageInstallation}"
-										   FontSize="12"
-										   Foreground="#E0FFFFFF"/>
+										   FontSize="11"
+										   Foreground="{DynamicResource TextSecondaryBrush}"/>
 							</StackPanel>
 						</StackPanel>
 					</Border>
@@ -255,18 +239,22 @@
 						</StackPanel>
 					</Border>
 
-					<!-- Przycisk powrotu -->
-					<Button Content="{loc:Localize UI.DllManager.BackToList}"
-							HorizontalAlignment="Center"
-							Background="{DynamicResource ModCardBackgroundBrush}"
-							Foreground="{DynamicResource TextPrimaryBrush}"
-							BorderBrush="{DynamicResource ModCardBorderBrush}"
-							BorderThickness="1"
-							Padding="15,10"
-							CornerRadius="6"
-							Command="{Binding CloseDllDialogCommand}"/>
-				</StackPanel>
-			</ScrollViewer>
+					</StackPanel>
+				</ScrollViewer>
+
+				<!-- Przycisk powrotu -->
+				<Button Grid.Row="1"
+						Content="{loc:Localize UI.DllManager.BackToList}"
+						HorizontalAlignment="Center"
+						Margin="0,10,0,0"
+						Background="{DynamicResource ModCardBackgroundBrush}"
+						Foreground="{DynamicResource TextPrimaryBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						Padding="15,10"
+						CornerRadius="6"
+						Command="{Binding CloseDllDialogCommand}"/>
+			</Grid>
 		</Panel>
 	</Grid>
 </UserControl>

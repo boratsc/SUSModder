@@ -64,10 +64,7 @@ namespace SUSModder.ViewModels
                 IsLoading = true;
                 StatusMessage = "Ładowanie serwerów Discord...";
 
-                var configBuilder = new ConfigurationBuilder()
-                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                var configuration = configBuilder.Build();
+                var configuration = App.GetService<IConfiguration>();
 
                 var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
                 {
@@ -77,8 +74,8 @@ namespace SUSModder.ViewModels
                 var discordService = new DiscordFavoritesService(configuration, diagnosticsOutput);
                 var serverCounts = await discordService.GetDiscordServerCountsAsync();
 
-                // Sprawdź czy ikony są już preloadowane
-                var preloadedServers = DiscordIconPreloader.GetPreloadedServers();
+                // Poczekaj chwilę na preload ikon, aby nie dublować wywołań API
+                var preloadedServers = await WaitForPreloadedServersAsync();
 
                 if (preloadedServers != null && preloadedServers.Any())
                 {
@@ -204,6 +201,27 @@ namespace SUSModder.ViewModels
             {
                 DiscordServers.Add(new DiscordServerViewModel(server));
             }
+        }
+
+        private static async Task<List<DiscordServerViewModel>> WaitForPreloadedServersAsync()
+        {
+            for (var attempt = 0; attempt < 40; attempt++)
+            {
+                var preloaded = DiscordIconPreloader.GetPreloadedServers();
+                if (preloaded != null && preloaded.Any())
+                {
+                    return preloaded;
+                }
+
+                if (!DiscordIconPreloader.IsPreloading && DiscordIconPreloader.IsPreloadCompleted)
+                {
+                    break;
+                }
+
+                await Task.Delay(250).ConfigureAwait(false);
+            }
+
+            return DiscordIconPreloader.GetPreloadedServers() ?? new List<DiscordServerViewModel>();
         }
 
         private static List<DiscordServerViewModel> ApplyCountsAndSort(

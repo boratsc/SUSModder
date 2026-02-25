@@ -34,6 +34,7 @@ namespace SUSModder.ViewModels
             IsAdditionalActionsVisible ||
             IsDllModalVisible ||
             IsDllSelectionModalVisible ||
+            IsVersionSelectionModalVisible ||
             IsSUStatsConfigVisible ||
             IsAppSettingsVisible ||
             IsRecommendedDiscordsVisible ||
@@ -51,6 +52,11 @@ namespace SUSModder.ViewModels
                 if (IsDllSelectionModalVisible)
                 {
                     return _localizationService.Get("DllManager.ViewTitle");
+                }
+
+                if (IsVersionSelectionModalVisible)
+                {
+                    return _localizationService.Get("Tools.VersionSelection.WindowTitle");
                 }
 
                 if (IsAdditionalActionsVisible)
@@ -110,6 +116,12 @@ namespace SUSModder.ViewModels
             IsAppSettingsVisible = false;
             IsRecommendedDiscordsVisible = false;
             IsRepairOptionsVisible = false;
+            if (IsVersionSelectionModalVisible)
+            {
+                VersionSelectionModalViewModel?.CancelSelection();
+                IsVersionSelectionModalVisible = false;
+                VersionSelectionModalViewModel = null;
+            }
             CloseDllDialog();
             CloseDllSelectionModal();
             ShowNextQueuedDllSelectionIfNeeded();

@@ -2,215 +2,300 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SUSModder.ViewModels"
         xmlns:local="using:SUSModder.Services.Localization"
+        xmlns:wv2="clr-namespace:Avalonia.Controls;assembly=Avalonia.WebView2"
         x:Class="SUSModder.Views.EpicAuthDialog"
         x:DataType="vm:EpicAuthDialogViewModel"
         Title="Logowanie do Epic Games"
-        Width="800" Height="750"
-        MinWidth="700" MinHeight="600"
+        Width="900" Height="700"
+        MinWidth="700" MinHeight="500"
         WindowStartupLocation="CenterOwner"
         CanResize="True"
         Background="{DynamicResource WindowBackgroundBrush}">
 
-	<ScrollViewer VerticalScrollBarVisibility="Auto"
-	              HorizontalScrollBarVisibility="Disabled">
-		<Grid Margin="30">
+	<Grid>
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<!-- Header -->
-			<RowDefinition Height="Auto"/>
-			<!-- Info about legendary -->
-			<RowDefinition Height="Auto"/>
-			<!-- Instructions -->
 			<RowDefinition Height="*"/>
-			<!-- TextBox for input -->
+			<!-- WebView2 lub Fallback content -->
 			<RowDefinition Height="Auto"/>
-			<!-- Countdown message -->
-			<RowDefinition Height="Auto"/>
-			<!-- Buttons -->
+			<!-- Status bar / Buttons -->
 		</Grid.RowDefinitions>
 
-		<!-- Header z ikoną Epic -->
-		<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20" HorizontalAlignment="Center">
-			<TextBlock Text="🎮" FontSize="48" Margin="0,0,15,0"/>
-			<StackPanel VerticalAlignment="Center">
-				<TextBlock Text="Logowanie do Epic Games Store"
-				           FontSize="22"
-				           FontWeight="Bold"
-				           Foreground="{DynamicResource TextPrimaryBrush}"/>
-				<TextBlock Text="Wymagane do uruchomienia gry"
-				           FontSize="14"
-				           Foreground="{DynamicResource TextSecondaryBrush}"
-				           Margin="0,5,0,0"/>
-			</StackPanel>
-		</StackPanel>
-
-		<!-- Info o legendary -->
-		<Border Grid.Row="1"
+		<!-- ============================================ -->
+		<!-- HEADER (zawsze widoczny) -->
+		<!-- ============================================ -->
+		<Border Grid.Row="0"
 		        Background="{DynamicResource CardBackgroundBrush}"
 		        BorderBrush="{DynamicResource BorderBrush}"
-		        BorderThickness="1"
-		        CornerRadius="8"
-		        Padding="20"
-		        Margin="0,0,0,20">
-			<StackPanel>
-				<TextBlock TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}">
-					<Run Text="ℹ️ "/>
-					<Run Text="SUSModder używa narzędzia "/>
-					<Run Text="Legendary" FontWeight="Bold"/>
-					<Run Text=" do zarządzania grami Epic. Legendary to otwartoźródłowy,"/>
-					<LineBreak/>
-					<Run Text="darmowy launcher dla Epic Games Store."/>
-				</TextBlock>
-
-				<StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-					<TextBlock Text="🔗 Więcej informacji: "
-					           FontSize="12"
-					           Foreground="{DynamicResource TextSecondaryBrush}"/>
-					<TextBlock Text="github.com/derrod/legendary"
-					           FontSize="12"
-					           Foreground="{DynamicResource AccentBrush}"
-					           TextDecorations="Underline"
-					           Cursor="Hand"
-					           PointerPressed="OnLegendaryLinkClick"/>
-				</StackPanel>
-			</StackPanel>
-		</Border>
-
-		<!-- Instrukcje krok po kroku -->
-		<Border Grid.Row="2"
-		        Background="{DynamicResource SecondaryBackgroundBrush}"
-		        BorderBrush="{DynamicResource AccentBrush}"
-		        BorderThickness="2"
-		        CornerRadius="8"
-		        Padding="20"
-		        Margin="0,0,0,20">
-			<StackPanel>
-				<TextBlock Text="📋 INSTRUKCJE"
-				           FontSize="16"
-				           FontWeight="Bold"
-				           Foreground="{DynamicResource AccentBrush}"
-				           Margin="0,0,0,15"/>
-
-				<TextBlock TextWrapping="Wrap" FontSize="13" LineHeight="22" Foreground="{DynamicResource TextPrimaryBrush}">
-					<Run Text="1️⃣  Za chwilę otworzy się przeglądarka z logowaniem Epic Games" FontWeight="SemiBold"/>
-					<LineBreak/>
-					<LineBreak/>
-					<Run Text="2️⃣  Zaloguj się do swojego konta Epic Games" FontWeight="SemiBold"/>
-					<LineBreak/>
-					<LineBreak/>
-					<Run Text="3️⃣  Po zalogowaniu zobaczysz stronę z KODEM JSON" FontWeight="SemiBold"/>
-					<LineBreak/>
-					<Run Text="     Przykład: [authorizationCode: 74f0bb..., ...]"
-					     FontFamily="Consolas, Courier New, monospace"
-					     FontSize="11"
-					     Foreground="{DynamicResource TextSecondaryBrush}"/>
-					<LineBreak/>
-					<LineBreak/>
-					<Run Text="4️⃣  ZAZNACZ CAŁY TEKST (Ctrl+A) i SKOPIUJ (Ctrl+C)" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
-					<LineBreak/>
-					<LineBreak/>
-					<Run Text="✨ Kod zostanie AUTOMATYCZNIE wykryty i logowanie nastąpi!"
-					     FontWeight="Bold"
-					     Foreground="#4ecca3"/>
-					<LineBreak/>
-					<LineBreak/>
-					<Run Text="💡 Możesz też ręcznie wkleić kod poniżej (Ctrl+V)"
-					     FontSize="12"
-					     Foreground="{DynamicResource TextSecondaryBrush}"/>
-				</TextBlock>
-			</StackPanel>
-		</Border>
-
-		<!-- TextBox na wklejenie -->
-		<Border Grid.Row="3"
-		        BorderBrush="{DynamicResource BorderBrush}"
-		        BorderThickness="2"
-		        CornerRadius="8"
-		        Background="{DynamicResource CardBackgroundBrush}"
-		        Margin="0,0,0,20">
+		        BorderThickness="0,0,0,1"
+		        Padding="20,12">
 			<Grid>
-				<Grid.RowDefinitions>
-					<RowDefinition Height="Auto"/>
-					<RowDefinition Height="*"/>
-				</Grid.RowDefinitions>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="Auto"/>
+				</Grid.ColumnDefinitions>
 
-				<!-- Label -->
-				<TextBlock Grid.Row="0"
-				           Text="📥 Wklej kod lub cały JSON tutaj:"
-				           FontSize="14"
-				           FontWeight="SemiBold"
-				           Foreground="{DynamicResource TextPrimaryBrush}"
-				           Margin="15,15,15,10"/>
+				<StackPanel Grid.Column="0" Orientation="Horizontal">
+					<TextBlock Text="🎮" FontSize="28" Margin="0,0,12,0" VerticalAlignment="Center"/>
+					<StackPanel VerticalAlignment="Center">
+						<TextBlock Text="Logowanie do Epic Games Store"
+						           FontSize="18"
+						           FontWeight="Bold"
+						           Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock FontSize="12"
+						           Foreground="{DynamicResource TextSecondaryBrush}"
+						           Margin="0,2,0,0">
+							<TextBlock.Text>
+								<MultiBinding StringFormat="{}Wymagane do uruchomienia gry">
+								</MultiBinding>
+							</TextBlock.Text>
+						</TextBlock>
+					</StackPanel>
+				</StackPanel>
 
-				<!-- TextBox -->
-				<TextBox Grid.Row="1"
-				         x:Name="AuthCodeTextBox"
-				         Text="{Binding AuthorizationInput}"
-				         AcceptsReturn="True"
-				         TextWrapping="Wrap"
-				         VerticalAlignment="Stretch"
-				         VerticalContentAlignment="Top"
-				         Background="Transparent"
-				         Foreground="{DynamicResource TextPrimaryBrush}"
-				         BorderThickness="0"
-				         Padding="15"
-				         FontFamily="Consolas, Courier New, monospace"
-				         FontSize="12"
-				         Watermark="Wklej tutaj JSON lub kod autoryzacji..."/>
+				<!-- Przycisk Anuluj w headerze -->
+				<Button Grid.Column="1"
+				        Content="Anuluj"
+				        Command="{Binding CancelCommand}"
+				        Classes="secondary-button"
+				        Padding="16,8"
+				        VerticalAlignment="Center"/>
 			</Grid>
 		</Border>
 
-		<!-- Auto-open countdown message -->
-		<Border Grid.Row="4"
-		        Background="{DynamicResource SecondaryBackgroundBrush}"
-		        BorderBrush="{DynamicResource AccentBrush}"
-		        BorderThickness="1"
-		        CornerRadius="6"
-		        Padding="15,10"
-		        Margin="0,0,0,10">
-			<StackPanel>
-				<TextBlock Text="{Binding AutoOpenMessage}"
-				           FontSize="13"
-				           FontWeight="SemiBold"
-				           Foreground="{DynamicResource AccentBrush}"
-				           TextAlignment="Center"
-				           TextWrapping="Wrap"/>
-				
-				<!-- Status monitorowania schowka -->
-				<TextBlock Text="{Binding ClipboardMonitorStatus}"
-				           FontSize="12"
-				           Foreground="#4ecca3"
-				           TextAlignment="Center"
-				           TextWrapping="Wrap"
-				           Margin="0,8,0,0"
-				           IsVisible="{Binding ClipboardMonitorStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-			</StackPanel>
-		</Border>
+		<!-- ============================================ -->
+		<!-- TRYB WebView2 (embedded przeglądarka) -->
+		<!-- ============================================ -->
+		<Grid Grid.Row="1"
+		      IsVisible="{Binding IsWebViewMode}">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="*"/>
+				<!-- WebView2 -->
+				<RowDefinition Height="Auto"/>
+				<!-- Status -->
+			</Grid.RowDefinitions>
 
-		<!-- Przyciski -->
-		<StackPanel Grid.Row="5"
-		            Orientation="Horizontal"
-		            HorizontalAlignment="Right"
-		            Spacing="15">
-			<Button Content="🌐 Otwórz przeglądarkę"
-			        Command="{Binding OpenBrowserCommand}"
-			        Classes="secondary-button"
-			        MinWidth="180"
-			        Padding="15,10"/>
-			<Button Content="❌ Anuluj"
-			        Command="{Binding CancelCommand}"
-			        Classes="secondary-button"
-			        MinWidth="120"
-			        Padding="15,10"/>
-			<Button Content="✅ Zaloguj"
-			        Command="{Binding ConfirmCommand}"
-			        IsDefault="True"
-			        Classes="primary-button"
-			        MinWidth="120"
-			        Padding="15,10"/>
-		</StackPanel>
+			<!-- Embedded WebView2 - strona logowania Epic -->
+			<wv2:WebView2 x:Name="EpicWebView"
+			              Grid.Row="0"
+			              Margin="0"/>
+
+			<!-- Status bar pod WebView2 -->
+			<Border Grid.Row="1"
+			        Background="{DynamicResource SecondaryBackgroundBrush}"
+			        Padding="15,8">
+				<Grid>
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="Auto"/>
+					</Grid.ColumnDefinitions>
+
+					<TextBlock Grid.Column="0"
+					           Text="{Binding WebViewStatus}"
+					           FontSize="12"
+					           Foreground="{DynamicResource AccentBrush}"
+					           VerticalAlignment="Center"
+					           TextWrapping="Wrap"/>
+
+					<!-- Link do fallbacku - otwórz w systemowej przeglądarce -->
+					<TextBlock Grid.Column="1"
+					           Text="Otwórz w przeglądarce"
+					           FontSize="11"
+					           Foreground="{DynamicResource TextSecondaryBrush}"
+					           TextDecorations="Underline"
+					           Cursor="Hand"
+					           VerticalAlignment="Center"
+					           Margin="10,0,0,0"
+					           PointerPressed="OnOpenInExternalBrowser"/>
+				</Grid>
+			</Border>
 		</Grid>
-	</ScrollViewer>
+
+		<!-- ============================================ -->
+		<!-- TRYB FALLBACK (systemowa przeglądarka + clipboard) -->
+		<!-- ============================================ -->
+		<ScrollViewer Grid.Row="1"
+		              IsVisible="{Binding IsFallbackMode}"
+		              VerticalScrollBarVisibility="Auto"
+		              HorizontalScrollBarVisibility="Disabled">
+			<Grid Margin="30">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<!-- Info about legendary -->
+					<RowDefinition Height="Auto"/>
+					<!-- Instructions -->
+					<RowDefinition Height="*"/>
+					<!-- TextBox for input -->
+					<RowDefinition Height="Auto"/>
+					<!-- Countdown message -->
+					<RowDefinition Height="Auto"/>
+					<!-- Buttons -->
+				</Grid.RowDefinitions>
+
+				<!-- Info o legendary -->
+				<Border Grid.Row="0"
+				        Background="{DynamicResource CardBackgroundBrush}"
+				        BorderBrush="{DynamicResource BorderBrush}"
+				        BorderThickness="1"
+				        CornerRadius="8"
+				        Padding="20"
+				        Margin="0,0,0,20">
+					<StackPanel>
+						<TextBlock TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}">
+							<Run Text="ℹ️ "/>
+							<Run Text="SUSModder używa narzędzia "/>
+							<Run Text="Legendary" FontWeight="Bold"/>
+							<Run Text=" do zarządzania grami Epic. Legendary to otwartoźródłowy,"/>
+							<LineBreak/>
+							<Run Text="darmowy launcher dla Epic Games Store."/>
+						</TextBlock>
+
+						<StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+							<TextBlock Text="🔗 Więcej informacji: "
+							           FontSize="12"
+							           Foreground="{DynamicResource TextSecondaryBrush}"/>
+							<TextBlock Text="github.com/derrod/legendary"
+							           FontSize="12"
+							           Foreground="{DynamicResource AccentBrush}"
+							           TextDecorations="Underline"
+							           Cursor="Hand"
+							           PointerPressed="OnLegendaryLinkClick"/>
+						</StackPanel>
+					</StackPanel>
+				</Border>
+
+				<!-- Instrukcje krok po kroku -->
+				<Border Grid.Row="1"
+				        Background="{DynamicResource SecondaryBackgroundBrush}"
+				        BorderBrush="{DynamicResource AccentBrush}"
+				        BorderThickness="2"
+				        CornerRadius="8"
+				        Padding="20"
+				        Margin="0,0,0,20">
+					<StackPanel>
+						<TextBlock Text="📋 INSTRUKCJE"
+						           FontSize="16"
+						           FontWeight="Bold"
+						           Foreground="{DynamicResource AccentBrush}"
+						           Margin="0,0,0,15"/>
+
+						<TextBlock TextWrapping="Wrap" FontSize="13" LineHeight="22" Foreground="{DynamicResource TextPrimaryBrush}">
+							<Run Text="1️⃣  Za chwilę otworzy się przeglądarka z logowaniem Epic Games" FontWeight="SemiBold"/>
+							<LineBreak/>
+							<LineBreak/>
+							<Run Text="2️⃣  Zaloguj się do swojego konta Epic Games" FontWeight="SemiBold"/>
+							<LineBreak/>
+							<LineBreak/>
+							<Run Text="3️⃣  Po zalogowaniu zobaczysz stronę z KODEM" FontWeight="SemiBold"/>
+							<LineBreak/>
+							<LineBreak/>
+							<Run Text="4️⃣  ZAZNACZ CAŁY TEKST (Ctrl+A) i SKOPIUJ (Ctrl+C)" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
+							<LineBreak/>
+							<LineBreak/>
+							<Run Text="✨ Kod zostanie AUTOMATYCZNIE wykryty i logowanie nastąpi!"
+							     FontWeight="Bold"
+							     Foreground="#4ecca3"/>
+							<LineBreak/>
+							<LineBreak/>
+							<Run Text="💡 Możesz też ręcznie wkleić kod poniżej (Ctrl+V)"
+							     FontSize="12"
+							     Foreground="{DynamicResource TextSecondaryBrush}"/>
+						</TextBlock>
+					</StackPanel>
+				</Border>
+
+				<!-- TextBox na wklejenie -->
+				<Border Grid.Row="2"
+				        BorderBrush="{DynamicResource BorderBrush}"
+				        BorderThickness="2"
+				        CornerRadius="8"
+				        Background="{DynamicResource CardBackgroundBrush}"
+				        Margin="0,0,0,20">
+					<Grid>
+						<Grid.RowDefinitions>
+							<RowDefinition Height="Auto"/>
+							<RowDefinition Height="*"/>
+						</Grid.RowDefinitions>
+
+						<!-- Label -->
+						<TextBlock Grid.Row="0"
+						           Text="📥 Wklej kod lub cały JSON tutaj:"
+						           FontSize="14"
+						           FontWeight="SemiBold"
+						           Foreground="{DynamicResource TextPrimaryBrush}"
+						           Margin="15,15,15,10"/>
+
+						<!-- TextBox -->
+						<TextBox Grid.Row="1"
+						         x:Name="AuthCodeTextBox"
+						         Text="{Binding AuthorizationInput}"
+						         AcceptsReturn="True"
+						         TextWrapping="Wrap"
+						         VerticalAlignment="Stretch"
+						         VerticalContentAlignment="Top"
+						         Background="Transparent"
+						         Foreground="{DynamicResource TextPrimaryBrush}"
+						         BorderThickness="0"
+						         Padding="15"
+						         FontFamily="Consolas, Courier New, monospace"
+						         FontSize="12"
+						         Watermark="Wklej tutaj JSON lub kod autoryzacji..."/>
+					</Grid>
+				</Border>
+
+				<!-- Auto-open countdown message -->
+				<Border Grid.Row="3"
+				        Background="{DynamicResource SecondaryBackgroundBrush}"
+				        BorderBrush="{DynamicResource AccentBrush}"
+				        BorderThickness="1"
+				        CornerRadius="6"
+				        Padding="15,10"
+				        Margin="0,0,0,10">
+					<StackPanel>
+						<TextBlock Text="{Binding AutoOpenMessage}"
+						           FontSize="13"
+						           FontWeight="SemiBold"
+						           Foreground="{DynamicResource AccentBrush}"
+						           TextAlignment="Center"
+						           TextWrapping="Wrap"/>
+						
+						<!-- Status monitorowania schowka -->
+						<TextBlock Text="{Binding ClipboardMonitorStatus}"
+						           FontSize="12"
+						           Foreground="#4ecca3"
+						           TextAlignment="Center"
+						           TextWrapping="Wrap"
+						           Margin="0,8,0,0"
+						           IsVisible="{Binding ClipboardMonitorStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+					</StackPanel>
+				</Border>
+
+				<!-- Przyciski -->
+				<StackPanel Grid.Row="4"
+				            Orientation="Horizontal"
+				            HorizontalAlignment="Right"
+				            Spacing="15">
+					<Button Content="🌐 Otwórz przeglądarkę"
+					        Command="{Binding OpenBrowserCommand}"
+					        Classes="secondary-button"
+					        MinWidth="180"
+					        Padding="15,10"/>
+					<Button Content="❌ Anuluj"
+					        Command="{Binding CancelCommand}"
+					        Classes="secondary-button"
+					        MinWidth="120"
+					        Padding="15,10"/>
+					<Button Content="✅ Zaloguj"
+					        Command="{Binding ConfirmCommand}"
+					        IsDefault="True"
+					        Classes="primary-button"
+					        MinWidth="120"
+					        Padding="15,10"/>
+				</StackPanel>
+			</Grid>
+		</ScrollViewer>
+	</Grid>
 
 	<Window.Styles>
 		<Style Selector="Button.primary-button">

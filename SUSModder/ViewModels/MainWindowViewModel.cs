@@ -82,6 +82,8 @@ namespace SUSModder.ViewModels
         private bool _isRepairSteamPlatform = true;
         private bool _isDllSelectionModalVisible = false;
         private DllModSelectionViewModel? _dllSelectionModalViewModel;
+        private bool _isVersionSelectionModalVisible = false;
+        private VersionSelectionViewModel? _versionSelectionModalViewModel;
 
         // Zarządzanie wielokrotnymi instalacjami i dialogami DLL
         private int _activeInstallationsCount = 0;
@@ -214,6 +216,22 @@ namespace SUSModder.ViewModels
             set => this.RaiseAndSetIfChanged(ref _dllSelectionModalViewModel, value);
         }
 
+        public bool IsVersionSelectionModalVisible
+        {
+            get => _isVersionSelectionModalVisible;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isVersionSelectionModalVisible, value);
+                NotifyToolModalStateChanged();
+            }
+        }
+
+        public VersionSelectionViewModel? VersionSelectionModalViewModel
+        {
+            get => _versionSelectionModalViewModel;
+            set => this.RaiseAndSetIfChanged(ref _versionSelectionModalViewModel, value);
+        }
+
         public ObservableCollection<ModItem> DllMods
         {
             get => _dllMods;
@@ -223,8 +241,16 @@ namespace SUSModder.ViewModels
         public ModItem? SelectedDllMod
         {
             get => _selectedDllMod;
-            set => this.RaiseAndSetIfChanged(ref _selectedDllMod, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _selectedDllMod, value);
+                this.RaisePropertyChanged(nameof(SelectedDllModName));
+                this.RaisePropertyChanged(nameof(SelectedDllModPngFileName));
+            }
         }
+
+        public string SelectedDllModName => SelectedDllMod?.Name ?? string.Empty;
+        public string SelectedDllModPngFileName => SelectedDllMod?.PngFileName ?? string.Empty;
 
         public ObservableCollection<ModItem> AvailableFullMods
         {
@@ -329,6 +355,8 @@ namespace SUSModder.ViewModels
                             IsRecommendedDiscordsVisible = false;
                             IsRepairOptionsVisible = false;
                             IsDllInstallDialogVisible = false;
+                            IsVersionSelectionModalVisible = false;
+                            VersionSelectionModalViewModel = null;
                             CloseDllSelectionModal();
                             
                             // Pokaż nową zawartość (fade in)
@@ -355,6 +383,8 @@ namespace SUSModder.ViewModels
                     IsRecommendedDiscordsVisible = false;
                     IsRepairOptionsVisible = false;
                     IsDllInstallDialogVisible = false;
+                    IsVersionSelectionModalVisible = false;
+                    VersionSelectionModalViewModel = null;
                     CloseDllSelectionModal();
                     
                     Task.Delay(50).ContinueWith(_ =>
@@ -392,7 +422,6 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> ShowInfoCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowAppSettingsCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowSUStatsConfigCommand { get; }
-        public ReactiveCommand<Unit, Unit> LobbySetCommand { get; }
         public ICommand ShowRolesCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowAdditionalActionsCommand { get; }
         public ReactiveCommand<Unit, Unit> FixBlackScreenCommand { get; }
@@ -483,11 +512,9 @@ namespace SUSModder.ViewModels
                 };
             }
 
-            LobbySetCommand = ReactiveCommand.CreateFromTask(ShowLobbySetDialog);
             FixBlackScreenCommand = ReactiveCommand.CreateFromTask(ExecuteFixBlackScreenAsync);
 
             FixBlackScreenCommand.ThrownExceptions.Subscribe(HandleCommandError);
-            LobbySetCommand.ThrownExceptions.Subscribe(HandleCommandError);
             CheckForAppUpdatesCommand.ThrownExceptions.Subscribe(HandleCommandError);
 
             System.Diagnostics.Debug.WriteLine("[MainWindowViewModel] Starting Discord icon preloader...");

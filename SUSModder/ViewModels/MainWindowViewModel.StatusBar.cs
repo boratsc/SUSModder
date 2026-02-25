@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Avalonia.Threading;
@@ -92,7 +93,11 @@ namespace SUSModder.ViewModels
         private int _apiPingMs;
         private DateTime _lastApiCheck = DateTime.Now;
         private DateTime _lastConfigSyncUtc = DateTime.MinValue;
+        private DateTime _lastModUpdateCheckUtc = DateTime.MinValue;
+        private readonly SemaphoreSlim _modUpdateCheckSemaphore = new(1, 1);
         private static readonly TimeSpan ConfigSyncInterval = TimeSpan.FromMinutes(15);
+        private static readonly TimeSpan ModUpdatesRefreshInterval = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan MinModUpdateCheckInterval = TimeSpan.FromMinutes(2);
         private string _apiBaseUrl = string.Empty;
         private int _onlineUsersCount;
 
@@ -543,10 +548,17 @@ namespace SUSModder.ViewModels
         /// <summary>
         /// Sprawdza dostępne aktualizacje modów (bez wyświetlania dialogu)
         /// </summary>
-        private async Task CheckForModUpdatesForStatusBarAsync()
+        private async Task CheckForModUpdatesForStatusBarAsync(bool force = false)
         {
+            if (!force && DateTime.UtcNow - _lastModUpdateCheckUtc < MinModUpdateCheckInterval)
+                return;
+
+            if (!await _modUpdateCheckSemaphore.WaitAsync(0))
+                return;
+
             try
             {
+                _lastModUpdateCheckUtc = DateTime.UtcNow;
                 var updateManager = new ModUpdateManager();
                 var result = await updateManager.CheckForUpdatesAsync();
 
@@ -592,10 +604,14 @@ namespace SUSModder.ViewModels
 
                 await Dispatcher.UIThread.InvokeAsync(() => UpdateModsStatusDisplay());
             }
+            finally
+            {
+                _modUpdateCheckSemaphore.Release();
+            }
         }
 
         /// <summary>
-        /// Timer do auto-refresh dostępnych aktualizacji modów (co 30 sekund)
+        /// Timer do auto-refresh dostępnych aktualizacji modów (co 5 minut)
         /// </summary>
         private void StartModUpdatesAutoRefresh()
         {
@@ -603,8 +619,8 @@ namespace SUSModder.ViewModels
             {
                 while (true)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(30));
-                    
+                    await Task.Delay(ModUpdatesRefreshInterval);
+
                     try
                     {
                         await CheckForModUpdatesForStatusBarAsync();

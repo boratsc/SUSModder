@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Threading.Tasks;
+using System.ComponentModel;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Microsoft.Extensions.Configuration;
 using ReactiveUI;
@@ -25,6 +27,7 @@ namespace SUSModder.ViewModels
         private List<DiscordServerViewModel> _discordPromoServers = new();
         private int _discordPromoIndex = -1;
         private DiscordServerViewModel? _currentPromotedDiscord;
+        private INotifyPropertyChanged? _currentPromotedDiscordNotifier;
         private bool _isFloatingPromoSpaceAvailable = true;
 
         public DiscordServerViewModel? CurrentPromotedDiscord
@@ -32,12 +35,30 @@ namespace SUSModder.ViewModels
             get => _currentPromotedDiscord;
             private set
             {
+                if (_currentPromotedDiscordNotifier != null)
+                {
+                    _currentPromotedDiscordNotifier.PropertyChanged -= OnCurrentPromotedDiscordPropertyChanged;
+                }
+
                 this.RaiseAndSetIfChanged(ref _currentPromotedDiscord, value);
+
+                _currentPromotedDiscordNotifier = value;
+                if (_currentPromotedDiscordNotifier != null)
+                {
+                    _currentPromotedDiscordNotifier.PropertyChanged += OnCurrentPromotedDiscordPropertyChanged;
+                }
+
                 this.RaisePropertyChanged(nameof(HasPromotedDiscord));
+                RaisePromotedDiscordDerivedProperties();
             }
         }
 
         public bool HasPromotedDiscord => CurrentPromotedDiscord != null;
+        public bool CurrentPromotedDiscordHasIcon => CurrentPromotedDiscord?.HasIcon == true;
+        public Bitmap? CurrentPromotedDiscordIconBitmap => CurrentPromotedDiscord?.IconBitmap;
+        public string CurrentPromotedDiscordName => CurrentPromotedDiscord?.Name ?? string.Empty;
+        public string CurrentPromotedDiscordDescription => CurrentPromotedDiscord?.Description ?? string.Empty;
+        public string CurrentPromotedDiscordInviteLink => CurrentPromotedDiscord?.InviteLink ?? string.Empty;
 
         public bool IsFloatingPromoSpaceAvailable
         {
@@ -206,6 +227,24 @@ namespace SUSModder.ViewModels
             {
                 Debug.WriteLine($"[DiscordPromo] Failed to open invite link: {ex.Message}");
             }
+        }
+
+        private void OnCurrentPromotedDiscordPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(DiscordServerViewModel.IconBitmap) ||
+                e.PropertyName == nameof(DiscordServerViewModel.HasIcon))
+            {
+                RaisePromotedDiscordDerivedProperties();
+            }
+        }
+
+        private void RaisePromotedDiscordDerivedProperties()
+        {
+            this.RaisePropertyChanged(nameof(CurrentPromotedDiscordHasIcon));
+            this.RaisePropertyChanged(nameof(CurrentPromotedDiscordIconBitmap));
+            this.RaisePropertyChanged(nameof(CurrentPromotedDiscordName));
+            this.RaisePropertyChanged(nameof(CurrentPromotedDiscordDescription));
+            this.RaisePropertyChanged(nameof(CurrentPromotedDiscordInviteLink));
         }
     }
 }

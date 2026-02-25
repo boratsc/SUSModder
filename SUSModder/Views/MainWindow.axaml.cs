@@ -23,18 +23,27 @@ namespace SUSModder.Views;
 public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 {
     // Dodaj komendy jako w�a�ciwo�ci
-    public ReactiveCommand<Unit, Unit> RemoveSingleInstanceCommand { get; }
-    public ReactiveCommand<Unit, Unit> LaunchMultipleInstancesCommand { get; }
+    public ReactiveCommand<Unit, Unit> RemoveSingleInstanceCommand { get; private set; } = null!;
+    public ReactiveCommand<Unit, Unit> LaunchMultipleInstancesCommand { get; private set; } = null!;
 
     public MainWindow()
     {
-        // DataContext będzie ustawiony z zewnątrz (przez App.axaml.cs)
-        // Jeśli nie jest ustawiony (np. design mode), utwórz dummy
-        if (DataContext == null)
-        {
+        // Konstruktor wymagany przez designer oraz XAML loader.
+        // W runtime preferowany jest konstruktor z ViewModel.
+        if (Design.IsDesignMode)
             DataContext = new MainWindowViewModel();
-        }
 
+        InitializeWindow();
+    }
+
+    public MainWindow(MainWindowViewModel viewModel)
+    {
+        DataContext = viewModel;
+        InitializeWindow();
+    }
+
+    private void InitializeWindow()
+    {
         InitializeComponent();
 
         _fabDiscordPromoContent = this.FindControl<Grid>("FabDiscordPromoContent");

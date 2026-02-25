@@ -112,8 +112,7 @@ namespace SUSModder.ViewModels
                 StartApiStatusAutoRefresh();
                 StartModUpdatesAutoRefresh();
 
-                // KROK 8: Pierwsze sprawdzenie aktualizacji dla status bar (100%)
-                await CheckForModUpdatesForStatusBarAsync();
+                // KROK 8: Finalizacja (100%)
                 progressCallback?.Invoke(1.0, "Gotowe!");
 
                 // KROK 9: Sprawdź rejestrację w Windows Registry (nie blokuje, tylko na Windows)
@@ -163,6 +162,15 @@ namespace SUSModder.ViewModels
                     var existingVanilla = _loadedConfigs.FirstOrDefault(x => x.ModName == "AmongUs" && x.ModType == "Vanilla");
                     if (existingVanilla != null)
                         return true;
+
+                    // Dla Epic brak Vanilla na starcie jest dopuszczalny (np. brak sesji legendary).
+                    // Nie pokazuj wtedy dialogu wyboru Among Us.exe (to flow Steam) i nie blokuj startu.
+                    var currentMode = _userSettingsService.LoadUserSettings().Mode;
+                    if (string.Equals(currentMode, "epic", StringComparison.OrdinalIgnoreCase))
+                    {
+                        System.Diagnostics.Debug.WriteLine("[Vanilla Setup] Epic mode without local vanilla config - skipping Steam retry dialog.");
+                        return true;
+                    }
 
                     // Jeśli niepowodzenie, przejdź do obsługi poniżej
                 }
@@ -414,8 +422,15 @@ namespace SUSModder.ViewModels
                 await Task.Delay(1500);
 
                 // Sprawdź aktualizacje SEKWENCYJNIE - najpierw mody FULL, potem DLL
-                System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji modów FULL...");
-                await CheckForModUpdatesAsync();
+                if (ShouldRunInteractiveModUpdateCheck())
+                {
+                    System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji modów FULL...");
+                    await CheckForModUpdatesAsync();
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[Post-Init] Pomijam sprawdzanie modów FULL (niedawno wykonane).");
+                }
 
                 System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji modów DLL...");
                 await CheckDllUpdates();

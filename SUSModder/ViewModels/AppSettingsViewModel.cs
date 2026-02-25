@@ -708,75 +708,6 @@ namespace SUSModder.ViewModels
             return (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
         }
 
-        private async Task<bool?> ShowConfirmAsync(string title, string message, string ok, string cancel)
-        {
-            if (TryGetMainWindowViewModel(out var mainWindowViewModel))
-            {
-                return await mainWindowViewModel.ShowInlineConfirmAsync(title, message, ok, cancel);
-            }
-
-            var parentWindow = GetParentWindow();
-            if (parentWindow == null) return null;
-
-            var dialog = new Window
-            {
-                Title = title,
-                Width = 400,
-                Height = 200,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Background = parentWindow.Background,
-                Icon = parentWindow.Icon,
-                FontFamily = parentWindow.FontFamily
-            };
-
-            var cancelButton = new Button
-            {
-                Content = cancel,
-                IsCancel = true,
-                Width = 100
-            };
-            cancelButton.Click += (_, __) => dialog.Close(false);
-
-            var resetButton = new Button
-            {
-                Content = ok,
-                IsDefault = true,
-                Width = 100,
-                Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Colors.IndianRed),
-                Foreground = Avalonia.Media.Brushes.White
-            };
-            resetButton.Click += (_, __) => dialog.Close(true);
-
-            dialog.Content = new StackPanel
-            {
-                Children =
-                {
-                    new TextBlock
-                    {
-                        Text = message,
-                        Margin = new Thickness(10),
-                        TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
-                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                        MaxWidth = 360
-                    },
-                    new StackPanel
-                    {
-                        Orientation = Avalonia.Layout.Orientation.Horizontal,
-                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                        Spacing = 10,
-                        Children =
-                        {
-                            cancelButton,
-                            resetButton
-                        }
-                    }
-                }
-            };
-
-            return await dialog.ShowDialog<bool?>(parentWindow);
-        }
-
         private bool TryGetMainWindowViewModel(out MainWindowViewModel mainWindowViewModel)
         {
             mainWindowViewModel = null!;
@@ -870,15 +801,83 @@ namespace SUSModder.ViewModels
                     File.Delete(configPath);
                 }
 
-                // Usuń user-settings.json z %APPDATA%/SUSModder/ (resetuje język i platformę)
-                var userSettingsPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "SUSModder",
-                    "user-settings.json"
-                );
-                if (File.Exists(userSettingsPath))
+                // Nadpisz user-settings.json z pustym Mode i Language,
+                // aby przy kolejnym starcie WYMUSIĆ dialogi wyboru.
+                // Samo usuwanie pliku bywało niewystarczające (race z innymi zapisami).
+                var resetUserSettings = new UserSettings
                 {
-                    File.Delete(userSettingsPath);
+                    Mode = string.Empty,
+                    Language = string.Empty,
+                    TelemetryEnabled = true,
+                    Theme = "dark",
+                    ModsInstallPath = string.Empty,
+                    UpdateChannel = "release",
+                    LastLaunchId = 0,
+                    LicenseAccepted = false,
+                    FirstRunDate = string.Empty,
+                    VanillaInstallPath = string.Empty
+                };
+                _userSettingsService.SaveUserSettings(resetUserSettings);
+
+                // Ustaw flagę wymuszającą ponowny onboarding (język + platforma)
+                // przy następnym uruchomieniu, nawet jeśli inne procesy chwilowo nadpiszą settings.
+                try
+                {
+                    var appDataFolder = UserSettingsService.GetAppDataFolder();
+                    Directory.CreateDirectory(appDataFolder);
+                    var forceOnboardingFlagPath = Path.Combine(appDataFolder, "force-onboarding.flag");
+                    await File.WriteAllTextAsync(forceOnboardingFlagPath, "factory-reset");
+                }
+                catch
+                {
+                    // Nie blokuj resetu jeśli nie udało się zapisać flagi.
+                }
+
+                // Wyczyść Configuration:Mode z appsettings.json - dzięki temu migracja
+                // przy starcie nie odczyta starego trybu i wymusi dialog wyboru platformy
+                if (File.Exists(appSettingsPath))
+                {
+                    try
+                    {
+                        var json = await File.ReadAllTextAsync(appSettingsPath);
+                        using var doc = JsonDocument.Parse(json);
+                        using var stream = new System.IO.MemoryStream();
+                        using var writer = new System.Text.Json.Utf8JsonWriter(stream, new System.Text.Json.JsonWriterOptions { Indented = true });
+
+                        writer.WriteStartObject();
+                        foreach (var section in doc.RootElement.EnumerateObject())
+                        {
+                            if (section.Name == "Configuration")
+                            {
+                                writer.WritePropertyName("Configuration");
+                                writer.WriteStartObject();
+                                foreach (var prop in section.Value.EnumerateObject())
+                                {
+                                    if (prop.Name == "Mode")
+                                    {
+                                        writer.WriteString("Mode", string.Empty);
+                                    }
+                                    else
+                                    {
+                                        prop.WriteTo(writer);
+                                    }
+                                }
+                                writer.WriteEndObject();
+                            }
+                            else
+                            {
+                                section.WriteTo(writer);
+                            }
+                        }
+                        writer.WriteEndObject();
+                        writer.Flush();
+
+                        await File.WriteAllBytesAsync(appSettingsPath, stream.ToArray());
+                    }
+                    catch
+                    {
+                        // Nie blokuj resetu jeśli nie udało się wyczyścić Mode z appsettings.json
+                    }
                 }
 
                 // Restart aplikacji

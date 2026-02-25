@@ -52,7 +52,7 @@ namespace SUSModder.ViewModels
             var currentMods = Mods.ToList();
 
             var sorted = currentMods
-                .OrderBy(m => !m.Name.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+                .OrderBy(m => !m.IsVanilla ? 1 : 0)
                 .ThenBy(m => string.IsNullOrEmpty(m.InstallPath) ? 1 : 0)
                 .ThenBy(m => m.Name)
                 .ToList();
@@ -95,11 +95,24 @@ namespace SUSModder.ViewModels
                         .Where(c => c.ModType.Equals("full", StringComparison.OrdinalIgnoreCase) || 
                                     c.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase));
 
-                    // Weryfikuj InstallPath - jeśli folder nie istnieje, wyczyść path
+                    var currentPlatform = DeterminePlatform();
+
+                    // Weryfikuj InstallPath - jeśli folder nie istnieje, wyczyść path.
+                    // Wyjątek: Epic Vanilla jest wpisem "wirtualnym" (launch przez legendary),
+                    // więc ścieżka może nie istnieć lokalnie i nie wolno jej czyścić.
                     foreach (var config in fullMods)
                     {
                         if (!string.IsNullOrEmpty(config.InstallPath))
                         {
+                            bool isVanilla = config.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ||
+                                             config.Id == 0 ||
+                                             config.ModName.Equals("AmongUs", StringComparison.OrdinalIgnoreCase);
+
+                            if (isVanilla && currentPlatform.Equals("epic", StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+
                             if (!Directory.Exists(config.InstallPath))
                             {
                                 System.Diagnostics.Debug.WriteLine($"[RefreshModsList] Mod '{config.ModName}' InstallPath not found, clearing: {config.InstallPath}");
@@ -110,7 +123,7 @@ namespace SUSModder.ViewModels
 
                     // Sortuj: Vanilla na górze, potem zainstalowane, potem reszta
                     var sortedConfigs = fullMods
-                        .OrderBy(c => !c.ModName.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+                        .OrderBy(c => !c.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
                         .ThenBy(c => string.IsNullOrEmpty(c.InstallPath) ? 1 : 0)
                         .ThenBy(c => c.ModName);
 
@@ -136,6 +149,47 @@ namespace SUSModder.ViewModels
                         
                         foreach (var mod in Mods.ToList())
                         {
+                            if (!string.IsNullOrWhiteSpace(mod.InstallPath))
+                            {
+                                try
+                                {
+                                    var installMap = await InstallationMapManager.LoadInstallationMapAsync(mod.InstallPath);
+                                    if (installMap?.FullMod != null)
+                                    {
+                                        await Dispatcher.UIThread.InvokeAsync(() =>
+                                        {
+                                            mod.ModVersion = installMap.FullMod.ModVersion;
+                                            mod.DisableAutoUpdatePrompt = installMap.FullMod.DisableAutoUpdatePrompt;
+                                            mod.PinnedInstallVersion = installMap.FullMod.PinnedInstallVersion;
+                                        });
+                                    }
+                                    else
+                                    {
+                                        await Dispatcher.UIThread.InvokeAsync(() =>
+                                        {
+                                            mod.DisableAutoUpdatePrompt = false;
+                                            mod.PinnedInstallVersion = null;
+                                        });
+                                    }
+                                }
+                                catch
+                                {
+                                    await Dispatcher.UIThread.InvokeAsync(() =>
+                                    {
+                                        mod.DisableAutoUpdatePrompt = false;
+                                        mod.PinnedInstallVersion = null;
+                                    });
+                                }
+                            }
+                            else
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() =>
+                                {
+                                    mod.DisableAutoUpdatePrompt = false;
+                                    mod.PinnedInstallVersion = null;
+                                });
+                            }
+
                             // Pomiń Vanilla - nie ma ról
                             if (mod.IsVanilla)
                             {

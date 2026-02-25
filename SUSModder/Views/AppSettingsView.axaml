@@ -9,29 +9,10 @@
 		<vm:AppSettingsViewModel/>
 	</Design.DataContext>
 
-	<Grid RowDefinitions="Auto,*,Auto">
-
-		<!-- Header -->
-		<Border Grid.Row="0"
-				Background="{DynamicResource AccentBrush}"
-				CornerRadius="8"
-				Padding="15"
-				Margin="0,0,0,20">
-			<StackPanel Orientation="Horizontal" Spacing="15">
-				<TextBlock Text="⚙️" FontSize="32" VerticalAlignment="Center"/>
-				<StackPanel VerticalAlignment="Center">
-					<TextBlock Text="{local:Localize Settings.WindowTitle}"
-							   FontSize="20" FontWeight="Bold"
-							   Foreground="White"/>
-					<TextBlock Text="{local:Localize Settings.WindowSubtitle}"
-							   FontSize="12"
-							   Foreground="#E0FFFFFF"/>
-				</StackPanel>
-			</StackPanel>
-		</Border>
+	<Grid RowDefinitions="*,Auto">
 
 		<!-- Główna zawartość - scrollowalna -->
-		<ScrollViewer Grid.Row="1">
+		<ScrollViewer Grid.Row="0" Padding="0,0,10,0">
 			<StackPanel Spacing="15">
 
 				<!-- Sekcja wyboru trybu gry -->
@@ -221,6 +202,17 @@
 								</DataTemplate>
 							</ComboBox.ItemTemplate>
 						</ComboBox>
+
+						<Button Content="{local:Localize UI.Menu.CheckAppUpdates}"
+								Click="CheckForUpdatesButton_Click"
+								HorizontalAlignment="Left"
+								Background="{DynamicResource SecondaryBackgroundBrush}"
+								Foreground="{DynamicResource TextPrimaryBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="4"
+								Padding="10,6"
+								FontSize="12"/>
 					</StackPanel>
 				</Border>
 
@@ -318,11 +310,10 @@
 		</ScrollViewer>
 
 		<!-- Footer z przyciskami - floating, zawsze widoczny -->
-		<Border Grid.Row="2"
-				Background="{DynamicResource SecondaryBackgroundBrush}"
+		<Border Grid.Row="1"
 				BorderBrush="{DynamicResource BorderBrush}"
 				BorderThickness="0,1,0,0"
-				Padding="15"
+				Padding="0,15,0,0"
 				Margin="0,10,0,0">
 			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
 				<Button Content="{local:Localize UI.Buttons.Close}"

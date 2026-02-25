@@ -5,8 +5,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using SUSModder.Core.Repositories;
@@ -144,6 +146,7 @@ namespace SUSModder.Core.Configuration
 
         [JsonPropertyName("HasRoles")]
         public bool? HasRoles { get; set; }
+
     }
 
     public static class ConfigManager
@@ -468,10 +471,11 @@ namespace SUSModder.Core.Configuration
 
         private static bool EnsureVanillaConfigPresent(List<ModConfiguration> configs, List<ModConfiguration>? previousConfigs = null)
         {
-            if (TryGetVanillaInstallPath(configs, out var existingPath, out _))
+            if (TryGetVanillaInstallPath(configs, out var existingPath, out var existingVanilla))
             {
+                var metadataUpdated = existingVanilla != null && RefreshVanillaMetadata(existingVanilla, existingPath!);
                 PersistVanillaPathIfNeeded(existingPath);
-                return false;
+                return metadataUpdated;
             }
 
             // 1) Spróbuj z poprzedniego configu (Velopack)
@@ -542,6 +546,8 @@ namespace SUSModder.Core.Configuration
             if (string.IsNullOrWhiteSpace(path))
                 return null;
 
+            path = path.Trim();
+
             // Jeśli podano bezpośrednio plik EXE
             if (File.Exists(path))
             {
@@ -553,11 +559,37 @@ namespace SUSModder.Core.Configuration
             }
 
             var exePath = Path.Combine(path, "Among Us.exe");
-            return File.Exists(exePath) ? path : null;
+            if (File.Exists(exePath))
+                return path;
+
+            // Epic Vanilla: ścieżka może być "wirtualna" (launch przez legendary),
+            // więc nie wymagamy lokalnego Among Us.exe ani istnienia katalogu.
+            try
+            {
+                var userSettingsService = new UserSettingsService();
+                var mode = userSettingsService.LoadUserSettings().Mode;
+                if (string.Equals(mode, "epic", StringComparison.OrdinalIgnoreCase))
+                {
+                    var normalizedSlashes = path.Replace('/', '\\');
+                    if (normalizedSlashes.Contains("Among Us - Vanilla", StringComparison.OrdinalIgnoreCase) ||
+                        normalizedSlashes.EndsWith("\\AmongUs", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return path;
+                    }
+                }
+            }
+            catch
+            {
+                // Jeśli nie udało się odczytać user settings, zachowaj dotychczasowe zachowanie.
+            }
+
+            return null;
         }
 
         private static ModConfiguration CreateVanillaConfig(string installPath)
         {
+            var platform = GetCurrentPlatformSafe();
+
             return new ModConfiguration
             {
                 Id = 0,
@@ -568,10 +600,10 @@ namespace SUSModder.Core.Configuration
                 EpicGitHubRepoOrLink = string.Empty,
                 ModType = "Vanilla",
                 DllInstallPath = null,
-                ModVersion = string.Empty,
+                ModVersion = "Vanilla",
                 LastUpdated = DateTime.Now,
                 AmongVersion = GetGameVersionSafe(installPath),
-                Description = "Platform: unknown"
+                Description = $"Platform: {platform}"
             };
         }
 
@@ -579,14 +611,132 @@ namespace SUSModder.Core.Configuration
         {
             try
             {
+                // 1) Preferuj runtime version z globalgamemanagers
+                var fromData = TryGetVersionFromGlobalGameManagers(installPath);
+                if (!string.IsNullOrWhiteSpace(fromData))
+                    return fromData;
+
+                // 2) Fallback: FileVersion z EXE
                 var exePath = Path.Combine(installPath, "Among Us.exe");
-                var versionInfo = FileVersionInfo.GetVersionInfo(exePath);
-                return versionInfo.FileVersion ?? "Nieznana";
+                if (File.Exists(exePath))
+                {
+                    var versionInfo = FileVersionInfo.GetVersionInfo(exePath);
+                    if (!string.IsNullOrWhiteSpace(versionInfo.FileVersion))
+                        return versionInfo.FileVersion;
+                }
+
+                return "Nieznana";
             }
             catch
             {
                 return "Nieznana";
             }
+        }
+
+        private static bool RefreshVanillaMetadata(ModConfiguration vanilla, string installPath)
+        {
+            bool changed = false;
+
+            if (!string.Equals(vanilla.ModType, "Vanilla", StringComparison.OrdinalIgnoreCase))
+            {
+                vanilla.ModType = "Vanilla";
+                changed = true;
+            }
+
+            if (!string.Equals(vanilla.ModVersion, "Vanilla", StringComparison.Ordinal))
+            {
+                vanilla.ModVersion = "Vanilla";
+                changed = true;
+            }
+
+            var version = GetGameVersionSafe(installPath);
+            if (!string.Equals(vanilla.AmongVersion, version, StringComparison.OrdinalIgnoreCase))
+            {
+                vanilla.AmongVersion = version;
+                changed = true;
+            }
+
+            var platform = GetCurrentPlatformSafe();
+            var expectedDescription = $"Platform: {platform}";
+            if (!string.Equals(vanilla.Description, expectedDescription, StringComparison.OrdinalIgnoreCase))
+            {
+                vanilla.Description = expectedDescription;
+                changed = true;
+            }
+
+            return changed;
+        }
+
+        private static string GetCurrentPlatformSafe()
+        {
+            try
+            {
+                var userSettingsService = new UserSettingsService();
+                var mode = userSettingsService.LoadUserSettings().Mode;
+                return string.IsNullOrWhiteSpace(mode) ? "unknown" : mode;
+            }
+            catch
+            {
+                return "unknown";
+            }
+        }
+
+        private static string? TryGetVersionFromGlobalGameManagers(string installPath)
+        {
+            try
+            {
+                var managersPath = Path.Combine(installPath, "Among Us_Data", "globalgamemanagers");
+                if (!File.Exists(managersPath))
+                    return null;
+
+                var bytes = File.ReadAllBytes(managersPath);
+                var asciiChunk = new StringBuilder();
+                var regex = new Regex(@"\b(\d{4}\.\d{1,2}\.\d{1,2}f?)\b", RegexOptions.Compiled);
+
+                foreach (var b in bytes)
+                {
+                    if (b >= 32 && b <= 126)
+                    {
+                        asciiChunk.Append((char)b);
+                        continue;
+                    }
+
+                    var version = ExtractVersionFromChunk(asciiChunk.ToString(), regex);
+                    if (!string.IsNullOrWhiteSpace(version))
+                        return NormalizeUnityStyleVersion(version);
+
+                    asciiChunk.Clear();
+                }
+
+                var trailing = ExtractVersionFromChunk(asciiChunk.ToString(), regex);
+                return string.IsNullOrWhiteSpace(trailing) ? null : NormalizeUnityStyleVersion(trailing);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string? ExtractVersionFromChunk(string chunk, Regex regex)
+        {
+            if (string.IsNullOrWhiteSpace(chunk) || chunk.Length < 4)
+                return null;
+
+            foreach (Match match in regex.Matches(chunk))
+            {
+                var version = match.Groups[1].Value;
+                if (version.EndsWith("f", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                return version;
+            }
+
+            return null;
+        }
+
+        private static string NormalizeUnityStyleVersion(string version)
+        {
+            return version == "2025.4.20" ? "2025.5.20" : version;
         }
 
         private static bool EnsureVanillaFromSource(List<ModConfiguration> configs, ModConfiguration source)
@@ -650,6 +800,7 @@ namespace SUSModder.Core.Configuration
 
                 if (!targetMod.LastUpdated.HasValue && prev.LastUpdated.HasValue)
                     targetMod.LastUpdated = prev.LastUpdated;
+
             }
         }
 

@@ -228,8 +228,10 @@ namespace SUSModder.Core.Services
                 // Configuration section
                 if (root.TryGetProperty("Configuration", out var config))
                 {
-                    if (config.TryGetProperty("Mode", out var mode))
-                        settings.Mode = mode.GetString() ?? string.Empty;  // Pusty = wymusza dialog wyboru platformy
+                    // Mode NIE jest migrowane z appsettings.json celowo:
+                    // pusty Mode wymusza dialog wyboru platformy przy pierwszym uruchomieniu / po resecie.
+                    // appsettings.json nie jest kasowany podczas factory reset, więc gdyby migrować Mode,
+                    // dialog platformy nigdy by nie był pokazywany po resecie.
 
                     if (config.TryGetProperty("lastLaunchId", out var lastLaunch))
                         settings.LastLaunchId = lastLaunch.GetInt32();

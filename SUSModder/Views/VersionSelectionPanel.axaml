@@ -1,0 +1,199 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:models="clr-namespace:SUSModder.Core.Models;assembly=SUSModder.Core"
+             xmlns:converters="using:SUSModder.Converters"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             x:DataType="vm:VersionSelectionViewModel"
+             x:Name="Root"
+             x:Class="SUSModder.Views.VersionSelectionPanel">
+
+    <UserControl.Resources>
+        <converters:ReferenceEqualsMultiConverter x:Key="ReferenceEqualsMultiConverter"/>
+    </UserControl.Resources>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <Border Grid.Row="0"
+                Background="{DynamicResource AccentBrush}"
+                CornerRadius="8"
+                Margin="0,0,0,14"
+                Padding="16,14">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                <TextBlock Grid.Column="0"
+                           Text="📦"
+                           FontSize="30"
+                           VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Text="{Binding ModName}"
+                               FontSize="20"
+                               FontWeight="Bold"
+                               Foreground="White"
+                               TextWrapping="Wrap"/>
+                    <TextBlock FontSize="12" Foreground="#E0FFFFFF">
+                        <Run Text="{loc:Localize Tools.VersionSelection.CurrentVersion}"/>
+                        <Run Text=" "/>
+                        <Run Text="{Binding CurrentVersion}" FontWeight="Bold"/>
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <StackPanel IsVisible="{Binding IsLoading}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="12">
+                <TextBlock Text="⏳"
+                           FontSize="44"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource AccentBrush}"/>
+                <TextBlock Text="{loc:Localize Tools.VersionSelection.Loading}"
+                           FontSize="13"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+            </StackPanel>
+
+            <Border IsVisible="{Binding HasError}"
+                    Background="#20FF0000"
+                    BorderBrush="#FF6B6B"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="18"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    MaxWidth="520">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="❌"
+                               FontSize="28"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="{loc:Localize Tools.VersionSelection.ErrorTitle}"
+                               FontSize="17"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </StackPanel>
+            </Border>
+
+            <Grid IsVisible="{Binding !IsLoading}" RowDefinitions="Auto,*" RowSpacing="8">
+                <TextBlock Grid.Row="0"
+                           Text="{loc:Localize Tools.VersionSelection.SelectPrompt}"
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+                <Border Grid.Row="1"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Background="{DynamicResource SecondaryBackgroundBrush}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Versions}" Margin="6" Cursor="Hand">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:ModVersionHistory">
+                                    <Grid Margin="4"
+                                          Cursor="Hand"
+                                          Tapped="Version_Tapped">
+                                        <Border Background="{DynamicResource ModCardBackgroundBrush}"
+                                                BorderBrush="{DynamicResource ModCardBorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                Padding="12">
+                                            <Grid IsHitTestVisible="False" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="3">
+                                                <TextBlock Grid.Row="0"
+                                                           FontSize="14"
+                                                           FontWeight="Bold"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}">
+                                                    <Run Text="{loc:Localize Tools.VersionSelection.VersionLabel}"/>
+                                                    <Run Text=" "/>
+                                                    <Run Text="{Binding ModVersion}"/>
+                                                </TextBlock>
+                                                <TextBlock Grid.Row="1"
+                                                           Text="{Binding AmongVersion, StringFormat='Among Us: {0}'}"
+                                                           FontSize="12"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="2"
+                                                           Text="{Binding FormattedDate}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource TextTertiaryBrush}"/>
+                                                <TextBlock Grid.Row="3"
+                                                           Text="{Binding Notes}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           TextWrapping="Wrap"
+                                                           IsVisible="{Binding Notes, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                                           Margin="0,3,0,0"/>
+                                            </Grid>
+                                        </Border>
+
+                                        <Border BorderBrush="{DynamicResource AccentBrush}"
+                                                BorderThickness="2"
+                                                CornerRadius="6"
+                                                IsHitTestVisible="False">
+                                            <Border.IsVisible>
+                                                <MultiBinding Converter="{StaticResource ReferenceEqualsMultiConverter}">
+                                                    <Binding/>
+                                                    <Binding ElementName="Root" Path="DataContext.SelectedVersion"/>
+                                                </MultiBinding>
+                                            </Border.IsVisible>
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="2"
+                Background="{DynamicResource SecondaryBackgroundBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Margin="0,14,0,0"
+                Padding="0,12,0,0">
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                <StackPanel Grid.Row="0"
+                            IsVisible="{Binding SelectedVersion, Converter={x:Static ObjectConverters.IsNotNull}}"
+                            Margin="0,0,0,2">
+                    <TextBlock Text="{loc:Localize Tools.VersionSelection.SelectedLabel}"
+                               FontSize="11"
+                               Foreground="{DynamicResource TextTertiaryBrush}"/>
+                    <TextBlock Text="{Binding SelectedVersionDisplayText}"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <Button Grid.Column="0"
+                            Content="{loc:Localize Tools.VersionSelection.CancelButton}"
+                            Command="{Binding CancelCommand}"
+                            MinWidth="100"
+                            Height="38"
+                            HorizontalAlignment="Left"
+                            FontSize="13"
+                            Background="{DynamicResource SecondaryBackgroundBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+                    <Button Grid.Column="1"
+                            Content="{loc:Localize Tools.VersionSelection.InstallButton}"
+                            Command="{Binding ConfirmCommand}"
+                            Height="38"
+                            HorizontalAlignment="Right"
+                            MinWidth="180"
+                            FontSize="13"
+                            FontWeight="Bold"
+                            Background="{DynamicResource AccentBrush}"
+                            Foreground="White"/>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

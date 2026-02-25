@@ -38,8 +38,14 @@ namespace SUSModder.ViewModels
         public ModVersionHistory? SelectedVersion
         {
             get => _selectedVersion;
-            set => this.RaiseAndSetIfChanged(ref _selectedVersion, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _selectedVersion, value);
+                this.RaisePropertyChanged(nameof(SelectedVersionDisplayText));
+            }
         }
+
+        public string SelectedVersionDisplayText => SelectedVersion?.DisplayText ?? string.Empty;
 
         public bool IsLoading
         {
@@ -134,6 +140,11 @@ namespace SUSModder.ViewModels
         public void Dispose()
         {
             _versionService?.Dispose();
+        }
+
+        public void CancelSelection()
+        {
+            Cancelled?.Invoke(this, EventArgs.Empty);
         }
     }
 }

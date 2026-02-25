@@ -229,6 +229,102 @@ namespace SUSModder.Core.GameIntegration
             public string install_path { get; set; } = string.Empty;
         }
 
+        private class OwnedGame
+        {
+            public string app_name { get; set; } = string.Empty;
+            public string app_title { get; set; } = string.Empty;
+        }
+
+        /// <summary>
+        /// Sprawdza czy użytkownik posiada Among Us na koncie Epic Games przez legendary list-games.
+        /// Wymaga zalogowania w legendary. Zwraca true jeśli gra jest na koncie, false w przeciwnym razie.
+        /// </summary>
+        public async Task<bool> CheckIsGameOwnedAsync()
+        {
+            try
+            {
+                if (!File.Exists(legendaryPath))
+                {
+                    Write("[GameOwned] legendary.exe nie istnieje - nie można sprawdzić posiadania gry");
+                    return false;
+                }
+
+                Write("[GameOwned] Sprawdzanie posiadania Among Us przez legendary list-games --json...");
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = legendaryPath,
+                    Arguments = "list-games --json",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var proc = Process.Start(psi);
+                if (proc == null)
+                {
+                    Write("[GameOwned] Nie udało się uruchomić legendary.exe");
+                    return false;
+                }
+
+                // Timeout 30 sekund - serwery Epic mogą być wolne
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(30));
+                string stdout = string.Empty;
+                string stderr = string.Empty;
+
+                try
+                {
+                    var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                    var stderrTask = proc.StandardError.ReadToEndAsync();
+                    await proc.WaitForExitAsync(cts.Token);
+                    stdout = await stdoutTask;
+                    stderr = await stderrTask;
+                }
+                catch (OperationCanceledException)
+                {
+                    Write("[GameOwned] Timeout podczas oczekiwania na legendary list-games (30s)");
+                    try { proc.Kill(); } catch { }
+                    return false;
+                }
+
+                if (string.IsNullOrWhiteSpace(stdout))
+                {
+                    Write("[GameOwned] legendary list-games zwrócił pustą odpowiedź - prawdopodobnie użytkownik nie jest zalogowany");
+                    return false;
+                }
+
+                List<OwnedGame> games;
+                try
+                {
+                    games = JsonSerializer.Deserialize<List<OwnedGame>>(stdout) ?? new List<OwnedGame>();
+                }
+                catch (JsonException jsonEx)
+                {
+                    Write($"[GameOwned] Błąd parsowania JSON z legendary list-games: {jsonEx.Message}");
+                    return false;
+                }
+
+                var amongUs = games.FirstOrDefault(g =>
+                    g.app_name.Equals(EpicAppId, StringComparison.OrdinalIgnoreCase) ||
+                    g.app_title.Contains("Among Us", StringComparison.OrdinalIgnoreCase));
+
+                if (amongUs != null)
+                {
+                    Write($"[GameOwned] Among Us znaleziony na koncie Epic: app_name={amongUs.app_name}, title={amongUs.app_title}");
+                    return true;
+                }
+
+                Write($"[GameOwned] Among Us NIE znaleziony na koncie Epic (sprawdzono {games.Count} gier)");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Write($"[GameOwned] ERROR w CheckIsGameOwnedAsync: {ex.Message}");
+                return false;
+            }
+        }
+
         public async Task ModifyEpicAsync(ModConfiguration modConfig, object? progressBar, object? progressLabel)
         {
             if (modConfig == null)
@@ -415,15 +511,20 @@ namespace SUSModder.Core.GameIntegration
                 var codeStdout = await codeProcess.StandardOutput.ReadToEndAsync();
                 await codeProcess.WaitForExitAsync();
 
+                // Loguj pełny output niezależnie od wyniku (legendary loguje na stderr)
+                if (!string.IsNullOrWhiteSpace(codeStdout))
+                    Write($"[legendary auth stdout] {codeStdout}");
+                if (!string.IsNullOrWhiteSpace(codeStderr))
+                    Write($"[legendary auth stderr] {codeStderr}");
+
                 if (codeProcess.ExitCode == 0)
                 {
                     Write("✓ Pomyślnie uwierzytelniono z kodem autoryzacji!");
-                    Write(codeStdout);
                     return true;
                 }
                 else
                 {
-                    Write($"✗ Błąd uwierzytelnienia: {codeStderr}");
+                    Write($"✗ Błąd uwierzytelnienia (exit code: {codeProcess.ExitCode})");
                     return false;
                 }
             }
@@ -561,12 +662,11 @@ namespace SUSModder.Core.GameIntegration
                 Write("Import sesji nie powiódł się. Pokazuję dialog logowania...");
                 Write(stderr);
 
-                // Przygotuj OAuth URL (używamy standardowego legendary URL)
-                // WAŻNE: redirectUrl musi być URL-encoded! (jak w legendary Python: urllib.parse.quote)
-                const string clientId = "34a02cf8f4414e29b15921876da36f9a";
-                string redirectUrl = $"https://www.epicgames.com/id/api/redirect?clientId={clientId}&responseType=code";
-                string encodedRedirectUrl = Uri.EscapeDataString(redirectUrl);
-                string oauthUrl = $"https://www.epicgames.com/id/login?redirectUrl={encodedRedirectUrl}";
+                // Przygotuj OAuth URL - używamy responseType=code, który po zalogowaniu
+                // przekieruje na https://localhost/?code=XXXXX (tak jak robi to Heroic Games Launcher).
+                // Embedded WebView2 przechwytuje ten redirect automatycznie.
+                // W trybie fallback (systemowa przeglądarka) użytkownik kopiuje kod ręcznie.
+                string oauthUrl = "https://www.epicgames.com/id/login?responseType=code";
 
                 Write($"OAuth URL: {oauthUrl}");
 
@@ -698,6 +798,164 @@ namespace SUSModder.Core.GameIntegration
             }
 
             return await AuthenticateAsync();
+        }
+
+        /// <summary>
+        /// Upewnia się, że legendary.exe istnieje – pobiera go jeśli nie ma.
+        /// </summary>
+        public async Task EnsureLegendaryExistsAsync()
+        {
+            if (!File.Exists(legendaryPath))
+            {
+                Write("Pobieranie legendary.exe...");
+                await DownloadLegendaryAsync();
+            }
+        }
+
+        /// <summary>
+        /// Sprawdza czy użytkownik jest aktualnie zalogowany do Epic Games Store
+        /// bez otwierania żadnych dialogów.
+        /// Używa legendary status --json do weryfikacji sesji.
+        /// </summary>
+        /// <returns>True jeśli użytkownik jest zalogowany, false w przeciwnym razie</returns>
+        public async Task<bool> CheckAuthStatusAsync()
+        {
+            try
+            {
+                if (!File.Exists(legendaryPath))
+                {
+                    Write("Legendary.exe nie znaleziony – nie można sprawdzić statusu auth.");
+                    return false;
+                }
+
+                Write("Sprawdzanie statusu logowania do Epic Games...");
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = legendaryPath,
+                    Arguments = "status --json",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var process = Process.Start(psi);
+                if (process == null)
+                {
+                    Write("Nie udało się uruchomić legendary.exe do sprawdzenia statusu.");
+                    return false;
+                }
+
+                var stdout = await process.StandardOutput.ReadToEndAsync();
+                var stderr = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                // Próba parsowania JSON z legendaryStatus
+                if (!string.IsNullOrWhiteSpace(stdout))
+                {
+                    try
+                    {
+                        using var jsonDoc = JsonDocument.Parse(stdout);
+                        var root = jsonDoc.RootElement;
+
+                        // legendary status --json zwraca pole "account" gdy zalogowany
+                        if (root.TryGetProperty("account", out var accountElem))
+                        {
+                            var account = accountElem.GetString();
+                            if (!string.IsNullOrWhiteSpace(account))
+                            {
+                                var normalized = account.Trim().ToLowerInvariant();
+
+                                // legendary bywa niespójne i potrafi zwrócić np. "<not logged in>".
+                                // Traktuj takie wartości jako BRAK sesji.
+                                if (normalized is "none" or "<not logged in>" or "not logged in" or "null" or "n/a")
+                                {
+                                    Write("✗ Użytkownik niezalogowany (account placeholder).");
+                                    return false;
+                                }
+
+                                Write($"✓ Zalogowany jako: {account}");
+                                return true;
+                            }
+                        }
+
+                        // Pole "logged_in" (alternatywny format)
+                        if (root.TryGetProperty("logged_in", out var loggedInElem))
+                        {
+                            bool loggedIn = loggedInElem.GetBoolean();
+                            Write(loggedIn ? "✓ Użytkownik zalogowany (logged_in=true)" : "✗ Użytkownik niezalogowany (logged_in=false)");
+                            return loggedIn;
+                        }
+                    }
+                    catch
+                    {
+                        // JSON parse failed – sprawdź przez tekst
+                    }
+                }
+
+                // Fallback: sprawdź przez stderr i exit code
+                // legendary status wypisuje "Epic account: <name>" lub "Epic account: None"
+                var combined = stdout + stderr;
+                if (combined.Contains("Epic account: None") ||
+                    combined.Contains("<not logged in>", StringComparison.OrdinalIgnoreCase) ||
+                    combined.Contains("Not logged in") ||
+                    combined.Contains("No saved credentials") ||
+                    combined.Contains("not logged"))
+                {
+                    Write("✗ Użytkownik nie jest zalogowany do Epic Games.");
+                    return false;
+                }
+
+                if (process.ExitCode == 0 && (combined.Contains("Epic account:") || combined.Contains("account_id:")))
+                {
+                    Write("✓ Użytkownik jest zalogowany do Epic Games.");
+                    return true;
+                }
+
+                // Dodatkowy fallback: próba legendary auth --import (cicha weryfikacja)
+                Write("Fallback: próba weryfikacji przez auth --import...");
+                var importPsi = new ProcessStartInfo
+                {
+                    FileName = legendaryPath,
+                    Arguments = "auth --import",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var importProcess = Process.Start(importPsi);
+                if (importProcess != null)
+                {
+                    var importStderr = await importProcess.StandardError.ReadToEndAsync();
+                    var importStdout = await importProcess.StandardOutput.ReadToEndAsync();
+                    await importProcess.WaitForExitAsync();
+
+                    if (importProcess.ExitCode == 0 &&
+                        !importStderr.Contains("ERROR") &&
+                        !importStderr.Contains("No EGS login session found"))
+                    {
+                        Write("✓ Sesja zaimportowana pomyślnie.");
+                        return true;
+                    }
+
+                    // Jeśli import mówi "already logged in" to też OK
+                    if (importStderr.Contains("already") || importStdout.Contains("already"))
+                    {
+                        Write("✓ Już zalogowany (import: already logged in).");
+                        return true;
+                    }
+                }
+
+                Write("✗ Nie można zweryfikować statusu logowania.");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Write($"Błąd podczas sprawdzania statusu auth: {ex.Message}");
+                return false;
+            }
         }
 
         public async Task HandleEpicGameAsync(ModConfiguration modConfig)
@@ -1301,7 +1559,7 @@ namespace SUSModder.Core.GameIntegration
 
         private async Task DownloadLegendaryAsync()
         {
-            string url = "https://github.com/Heroic-Games-Launcher/legendary/releases/download/0.20.38/legendary_windows_x86_64.exe";
+            string url = "https://github.com/Heroic-Games-Launcher/legendary/releases/download/0.20.41/legendary_windows_x86_64.exe";
             await DownloadFileAsync(url, legendaryPath);
             Write("Legendary downloaded.");
         }

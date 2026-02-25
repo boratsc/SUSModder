@@ -179,8 +179,10 @@ namespace SUSModder.Core.GameIntegration
                 if (remoteMod == null)
                     continue;
 
-                // Pobierz RZECZYWISTĄ wersję z Installation Map (a nie z config.json cache!)
+                // Pobierz RZECZYWISTĄ wersję i flagi z Installation Map (a nie z config.json cache!)
                 string installedVersion = localMod.ModVersion ?? "Nieznana";
+                bool disableAutoUpdatePrompt = false;
+                string? pinnedInstallVersion = null;
 
                 try
                 {
@@ -188,6 +190,8 @@ namespace SUSModder.Core.GameIntegration
                     if (installMap?.FullMod != null && !string.IsNullOrEmpty(installMap.FullMod.ModVersion))
                     {
                         installedVersion = installMap.FullMod.ModVersion;
+                        disableAutoUpdatePrompt = installMap.FullMod.DisableAutoUpdatePrompt;
+                        pinnedInstallVersion = installMap.FullMod.PinnedInstallVersion;
                     }
                 }
                 catch
@@ -196,6 +200,16 @@ namespace SUSModder.Core.GameIntegration
                 }
 
                 // Porównaj RZECZYWISTĄ wersję z dysku z wersją z API
+                bool pinnedToCurrentVersion =
+                    disableAutoUpdatePrompt &&
+                    !string.IsNullOrWhiteSpace(pinnedInstallVersion) &&
+                    string.Equals(installedVersion, pinnedInstallVersion, StringComparison.OrdinalIgnoreCase);
+
+                if (pinnedToCurrentVersion)
+                {
+                    continue;
+                }
+
                 if (HasNewerVersionComparedTo(installedVersion, remoteMod.ModVersion))
                 {
                     modsToUpdate.Add(new ModUpdateInfo

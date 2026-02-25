@@ -29,6 +29,7 @@
       "InstalledIn": "Installed in",
       "Version": "Version",
       "ModVersion": "Mod version",
+      "PinnedVersionInfo": "📌 Version pinned",
       "GameVersion": "Game version",
       "ModVersionFormat": "Mod version: {0}",
       "GameVersionFormat": "AmongUs version: {0}",
@@ -47,7 +48,7 @@
       "Title": "Menu",
       "ToUConfigs": "Town of Us Configs",
       "DllMods": "DLL Modifications",
-      "SUStats": "SUStats - configurations",
+      "SUStats": "Discord Integration",
       "RepairGame": "Repair Among Us",
       "Settings": "Application Settings",
       "CheckAppUpdates": "Check app updates",
@@ -143,7 +144,7 @@
     "Repair": {
       "DialogTitle": "Repair Game",
       "BlackScreen": {
-        "Title": "Fix Black Screen",
+        "Title": "Repair Among Us - black screen / server issues / visual issues",
         "Description": "Resets Among Us game settings (deletes configuration files, keeps lobby settings).",
         "ConfirmMessage": "Are you sure you want to reset game settings?",
         "Success": "Game settings have been reset successfully."

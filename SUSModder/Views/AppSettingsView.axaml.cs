@@ -71,5 +71,14 @@ namespace SUSModder.Views
                 vm.IsAppSettingsVisible = false;
             }
         }
+
+        private void CheckForUpdatesButton_Click(object? sender, RoutedEventArgs e)
+        {
+            var mainWindow = this.FindLogicalAncestorOfType<MainWindow>();
+            if (mainWindow?.DataContext is MainWindowViewModel vm)
+            {
+                ((System.Windows.Input.ICommand)vm.CheckForAppUpdatesCommand).Execute(null);
+            }
+        }
     }
 }

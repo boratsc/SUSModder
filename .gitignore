@@ -12,6 +12,8 @@ velopack-releases/
 .ilspy/
 Update.exe
 dummy-release/
+_delta-base/
+nul
 
 # Deployment scripts with credentials
 deploy-manual.ps1

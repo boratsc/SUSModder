@@ -61,21 +61,6 @@ namespace SUSModder.ViewModels
 
         #region Game Settings & Tools
 
-        private async Task ShowLobbySetDialog()
-        {
-            var dialog = new LobbySetDialog();
-            var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-
-            if (mainWindow != null)
-            {
-                await dialog.ShowDialog(mainWindow);
-                if (dialog.DialogResult)
-                {
-                    await ShowMessageAsync("Sukces", $"Ustawiono liczbę graczy na {dialog.PlayerCount}");
-                }
-            }
-        }
-
         private async Task ExecuteFixBlackScreenAsync()
         {
             try

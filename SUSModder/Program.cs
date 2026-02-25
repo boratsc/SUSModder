@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Text;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using Velopack;
@@ -10,6 +11,8 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        Console.OutputEncoding = Encoding.UTF8;
+
         // Handle Velopack activation hooks before any other startup logic
         VelopackApp.Build().Run();
 

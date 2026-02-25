@@ -96,8 +96,10 @@ namespace SUSModder.Core.Services
                     if (updated)
                         configChanged = true;
 
-                    // Pobierz RZECZYWISTĄ wersję z Installation Map (a nie z config.json cache!)
+                    // Pobierz RZECZYWISTĄ wersję i flagi z Installation Map (a nie z config.json cache!)
                     string installedVersion = config.ModVersion ?? "Nieznana";
+                    bool disableAutoUpdatePrompt = false;
+                    string? pinnedInstallVersion = null;
 
                     try
                     {
@@ -106,6 +108,8 @@ namespace SUSModder.Core.Services
                         if (installMap?.FullMod != null && !string.IsNullOrEmpty(installMap.FullMod.ModVersion))
                         {
                             installedVersion = installMap.FullMod.ModVersion;
+                            disableAutoUpdatePrompt = installMap.FullMod.DisableAutoUpdatePrompt;
+                            pinnedInstallVersion = installMap.FullMod.PinnedInstallVersion;
                             System.Diagnostics.Debug.WriteLine($"[ModUpdateManager] {config.ModName} - rzeczywista wersja z InstallationMap: {installedVersion}");
                         }
                     }
@@ -116,6 +120,17 @@ namespace SUSModder.Core.Services
                     }
 
                     // Porównaj RZECZYWISTĄ wersję z wersją z API
+                    bool pinnedToCurrentVersion =
+                        disableAutoUpdatePrompt &&
+                        !string.IsNullOrWhiteSpace(pinnedInstallVersion) &&
+                        string.Equals(installedVersion, pinnedInstallVersion, StringComparison.OrdinalIgnoreCase);
+
+                    if (pinnedToCurrentVersion)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ModUpdateManager] Pomijam auto-update check dla przypiętej wersji moda {config.ModName}: {installedVersion}");
+                        continue;
+                    }
+
                     if (!string.Equals(installedVersion, updatedConfig.ModVersion, StringComparison.OrdinalIgnoreCase))
                     {
                         System.Diagnostics.Debug.WriteLine($"[ModUpdateManager] ✓ Znaleziono aktualizację dla {config.ModName}: {installedVersion} → {updatedConfig.ModVersion}");
@@ -314,7 +329,10 @@ namespace SUSModder.Core.Services
             // Zachowaj oryginalną ścieżkę instalacji
             target.InstallPath = originalInstallPath;
 
-            System.Diagnostics.Debug.WriteLine($"✅ Updated mod config: {target.ModName} v{target.ModVersion}");
+            var versionLabel = target.ModVersion?.StartsWith("v", StringComparison.OrdinalIgnoreCase) == true
+                ? target.ModVersion
+                : $"v{target.ModVersion}";
+            System.Diagnostics.Debug.WriteLine($"✅ Updated mod config: {target.ModName} {versionLabel}");
         }
 
         private int RemoveObsoleteMods(List<ModConfiguration> uninstalledConfigs,

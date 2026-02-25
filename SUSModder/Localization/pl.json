@@ -29,6 +29,7 @@
       "InstalledIn": "Zainstalowano w",
       "Version": "Wersja",
       "ModVersion": "Wersja moda",
+      "PinnedVersionInfo": "📌 Wersja przypięta",
       "GameVersion": "Wersja gry",
       "ModVersionFormat": "Wersja moda: {0}",
       "GameVersionFormat": "Wersja AmongUs: {0}",
@@ -47,8 +48,8 @@
       "Title": "Menu",
       "ToUConfigs": "Konfiguracje ToU",
       "DllMods": "Modyfikacje DLL",
-      "SUStats": "SUStats - konfiguracje",
-      "RepairGame": "Napraw Amonga",
+      "SUStats": "Integracja z Discord",
+      "RepairGame": "Napraw Among Us",
       "Settings": "Ustawienia aplikacji",
       "CheckAppUpdates": "Sprawdź aktualizacje aplikacji",
       "About": "O programie",
@@ -143,7 +144,7 @@
     "Repair": {
       "DialogTitle": "Napraw grę",
       "BlackScreen": {
-        "Title": "Napraw czarny ekran",
+        "Title": "Napraw Among Us - czarny ekran / problemy z serwerami / problemy z wyglądem",
         "Description": "Resetuje ustawienia gry Among Us (usuwa pliki konfiguracyjne, zachowuje konfiguracje lobby).",
         "ConfirmMessage": "Czy jesteś pewny, że chcesz zresetować ustawienia gry?",
         "Success": "Ustawienia gry zostały zresetowane pomyślnie."

@@ -18,6 +18,8 @@ namespace SUSModder.ViewModels
         private string _dllInstallPath = string.Empty;
         private DateTime? _lastUpdated;
         private bool? _hasRoles;
+        private string? _pinnedInstallVersion;
+        private bool _disableAutoUpdatePrompt;
 
         // Nowe właściwości dla instalacji
         private bool _isInstalling = false;
@@ -56,7 +58,11 @@ namespace SUSModder.ViewModels
         public string ModVersion
         {
             get => _modVersion;
-            set => this.RaiseAndSetIfChanged(ref _modVersion, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _modVersion, value);
+                this.RaisePropertyChanged(nameof(IsPinnedVersionInstall));
+            }
         }
 
         public string AmongVersion
@@ -74,6 +80,27 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(IsInstalled));
                 this.RaisePropertyChanged(nameof(CanInstall));
                 this.RaisePropertyChanged(nameof(CanUninstall));
+                this.RaisePropertyChanged(nameof(IsPinnedVersionInstall));
+            }
+        }
+
+        public string? PinnedInstallVersion
+        {
+            get => _pinnedInstallVersion;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _pinnedInstallVersion, value);
+                this.RaisePropertyChanged(nameof(IsPinnedVersionInstall));
+            }
+        }
+
+        public bool DisableAutoUpdatePrompt
+        {
+            get => _disableAutoUpdatePrompt;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _disableAutoUpdatePrompt, value);
+                this.RaisePropertyChanged(nameof(IsPinnedVersionInstall));
             }
         }
 
@@ -151,6 +178,11 @@ namespace SUSModder.ViewModels
         public bool IsFullMod => ModType.Equals("full", StringComparison.OrdinalIgnoreCase);
         public bool IsDllMod => ModType.Equals("dll", StringComparison.OrdinalIgnoreCase);
         public bool IsVanilla => ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase);
+        public bool IsPinnedVersionInstall =>
+            IsInstalled &&
+            DisableAutoUpdatePrompt &&
+            !string.IsNullOrWhiteSpace(PinnedInstallVersion) &&
+            string.Equals(ModVersion, PinnedInstallVersion, StringComparison.OrdinalIgnoreCase);
 
         // Nowe właściwości dla kontroli przycisków
         public bool CanInstall => !IsInstalled && !IsInstalling;

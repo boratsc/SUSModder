@@ -4,29 +4,14 @@
              xmlns:loc="using:SUSModder.Services.Localization"
              x:Class="SUSModder.Views.RecommendedDiscordsPanel"
              x:CompileBindings="False">
-	<Grid x:Name="Root" RowDefinitions="Auto,*" RowSpacing="14">
-		<Border Grid.Row="0"
-				Background="{DynamicResource AccentBrush}"
-				CornerRadius="10"
-				Padding="16,14">
-			<StackPanel Spacing="4">
-				<TextBlock Text="{loc:Localize RecommendedDiscords.Header}"
-						   FontSize="24"
-						   FontWeight="Bold"
-						   Foreground="White"/>
-				<TextBlock Text="{loc:Localize RecommendedDiscords.Subtitle}"
-						   FontSize="13"
-						   Foreground="#E8FFFFFF"/>
-			</StackPanel>
-		</Border>
-
-		<Grid Grid.Row="1" RowDefinitions="Auto,*" RowSpacing="10">
+	<Grid x:Name="Root">
+		<Grid RowDefinitions="Auto,*" RowSpacing="10">
 			<TextBlock Grid.Row="0"
 					   Text="{Binding StatusMessage}"
 					   FontSize="12"
 					   Foreground="{DynamicResource TextSecondaryBrush}"/>
 
-			<ScrollViewer Grid.Row="1">
+			<ScrollViewer Grid.Row="1" Padding="0,0,10,0">
 				<ItemsControl ItemsSource="{Binding DiscordServers}">
 					<ItemsControl.ItemsPanel>
 						<ItemsPanelTemplate>

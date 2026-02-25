@@ -1,4 +1,4 @@
-$assemblyPath = 'd:/Development/SUSModder/SUSModder/bin/Debug/net8.0/Velopack.dll'
+$assemblyPath = 'd:/Development/SUSModder/SUSModder/bin/Debug/net10.0-windows/Velopack.dll'
 
 try {
 	$assembly = [System.Reflection.Assembly]::LoadFrom($assemblyPath)
@@ -32,7 +32,7 @@ foreach ($t in $matched) {
 	$flags = [System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::Public -bor [System.Reflection.BindingFlags]::NonPublic
 	$t.GetMethods($flags) | Select-Object Name, IsPublic, IsVirtual, DeclaringType | Format-Table -AutoSize
 }
-[void][System.Reflection.Assembly]::LoadFrom('d:/Development/SUSModder/SUSModder/bin/Debug/net8.0/Velopack.dll')
+[void][System.Reflection.Assembly]::LoadFrom('d:/Development/SUSModder/SUSModder/bin/Debug/net10.0-windows/Velopack.dll')
 $type = [Velopack.Sources.SimpleWebSource]
 $flags = [System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::Public -bor [System.Reflection.BindingFlags]::NonPublic
 $methods = $type.GetMethods($flags)

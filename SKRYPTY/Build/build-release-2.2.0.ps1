@@ -1,4 +1,4 @@
-# Build and Package v2.2.0 - Complete Migration Release
+﻿# Build and Package v2.2.0 - Complete Migration Release
 # Tworzy:
 # 1. Legacy ZIP (dla użytkowników z v2.0.1)
 # 2. Velopack release channel

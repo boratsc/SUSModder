@@ -1,6 +1,8 @@
 using ReactiveUI;
 using System;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Reactive;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -23,6 +25,8 @@ namespace SUSModder.ViewModels
         private string _lastClipboardContent = string.Empty;
         private bool _isMonitoringClipboard = false;
         private string _clipboardMonitorStatus = string.Empty;
+        private bool _isWebViewMode = false;
+        private string _webViewStatus = "Ładowanie strony logowania Epic Games...";
 
         public EpicAuthDialogViewModel(Window window, string browserUrl)
         {
@@ -33,9 +37,143 @@ namespace SUSModder.ViewModels
             ConfirmCommand = ReactiveCommand.Create(Confirm);
             CancelCommand = ReactiveCommand.Create(Cancel);
 
-            // Automatycznie otwórz przeglądarkę po 5 sekundach z countdown
+            // Sprawdź czy WebView2 jest dostępny
+            _isWebViewMode = CheckWebView2Available();
+
+            if (!_isWebViewMode)
+            {
+                // Fallback: automatycznie otwórz przeglądarkę po 5 sekundach z countdown
+                _ = AutoOpenBrowserAfterDelay();
+            }
+        }
+
+        /// <summary>
+        /// Sprawdza czy WebView2 Runtime jest zainstalowany na maszynie użytkownika.
+        /// Próbuje najpierw standardowy check przez rejestr, a potem bezpośrednie szukanie na dysku.
+        /// </summary>
+        private bool CheckWebView2Available()
+        {
+            try
+            {
+                bool isSupported = Avalonia.Controls.WebView2.IsSupported;
+                Debug.WriteLine($"[EpicAuthDialog] WebView2 IsSupported (registry): {isSupported}");
+                if (isSupported)
+                    return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[EpicAuthDialog] Błąd sprawdzania WebView2 IsSupported: {ex.Message}");
+            }
+
+            // Fallback: sprawdź czy runtime jest zainstalowany na dysku (brak wpisów w rejestrze)
+            var runtimePath = FindWebView2RuntimePath();
+            if (runtimePath != null)
+            {
+                Debug.WriteLine($"[EpicAuthDialog] WebView2 Runtime znaleziony na dysku: {runtimePath}");
+                _webView2BrowserExecutableFolder = runtimePath;
+                return true;
+            }
+
+            Debug.WriteLine("[EpicAuthDialog] WebView2 Runtime nie jest dostępny");
+            return false;
+        }
+
+        /// <summary>
+        /// Szuka WebView2 Runtime bezpośrednio na dysku, omijając rejestr.
+        /// Zwraca ścieżkę do folderu wersji lub null jeśli nie znaleziono.
+        /// </summary>
+        private static string? FindWebView2RuntimePath()
+        {
+            string[] searchPaths =
+            {
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft", "EdgeWebView", "Application"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft", "EdgeWebView", "Application"),
+            };
+
+            foreach (var basePath in searchPaths)
+            {
+                if (!Directory.Exists(basePath))
+                    continue;
+
+                // Szukaj podfolderów z numerem wersji (np. "145.0.3800.70") które zawierają msedgewebview2.exe
+                try
+                {
+                    var versionDir = Directory.GetDirectories(basePath)
+                        .Where(d => File.Exists(Path.Combine(d, "msedgewebview2.exe")))
+                        .OrderByDescending(d => d) // najnowsza wersja
+                        .FirstOrDefault();
+
+                    if (versionDir != null)
+                    {
+                        Debug.WriteLine($"[EpicAuthDialog] Znaleziono WebView2 Runtime: {versionDir}");
+                        return basePath; // WebView2 oczekuje ścieżki do folderu Application, nie do wersji
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[EpicAuthDialog] Błąd szukania WebView2 w {basePath}: {ex.Message}");
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Ścieżka do WebView2 Runtime znaleziona na dysku (gdy rejestr nie ma wpisów).
+        /// Null jeśli runtime wykryty przez rejestr (standardowa ścieżka).
+        /// </summary>
+        internal string? WebView2BrowserExecutableFolder => _webView2BrowserExecutableFolder;
+        private string? _webView2BrowserExecutableFolder;
+
+        /// <summary>
+        /// Czy dialog działa w trybie WebView2 (embedded przeglądarka).
+        /// Jeśli false, używany jest fallback z systemową przeglądarką + clipboard monitoring.
+        /// </summary>
+        public bool IsWebViewMode
+        {
+            get => _isWebViewMode;
+            set => this.RaiseAndSetIfChanged(ref _isWebViewMode, value);
+        }
+
+        /// <summary>
+        /// Czy dialog działa w trybie fallback (systemowa przeglądarka + clipboard).
+        /// Odwrotność IsWebViewMode, używane do bindingu widoczności w XAML.
+        /// </summary>
+        public bool IsFallbackMode => !_isWebViewMode;
+
+        /// <summary>
+        /// Status wyświetlany pod WebView2 (np. "Ładowanie...", "Zaloguj się...", "Przechwycono kod!")
+        /// </summary>
+        public string WebViewStatus
+        {
+            get => _webViewStatus;
+            set => this.RaiseAndSetIfChanged(ref _webViewStatus, value);
+        }
+
+        /// <summary>
+        /// Wywoływane z code-behind gdy WebView2 przechwyci kod autoryzacyjny z redirectu.
+        /// </summary>
+        /// <param name="authCode">Przechwycony authorization code z URL localhost/?code=XXX</param>
+        public void SetWebViewAuthCode(string authCode)
+        {
+            Debug.WriteLine($"[EpicAuthDialog] WebView2 przechwycił kod: {authCode.Substring(0, Math.Min(10, authCode.Length))}...");
+            WebViewStatus = "Przechwycono kod autoryzacji! Logowanie...";
+            Result = authCode;
+            _window.Close(true);
+        }
+
+        /// <summary>
+        /// Wywoływane z code-behind gdy WebView2 nie może się zainicjalizować - przełącza na fallback.
+        /// </summary>
+        public void FallbackToManualMode()
+        {
+            Debug.WriteLine("[EpicAuthDialog] Przełączanie na tryb fallback (manual)");
+            IsWebViewMode = false;
+            this.RaisePropertyChanged(nameof(IsFallbackMode));
             _ = AutoOpenBrowserAfterDelay();
         }
+
+        #region Fallback mode (systemowa przeglądarka + clipboard monitoring)
 
         private async Task AutoOpenBrowserAfterDelay()
         {
@@ -120,7 +258,6 @@ namespace SUSModder.ViewModels
                             var clipboard = topLevel?.Clipboard;
                             if (clipboard != null)
                             {
-                                // Użyj TryGetTextAsync zamiast przestarzałego GetTextAsync
                                 clipboardText = await clipboard.TryGetTextAsync();
                             }
                         }
@@ -254,6 +391,10 @@ namespace SUSModder.ViewModels
             return null;
         }
 
+        #endregion
+
+        #region Properties
+
         public string ClipboardMonitorStatus
         {
             get => _clipboardMonitorStatus;
@@ -277,9 +418,18 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> CancelCommand { get; }
 
         /// <summary>
-        /// Wynik dialogu - authorization input od użytkownika lub null jeśli anulowano
+        /// Wynik dialogu - authorization code lub null jeśli anulowano
         /// </summary>
         public string? Result { get; private set; }
+
+        /// <summary>
+        /// URL do otwarcia w przeglądarce (dla WebView2 lub fallback)
+        /// </summary>
+        public string BrowserUrl => _browserUrl;
+
+        #endregion
+
+        #region Commands
 
         private void OpenBrowser()
         {
@@ -323,5 +473,7 @@ namespace SUSModder.ViewModels
             Result = null;
             _window.Close(false);
         }
+
+        #endregion
     }
 }

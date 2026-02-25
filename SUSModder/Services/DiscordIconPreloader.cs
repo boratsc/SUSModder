@@ -70,6 +70,7 @@ namespace SUSModder.Services
             return _preloadedServers?.ToList();
         }
 
+        public static bool IsPreloading => _isPreloading;
         public static bool IsPreloadCompleted => _preloadCompleted;
     }
 }

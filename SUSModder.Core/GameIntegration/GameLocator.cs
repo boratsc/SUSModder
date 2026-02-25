@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
@@ -25,47 +26,26 @@ namespace SUSModder.Core.GameIntegration
             @"D:\Gry\Steam"
         };
 
-        private static readonly string[] CommonEpicPaths =
-        {
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Epic Games"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Epic Games"),
-            @"D:\Epic Games",
-            @"D:\Gry\Epic Games",
-            @"D:\Gry\Epic"
-        };
-
         /// <summary>
-        /// Wyszukuje ścieżkę do Among Us. Platforma (Steam/Epic) jest określana przez użytkownika w dialogu przy pierwszym uruchomieniu.
+        /// Wyszukuje ścieżkę do Among Us wyłącznie w bibliotekach Steam.
+        /// Dla Epic Games ścieżka nie jest wymagana - gra zarządzana jest przez legendary.exe.
         /// </summary>
-        public static string? TryFindAmongUsPath()
+        public static string? TryFindSteamPath()
         {
-            Console.WriteLine("Rozpoczęto wyszukiwanie Among Us.");
+            Console.WriteLine("Wyszukiwanie Among Us w bibliotekach Steam.");
 
-            // Sprawdź najpierw w ścieżkach Steam
             foreach (var basePath in GetSteamLibraryPaths())
             {
                 var path = NormalizePath(Path.Combine(basePath, "steamapps", "common", "Among Us"));
-                Console.WriteLine($"Sprawdzam ścieżkę: {path}");
+                Console.WriteLine($"Sprawdzam ścieżkę Steam: {path}");
                 if (Directory.Exists(path) && File.Exists(Path.Combine(path, "Among Us.exe")))
                 {
-                    Console.WriteLine($"Znaleziono grę: {path}");
+                    Console.WriteLine($"Znaleziono grę Steam: {path}");
                     return path;
                 }
             }
 
-            // Sprawdź w ścieżkach Epic (manifesty + fallback)
-            foreach (var basePath in GetEpicInstallPaths())
-            {
-                var path = NormalizePath(basePath);
-                Console.WriteLine($"Sprawdzam ścieżkę: {path}");
-                if (Directory.Exists(path) && File.Exists(Path.Combine(path, "Among Us.exe")))
-                {
-                    Console.WriteLine($"Znaleziono grę: {path}");
-                    return path;
-                }
-            }
-
-            Console.WriteLine("Nie znaleziono gry Among Us.");
+            Console.WriteLine("Nie znaleziono Among Us w bibliotekach Steam.");
             return null;
         }
 
@@ -126,100 +106,6 @@ namespace SUSModder.Core.GameIntegration
             }
         }
 
-        private static IEnumerable<string> GetEpicInstallPaths()
-        {
-            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var basePath in CommonEpicPaths)
-            {
-                if (string.IsNullOrWhiteSpace(basePath))
-                    continue;
-
-                var candidate = NormalizePath(Path.Combine(basePath, "AmongUs"));
-                if (Directory.Exists(candidate))
-                {
-                    result.Add(candidate);
-                }
-            }
-
-            var manifestsPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "Epic",
-                "EpicGamesLauncher",
-                "Data",
-                "Manifests"
-            );
-
-            if (!Directory.Exists(manifestsPath))
-                return result;
-
-            try
-            {
-                foreach (var itemFile in Directory.EnumerateFiles(manifestsPath, "*.item", SearchOption.TopDirectoryOnly))
-                {
-                    try
-                    {
-                        var json = File.ReadAllText(itemFile);
-                        using var doc = JsonDocument.Parse(json);
-                        var root = doc.RootElement;
-
-                        var installLocation = GetJsonString(root, "InstallLocation");
-                        if (string.IsNullOrWhiteSpace(installLocation))
-                            continue;
-
-                        var isAmongUs = IsAmongUsEpicManifest(root);
-                        if (!isAmongUs)
-                            continue;
-
-                        var normalized = NormalizePath(installLocation);
-                        if (Directory.Exists(normalized))
-                        {
-                            result.Add(normalized);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Błąd parsowania manifestu Epic ({Path.GetFileName(itemFile)}): {ex.Message}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Nie udało się odczytać manifestów Epic: {ex.Message}");
-            }
-
-            return result;
-        }
-
-        private static bool IsAmongUsEpicManifest(JsonElement root)
-        {
-            var displayName = GetJsonString(root, "DisplayName");
-            if (!string.IsNullOrWhiteSpace(displayName) &&
-                displayName.Contains("Among Us", StringComparison.OrdinalIgnoreCase))
-                return true;
-
-            var appName = GetJsonString(root, "AppName");
-            if (!string.IsNullOrWhiteSpace(appName) &&
-                (appName.Equals("AmongUs", StringComparison.OrdinalIgnoreCase) ||
-                 appName.Equals("Among Us", StringComparison.OrdinalIgnoreCase)))
-                return true;
-
-            var launchExe = GetJsonString(root, "LaunchExecutable");
-            if (!string.IsNullOrWhiteSpace(launchExe) &&
-                launchExe.EndsWith("Among Us.exe", StringComparison.OrdinalIgnoreCase))
-                return true;
-
-            return false;
-        }
-
-        private static string? GetJsonString(JsonElement root, string propertyName)
-        {
-            if (root.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.String)
-                return prop.GetString();
-
-            return null;
-        }
-
         private static string NormalizePath(string path)
         {
             try
@@ -236,7 +122,15 @@ namespace SUSModder.Core.GameIntegration
 
         /// <summary>
         /// Sprawdza i konfiguruje Vanilla mod (podstawowa gra Among Us).
-        /// Platforma (Steam/Epic) jest pobierana z UserSettings - użytkownik wybiera ją przy pierwszym uruchomieniu.
+        /// 
+        /// Dla Steam: automatycznie szuka ścieżki w bibliotekach Steam przez libraryfolders.vdf.
+        ///            Jeśli nie znajdzie - prosi użytkownika o wskazanie Among Us.exe.
+        /// 
+        /// Dla Epic: NIE szuka ścieżki - gra jest zarządzana przez legendary.exe.
+        ///           Sprawdza przez "legendary list-games" czy użytkownik posiada Among Us na koncie.
+        ///           InstallPath ustawiony na katalog modów vanilla (analogicznie do innych modów Epic).
+        ///           Jeśli legendary niedostępny lub użytkownik nie jest zalogowany - setup jest odkładany
+        ///           (auth nastąpi przy pierwszym "Uruchom", tak jak dla każdego moda Epic).
         /// </summary>
         public static async Task<ModConfiguration?> CheckAndSetupVanillaModAsync(
             System.Collections.Generic.List<ModConfiguration> modConfigs,
@@ -256,14 +150,35 @@ namespace SUSModder.Core.GameIntegration
             // Pobierz platformę z UserSettings (wybraną przez użytkownika przy pierwszym uruchomieniu)
             var userSettingsService = new UserSettingsService();
             var userMode = userSettingsService.LoadUserSettings().Mode;
-            
+
             if (string.IsNullOrEmpty(userMode))
             {
                 Console.WriteLine("Platforma nie została wybrana przez użytkownika.");
                 return null;
             }
 
-            string? foundPath = TryFindAmongUsPath();
+            if (string.Equals(userMode, "epic", StringComparison.OrdinalIgnoreCase))
+            {
+                return await SetupEpicVanillaAsync(modConfigs, configuration, userSettingsService, userMode);
+            }
+            else
+            {
+                return await SetupSteamVanillaAsync(modConfigs, configuration, userSettingsService, userMode, userInteraction);
+            }
+        }
+
+        /// <summary>
+        /// Konfiguruje Vanilla mod dla Steam: szuka ścieżki przez libraryfolders.vdf,
+        /// fallback do dialogu wyboru pliku.
+        /// </summary>
+        private static async Task<ModConfiguration?> SetupSteamVanillaAsync(
+            System.Collections.Generic.List<ModConfiguration> modConfigs,
+            IConfiguration configuration,
+            UserSettingsService userSettingsService,
+            string userMode,
+            IUserInteraction? userInteraction)
+        {
+            string? foundPath = TryFindSteamPath();
 
             if (foundPath == null)
             {
@@ -297,60 +212,212 @@ namespace SUSModder.Core.GameIntegration
                 }
                 else
                 {
-                    Console.WriteLine("Nie znaleziono gry i brak interfejsu użytkownika do wyboru ścieżki.");
+                    Console.WriteLine("Nie znaleziono gry Steam i brak interfejsu użytkownika do wyboru ścieżki.");
                     return null;
                 }
             }
 
-            if (foundPath != null)
+            if (foundPath == null)
+                return null;
+
+            return SaveVanillaMod(modConfigs, configuration, userSettingsService, userMode, foundPath);
+        }
+
+        /// <summary>
+        /// Konfiguruje Vanilla mod dla Epic Games.
+        /// Nie szuka ścieżki instalacji - gra zarządzana jest przez legendary.exe.
+        /// Sprawdza czy użytkownik posiada Among Us na koncie Epic przez "legendary list-games".
+        /// InstallPath jest budowany analogicznie do innych modów Epic.
+        /// </summary>
+        private static async Task<ModConfiguration?> SetupEpicVanillaAsync(
+            System.Collections.Generic.List<ModConfiguration> modConfigs,
+            IConfiguration configuration,
+            UserSettingsService userSettingsService,
+            string userMode)
+        {
+            Console.WriteLine("[Epic Vanilla] Sprawdzanie posiadania Among Us na koncie Epic Games...");
+
+            // Sprawdź czy legendary.exe jest dostępny
+            string legendaryPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "legendary.exe");
+            if (!File.Exists(legendaryPath))
             {
-                var vanillaMod = new ModConfiguration
-                {
-                    ModName = "AmongUs",
-                    PngFileName = "Vanilla.png",
-                    InstallPath = foundPath,
-                    GitHubRepoOrLink = string.Empty,
-                    EpicGitHubRepoOrLink = string.Empty,
-                    ModType = "Vanilla",
-                    DllInstallPath = null,
-                    ModVersion = "",
-                    LastUpdated = DateTime.Now,
-                    AmongVersion = GetGameVersion(foundPath),
-                    Description = $"Platform: {userMode}"
-                };
-
-                // Dodaj do listy i zapisz
-                modConfigs.Add(vanillaMod);
-                ConfigManager.SaveConfig(modConfigs);
-
-                // Zapisz ścieżkę Vanilla do user-settings (fallback po update)
-                userSettingsService.UpdateUserSetting(settings => settings.VanillaInstallPath = foundPath);
-
-                // Synchronizuj Mode z UserSettings do appsettings.json (dla kompatybilności)
-                configuration["Configuration:Mode"] = userMode;
-                ConfigManager.SaveConfigurationSetting("Mode", userMode);
-
-                Console.WriteLine($"Among Us ({userMode}) został dodany do listy modów.");
-
-                return vanillaMod;
+                // legendary nie jest jeszcze pobrany - setup vanilla zostanie wykonany po pobraniu legendary
+                // (auth flow w App.axaml.cs pobierze legendary przed tym krokiem, ale bądźmy defensywni)
+                Console.WriteLine("[Epic Vanilla] legendary.exe nie istnieje - odkładam setup vanilla na później.");
+                return null;
             }
 
-            return null;
+            // Użyj EpicVersionManager do sprawdzenia posiadania gry
+            // Tworzymy minimalny output handler tylko do logowania
+            var diagnosticsOutput = new ConsoleDiagnosticsOutput();
+            // EpicVersionManager wymaga IEpicUserInteraction - przekazujemy null-safe adapter
+            var nullInteraction = new NullEpicUserInteraction();
+            var epicManager = new EpicVersionManager(diagnosticsOutput, nullInteraction);
+
+            bool isOwned = await epicManager.CheckIsGameOwnedAsync();
+
+            if (!isOwned)
+            {
+                // Użytkownik nie jest zalogowany lub nie posiada gry.
+                // Auth nastąpi przy pierwszym "Uruchom" - nie blokuj setup.
+                Console.WriteLine("[Epic Vanilla] Among Us nie znaleziony na koncie Epic lub użytkownik niezalogowany. Vanilla mod zostanie skonfigurowany po zalogowaniu.");
+                return null;
+            }
+
+            // Zbuduj ścieżkę InstallPath analogicznie do innych modów Epic:
+            // {ModsInstallPath}\Among Us - Vanilla\AmongUs
+            string installPath = Path.Combine(PathSettings.ModsInstallPath, "Among Us - Vanilla", "AmongUs");
+            Console.WriteLine($"[Epic Vanilla] Among Us znaleziony na koncie Epic. InstallPath: {installPath}");
+
+            return SaveVanillaMod(modConfigs, configuration, userSettingsService, userMode, installPath);
+        }
+
+        /// <summary>
+        /// Tworzy i zapisuje konfigurację Vanilla modu do config.json.
+        /// </summary>
+        private static ModConfiguration SaveVanillaMod(
+            System.Collections.Generic.List<ModConfiguration> modConfigs,
+            IConfiguration configuration,
+            UserSettingsService userSettingsService,
+            string userMode,
+            string installPath)
+        {
+            var vanillaMod = new ModConfiguration
+            {
+                ModName = "AmongUs",
+                PngFileName = "Vanilla.png",
+                InstallPath = installPath,
+                GitHubRepoOrLink = string.Empty,
+                EpicGitHubRepoOrLink = string.Empty,
+                ModType = "Vanilla",
+                DllInstallPath = null,
+                ModVersion = "Vanilla",
+                LastUpdated = DateTime.Now,
+                AmongVersion = GetGameVersion(installPath),
+                Description = $"Platform: {userMode}"
+            };
+
+            // Dodaj do listy i zapisz
+            modConfigs.Add(vanillaMod);
+            ConfigManager.SaveConfig(modConfigs);
+
+            // Zapisz ścieżkę Vanilla do user-settings (fallback po update)
+            userSettingsService.UpdateUserSetting(settings => settings.VanillaInstallPath = installPath);
+
+            // Synchronizuj Mode z UserSettings do appsettings.json (dla kompatybilności)
+            configuration["Configuration:Mode"] = userMode;
+            ConfigManager.SaveConfigurationSetting("Mode", userMode);
+
+            Console.WriteLine($"Among Us Vanilla ({userMode}) został dodany do listy modów. InstallPath: {installPath}");
+
+            return vanillaMod;
         }
 
         private static string GetGameVersion(string path)
         {
             try
             {
+                // 1) Preferuj wersję runtime wyciągniętą z globalgamemanagers
+                // (dokładniejsza dla Among Us niż FileVersion z EXE).
+                var dataVersion = TryGetVersionFromGlobalGameManagers(path);
+                if (!string.IsNullOrWhiteSpace(dataVersion))
+                    return dataVersion;
+
+                // 2) Fallback: wersja pliku EXE
                 var exePath = Path.Combine(path, "Among Us.exe");
-                var versionInfo = FileVersionInfo.GetVersionInfo(exePath);
-                return versionInfo.FileVersion ?? "Nieznana";
+                if (File.Exists(exePath))
+                {
+                    var versionInfo = FileVersionInfo.GetVersionInfo(exePath);
+                    if (!string.IsNullOrWhiteSpace(versionInfo.FileVersion))
+                        return versionInfo.FileVersion;
+                }
+
+                return "Nieznana";
             }
             catch
             {
                 Console.WriteLine($"Nie udało się odczytać wersji gry.");
                 return "Nieznana";
             }
+        }
+
+        private static string? TryGetVersionFromGlobalGameManagers(string path)
+        {
+            try
+            {
+                var managersPath = Path.Combine(path, "Among Us_Data", "globalgamemanagers");
+                if (!File.Exists(managersPath))
+                    return null;
+
+                var bytes = File.ReadAllBytes(managersPath);
+                var asciiChunk = new StringBuilder();
+                var regex = new Regex(@"\b(\d{4}\.\d{1,2}\.\d{1,2}f?)\b", RegexOptions.Compiled);
+
+                foreach (var b in bytes)
+                {
+                    if (b >= 32 && b <= 126)
+                    {
+                        asciiChunk.Append((char)b);
+                        continue;
+                    }
+
+                    var version = ExtractVersionFromChunk(asciiChunk.ToString(), regex);
+                    if (!string.IsNullOrWhiteSpace(version))
+                        return NormalizeUnityStyleVersion(version);
+
+                    asciiChunk.Clear();
+                }
+
+                var trailing = ExtractVersionFromChunk(asciiChunk.ToString(), regex);
+                return string.IsNullOrWhiteSpace(trailing) ? null : NormalizeUnityStyleVersion(trailing);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string? ExtractVersionFromChunk(string chunk, Regex regex)
+        {
+            if (string.IsNullOrWhiteSpace(chunk) || chunk.Length < 4)
+                return null;
+
+            foreach (Match match in regex.Matches(chunk))
+            {
+                var version = match.Groups[1].Value;
+                if (version.EndsWith("f", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                return version;
+            }
+
+            return null;
+        }
+
+        private static string NormalizeUnityStyleVersion(string version)
+        {
+            return version == "2025.4.20" ? "2025.5.20" : version;
+        }
+
+        /// <summary>
+        /// Minimalny adapter IDiagnosticsOutput przekazujący logi do Console.
+        /// Używany wewnętrznie przez GameLocator przy wywołaniu EpicVersionManager.
+        /// </summary>
+        private class ConsoleDiagnosticsOutput : IDiagnosticsOutput
+        {
+            public void Write(string message) => Console.WriteLine(message);
+        }
+
+        /// <summary>
+        /// Null-safe adapter IEpicUserInteraction używany przy sprawdzaniu posiadania gry
+        /// (nie wymaga interakcji z użytkownikiem).
+        /// </summary>
+        private class NullEpicUserInteraction : IEpicUserInteraction
+        {
+            public bool Confirm(string message) => false;
+            public void ShowError(string message) => Console.WriteLine($"[EpicError] {message}");
+            public string? Prompt(string message, string title = "") => null;
+            public Task<string?> ShowEpicAuthDialogAsync(string browserUrl) => Task.FromResult<string?>(null);
         }
     }
 }

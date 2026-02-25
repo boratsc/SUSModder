@@ -75,6 +75,18 @@ namespace SUSModder.ViewModels
                 {
                     success = await InstallSteamModAsync(currentSelectedMod, modConfig, allConfigs);
                 }
+
+                if (success)
+                {
+                    await PersistInstalledVersionStateAsync(
+                        currentSelectedMod.Id,
+                        modConfig.ModVersion,
+                        disableAutoUpdatePrompt: false,
+                        pinnedInstallVersion: null);
+
+                    await RefreshModsListAsync(checkUpdates: false);
+                    SelectedMod = Mods.FirstOrDefault(m => m.Id == currentSelectedMod.Id);
+                }
             }
             catch (Exception ex)
             {
@@ -138,17 +150,7 @@ namespace SUSModder.ViewModels
                 // Utwórz ViewModel dialogu
                 var versionSelectionVM = new VersionSelectionViewModel(modConfig, configuration, _localizationService);
 
-                // Pokaż dialog
-                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-                if (mainWindow == null)
-                    return;
-
-                var dialog = new VersionSelectionDialog
-                {
-                    DataContext = versionSelectionVM
-                };
-
-                var selectedVersion = await dialog.ShowDialog<ModVersionHistory?>(mainWindow);
+                var selectedVersion = await ShowVersionSelectionModalAsync(versionSelectionVM);
 
                 if (selectedVersion == null)
                 {
@@ -220,6 +222,23 @@ namespace SUSModder.ViewModels
                 else
                 {
                     success = await InstallSteamModAsync(modItem, tempModConfig, allConfigs);
+                }
+
+                if (success)
+                {
+                    bool installedOlderThanLatest = !string.Equals(
+                        selectedVersion.ModVersion,
+                        modConfig.ModVersion,
+                        StringComparison.OrdinalIgnoreCase);
+
+                    await PersistInstalledVersionStateAsync(
+                        modItem.Id,
+                        selectedVersion.ModVersion,
+                        disableAutoUpdatePrompt: installedOlderThanLatest,
+                        pinnedInstallVersion: installedOlderThanLatest ? selectedVersion.ModVersion : null);
+
+                    await RefreshModsListAsync(checkUpdates: false);
+                    SelectedMod = Mods.FirstOrDefault(m => m.Id == modItem.Id);
                 }
             }
             catch (Exception ex)
@@ -344,10 +363,12 @@ namespace SUSModder.ViewModels
                     "steam"
                 );
 
+                var installedConfig = allConfigs.FirstOrDefault(c => c.Id == modConfig.Id);
+
                 // Aktualizuj ścieżkę instalacji w UI
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    currentSelectedMod.InstallPath = modConfig.InstallPath;
+                    currentSelectedMod.InstallPath = installedConfig?.InstallPath ?? modConfig.InstallPath;
                 });
 
                 RefreshModsSortingKeepSelection(currentSelectedMod);
@@ -360,6 +381,51 @@ namespace SUSModder.ViewModels
                 System.Diagnostics.Debug.WriteLine($"[Install Steam] Exception: {ex.Message}");
                 return false;
             }
+        }
+
+        private async Task<ModVersionHistory?> ShowVersionSelectionModalAsync(VersionSelectionViewModel versionSelectionVM)
+        {
+            var completion = new TaskCompletionSource<ModVersionHistory?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            EventHandler<ModVersionHistory?>? onVersionSelected = null;
+            EventHandler? onCancelled = null;
+
+            onVersionSelected = (_, version) => completion.TrySetResult(version);
+            onCancelled = (_, _) => completion.TrySetResult(null);
+
+            versionSelectionVM.VersionSelected += onVersionSelected;
+            versionSelectionVM.Cancelled += onCancelled;
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                IsInfoPanelVisible = false;
+                IsAdditionalActionsVisible = false;
+                IsDllModificationsVisible = false;
+                IsSUStatsConfigVisible = false;
+                IsAppSettingsVisible = false;
+                IsRecommendedDiscordsVisible = false;
+                IsRepairOptionsVisible = false;
+                IsDllInstallDialogVisible = false;
+                IsDllSelectionModalVisible = false;
+
+                VersionSelectionModalViewModel = versionSelectionVM;
+                IsVersionSelectionModalVisible = true;
+            });
+
+            var selectedVersion = await completion.Task;
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                IsVersionSelectionModalVisible = false;
+                VersionSelectionModalViewModel = null;
+                this.RaisePropertyChanged(nameof(IsModPanelVisible));
+            });
+
+            versionSelectionVM.VersionSelected -= onVersionSelected;
+            versionSelectionVM.Cancelled -= onCancelled;
+            versionSelectionVM.Dispose();
+
+            return selectedVersion;
         }
 
         private void ShowDllSelectionFromSelectedMod()
@@ -431,6 +497,46 @@ namespace SUSModder.ViewModels
 
             this.RaisePropertyChanged(nameof(IsModPanelVisible));
             System.Diagnostics.Debug.WriteLine($"DEBUG {platform} Path: {targetModConfig.InstallPath}");
+        }
+
+        private async Task PersistInstalledVersionStateAsync(
+            int modId,
+            string? installedVersion,
+            bool disableAutoUpdatePrompt,
+            string? pinnedInstallVersion)
+        {
+            try
+            {
+                var configService = new ConfigService();
+                var configs = configService.LoadConfig();
+                var targetConfig = configs.FirstOrDefault(c => c.Id == modId);
+
+                if (targetConfig == null || string.IsNullOrWhiteSpace(targetConfig.InstallPath))
+                {
+                    return;
+                }
+
+                var installMap = await InstallationMapManager.LoadInstallationMapAsync(targetConfig.InstallPath);
+                if (installMap?.FullMod == null)
+                {
+                    return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(installedVersion))
+                {
+                    installMap.FullMod.ModVersion = installedVersion;
+                }
+
+                installMap.FullMod.DisableAutoUpdatePrompt = disableAutoUpdatePrompt;
+                installMap.FullMod.PinnedInstallVersion = disableAutoUpdatePrompt ? pinnedInstallVersion : null;
+                installMap.FullMod.LastUpdated = DateTime.Now;
+
+                await InstallationMapManager.SaveInstallationMapAsync(targetConfig.InstallPath, installMap);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Install] Nie udało się zapisać stanu wersji moda: {ex.Message}");
+            }
         }
 
         private void OnDllSelectionCloseRequested(object? sender, EventArgs e)
@@ -781,6 +887,24 @@ namespace SUSModder.ViewModels
 
                 if (modConfig != null)
                 {
+                    try
+                    {
+                        var remoteConfigs = await configService.LoadConfigFromApiAsync();
+                        var remoteModConfig = remoteConfigs?.FirstOrDefault(c => c.Id == modConfig.Id);
+                        if (remoteModConfig != null)
+                        {
+                            modConfig.ModVersion = remoteModConfig.ModVersion;
+                            modConfig.AmongVersion = remoteModConfig.AmongVersion;
+                            modConfig.Description = remoteModConfig.Description;
+                            modConfig.GitHubRepoOrLink = remoteModConfig.GitHubRepoOrLink;
+                            modConfig.EpicGitHubRepoOrLink = remoteModConfig.EpicGitHubRepoOrLink;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Uninstall] Nie udało się odświeżyć meta moda z API: {ex.Message}");
+                    }
+
                     modConfig.InstallPath = string.Empty;
                     ConfigManager.SaveConfig(configs);
                 }

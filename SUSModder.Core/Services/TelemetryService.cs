@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Utilities;
 using System.IO;
+using System.Threading;
 
 namespace SUSModder.Core.Services
 {
@@ -26,6 +27,10 @@ namespace SUSModder.Core.Services
         private readonly string _userHash;
         private readonly string _appVersion;
         private bool _isEnabled;
+        private readonly object _heartbeatLock = new();
+        private DateTimeOffset _lastHeartbeatAttemptUtc = DateTimeOffset.MinValue;
+        private DateTimeOffset _nextAllowedHeartbeatUtc = DateTimeOffset.MinValue;
+        private static readonly TimeSpan MinHeartbeatInterval = TimeSpan.FromSeconds(30);
 
         public TelemetryService(IConfiguration configuration)
         {
@@ -51,13 +56,32 @@ namespace SUSModder.Core.Services
         /// <summary>
         /// Wysyła heartbeat do API (fire-and-forget)
         /// </summary>
-        public async Task SendHeartbeatAsync()
+        public async Task SendHeartbeatAsync(bool force = false)
         {
             // Jeśli telemetria wyłączona - nic nie rób
             if (!_isEnabled)
             {
                 System.Diagnostics.Debug.WriteLine("Telemetry disabled - skipping heartbeat");
                 return;
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            lock (_heartbeatLock)
+            {
+                if (!force)
+                {
+                    if (now < _nextAllowedHeartbeatUtc)
+                    {
+                        return;
+                    }
+
+                    if (now - _lastHeartbeatAttemptUtc < MinHeartbeatInterval)
+                    {
+                        return;
+                    }
+                }
+
+                _lastHeartbeatAttemptUtc = now;
             }
 
             try
@@ -117,7 +141,19 @@ namespace SUSModder.Core.Services
 
                             if (!resp.IsSuccessStatusCode)
                             {
-                                System.Diagnostics.Debug.WriteLine($"Telemetry heartbeat HTTP {(int)resp.StatusCode} {resp.ReasonPhrase}");
+                                if ((int)resp.StatusCode == 429)
+                                {
+                                    var retryAfter = resp.Headers.RetryAfter?.Delta ?? TimeSpan.FromMinutes(1);
+                                    lock (_heartbeatLock)
+                                    {
+                                        _nextAllowedHeartbeatUtc = DateTimeOffset.UtcNow.Add(retryAfter);
+                                    }
+                                    System.Diagnostics.Debug.WriteLine($"Telemetry heartbeat rate-limited (429). Next attempt after {retryAfter.TotalSeconds:0}s");
+                                }
+                                else
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"Telemetry heartbeat HTTP {(int)resp.StatusCode} {resp.ReasonPhrase}");
+                                }
                             }
                             else
                             {
@@ -147,7 +183,7 @@ namespace SUSModder.Core.Services
         public async Task SendShutdownHeartbeatAsync()
         {
             _sessionTracker.Stop();
-            await SendHeartbeatAsync();
+            await SendHeartbeatAsync(force: false);
         }
 
         /// <summary>
