@@ -122,6 +122,37 @@ function Clean-Directory {
     New-Item -ItemType Directory -Path $Path -Force | Out-Null
 }
 
+function Export-PortableUpdateExe {
+    param(
+        [string]$ReleasesDir
+    )
+
+    $portableZip = Get-ChildItem $ReleasesDir -Filter "*Portable.zip" | Select-Object -First 1
+    if (-not $portableZip) {
+        Write-Host "  WARNING: Portable.zip not found, skipping Update.exe export" -ForegroundColor Yellow
+        return
+    }
+
+    $tempDir = Join-Path $ReleasesDir "portable-update-temp"
+    if (Test-Path $tempDir) {
+        Remove-Item $tempDir -Recurse -Force
+    }
+
+    Expand-Archive -Path $portableZip.FullName -DestinationPath $tempDir -Force
+
+    $updateExeSource = Join-Path $tempDir "Update.exe"
+    $updateExeDest = Join-Path $ReleasesDir "Update.exe"
+
+    if (Test-Path $updateExeSource) {
+        Copy-Item $updateExeSource $updateExeDest -Force
+        Write-Host "  INFO: Exported Update.exe from Portable.zip" -ForegroundColor Gray
+    } else {
+        Write-Host "  WARNING: Update.exe not found inside Portable.zip" -ForegroundColor Yellow
+    }
+
+    Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 # ============================================================================
 # PHASE 1: BUILD LEGACY ZIP (dla użytkowników z v2.0.1)
 # ============================================================================
@@ -382,6 +413,9 @@ if (Test-Path $setupExe) {
 }
 Write-Host ""
 
+Export-PortableUpdateExe -ReleasesDir $releaseOutputDir
+Write-Host ""
+
 # 2.5 Verification
 Write-Host "[5/5] Verification..." -ForegroundColor Green
 $nupkgFile = Get-ChildItem $releaseOutputDir -Filter "*.nupkg" | Select-Object -First 1
@@ -492,6 +526,9 @@ if (Test-Path $setupExe) {
 } else {
     Write-Host "  WARNING: Setup.exe not found, skipping" -ForegroundColor Yellow
 }
+Write-Host ""
+
+Export-PortableUpdateExe -ReleasesDir $betaOutputDir
 Write-Host ""
 
 # 3.5 Verification

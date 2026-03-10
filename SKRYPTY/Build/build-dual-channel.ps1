@@ -13,6 +13,37 @@ $ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $ProjectFile = Join-Path $ProjectRoot "SUSModder\SUSModder.csproj"
 $PublishDirBase = Join-Path $ProjectRoot "publish-dual-channel"
 
+function Export-PortableUpdateExe {
+    param(
+        [string]$ReleasesDir
+    )
+
+    $portableZip = Get-ChildItem $ReleasesDir -Filter "*Portable.zip" | Select-Object -First 1
+    if (-not $portableZip) {
+        Write-Host "  WARNING: Portable.zip not found, skipping Update.exe export" -ForegroundColor Yellow
+        return
+    }
+
+    $tempDir = Join-Path $ReleasesDir "portable-update-temp"
+    if (Test-Path $tempDir) {
+        Remove-Item $tempDir -Recurse -Force
+    }
+
+    Expand-Archive -Path $portableZip.FullName -DestinationPath $tempDir -Force
+
+    $updateExeSource = Join-Path $tempDir "Update.exe"
+    $updateExeDest = Join-Path $ReleasesDir "Update.exe"
+
+    if (Test-Path $updateExeSource) {
+        Copy-Item $updateExeSource $updateExeDest -Force
+        Write-Host "  INFO: Exported Update.exe from Portable.zip" -ForegroundColor Gray
+    } else {
+        Write-Host "  WARNING: Update.exe not found inside Portable.zip" -ForegroundColor Yellow
+    }
+
+    Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Velopack Dual-Channel Builder" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
@@ -124,6 +155,8 @@ function Build-Channel {
         Copy-Item $releasesFileWithSuffix $releasesFile -Force
         Write-Host "  INFO: Created RELEASES from RELEASES-$ChannelCode" -ForegroundColor Gray
     }
+
+    Export-PortableUpdateExe -ReleasesDir $ReleasesDir
 
 
     # 5. Verification
