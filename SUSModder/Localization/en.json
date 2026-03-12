@@ -319,6 +319,14 @@
       "PleaseWait": "Please wait...",
       "WindowTitle": "Mod update",
       "UpdateLabel": "Updating: {0}"
+    },
+    "AntivirusWarning": {
+      "Title": "Antivirus software detected",
+      "Products": "Detected software:",
+      "Intro": "Mods may not work correctly because installed antivirus software was detected: {0}.",
+      "SingleRecommendation": "We recommend uninstalling this program or adding an exception for the mods folder:\n{0}",
+      "MultipleRecommendation": "More than one antivirus product was detected. It is worth uninstalling unnecessary programs because they can additionally cause conflicts with mods.",
+      "Acknowledge": "I have read this information"
     }
   },
   "Settings": {

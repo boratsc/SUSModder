@@ -770,6 +770,82 @@
 				</Border>
 			</Border>
 
+			<!-- Modal ostrzeżenia antywirusowego -->
+			<Border Grid.Row="0"
+					Grid.RowSpan="2"
+					Classes="tool-modal-overlay"
+					IsVisible="{Binding IsAntivirusWarningVisible}">
+				<Border Classes="tool-modal-card"
+						Width="620"
+						MaxWidth="680"
+						MaxHeight="560"
+						MinHeight="300"
+						PointerPressed="OnAntivirusWarningCardPressed">
+					<Grid RowDefinitions="Auto,*,Auto" Margin="24,22,24,18">
+						<StackPanel Grid.Row="0" Spacing="10">
+							<TextBlock Text="{Binding AntivirusWarningTitle}"
+									   FontSize="20"
+									   FontWeight="Bold"/>
+							<TextBlock Text="{Binding AntivirusWarningIntro}"
+									   TextWrapping="Wrap"
+									   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						</StackPanel>
+
+						<ScrollViewer Grid.Row="1"
+								  Margin="0,18,0,18"
+								  VerticalScrollBarVisibility="Auto">
+							<StackPanel Spacing="14">
+								<StackPanel Spacing="8">
+									<TextBlock Text="{Binding AntivirusWarningProductsHeader}"
+										   FontSize="14"
+										   FontWeight="SemiBold"/>
+									<ItemsControl ItemsSource="{Binding AntivirusWarningProducts}">
+										<ItemsControl.ItemTemplate>
+											<DataTemplate>
+												<StackPanel Orientation="Horizontal" Spacing="10" Margin="0,2,0,2">
+													<TextBlock Text="•"
+															   FontSize="18"
+															   Foreground="{DynamicResource AccentBrush}"/>
+													<TextBlock Text="{Binding .}"
+															   TextWrapping="Wrap"
+															   Foreground="{DynamicResource TextPrimaryBrush}"/>
+												</StackPanel>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+								</StackPanel>
+
+								<Border BorderBrush="{DynamicResource BorderBrush}"
+										BorderThickness="1"
+										CornerRadius="10"
+										Padding="14"
+										Background="{DynamicResource SecondaryBackgroundBrush}">
+									<TextBlock Text="{Binding AntivirusWarningRecommendation}"
+										   TextWrapping="Wrap"
+										   Foreground="{DynamicResource TextPrimaryBrush}"/>
+								</Border>
+							</StackPanel>
+						</ScrollViewer>
+
+						<Grid Grid.Row="2" RowDefinitions="Auto,Auto" RowSpacing="14">
+							<CheckBox Content="{Binding AntivirusWarningCheckboxText}"
+									  IsChecked="{Binding IsAntivirusWarningAcknowledged, Mode=TwoWay}"
+									  Foreground="{DynamicResource TextPrimaryBrush}"/>
+							<Button Grid.Row="1"
+									Content="OK"
+									HorizontalAlignment="Right"
+									MinWidth="110"
+									Padding="10,8"
+									Background="{DynamicResource AccentBrush}"
+									Foreground="White"
+									CornerRadius="6"
+									IsEnabled="{Binding CanConfirmAntivirusWarning}"
+									Click="OnAntivirusWarningConfirmClick"/>
+						</Grid>
+					</Grid>
+				</Border>
+			</Border>
+
 			<!-- FAB Menu Overlay (backdrop) -->
 			<Border Grid.Row="0" Grid.RowSpan="2"
 					Classes="fab-overlay"

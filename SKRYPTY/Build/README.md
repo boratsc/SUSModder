@@ -2,10 +2,62 @@
 
 ## 📋 Skrypty Budowania
 
+## ✅ Czego używać teraz
+
+**Aktualna rekomendacja dla tego repo:**
+
+- `build-with-signing.ps1` - podstawowy skrypt do realnych buildów release/beta z podpisywaniem
+- `build-release-2.2.0.ps1` - tylko jeśli naprawdę potrzebujesz starego legacy ZIP; w obecnym repo wymaga starego `Updater.csproj`, więc domyślnie go nie używaj
+- `sign-and-build.ps1` - stary helper interaktywny do `build-release-2.2.0.ps1`; traktuj jako legacy helper
+- `build-dual-channel.ps1` - szybki build developerski bez podpisywania
+
+**Najczęstsze scenariusze:**
+
+```powershell
+# Podpisana beta
+.\build-with-signing.ps1 -Version "X.Y.Z" -BetaVersion "X.Y.Z-beta" -CertThumbprint "YOUR_CERTIFICATE_THUMBPRINT_HERE" -SkipRelease
+
+# Podpisany release + beta (bez legacy ZIP)
+.\build-with-signing.ps1 -Version "X.Y.Z" -BetaVersion "A.B.C-beta" -CertThumbprint "YOUR_CERTIFICATE_THUMBPRINT_HERE"
+
+# Szybki build developerski bez podpisywania
+.\build-dual-channel.ps1 -Version X.Y.Z
+```
+
 ### Production Release (v2.2.0+)
 
-#### `sign-and-build.ps1` ⭐ REKOMENDOWANE
-Interaktywny helper do budowania z podpisywaniem.
+#### `build-with-signing.ps1` ⭐ REKOMENDOWANE
+Najbardziej praktyczny skrypt w obecnym repo. Buduje kanał release i/lub beta, podpisuje EXE przed i po pakowaniu oraz nie zależy od starego `Updater.csproj`.
+
+**Użycie:**
+```powershell
+# Release + beta
+.\build-with-signing.ps1 -Version "X.Y.Z" -BetaVersion "A.B.C-beta" -CertThumbprint "YOUR_CERTIFICATE_THUMBPRINT_HERE"
+
+# Tylko beta
+.\build-with-signing.ps1 -Version "X.Y.Z" -BetaVersion "X.Y.Z-beta" -CertThumbprint "YOUR_CERTIFICATE_THUMBPRINT_HERE" -SkipRelease
+
+# Tylko release
+.\build-with-signing.ps1 -Version "X.Y.Z" -CertThumbprint "YOUR_CERTIFICATE_THUMBPRINT_HERE" -SkipBeta
+```
+
+**Output:**
+- `releases-release/` - Velopack release channel
+- `releases-beta/` - Velopack beta channel
+
+**Parametry:**
+- `-Version` - wersja release bazowa
+- `-BetaVersion` - wersja beta; jeśli pusta, skrypt wygeneruje `${Version}-beta`
+- `-CertThumbprint` - SHA1 thumbprint certyfikatu z Windows Store
+- `-SkipBeta` - pomiń kanał beta
+- `-SkipRelease` - pomiń kanał release
+
+---
+
+#### `sign-and-build.ps1`
+Interaktywny helper do starego flow z `build-release-2.2.0.ps1`.
+
+**Status:** używaj tylko jeśli świadomie chcesz wejść w stary proces release z legacy ZIP.
 
 **Użycie:**
 ```powershell
@@ -29,8 +81,17 @@ Interaktywny helper do budowania z podpisywaniem.
 #### `build-release-2.2.0.ps1`
 Główny skrypt budowania - 3 formaty w jednym.
 
+**Status:** legacy release script. W obecnym repo krok legacy ZIP zależy od `Updater\Updater.csproj`. Jeśli ten projekt nie istnieje, uruchamiaj tylko z `-SkipLegacyZip` albo użyj `build-with-signing.ps1`.
+
 **Użycie:**
 ```powershell
+# Aktualnie bezpieczniejszy wariant w tym repo
+.\build-release-2.2.0.ps1 `
+    -ReleaseVersion "X.Y.Z" `
+    -NextBetaVersion "A.B.C-beta" `
+    -CertificateThumbprint "YOUR_CERTIFICATE_THUMBPRINT_HERE" `
+    -SkipLegacyZip
+
 # Z Certum (Windows Store)
 .\build-release-2.2.0.ps1 `
     -ReleaseVersion "2.2.0" `
@@ -204,7 +265,8 @@ signtool sign /sha1 "YOUR_CERTIFICATE_THUMBPRINT_HERE" `
 
 **Build:**
 ```powershell
-.\sign-and-build.ps1 -ReleaseVersion "2.2.0" -NextBetaVersion "2.3.0-beta"
+# Zalecane obecnie
+.\build-with-signing.ps1 -Version "X.Y.Z" -BetaVersion "A.B.C-beta" -CertThumbprint "YOUR_CERTIFICATE_THUMBPRINT_HERE"
 ```
 
 **Po build:**

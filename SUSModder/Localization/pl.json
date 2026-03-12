@@ -319,6 +319,14 @@
       "PleaseWait": "Proszę czekać...",
       "WindowTitle": "Aktualizacja moda",
       "UpdateLabel": "Aktualizacja: {0}"
+    },
+    "AntivirusWarning": {
+      "Title": "Wykryto oprogramowanie antywirusowe",
+      "Products": "Wykryte programy:",
+      "Intro": "Mody mogą nie działać prawidłowo, ponieważ wykryto zainstalowane oprogramowanie antywirusowe: {0}.",
+      "SingleRecommendation": "Zalecamy odinstalowanie tego programu lub dodanie wyjątku dla katalogu modów:\n{0}",
+      "MultipleRecommendation": "Wykryto więcej niż jedno oprogramowanie antywirusowe. Warto odinstalować zbędne programy, ponieważ mogą dodatkowo powodować konflikty z modami.",
+      "Acknowledge": "Zapoznałem się z informacją"
     }
   },
   "Settings": {

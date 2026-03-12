@@ -815,7 +815,8 @@ namespace SUSModder.ViewModels
                     LastLaunchId = 0,
                     LicenseAccepted = false,
                     FirstRunDate = string.Empty,
-                    VanillaInstallPath = string.Empty
+                    VanillaInstallPath = string.Empty,
+                    AntivirusWarningAcknowledgedSignature = string.Empty
                 };
                 _userSettingsService.SaveUserSettings(resetUserSettings);
 

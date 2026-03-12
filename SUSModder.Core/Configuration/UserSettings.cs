@@ -67,5 +67,12 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         [JsonPropertyName("vanillaInstallPath")]
         public string VanillaInstallPath { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Podpis zestawu antywirusów, dla którego użytkownik potwierdził ostrzeżenie.
+        /// Gdy wykryty zestaw się zmieni, ostrzeżenie powinno zostać pokazane ponownie.
+        /// </summary>
+        [JsonPropertyName("antivirusWarningAcknowledgedSignature")]
+        public string AntivirusWarningAcknowledgedSignature { get; set; } = string.Empty;
     }
 }

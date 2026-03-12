@@ -139,13 +139,11 @@ function Build-Channel {
         $portableExtract = "$releasesDir\portable-temp"
         Expand-Archive -Path $portableZip.FullName -DestinationPath $portableExtract -Force
         
-        # Podpisz wszystkie niepodpisane EXE
-        $unsignedFiles = Get-ChildItem $portableExtract -Filter "*.exe" -Recurse | Where-Object {
-            $sig = Get-AuthenticodeSignature $_.FullName
-            $sig.Status -ne "Valid"
-        }
+        # Podpisz wszystkie EXE jeszcze raz - signtool bezpiecznie nadpisuje podpis,
+        # a to omija problem z Get-AuthenticodeSignature w tym środowisku.
+        $portableExeFiles = Get-ChildItem $portableExtract -Filter "*.exe" -Recurse
         
-        foreach ($file in $unsignedFiles) {
+        foreach ($file in $portableExeFiles) {
             Write-Host "     Signing: $($file.Name)" -ForegroundColor Gray
             & $signtool sign /sha1 $CertThumbprint `
                 /tr $timestampServer /td sha256 /fd sha256 `
@@ -153,6 +151,9 @@ function Build-Channel {
             
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "     ✅ $($file.Name)" -ForegroundColor Green
+            } else {
+                Write-Host "     ❌ Failed to sign $($file.Name)" -ForegroundColor Red
+                exit 1
             }
         }
         

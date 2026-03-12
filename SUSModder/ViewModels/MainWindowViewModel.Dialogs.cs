@@ -1,4 +1,5 @@
 using System;
+using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -27,6 +28,7 @@ namespace SUSModder.ViewModels
 
         private readonly SemaphoreSlim _inlineDialogSemaphore = new(1, 1);
         private TaskCompletionSource<InlineDialogResult>? _inlineDialogCompletionSource;
+        private TaskCompletionSource<bool>? _antivirusWarningCompletionSource;
 
         private bool _isInlineDialogVisible;
         private bool _isInlineDialogConfirm;
@@ -36,12 +38,69 @@ namespace SUSModder.ViewModels
         private string _inlineDialogInputText = string.Empty;
         private string _inlineDialogPrimaryButtonText = "OK";
         private string _inlineDialogSecondaryButtonText = "Cancel";
+        private bool _isAntivirusWarningVisible;
+        private string _antivirusWarningTitle = string.Empty;
+        private string _antivirusWarningIntro = string.Empty;
+        private string _antivirusWarningRecommendation = string.Empty;
+        private string _antivirusWarningProductsHeader = string.Empty;
+        private string _antivirusWarningCheckboxText = string.Empty;
+        private bool _isAntivirusWarningAcknowledged;
+
+        public ObservableCollection<string> AntivirusWarningProducts { get; } = new();
 
         public bool IsInlineDialogVisible
         {
             get => _isInlineDialogVisible;
             set => this.RaiseAndSetIfChanged(ref _isInlineDialogVisible, value);
         }
+
+        public bool IsAntivirusWarningVisible
+        {
+            get => _isAntivirusWarningVisible;
+            private set => this.RaiseAndSetIfChanged(ref _isAntivirusWarningVisible, value);
+        }
+
+        public string AntivirusWarningTitle
+        {
+            get => _antivirusWarningTitle;
+            private set => this.RaiseAndSetIfChanged(ref _antivirusWarningTitle, value);
+        }
+
+        public string AntivirusWarningIntro
+        {
+            get => _antivirusWarningIntro;
+            private set => this.RaiseAndSetIfChanged(ref _antivirusWarningIntro, value);
+        }
+
+        public string AntivirusWarningRecommendation
+        {
+            get => _antivirusWarningRecommendation;
+            private set => this.RaiseAndSetIfChanged(ref _antivirusWarningRecommendation, value);
+        }
+
+        public string AntivirusWarningProductsHeader
+        {
+            get => _antivirusWarningProductsHeader;
+            private set => this.RaiseAndSetIfChanged(ref _antivirusWarningProductsHeader, value);
+        }
+
+        public string AntivirusWarningCheckboxText
+        {
+            get => _antivirusWarningCheckboxText;
+            private set => this.RaiseAndSetIfChanged(ref _antivirusWarningCheckboxText, value);
+        }
+
+        public bool IsAntivirusWarningAcknowledged
+        {
+            get => _isAntivirusWarningAcknowledged;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isAntivirusWarningAcknowledged, value);
+                this.RaisePropertyChanged(nameof(CanConfirmAntivirusWarning));
+            }
+        }
+
+        public bool CanConfirmAntivirusWarning => IsAntivirusWarningAcknowledged;
 
         public bool IsInlineDialogConfirm
         {
@@ -125,6 +184,62 @@ namespace SUSModder.ViewModels
                 IsInlineDialogVisible = false;
                 completionSource.TrySetResult(new InlineDialogResult(accepted, input));
             });
+        }
+
+        public void ResolveAntivirusWarning()
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (_antivirusWarningCompletionSource == null || !IsAntivirusWarningAcknowledged)
+                {
+                    return;
+                }
+
+                var completionSource = _antivirusWarningCompletionSource;
+                _antivirusWarningCompletionSource = null;
+                IsAntivirusWarningVisible = false;
+                completionSource.TrySetResult(true);
+            });
+        }
+
+        public async Task ShowAntivirusWarningAsync(IReadOnlyList<string> productNames, string modsInstallPath)
+        {
+            await _inlineDialogSemaphore.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                var completionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    _antivirusWarningCompletionSource = completionSource;
+                    AntivirusWarningTitle = _localizationService.Get("Dialogs.AntivirusWarning.Title");
+                    AntivirusWarningIntro = string.Format(
+                        _localizationService.Get("Dialogs.AntivirusWarning.Intro"),
+                        string.Join(", ", productNames));
+                    AntivirusWarningProductsHeader = _localizationService.Get("Dialogs.AntivirusWarning.Products");
+                    AntivirusWarningRecommendation = productNames.Count > 1
+                        ? _localizationService.Get("Dialogs.AntivirusWarning.MultipleRecommendation")
+                        : string.Format(
+                            _localizationService.Get("Dialogs.AntivirusWarning.SingleRecommendation"),
+                            modsInstallPath);
+                    AntivirusWarningCheckboxText = _localizationService.Get("Dialogs.AntivirusWarning.Acknowledge");
+                    IsAntivirusWarningAcknowledged = false;
+
+                    AntivirusWarningProducts.Clear();
+                    foreach (var productName in productNames)
+                    {
+                        AntivirusWarningProducts.Add(productName);
+                    }
+
+                    IsAntivirusWarningVisible = true;
+                });
+
+                await completionSource.Task.ConfigureAwait(false);
+            }
+            finally
+            {
+                _inlineDialogSemaphore.Release();
+            }
         }
 
         private async Task<InlineDialogResult> ShowInlineDialogAsync(

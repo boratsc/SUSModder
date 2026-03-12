@@ -17,6 +17,7 @@ using SUSModder.Core.Services.Localization;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.GameIntegration;
+using SUSModder.Core.Utilities;
 
 namespace SUSModder;
 
@@ -248,9 +249,8 @@ public partial class App : Application
                     await _splashWindow.CloseWithFadeAsync();
                 }
 
-                // Po załadowaniu głównego okna sprawdź aktualizacje
-                // Fire and forget - nie blokujemy UI
-                _ = viewModel.CheckForUpdatesAfterMainWindowLoadAsync();
+                // Po załadowaniu głównego okna uruchom zadania post-startowe.
+                _ = RunPostStartupTasksAsync(mainWindow, viewModel, userSettingsService);
 
                 // Inicjalizuj telemetrię i wyślij heartbeat w tle (tylko Windows)
                 // Przeniesione z KROK 2 - WMI queries w HardwareIdProvider trwają 1-5s
@@ -299,6 +299,63 @@ public partial class App : Application
         InitializeTelemetry();
         if (_telemetryService != null)
             await _telemetryService.SendHeartbeatAsync();
+    }
+
+    private async Task RunPostStartupTasksAsync(
+        MainWindow mainWindow,
+        MainWindowViewModel viewModel,
+        UserSettingsService userSettingsService)
+    {
+        try
+        {
+            await ShowAntivirusWarningIfNeededAsync(mainWindow, userSettingsService);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[App] Błąd podczas sprawdzania antywirusa: {ex.Message}");
+        }
+
+        _ = viewModel.CheckForUpdatesAfterMainWindowLoadAsync();
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private async Task ShowAntivirusWarningIfNeededAsync(MainWindow mainWindow, UserSettingsService userSettingsService)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        await Task.Delay(1200);
+
+        var antivirusDetectionService = new AntivirusDetectionService();
+        var result = await Task.Run(antivirusDetectionService.DetectInstalledThirdPartyAntivirus);
+        if (!result.HasThirdPartyAntivirus)
+        {
+            return;
+        }
+
+        var userSettings = userSettingsService.LoadUserSettings();
+        if (string.Equals(
+                userSettings.AntivirusWarningAcknowledgedSignature,
+                result.Signature,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Debug.WriteLine("[App] Ostrzeżenie antywirusowe już potwierdzone dla bieżącego zestawu AV.");
+            return;
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            if (mainWindow.ViewModel == null)
+            {
+                return;
+            }
+
+            await mainWindow.ViewModel.ShowAntivirusWarningAsync(result.ProductNames, PathSettings.ModsInstallPath);
+            userSettingsService.UpdateUserSetting(settings =>
+                settings.AntivirusWarningAcknowledgedSignature = result.Signature);
+        });
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]

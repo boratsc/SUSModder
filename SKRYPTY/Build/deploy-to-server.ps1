@@ -10,6 +10,9 @@ param(
     
     [Parameter(Mandatory = $false)]
     [string]$Username = "debian",
+
+    [Parameter(Mandatory = $false)]
+    [string]$SshKeyPath = "",
     
     [switch]$SkipLegacy,
     [switch]$SkipRelease,
@@ -20,10 +23,72 @@ param(
 $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
+if ([string]::IsNullOrWhiteSpace($SshKeyPath)) {
+    $defaultKeyPath = Join-Path $env:USERPROFILE ".ssh\susmodder_deploy_ed25519"
+    if (Test-Path $defaultKeyPath) {
+        $SshKeyPath = $defaultKeyPath
+    }
+}
+
+$useKeyAuth = -not [string]::IsNullOrWhiteSpace($SshKeyPath)
+
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  SUSModder Deployment Script" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
+
+function Invoke-RemoteCommand {
+    param([string]$Command)
+
+    if ($useKeyAuth) {
+        $sshArgs = @(
+            "-i", $SshKeyPath
+            "-o", "BatchMode=yes"
+            "-o", "StrictHostKeyChecking=accept-new"
+            "${Username}@${Server}"
+            $Command
+        )
+
+        return & ssh @sshArgs 2>&1
+    }
+
+    $plinkArgs = @(
+        "-batch"
+        "-pw", $password
+        "$Username@$Server"
+        $Command
+    )
+
+    return & plink @plinkArgs 2>&1
+}
+
+function Copy-FileToRemote {
+    param(
+        [string]$LocalFile,
+        [string]$RemoteTarget
+    )
+
+    if ($useKeyAuth) {
+        $scpArgs = @(
+            "-i", $SshKeyPath
+            "-o", "BatchMode=yes"
+            "-o", "StrictHostKeyChecking=accept-new"
+            $LocalFile
+            "${Username}@${Server}:${RemoteTarget}"
+        )
+
+        return & scp @scpArgs 2>&1
+    }
+
+    $pscpArgs = @(
+        "-batch"
+        "-pw", $password
+        $LocalFile
+        "${Username}@${Server}:${RemoteTarget}"
+    )
+
+    return & pscp @pscpArgs 2>&1
+}
 
 # ============================================================================
 # SPRAWDZENIE WYMAGAŃ
@@ -31,31 +96,54 @@ Write-Host ""
 
 Write-Host "[1/6] Checking requirements..." -ForegroundColor Green
 
-# Sprawdź czy są zainstalowane narzędzia SSH/SCP
-$pscpPath = Get-Command "pscp" -ErrorAction SilentlyContinue
-$plinkPath = Get-Command "plink" -ErrorAction SilentlyContinue
+if ($useKeyAuth) {
+    $sshPath = Get-Command "ssh" -ErrorAction SilentlyContinue
+    $scpPath = Get-Command "scp" -ErrorAction SilentlyContinue
 
-if (-not $pscpPath -or -not $plinkPath) {
-    Write-Host "  ERROR: PuTTY tools not found (pscp.exe, plink.exe)" -ForegroundColor Red
-    Write-Host ""
-    Write-Host "Instalacja PuTTY (zawiera pscp i plink):" -ForegroundColor Yellow
-    Write-Host "  1. Przez winget:" -ForegroundColor Gray
-    Write-Host "     winget install PuTTY.PuTTY" -ForegroundColor Gray
-    Write-Host ""
-    Write-Host "  2. Przez Chocolatey:" -ForegroundColor Gray
-    Write-Host "     choco install putty" -ForegroundColor Gray
-    Write-Host ""
-    Write-Host "  3. Ręcznie:" -ForegroundColor Gray
-    Write-Host "     https://www.putty.org/" -ForegroundColor Gray
-    Write-Host ""
-    Write-Host "Po instalacji dodaj do PATH:" -ForegroundColor Yellow
-    Write-Host "  `$env:Path += ';C:\Program Files\PuTTY'" -ForegroundColor Gray
-    Write-Host ""
-    exit 1
+    if (-not $sshPath -or -not $scpPath) {
+        Write-Host "  ERROR: OpenSSH tools not found (ssh, scp)" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "Zainstaluj klienta OpenSSH w systemie Windows." -ForegroundColor Yellow
+        exit 1
+    }
+
+    if (-not (Test-Path $SshKeyPath)) {
+        Write-Host "  ERROR: SSH key not found: $SshKeyPath" -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host "  OK: ssh found: $($sshPath.Source)" -ForegroundColor Green
+    Write-Host "  OK: scp found: $($scpPath.Source)" -ForegroundColor Green
+    Write-Host "  OK: SSH key found: $SshKeyPath" -ForegroundColor Green
+    Write-Host "  Auth mode: SSH key" -ForegroundColor Green
+} else {
+    # Sprawdź czy są zainstalowane narzędzia SSH/SCP
+    $pscpPath = Get-Command "pscp" -ErrorAction SilentlyContinue
+    $plinkPath = Get-Command "plink" -ErrorAction SilentlyContinue
+
+    if (-not $pscpPath -or -not $plinkPath) {
+        Write-Host "  ERROR: PuTTY tools not found (pscp.exe, plink.exe)" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "Instalacja PuTTY (zawiera pscp i plink):" -ForegroundColor Yellow
+        Write-Host "  1. Przez winget:" -ForegroundColor Gray
+        Write-Host "     winget install PuTTY.PuTTY" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "  2. Przez Chocolatey:" -ForegroundColor Gray
+        Write-Host "     choco install putty" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "  3. Ręcznie:" -ForegroundColor Gray
+        Write-Host "     https://www.putty.org/" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "Po instalacji dodaj do PATH:" -ForegroundColor Yellow
+        Write-Host "  `$env:Path += ';C:\Program Files\PuTTY'" -ForegroundColor Gray
+        Write-Host ""
+        exit 1
+    }
+
+    Write-Host "  OK: pscp found: $($pscpPath.Source)" -ForegroundColor Green
+    Write-Host "  OK: plink found: $($plinkPath.Source)" -ForegroundColor Green
+    Write-Host "  Auth mode: Password" -ForegroundColor Green
 }
-
-Write-Host "  OK: pscp found: $($pscpPath.Source)" -ForegroundColor Green
-Write-Host "  OK: plink found: $($plinkPath.Source)" -ForegroundColor Green
 Write-Host ""
 
 # ============================================================================
@@ -106,6 +194,8 @@ Write-Host ""
 if ($DryRun) {
     Write-Host "  DRY RUN: Skipping authentication" -ForegroundColor Yellow
     $password = "dummy"
+} elseif ($useKeyAuth) {
+    Write-Host "  OK: Using SSH key authentication" -ForegroundColor Green
 } else {
     $securePassword = Read-Host "Enter SSH password for $Username@$Server" -AsSecureString
     $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
@@ -129,17 +219,8 @@ Write-Host ""
 Write-Host "[4/6] Testing SSH connection..." -ForegroundColor Green
 
 if (-not $DryRun) {
-    # Test połączenia przez plink
-    $testCommand = "echo 'Connection successful'"
-    $plinkArgs = @(
-        "-batch"
-        "-pw", $password
-        "$Username@$Server"
-        $testCommand
-    )
-    
     try {
-        $result = & plink @plinkArgs 2>&1
+        $result = Invoke-RemoteCommand -Command "echo 'Connection successful'"
         if ($LASTEXITCODE -eq 0) {
             Write-Host "  OK: SSH connection successful" -ForegroundColor Green
         } else {
@@ -253,15 +334,7 @@ function Upload-Files {
     }
     
     # Utwórz katalog na serwerze (jeśli nie istnieje)
-    $mkdirCommand = "mkdir -p $RemotePath"
-    $plinkArgs = @(
-        "-batch"
-        "-pw", $password
-        "$Username@$Server"
-        $mkdirCommand
-    )
-    
-    & plink @plinkArgs 2>&1 | Out-Null
+    Invoke-RemoteCommand -Command "mkdir -p $RemotePath" | Out-Null
     
     # Upload wszystkich plików z katalogu
     $files = Get-ChildItem $LocalPath -File
@@ -273,14 +346,7 @@ function Upload-Files {
         $percent = [Math]::Round(($current / $total) * 100)
         Write-Host "    [$current/$total] Uploading $($file.Name)... " -NoNewline -ForegroundColor Gray
         
-        $pscpArgs = @(
-            "-batch"
-            "-pw", $password
-            $file.FullName
-            "${Username}@${Server}:${RemotePath}/"
-        )
-        
-        $output = & pscp @pscpArgs 2>&1
+        $output = Copy-FileToRemote -LocalFile $file.FullName -RemoteTarget "${RemotePath}/"
         
         if ($LASTEXITCODE -eq 0) {
             Write-Host "OK ($percent%)" -ForegroundColor Green
@@ -309,26 +375,11 @@ function Upload-ManifestFile {
     }
     
     # Utwórz katalog na serwerze (jeśli nie istnieje)
-    $mkdirCommand = "mkdir -p $RemotePath"
-    $plinkArgs = @(
-        "-batch"
-        "-pw", $password
-        "$Username@$Server"
-        $mkdirCommand
-    )
-    
-    & plink @plinkArgs 2>&1 | Out-Null
+    Invoke-RemoteCommand -Command "mkdir -p $RemotePath" | Out-Null
     
     Write-Host "    Uploading $FileName... " -NoNewline -ForegroundColor Gray
     
-    $pscpArgs = @(
-        "-batch"
-        "-pw", $password
-        $LocalFile
-        "${Username}@${Server}:${RemotePath}/${FileName}"
-    )
-    
-    $output = & pscp @pscpArgs 2>&1
+    $output = Copy-FileToRemote -LocalFile $LocalFile -RemoteTarget "${RemotePath}/${FileName}"
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "OK" -ForegroundColor Green
@@ -360,26 +411,12 @@ if (-not $SkipLegacy) {
             Write-Host "    DRY RUN: Would upload $($legacyZip.Name) as $versionedName" -ForegroundColor Yellow
         } else {
             # Utwórz katalog na serwerze
-            $mkdirCommand = "mkdir -p $($serverPaths.Versions)"
-            $plinkArgs = @(
-                "-batch"
-                "-pw", $password
-                "$Username@$Server"
-                $mkdirCommand
-            )
-            & plink @plinkArgs 2>&1 | Out-Null
+            Invoke-RemoteCommand -Command "mkdir -p $($serverPaths.Versions)" | Out-Null
             
             Write-Host "    Uploading $versionedName... " -NoNewline -ForegroundColor Gray
             
             # Upload z nową nazwą
-            $pscpArgs = @(
-                "-batch"
-                "-pw", $password
-                $legacyZip.FullName
-                "${Username}@${Server}:$($serverPaths.Versions)/$versionedName"
-            )
-            
-            $output = & pscp @pscpArgs 2>&1
+            $output = Copy-FileToRemote -LocalFile $legacyZip.FullName -RemoteTarget "$($serverPaths.Versions)/$versionedName"
             
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "OK" -ForegroundColor Green
@@ -455,14 +492,7 @@ if (-not $DryRun -and $uploadSuccess) {
     }
     
     foreach ($cmd in $verifyCommands) {
-        $plinkArgs = @(
-            "-batch"
-            "-pw", $password
-            "$Username@$Server"
-            $cmd
-        )
-        
-        $result = & plink @plinkArgs 2>&1
+        $result = Invoke-RemoteCommand -Command $cmd
         Write-Host $result -ForegroundColor Gray
     }
     Write-Host ""

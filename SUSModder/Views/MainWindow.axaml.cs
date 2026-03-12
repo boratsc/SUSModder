@@ -521,6 +521,19 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         }
     }
 
+    private void OnAntivirusWarningCardPressed(object? sender, PointerPressedEventArgs e)
+    {
+        e.Handled = true;
+    }
+
+    private void OnAntivirusWarningConfirmClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.ResolveAntivirusWarning();
+        }
+    }
+
     private Grid? _fabDiscordPromoContent;
     private int _discordPromoAnimationVersion;
 
