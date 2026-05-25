@@ -686,8 +686,8 @@ namespace SUSModder.ViewModels
                 // Odśwież statystyki status bara
                 await RefreshStatusBarAsync();
                 
-                // Odśwież natychmiastowo status dostępnych aktualizacji w status barze
-                await CheckForModUpdatesForStatusBarAsync();
+                // Odśwież natychmiastowo status dostępnych aktualizacji w status barze (force = true, pomija rate-limit)
+                await CheckForModUpdatesForStatusBarAsync(force: true);
             }
 
             // Pokaż komunikaty po zakończeniu finally (poza blokiem try-finally)
