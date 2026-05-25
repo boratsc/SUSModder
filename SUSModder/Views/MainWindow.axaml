@@ -436,7 +436,14 @@
 							<ToolTip.Tip>
 								<TextBlock Text="{Binding FabBadgeTooltip}" FontSize="11" MaxWidth="200" TextWrapping="Wrap"/>
 							</ToolTip.Tip>
-							<ic:SymbolIcon Symbol="{Binding FabIconSymbol}" FontSize="20" Foreground="White"/>
+							<Grid>
+								<!-- Navigation icon (default, no updates) -->
+								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Navigation}" FontSize="20" Foreground="White"
+											   IsVisible="{Binding !FabHasBadge}"/>
+								<!-- ArrowDownload icon (updates available) -->
+								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowDownload}" FontSize="20" Foreground="White"
+											   IsVisible="{Binding FabHasBadge}"/>
+							</Grid>
 						</Button>
 						<Border Classes="fab-badge"
 								IsVisible="{Binding FabHasBadge}"
