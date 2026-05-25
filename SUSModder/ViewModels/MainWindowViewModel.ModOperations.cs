@@ -687,6 +687,7 @@ namespace SUSModder.ViewModels
                 await RefreshStatusBarAsync();
 
                 // Natychmiast wyzeruj licznik dostępnych aktualizacji – mod został zaktualizowany
+                System.Diagnostics.Debug.WriteLine("[FAB-DEBUG] UpdateMod finally: setting AvailableUpdatesCount = 0");
                 AvailableUpdatesCount = 0;
                 
                 // Odśwież natychmiastowo status dostępnych aktualizacji w status barze (force = true, pomija rate-limit)

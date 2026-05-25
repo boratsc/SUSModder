@@ -173,16 +173,18 @@ namespace SUSModder.ViewModels
         private string _modsStatusSubText = string.Empty;
         private string _modsStatusTooltip = string.Empty;
 
-        public int AvailableUpdatesCount
+public int AvailableUpdatesCount
         {
             get => _availableUpdatesCount;
             set
             {
+                System.Diagnostics.Debug.WriteLine($"[FAB-DEBUG] AvailableUpdatesCount SET: {_availableUpdatesCount} -> {value}");
                 this.RaiseAndSetIfChanged(ref _availableUpdatesCount, value);
                 this.RaisePropertyChanged(nameof(FabHasBadge));
                 this.RaisePropertyChanged(nameof(FabBadgeCount));
                 this.RaisePropertyChanged(nameof(FabBadgeTooltip));
                 this.RaisePropertyChanged(nameof(FabIconSymbol));
+                System.Diagnostics.Debug.WriteLine($"[FAB-DEBUG] After RaisePropertyChanged: FabHasBadge={FabHasBadge}, FabBadgeCount={FabBadgeCount}");
             }
         }
 

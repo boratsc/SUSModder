@@ -75,7 +75,11 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
                 // Aktualizuj ikonę FAB na podstawie stanu aktualizacji
                 vm.WhenAnyValue(x => x.FabHasBadge, x => x.IsAnyModInstalling)
-                  .Subscribe(_ => UpdateFabIcon(vm))
+                  .Subscribe(_ =>
+                  {
+                      System.Diagnostics.Debug.WriteLine($"[FAB-DEBUG] WhenAnyValue fired: FabHasBadge={vm.FabHasBadge}, IsAnyModInstalling={vm.IsAnyModInstalling}");
+                      UpdateFabIcon(vm);
+                  })
                   .DisposeWith(disposables);
             }
         });
@@ -90,14 +94,14 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             var icon = this.FindControl<SymbolIcon>("FabIcon");
+            System.Diagnostics.Debug.WriteLine($"[FAB-DEBUG] UpdateFabIcon: icon={(icon != null ? "found" : "NULL")}, FabHasBadge={vm.FabHasBadge}, IsAnyModInstalling={vm.IsAnyModInstalling}");
             if (icon == null) return;
 
-            if (vm.IsAnyModInstalling)
-                icon.Symbol = Symbol.ArrowSync;
-            else if (vm.FabHasBadge)
-                icon.Symbol = Symbol.ArrowDownload;
-            else
-                icon.Symbol = Symbol.Navigation;
+            var newSymbol = vm.IsAnyModInstalling ? Symbol.ArrowSync
+                          : vm.FabHasBadge ? Symbol.ArrowDownload
+                          : Symbol.Navigation;
+            System.Diagnostics.Debug.WriteLine($"[FAB-DEBUG] Setting icon.Symbol = {newSymbol} (was {icon.Symbol})");
+            icon.Symbol = newSymbol;
         });
     }
 
