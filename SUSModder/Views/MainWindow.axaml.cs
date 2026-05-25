@@ -17,6 +17,8 @@ using SUSModder.Services;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia.Input;
+using FluentIcons.Common;
+using FluentIcons.Avalonia;
 
 namespace SUSModder.Views;
 
@@ -70,8 +72,30 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 vm.WhenAnyValue(x => x.CurrentPromotedDiscord)
                   .Subscribe(_ => TriggerDiscordPromoScrollAnimation())
                   .DisposeWith(disposables);
+
+                // Aktualizuj ikonę FAB na podstawie stanu aktualizacji
+                vm.WhenAnyValue(x => x.FabHasBadge, x => x.IsAnyModInstalling)
+                  .Subscribe(_ => UpdateFabIcon(vm))
+                  .DisposeWith(disposables);
             }
         });
+    }
+
+    /// <summary>
+    /// Aktualizuje ikonę FAB na podstawie stanu aktualizacji i instalacji.
+    /// Ustawiana w code-behind, bo compiled binding nie aktualizuje ikony SymbolIcon.
+    /// </summary>
+    private void UpdateFabIcon(MainWindowViewModel vm)
+    {
+        var icon = this.FindControl<SymbolIcon>("FabIcon");
+        if (icon == null) return;
+
+        if (vm.IsAnyModInstalling)
+            icon.Symbol = Symbol.ArrowSync;
+        else if (vm.FabHasBadge)
+            icon.Symbol = Symbol.ArrowDownload;
+        else
+            icon.Symbol = Symbol.Navigation;
     }
 
     private void ModDeveloperMenuButton_Click(object sender, RoutedEventArgs e)
