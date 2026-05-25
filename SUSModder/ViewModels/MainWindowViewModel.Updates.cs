@@ -145,6 +145,10 @@ namespace SUSModder.ViewModels
             // Odśwież listę modów
             await RefreshModsListAsync();
 
+            // Natychmiast wyzeruj licznik dostępnych aktualizacji po udanej aktualizacji
+            AvailableUpdatesCount = 0;
+            await CheckForModUpdatesForStatusBarAsync(force: true);
+
             // Pokaż podsumowanie
             await ShowUpdateSummaryAsync(successfulUpdates, failedUpdates, skippedUpdates);
         }
@@ -217,6 +221,7 @@ namespace SUSModder.ViewModels
 
         private async Task<bool> UpdateSingleModWithDialogAsync(ModItem modItem, ModUpdateInfo updateInfo, UpdateProgressDialog? progressDialog)
         {
+            IsAnyModInstalling = true;
             try
             {
                 var configService = new ConfigService();
@@ -375,10 +380,15 @@ namespace SUSModder.ViewModels
                 await Task.Delay(1500);
                 return false;
             }
+            finally
+            {
+                IsAnyModInstalling = false;
+            }
         }
 
         private async Task<bool> UpdateSingleModAsync(ModItem modItem, ModUpdateInfo updateInfo)
         {
+            IsAnyModInstalling = true;
             try
             {
                 var configService = new ConfigService();
@@ -542,6 +552,10 @@ namespace SUSModder.ViewModels
                     modItem.InstallStatusMessage = $"Błąd: {ex.Message}";
                 });
                 return false;
+            }
+            finally
+            {
+                IsAnyModInstalling = false;
             }
         }
 
