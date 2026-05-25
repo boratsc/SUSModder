@@ -87,15 +87,18 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     /// </summary>
     private void UpdateFabIcon(MainWindowViewModel vm)
     {
-        var icon = this.FindControl<SymbolIcon>("FabIcon");
-        if (icon == null) return;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            var icon = this.FindControl<SymbolIcon>("FabIcon");
+            if (icon == null) return;
 
-        if (vm.IsAnyModInstalling)
-            icon.Symbol = Symbol.ArrowSync;
-        else if (vm.FabHasBadge)
-            icon.Symbol = Symbol.ArrowDownload;
-        else
-            icon.Symbol = Symbol.Navigation;
+            if (vm.IsAnyModInstalling)
+                icon.Symbol = Symbol.ArrowSync;
+            else if (vm.FabHasBadge)
+                icon.Symbol = Symbol.ArrowDownload;
+            else
+                icon.Symbol = Symbol.Navigation;
+        });
     }
 
     private void ModDeveloperMenuButton_Click(object sender, RoutedEventArgs e)
