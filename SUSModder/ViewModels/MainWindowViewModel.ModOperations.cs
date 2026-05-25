@@ -685,6 +685,9 @@ namespace SUSModder.ViewModels
 
                 // Odśwież statystyki status bara
                 await RefreshStatusBarAsync();
+
+                // Natychmiast wyzeruj licznik dostępnych aktualizacji – mod został zaktualizowany
+                AvailableUpdatesCount = 0;
                 
                 // Odśwież natychmiastowo status dostępnych aktualizacji w status barze (force = true, pomija rate-limit)
                 await CheckForModUpdatesForStatusBarAsync(force: true);
