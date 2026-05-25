@@ -41,6 +41,7 @@ namespace SUSModder.ViewModels
                 _activeInstallationsCount++;
                 System.Diagnostics.Debug.WriteLine($"[Install] Rozpoczęto instalację {currentSelectedMod.Name}. Aktywnych instalacji: {_activeInstallationsCount}");
             }
+            SyncIsAnyModInstalling();
 
             try
             {
@@ -109,6 +110,7 @@ namespace SUSModder.ViewModels
                     _activeInstallationsCount--;
                     System.Diagnostics.Debug.WriteLine($"[Install] Zakończono instalację {currentSelectedMod.Name}. Aktywnych instalacji: {_activeInstallationsCount}");
                 }
+                SyncIsAnyModInstalling();
 
                 // Jeśli to była ostatnia instalacja, pokaż wszystkie oczekujące dialogi DLL
                 await ShowPendingDllDialogsIfNeeded();
@@ -187,6 +189,7 @@ namespace SUSModder.ViewModels
                 _activeInstallationsCount++;
                 System.Diagnostics.Debug.WriteLine($"[InstallSpecificVersion] Rozpoczęto instalację {modItem.Name} v{selectedVersion.ModVersion}. Aktywnych instalacji: {_activeInstallationsCount}");
             }
+            SyncIsAnyModInstalling();
 
             try
             {
@@ -265,6 +268,7 @@ namespace SUSModder.ViewModels
                     _activeInstallationsCount--;
                     System.Diagnostics.Debug.WriteLine($"[InstallSpecificVersion] Zakończono instalację {modItem.Name}. Aktywnych instalacji: {_activeInstallationsCount}");
                 }
+                SyncIsAnyModInstalling();
 
                 // Jeśli to była ostatnia instalacja, pokaż wszystkie oczekujące dialogi DLL
                 await ShowPendingDllDialogsIfNeeded();

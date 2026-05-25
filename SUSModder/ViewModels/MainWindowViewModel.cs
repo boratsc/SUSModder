@@ -91,6 +91,15 @@ namespace SUSModder.ViewModels
         private readonly object _installationLock = new object();
         private readonly List<(ModItem mod, string platform)> _pendingDllDialogs = new List<(ModItem, string)>();
 
+        /// <summary>
+        /// Synchronizuje IsAnyModInstalling z _activeInstallationsCount.
+        /// Wywoływana po każdej zmianie licznika instalacji.
+        /// </summary>
+        private void SyncIsAnyModInstalling()
+        {
+            IsAnyModInstalling = _activeInstallationsCount > 0;
+        }
+
         // Velopack update service - musi być jako pole aby móc reinicjalizować po zmianie kanału
         private VelopackUpdateService? _velopackUpdateService;
 
