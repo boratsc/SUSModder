@@ -1,14 +1,28 @@
 # 03 – Toast notification system
 
+**Status:** ✅ **Zaimplementowane (2026-05-25)**  
 **Priorytet:** 🟡 P1  
-**Effort:** ~3-4h  
+**Effort:** ~3-4h (faktyczny: ~4h z code review i fixami)  
+**Commit:** `12f3097` na `susmodder-3.0`
 
-## Stan obecny
+## Stan przed
 
 Brak systemu powiadomień. Feedback tylko przez:
 - Progress bar w prawym panelu (per mod)
 - Dialogi modalne (przerywają flow)
 - Status bar (statyczny)
+
+## Stan po
+
+Działający system toast notifications:
+- Lekki, bez zewnętrznych bibliotek
+- 4 typy: Success/Info/Warning/Error z kolorowym akcentem
+- Slide-in animacja (Avalonia Animation API, bez styli)
+- Auto-close przez DispatcherTimer (UI thread-safe)
+- Max 3 widoczne, FIFO kolejka
+- Nad modalami (ostatni w z-order Grid)
+- PL/EN lokalizacja (12 kluczy `Toast.*`)
+- Zintegrowany z Install/Uninstall/Update/DLL/Updates
 
 ## Propozycja
 
