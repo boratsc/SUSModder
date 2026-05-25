@@ -3,6 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using System;
+using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace SUSModder.Views
@@ -11,12 +13,79 @@ namespace SUSModder.Views
     {
         private Border? _progressBar;
         private TextBlock? _loadingText;
+        private NativeWebView? _splashVideo;
 
         public SplashWindow()
         {
             InitializeComponent();
             _progressBar = this.FindControl<Border>("ProgressBar");
             _loadingText = this.FindControl<TextBlock>("LoadingText");
+            _splashVideo = this.FindControl<NativeWebView>("SplashVideo");
+        }
+
+        /// <summary>
+        /// Inicjalizuje odtwarzanie wideo splash przez NativeWebView.
+        /// </summary>
+        public async Task InitializeVideoAsync()
+        {
+            try
+            {
+                if (_splashVideo == null) return;
+
+                // Ścieżki do assetów
+                var exeDir = AppContext.BaseDirectory;
+                var videoPath = Path.Combine(exeDir, "Assets", "SplashAnimation.mp4");
+                var splashJpgPath = Path.Combine(exeDir, "Assets", "splashscreen.jpg");
+
+                if (!File.Exists(videoPath))
+                {
+                    System.Diagnostics.Debug.WriteLine("[SplashWindow] SplashAnimation.mp4 not found, using static image");
+                    return;
+                }
+
+                // Wczytaj szablon HTML
+                var html = LoadEmbeddedHtml();
+                if (html == null) return;
+
+                // Podmień placeholdery na file:// URI
+                var videoUri = new Uri(videoPath).AbsoluteUri;
+                var splashUri = new Uri(splashJpgPath).AbsoluteUri;
+                html = html.Replace("VIDEO_SRC", videoUri)
+                           .Replace("SPLASH_JPG_FILE", splashUri);
+
+                // Zapisz tymczasowy HTML
+                var htmlPath = Path.Combine(Path.GetTempPath(), "_susmodder_splash.html");
+                await File.WriteAllTextAsync(htmlPath, html);
+
+                // Ustaw źródło NativeWebView
+                _splashVideo.Source = new Uri(htmlPath);
+                System.Diagnostics.Debug.WriteLine("[SplashWindow] NativeWebView initialized with video");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SplashWindow] Video init error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Ładuje wbudowany szablon HTML.
+        /// </summary>
+        private static string? LoadEmbeddedHtml()
+        {
+            try
+            {
+                var assembly = Assembly.GetExecutingAssembly();
+                var resourceName = "SUSModder.Assets.splash-player.html";
+                using var stream = assembly.GetManifestResourceStream(resourceName);
+                if (stream == null) return null;
+                using var reader = new StreamReader(stream);
+                return reader.ReadToEnd();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SplashWindow] Failed to load HTML: {ex.Message}");
+                return null;
+            }
         }
 
         /// <summary>
@@ -65,20 +134,26 @@ namespace SUSModder.Views
         }
 
         /// <summary>
-        /// Zamyka splash window z fade out effect
+        /// Zamyka splash window z fade out i sprzątaniem
         /// </summary>
         public async Task CloseWithFadeAsync()
         {
+            // Wyczyść tymczasowy HTML
+            try
+            {
+                var htmlPath = Path.Combine(Path.GetTempPath(), "_susmodder_splash.html");
+                if (File.Exists(htmlPath)) File.Delete(htmlPath);
+            }
+            catch { /* ignore */ }
+
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                // Fade out animation (zoptymalizowana - 6 kroków × 25ms zamiast 10 × 30ms)
                 var steps = 6;
                 for (int i = 0; i < steps; i++)
                 {
                     this.Opacity = 1.0 - (i / (double)steps);
                     await Task.Delay(25);
                 }
-
                 this.Close();
             });
         }

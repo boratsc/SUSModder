@@ -23,6 +23,7 @@ using SUSModder.Services;
 using System.Windows.Input;
 using SUSModder.ViewModels.Helpers;
 using Microsoft.Extensions.Configuration;
+using FluentIcons.Common;
 using SUSModder.Core.Diagnostics;
 
 namespace SUSModder.ViewModels
@@ -306,6 +307,38 @@ namespace SUSModder.ViewModels
             get => _isPaneOpen;
             set => this.RaiseAndSetIfChanged(ref _isPaneOpen, value);
         }
+        // FAB – badge and contextual icon
+        private bool _isAnyModInstalling;
+
+        public bool IsAnyModInstalling
+        {
+            get => _isAnyModInstalling;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isAnyModInstalling, value);
+                this.RaisePropertyChanged(nameof(FabIconSymbol));
+            }
+        }
+
+        public int FabBadgeCount => AvailableUpdatesCount;
+        public bool FabHasBadge => AvailableUpdatesCount > 0;
+
+        public string FabBadgeTooltip => AvailableUpdatesCount > 0
+            ? _localizationService.GetFormatted("UI.Fab.UpdatesBadgeTooltip", AvailableUpdatesCount)
+            : string.Empty;
+
+        public Symbol FabIconSymbol
+        {
+            get
+            {
+                if (IsAnyModInstalling)
+                    return Symbol.ArrowSync;
+                if (AvailableUpdatesCount > 0)
+                    return Symbol.ArrowDownload;
+                return Symbol.Navigation;
+            }
+        }
+
 
         public string ThemeButtonText => CurrentTheme switch
         {
@@ -438,6 +471,7 @@ namespace SUSModder.ViewModels
     public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
     public ReactiveCommand<Unit, Unit> ShowDllSelectionCommand { get; }
     public ReactiveCommand<Unit, Unit> CheckForAppUpdatesCommand { get; }
+        public ReactiveCommand<Unit, Unit> CheckForModUpdatesFromMenuCommand { get; private set; }
     public ReactiveCommand<string, Unit> ExecuteRepairOptionCommand { get; }
     public ReactiveCommand<ModItem, Unit> ModDoubleClickCommand { get; }
 
@@ -485,7 +519,12 @@ namespace SUSModder.ViewModels
             UpdateCommand = ReactiveCommand.Create(Update);
             CheckDllUpdatesCommand = ReactiveCommand.CreateFromTask(CheckDllUpdates);
             CheckForAppUpdatesCommand = ReactiveCommand.CreateFromTask(CheckForAppUpdatesManuallyAsync);
-            ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
+                        CheckForModUpdatesFromMenuCommand = ReactiveCommand.CreateFromTask(async () =>
+            {
+                IsPaneOpen = false;
+                await CheckForModUpdatesAsync();
+            });
+ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             ShowInfoCommand = ReactiveCommand.Create(ShowInfo);
             ShowAdditionalActionsCommand = ReactiveCommand.Create(ShowAdditionalActions);
             OpenFolderCommand = ReactiveCommand.Create(OpenFolder);

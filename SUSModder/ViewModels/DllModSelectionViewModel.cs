@@ -57,6 +57,15 @@ namespace SUSModder.ViewModels
             get => _actionButtonText;
             set => this.RaiseAndSetIfChanged(ref _actionButtonText, value);
         }
+        public string TargetModName => _targetMod?.ModName ?? "";
+        private int _hiddenIncompatibleCount;
+        public int HiddenIncompatibleCount
+        {
+            get => _hiddenIncompatibleCount;
+            set => this.RaiseAndSetIfChanged(ref _hiddenIncompatibleCount, value);
+        }
+
+        public bool HasHiddenIncompatible => HiddenIncompatibleCount > 0;
 
         public ReactiveCommand<Unit, Unit> OkCommand { get; }
         public ReactiveCommand<Unit, Unit> ApplyChangesCommand { get; }
@@ -133,6 +142,7 @@ namespace SUSModder.ViewModels
 
         private Task LoadAndSortDllModsAsync()
         {
+            _hiddenIncompatibleCount = 0;
             var allDllMods = _dllModificationService.GetDllMods();
             
             // Filtruj i sortuj
@@ -151,13 +161,15 @@ namespace SUSModder.ViewModels
                 // Filtruj niekompatybilne (NW - Not Work)
                 if (compat?.Status == CompatibilityStatus.NotWork)
                 {
+                    _hiddenIncompatibleCount++;
                     System.Diagnostics.Debug.WriteLine($"⛔ Pomijam niekompatybilny mod: {mod.ModName}");
                     continue;
                 }
 
                 // Ustaw stan zainstalowania i zaznaczenia
                 mod.IsInstalled = _initiallyInstalledDllIds.Contains(mod.Id);
-                mod.IsSelected = mod.IsInstalled; // Automatycznie zaznacz zainstalowane
+                // Automatycznie zaznacz zainstalowane ORAZ polecane (Favorite)
+                mod.IsSelected = mod.IsInstalled || compat?.Status == CompatibilityStatus.Favorite;
 
                 // Ustaw informacje o kompatybilności
                 mod.CompatibilityEmoji = compat?.Emoji ?? "❓";
@@ -178,6 +190,9 @@ namespace SUSModder.ViewModels
                 // Dodaj do listy z priorytetem
                 filteredAndSorted.Add(mod);
             }
+
+                        this.RaisePropertyChanged(nameof(HiddenIncompatibleCount));
+            this.RaisePropertyChanged(nameof(HasHiddenIncompatible));
 
             // Sortuj według priorytetu, a następnie alfabetycznie
             var sorted = filteredAndSorted

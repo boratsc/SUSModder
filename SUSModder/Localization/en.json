@@ -1,4 +1,4 @@
-﻿{
+{
   "UI": {
     "Buttons": {
       "Install": "Install",
@@ -56,7 +56,8 @@
       "Help": "Help",
       "Exit": "Exit",
       "RecommendedDiscords": "Recommended Discords",
-      "Info": "Information"
+      "Info": "Information",
+      "CheckModUpdates": "Check mod updates"
     },
     "ModDetails": {
       "Header": "Mod details:",
@@ -195,6 +196,9 @@
       },
       "Cancelled": "Operation cancelled by user.",
       "Error": "Error during repair: {0}"
+    },
+    "Fab": {
+      "UpdatesBadgeTooltip": "{0} available updates"
     }
   },
   "DllManager": {
@@ -238,7 +242,14 @@
       "LocationCountSingular": "1 location",
       "UpdateAllButton": "Update all",
       "CancelButton": "Cancel"
-    }
+    },
+    "ViewTitleForMod": "DLL Modifications for {0}",
+    "WhatAreDlls": "Additional plugins that extend mod features. You can skip this.",
+    "LegendFavorite": "⭐ Recommended",
+    "LegendWorks": "✅ Works",
+    "LegendNotTested": "❓ Not tested",
+    "SkipAll": "Skip all",
+    "HiddenIncompatible": "modifications hidden (incompatible)"
   },
   "Dialogs": {
     "Success": {

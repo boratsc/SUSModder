@@ -4,7 +4,7 @@ using SUSModder.ViewModels;
 using System;
 using System.Diagnostics;
 using System.Web;
-using Microsoft.Web.WebView2.Core;
+
 
 namespace SUSModder.Views
 {
@@ -30,52 +30,34 @@ namespace SUSModder.Views
         }
 
         /// <summary>
-        /// Inicjalizuje WebView2 i ustawia event handlery do przechwycenia kodu autoryzacyjnego.
+        /// Inicjalizuje NativeWebView i ustawia event handlery do przechwycenia kodu autoryzacyjnego.
         /// </summary>
-        private async void InitializeWebView(string browserUrl)
+        private void InitializeWebView(string browserUrl)
         {
             try
             {
-                var webView = this.FindControl<Avalonia.Controls.WebView2>("EpicWebView");
+                var webView = this.FindControl<NativeWebView>("EpicWebView");
                 if (webView == null)
                 {
-                    Debug.WriteLine("[EpicAuthDialog] Nie znaleziono kontrolki WebView2");
+                    Debug.WriteLine("[EpicAuthDialog] Nie znaleziono kontrolki NativeWebView");
                     _viewModel?.FallbackToManualMode();
                     return;
                 }
 
-                // Event: inicjalizacja WebView2 zakończona
-                webView.CoreWebView2InitializationCompleted += (sender, e) =>
+                // Konfiguracja środowiska przed inicjalizacją
+                webView.AdapterCreated += (sender, e) =>
                 {
-                    if (e.IsSuccess && webView.CoreWebView2 != null)
+                    Debug.WriteLine("[EpicAuthDialog] NativeWebView zainicjalizowany pomyślnie");
+                    if (_viewModel != null)
                     {
-                        Debug.WriteLine("[EpicAuthDialog] WebView2 zainicjalizowany pomyślnie");
-
-                        // Ustaw User-Agent na EpicGamesLauncher (jak robi Heroic Games Launcher)
-                        webView.CoreWebView2.Settings.UserAgent =
-                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) EpicGamesLauncher";
-
-                        // Wyłącz niepotrzebne funkcje
-                        webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
-                        webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
-                        webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
-
-                        if (_viewModel != null)
-                        {
-                            _viewModel.WebViewStatus = "Zaloguj się na swoje konto Epic Games";
-                        }
-                    }
-                    else
-                    {
-                        Debug.WriteLine($"[EpicAuthDialog] Błąd inicjalizacji WebView2: {e.InitializationException?.Message}");
-                        _viewModel?.FallbackToManualMode();
+                        _viewModel.WebViewStatus = "Zaloguj się na swoje konto Epic Games";
                     }
                 };
 
-                // Event: przechwycenie nawigacji - tutaj łapiemy redirect z kodem
-                webView.NavigationStarting += OnWebViewNavigationStarting;
+                // Event: przechwycenie nawigacji
+                webView.NavigationStarted += OnWebViewNavigationStarted;
 
-                // Event: nawigacja zakończona - aktualizacja statusu
+                // Event: nawigacja zakończona
                 webView.NavigationCompleted += (sender, e) =>
                 {
                     if (_viewModel != null && e.IsSuccess)
@@ -84,52 +66,37 @@ namespace SUSModder.Views
                     }
                 };
 
-                // Inicjalizuj WebView2 - użyj browserExecutableFolder jeśli runtime wykryty na dysku
-                var executableFolder = _viewModel?.WebView2BrowserExecutableFolder;
-                Debug.WriteLine($"[EpicAuthDialog] Inicjalizacja WebView2 z URL: {browserUrl}, executableFolder: {executableFolder ?? "(auto)"}");
-
-                if (executableFolder != null)
-                {
-                    // Runtime znaleziony na dysku ale nie w rejestrze - musimy wskazać ścieżkę
-                    var environment = await CoreWebView2Environment.CreateAsync(
-                        browserExecutableFolder: executableFolder);
-                    await webView.EnsureCoreWebView2Async(environment);
-                }
-                else
-                {
-                    // Standardowa inicjalizacja (runtime wykryty przez rejestr)
-                    await webView.EnsureCoreWebView2Async();
-                }
-
+                Debug.WriteLine($"[EpicAuthDialog] Inicjalizacja NativeWebView z URL: {browserUrl}");
                 webView.Source = new Uri(browserUrl);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[EpicAuthDialog] Wyjątek podczas inicjalizacji WebView2: {ex.Message}");
+                Debug.WriteLine($"[EpicAuthDialog] Wyjątek podczas inicjalizacji NativeWebView: {ex.Message}");
                 _viewModel?.FallbackToManualMode();
             }
         }
 
+
         /// <summary>
-        /// Przechwytuje nawigację WebView2.
+        /// Przechwytuje nawigację NativeWebView.
         /// Gdy Epic przekieruje na https://localhost/?code=XXXXX, wyciągamy kod i zamykamy dialog.
         /// </summary>
-        private void OnWebViewNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
+        private void OnWebViewNavigationStarted(object? sender, WebViewNavigationStartingEventArgs e)
         {
             try
             {
-                var uri = new Uri(e.Uri);
-                Debug.WriteLine($"[EpicAuthDialog] Nawigacja do: {uri.Host}{uri.PathAndQuery}");
+                var uri = e.Request!;
+                Debug.WriteLine($"[EpicAuthDialog] Nawigacja do: {uri?.Host}{uri?.PathAndQuery}");
 
                 // Sprawdź czy to redirect na localhost z kodem autoryzacyjnym
-                if (string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(uri?.Host ?? "", "localhost", StringComparison.OrdinalIgnoreCase))
                 {
                     // Zatrzymaj nawigację - nie chcemy faktycznie nawigować na localhost
                     e.Cancel = true;
 
                     // Wyciągnij kod z query string
-                    var queryParams = HttpUtility.ParseQueryString(uri.Query);
-                    var authCode = queryParams["code"];
+                    var queryParams = uri != null ? HttpUtility.ParseQueryString(uri.Query) : null;
+                    var authCode = queryParams?["code"];
 
                     if (!string.IsNullOrWhiteSpace(authCode))
                     {
@@ -153,7 +120,7 @@ namespace SUSModder.Views
         }
 
         /// <summary>
-        /// Otwiera URL w zewnętrznej (systemowej) przeglądarce - jako alternatywa dla WebView2.
+        /// Otwiera URL w zewnętrznej (systemowej) przeglądarce - jako alternatywa dla NativeWebView.
         /// </summary>
         private void OnOpenInExternalBrowser(object? sender, PointerPressedEventArgs e)
         {

@@ -86,6 +86,9 @@ public partial class App : Application
             desktop.MainWindow = _splashWindow;
             _splashWindow.Show();
 
+            // Inicjalizuj animację wideo splash
+            _ = _splashWindow.InitializeVideoAsync();
+
             // Start async initialization in background
             Task.Run(async () => await InitializeApplicationAsync(desktop));
         }

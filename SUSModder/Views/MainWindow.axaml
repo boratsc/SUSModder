@@ -733,7 +733,7 @@
 									CornerRadius="6"
 									Background="{DynamicResource SecondaryBackgroundBrush}">
 								<TextBox Text="{Binding InlineDialogInputText, Mode=TwoWay}"
-										 Watermark="{loc:Localize PromptDialog.EnterNamePlaceholder}"
+										 PlaceholderText="{loc:Localize PromptDialog.EnterNamePlaceholder}"
 										 AcceptsReturn="True"
 										 TextWrapping="Wrap"
 										 MinHeight="120"
@@ -872,6 +872,26 @@
 							   Foreground="{DynamicResource TextPrimaryBrush}"/>
 
 					<!-- Menu Items with FluentIcons -->
+					<!-- Sprawdź aktualizacje modów -->
+					<Button Classes="fab-menu-item"
+							Command="{Binding CheckForModUpdatesFromMenuCommand}">
+						<StackPanel Orientation="Horizontal" Spacing="12">
+							<Grid>
+								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowDownload}" 
+											  FontSize="20" Foreground="#FF5722"/>
+								<Border Classes="fab-menu-item-badge"
+										IsVisible="{Binding FabHasBadge}">
+									<TextBlock Text="{Binding FabBadgeCount}" FontSize="9" 
+											  Foreground="White"
+											  HorizontalAlignment="Center"
+											  VerticalAlignment="Center"/>
+								</Border>
+							</Grid>
+							<TextBlock Text="{loc:Localize UI.Menu.CheckModUpdates}" 
+									  VerticalAlignment="Center"/>
+						</StackPanel>
+					</Button>
+
 					<Button Classes="fab-menu-item"
 							Command="{Binding FixBlackScreenCommand}">
 						<StackPanel Orientation="Horizontal" Spacing="12">

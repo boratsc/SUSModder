@@ -172,4 +172,31 @@
         <Setter Property="RenderTransform" Value="translateY(0px)"/>
     </Style>
 
+
+    <!-- FAB badge (update counter) -->
+    <Style Selector="Border.fab-badge">
+        <Setter Property="Background" Value="#E53935"/>
+        <Setter Property="CornerRadius" Value="9"/>
+        <Setter Property="MinWidth" Value="18"/>
+        <Setter Property="MinHeight" Value="18"/>
+        <Setter Property="Padding" Value="3,1"/>
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
+        <Setter Property="Margin" Value="0,-3,-3,0"/>
+        <Setter Property="ZIndex" Value="10"/>
+    </Style>
+
+    <!-- Menu item badge (inline with icon) -->
+    <Style Selector="Border.fab-menu-item-badge">
+        <Setter Property="Background" Value="#E53935"/>
+        <Setter Property="CornerRadius" Value="7"/>
+        <Setter Property="MinWidth" Value="14"/>
+        <Setter Property="MinHeight" Value="14"/>
+        <Setter Property="Padding" Value="2,0"/>
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
+        <Setter Property="Margin" Value="14,-2,0,0"/>
+        <Setter Property="ZIndex" Value="5"/>
+    </Style>
+
 </Styles>

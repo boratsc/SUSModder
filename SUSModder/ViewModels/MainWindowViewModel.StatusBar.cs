@@ -176,7 +176,14 @@ namespace SUSModder.ViewModels
         public int AvailableUpdatesCount
         {
             get => _availableUpdatesCount;
-            set => this.RaiseAndSetIfChanged(ref _availableUpdatesCount, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _availableUpdatesCount, value);
+                this.RaisePropertyChanged(nameof(FabHasBadge));
+                this.RaisePropertyChanged(nameof(FabBadgeCount));
+                this.RaisePropertyChanged(nameof(FabBadgeTooltip));
+                this.RaisePropertyChanged(nameof(FabIconSymbol));
+            }
         }
 
         public List<string> AvailableUpdatesList

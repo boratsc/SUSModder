@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SUSModder.ViewModels"
         xmlns:local="using:SUSModder.Services.Localization"
-        xmlns:wv2="clr-namespace:Avalonia.Controls;assembly=Avalonia.WebView2"
+        xmlns:wv="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.WebView"
         x:Class="SUSModder.Views.EpicAuthDialog"
         x:DataType="vm:EpicAuthDialogViewModel"
         Title="Logowanie do Epic Games"
@@ -17,7 +17,7 @@
 			<RowDefinition Height="Auto"/>
 			<!-- Header -->
 			<RowDefinition Height="*"/>
-			<!-- WebView2 lub Fallback content -->
+			<!-- NativeWebView lub Fallback content -->
 			<RowDefinition Height="Auto"/>
 			<!-- Status bar / Buttons -->
 		</Grid.RowDefinitions>
@@ -65,23 +65,23 @@
 		</Border>
 
 		<!-- ============================================ -->
-		<!-- TRYB WebView2 (embedded przeglądarka) -->
+		<!-- TRYB NativeWebView (embedded przeglądarka) -->
 		<!-- ============================================ -->
 		<Grid Grid.Row="1"
 		      IsVisible="{Binding IsWebViewMode}">
 			<Grid.RowDefinitions>
 				<RowDefinition Height="*"/>
-				<!-- WebView2 -->
+				<!-- NativeWebView -->
 				<RowDefinition Height="Auto"/>
 				<!-- Status -->
 			</Grid.RowDefinitions>
 
-			<!-- Embedded WebView2 - strona logowania Epic -->
-			<wv2:WebView2 x:Name="EpicWebView"
+			<!-- Embedded NativeWebView - strona logowania Epic -->
+			<wv:NativeWebView x:Name="EpicWebView"
 			              Grid.Row="0"
 			              Margin="0"/>
 
-			<!-- Status bar pod WebView2 -->
+			<!-- Status bar pod NativeWebView -->
 			<Border Grid.Row="1"
 			        Background="{DynamicResource SecondaryBackgroundBrush}"
 			        Padding="15,8">
@@ -240,7 +240,7 @@
 						         Padding="15"
 						         FontFamily="Consolas, Courier New, monospace"
 						         FontSize="12"
-						         Watermark="Wklej tutaj JSON lub kod autoryzacji..."/>
+						         PlaceholderText="Wklej tutaj JSON lub kod autoryzacji..."/>
 					</Grid>
 				</Border>
 

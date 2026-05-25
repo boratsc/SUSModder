@@ -51,6 +51,11 @@ namespace SUSModder.ViewModels
 
                 if (IsDllSelectionModalVisible)
                 {
+                    if (DllSelectionModalViewModel != null)
+                    {
+                        var modName = DllSelectionModalViewModel.TargetModName;
+                        return _localizationService.GetFormatted("DllManager.ViewTitleForMod", modName);
+                    }
                     return _localizationService.Get("DllManager.ViewTitle");
                 }
 

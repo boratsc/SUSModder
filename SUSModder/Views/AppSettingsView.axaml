@@ -100,7 +100,7 @@
 								   Foreground="{DynamicResource TextSecondaryBrush}"/>
 
 						<TextBox Text="{Binding ModsInstallPath}"
-								 Watermark="{local:Localize Settings.Paths.ModsInstallPath.Placeholder}"
+								 PlaceholderText="{local:Localize Settings.Paths.ModsInstallPath.Placeholder}"
 								 FontSize="12"
 								 Padding="8"
 								 Background="{DynamicResource SecondaryBackgroundBrush}"

@@ -9,7 +9,7 @@
         Height="350"
         WindowStartupLocation="CenterScreen"
         CanResize="False"
-        SystemDecorations="None"
+        WindowDecorations="None"
         TransparencyLevelHint="Transparent"
         Background="Transparent"
         ExtendClientAreaToDecorationsHint="True">

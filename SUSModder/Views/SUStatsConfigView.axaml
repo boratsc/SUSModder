@@ -96,7 +96,7 @@
 									 x:Name="PasswordTextBox"
 									 Text="{Binding EnteredPassword}"
 									 PasswordChar="•"
-									 Watermark="{local:Localize SUStatsConfig.PasswordPlaceholder}"
+									 PlaceholderText="{local:Localize SUStatsConfig.PasswordPlaceholder}"
 									 FontSize="13"
 									 Padding="10,8"
 									 CornerRadius="6"

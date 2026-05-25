@@ -1,26 +1,33 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:SUSModder.Services.Localization"
+        xmlns:wv="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.WebView"
         x:Class="SUSModder.Views.SplashWindow"
         Title="SUSModder"
-        Width="600"
-        Height="420"
+        Width="640"
+        Height="640"
         WindowStartupLocation="CenterScreen"
         CanResize="False"
-        SystemDecorations="None"
+        WindowDecorations="None"
         TransparencyLevelHint="Transparent"
         Background="Transparent"
         ExtendClientAreaToDecorationsHint="True">
 
     <Border CornerRadius="12" ClipToBounds="True">
-        <!-- Background Image -->
         <Panel>
+            <!-- Fallback static image -->
             <Image Source="/Assets/splashscreen.jpg"
                    Stretch="UniformToFill"
                    HorizontalAlignment="Stretch"
                    VerticalAlignment="Stretch"/>
 
-            <!-- Loading Progress Bar at Bottom - Bright cyan/yellow gradient -->
+            <!-- NativeWebView z animacją wideo -->
+            <wv:NativeWebView x:Name="SplashVideo"
+                              Width="640" Height="640"
+                              HorizontalAlignment="Left"
+                              VerticalAlignment="Top"/>
+
+            <!-- Loading Progress Bar -->
             <Border Height="6"
                     VerticalAlignment="Bottom"
                     HorizontalAlignment="Stretch"
@@ -30,7 +37,6 @@
                         HorizontalAlignment="Left"
                         Width="0"
                         CornerRadius="0,0,0,12">
-                    <!-- Gradient from cyan to yellow-green - very visible on blue -->
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
                             <GradientStop Color="#00F5FF" Offset="0.0" />
@@ -38,7 +44,6 @@
                             <GradientStop Color="#FFEB3B" Offset="1.0" />
                         </LinearGradientBrush>
                     </Border.Background>
-                    <!-- Animated Gradient Effect - Enhanced with brighter glow -->
                     <Border.Effect>
                         <DropShadowEffect Color="#00FFAA"
                                         BlurRadius="25"
@@ -49,7 +54,7 @@
                 </Border>
             </Border>
 
-            <!-- Loading Text - Bold and visible -->
+            <!-- Loading Text -->
             <TextBlock x:Name="LoadingText"
                       Text="{local:Localize Splash.Loading}"
                       FontSize="13"

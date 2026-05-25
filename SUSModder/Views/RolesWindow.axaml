@@ -84,7 +84,7 @@
 				<!-- Wyszukiwarka -->
 				<TextBox Grid.Column="1"
                          x:Name="SearchBox"
-                         Watermark="{local:Localize RolesWindow.SearchPlaceholder}"
+                         PlaceholderText="{local:Localize RolesWindow.SearchPlaceholder}"
                          Margin="20,0"
                          VerticalAlignment="Center"
                          FontSize="14"

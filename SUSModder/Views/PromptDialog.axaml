@@ -30,7 +30,7 @@
 		        Background="{DynamicResource SecondaryBackgroundBrush}">
 			<TextBox x:Name="InputTextBox"
 			         Text="{Binding InputText}"
-			         Watermark="Wklej JSON, URL lub kod..."
+			         PlaceholderText="Wklej JSON, URL lub kod..."
 			         AcceptsReturn="True"
 			         TextWrapping="Wrap"
 			         VerticalAlignment="Stretch"

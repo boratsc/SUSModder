@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "SUSModder (Debug)": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "nativeDebugging": false,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
