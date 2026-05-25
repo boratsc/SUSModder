@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             x:Class="SUSModder.Views.ToastNotificationView"
+             x:DataType="vm:ToastNotification"
+             Opacity="{Binding Opacity}">
+    <UserControl.Transitions>
+        <Transitions>
+            <!-- Płynny fade-out gdy model ustawia Opacity=0 (auto-close timer) -->
+            <DoubleTransition Property="Opacity" Duration="0:0:0.25" Easing="CubicEaseIn"/>
+        </Transitions>
+    </UserControl.Transitions>
+    <Border Background="{DynamicResource SecondaryBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="10"
+            MinWidth="280"
+            MaxWidth="380"
+            BoxShadow="0 4 16 0 #30000000"
+            Margin="0,0,0,8"
+            PointerPressed="OnToastPointerPressed">
+
+        <Grid ColumnDefinitions="6,*,Auto" Margin="0">
+            <!-- Kolorowy pasek akcentu z lewej strony -->
+            <Border Grid.Column="0"
+                    Background="{Binding AccentColor}"
+                    CornerRadius="10,0,0,10"
+                    Width="6"/>
+
+            <!-- Treść toasta -->
+            <Grid Grid.Column="1" Margin="12,10,8,10" ColumnDefinitions="Auto,*,Auto">
+                <!-- Ikona -->
+                <TextBlock Grid.Column="0"
+                           Text="{Binding Icon}"
+                           FontSize="18"
+                           VerticalAlignment="Top"
+                           Margin="0,1,8,0"/>
+
+                <!-- Tytuł + subtitle -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Text="{Binding Title}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding Subtitle}"
+                               FontSize="11"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                </StackPanel>
+
+                <!-- Przycisk zamknięcia -->
+                <Button Grid.Column="2"
+                        Content="✕"
+                        FontSize="12"
+                        Width="20"
+                        Height="20"
+                        Padding="0"
+                        Margin="8,0,0,0"
+                        Background="Transparent"
+                        Foreground="{DynamicResource TextSecondaryBrush}"
+                        BorderThickness="0"
+                        CornerRadius="10"
+                        VerticalAlignment="Top"
+                        Click="OnCloseButtonClick"/>
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

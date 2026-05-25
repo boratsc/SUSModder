@@ -45,6 +45,9 @@ public partial class App : Application
             .Build();
         services.AddSingleton<IConfiguration>(configuration);
 
+        // Rejestracja serwisu powiadomień toast
+        services.AddSingleton<ToastService>();
+
         // Rejestracja serwisu lokalizacji
         services.AddSingleton<ILocalizationService>(sp =>
         {

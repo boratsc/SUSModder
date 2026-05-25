@@ -53,6 +53,10 @@ namespace SUSModder.ViewModels
                 // Pokaż dialogi aktualizacji dla każdego moda z dostępną aktualizacją
                 if (result.InstalledModUpdates.Any())
                 {
+                    // Powiadomienie toast o znalezionych aktualizacjach
+                    ToastService.ShowInfo(
+                        _localizationService.GetFormatted("Toast.ModUpdatesFound", result.InstalledModUpdates.Count));
+
                     await ProcessUpdatesWithIndividualDialogsAsync(result.InstalledModUpdates);
                 }
             }

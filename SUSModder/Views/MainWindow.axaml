@@ -968,5 +968,8 @@
 				</StackPanel>
 			</Border>
 
+			<!-- Toast notification overlay – na samej górze z-order, nad modalami -->
+			<local:ToastHost Grid.Row="0" Grid.RowSpan="2"/>
+
 	</Grid>
 </Window>

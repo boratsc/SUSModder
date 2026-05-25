@@ -126,6 +126,11 @@ namespace SUSModder.ViewModels
                 if (!string.IsNullOrEmpty(installedPath))
                 {
                     LoadAvailableFullMods(); // Odśwież listę
+
+                    // Powiadomienie toast
+                    ToastService.ShowSuccess(
+                        _localizationService.GetFormatted("Toast.DllInstalled", SelectedDllMod.Name),
+                        _localizationService.GetFormatted("DllManager.InstallIn", targetMod.Name));
                 }
                 else
                 {
@@ -162,6 +167,11 @@ namespace SUSModder.ViewModels
                 if (success)
                 {
                     LoadAvailableFullMods(); // Odśwież listę
+
+                    // Powiadomienie toast
+                    ToastService.ShowInfo(
+                        _localizationService.GetFormatted("Toast.DllRemoved", SelectedDllMod.Name),
+                        _localizationService.GetFormatted("DllManager.UninstallFrom", targetMod.Name));
                 }
                 else
                 {

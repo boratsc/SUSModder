@@ -343,6 +343,20 @@
       "Acknowledge": "Zapoznałem się z informacją"
     }
   },
+  "Toast": {
+    "ModInstalled": "{0} zainstalowany pomyślnie",
+    "ModUpdated": "{0} zaktualizowany do wersji {1}",
+    "ModDeleted": "{0} został usunięty",
+    "UpdateAvailable": "Dostępna aktualizacja: {0}",
+    "DownloadError": "Błąd pobierania – sprawdź połączenie",
+    "GameLaunchError": "Nie udało się uruchomić gry",
+    "DllInstalled": "DLL {0} zainstalowany",
+    "DllRemoved": "DLL {0} usunięty",
+    "GenericInfo": "{0}",
+    "ModUpdatesFound": "Znaleziono {0} aktualizacji modów",
+    "AllModsUpToDate": "Wszystkie mody są aktualne",
+    "AppUpdated": "Aplikacja zaktualizowana do wersji {0}"
+  },
   "Settings": {
     "WindowTitle": "Ustawienia aplikacji",
     "WindowSubtitle": "Konfiguracja aplikacji SUSModder",

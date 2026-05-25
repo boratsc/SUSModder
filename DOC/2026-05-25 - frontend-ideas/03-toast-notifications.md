@@ -88,9 +88,91 @@ _toastService.Enqueue(new ToastNotification
 | `Views/ToastNotificationView.axaml` | Pojedynczy toast z animacją |
 | `Views/ToastHost.axaml` | Kontener toastów w MainWindow |
 
-## Decyzje
+## Decyzje (podjęte przed implementacją)
 
-- [ ] Max liczba widocznych toastów: 3?
-- [ ] Domyślny auto-close: 4s? 5s?
-- [ ] Toast z akcją ma być dłużej widoczny (klikalny)?
-- [ ] Czy tosty mają dźwięk? (raczej nie – desktop)
+- [x] Max liczba widocznych toastów: **3**
+- [x] Auto-close: domyślnie **4s** (Success/Info), **6s** (Warning), **8s** (Error) – konfigurowalny per-toast
+- [x] Animacja: slide-in z prawej + fade (oparte na istniejących `AnimationStyles.axaml`)
+- [x] Kolejność: FIFO, najnowszy toast na górze stosu
+- [x] Ręczne zamykanie: przycisk ✕ w prawym górnym rogu
+- [x] Klikalny toast: opcjonalny `OnClick` callback
+- [x] Lokalizacja klucze w `Toast.` namespace
+
+## Plan implementacji
+
+### Faza 1: Model i serwis
+
+| Plik | Lokalizacja | Opis |
+|------|-------------|------|
+| `ToastNotification.cs` | `SUSModder/ViewModels/` | Model z ToastType, Title, Subtitle, AutoCloseMs, OnClick, Timestamp |
+| `ToastService.cs` | `SUSModder/ViewModels/` | Singleton serwis: Enqueue, ActiveToasts, auto-close timery, max 3 widoczne |
+
+### Faza 2: Widoki
+
+| Plik | Lokalizacja | Opis |
+|------|-------------|------|
+| `ToastNotificationView.axaml` | `SUSModder/Views/` | Pojedynczy toast: ikona, tytuł, subtitle, ✕ button |
+| `ToastNotificationView.axaml.cs` | `SUSModder/Views/` | Code-behind z obsługą zamknięcia + animacja slide-in (Avalonia Animation API) |
+| `ToastHost.axaml` | `SUSModder/Views/` | ItemsControl + StackPanel jako kontener (czysty XAML, bez styli) |
+| `ToastHost.axaml.cs` | `SUSModder/Views/` | Code-behind – pobiera ToastService z DI i ustawia jako DataContext |
+
+### Faza 3: Integracja w MainWindow
+
+- MainWindow.axaml: `<local:ToastHost Grid.Row="0" Grid.RowSpan="2"/>` – overlay nad status barem, pod modalami
+- App.axaml.cs: `services.AddSingleton<ToastService>()`
+- ToastHost.axaml.cs: `DataContext = App.GetService<ToastService>()`
+- MainWindowViewModel.cs: `ToastService = App.GetService<ToastService>()`
+
+### Faza 4: Lokalizacja
+
+- pl.json: sekcja `Toast.{ModInstalled, ModUpdated, ModDeleted, UpdateAvailable, DownloadError, GameLaunchError, DllInstalled, DllRemoved, Info}`
+- en.json: odpowiedniki EN
+
+### Faza 5: Integracja z operacjami
+
+- `ModOperations.cs` – po Install/Uninstall/Update
+- `DllManagement.cs` – po InstallDll/RemoveDll
+- `Updates.cs` – gdy znaleziono aktualizacje
+- `GameLaunch.cs` – błędy uruchamiania
+- `Initialization.cs` – CheckForModUpdatesAsync
+
+### Architektura przepływu
+
+```
+┌──────────────────────────────────────────────────┐
+│ ToastService (singleton, ObservableCollection)    │
+│  - Enqueue(ToastNotification)                     │
+│  - Dismiss(id)                                    │
+│  - Auto-close: DispatcherTimer (UI thread-safe)   │
+│  - Max 3 widoczne, FIFO kolejka                   │
+│  - ShowSuccess/ShowWarning/ShowError/ShowInfo     │
+└──────────────────────┬───────────────────────────┘
+                       │ binding (ItemsSource)
+┌──────────────────────▼───────────────────────────┐
+│ ToastHost (UserControl, ItemsControl)             │
+│  - StackPanel orientation=Vertical                │
+│  - Bottom-right overlay, Margin="0,0,20,96"      │
+│  - Binding do ToastService.ActiveToasts           │
+│  - DataContext = App.GetService<ToastService>()   │
+└──────────────────────┬───────────────────────────┘
+                       │ DataTemplate
+┌──────────────────────▼───────────────────────────┐
+│ ToastNotificationView (UserControl)               │
+│  - Ikona (emoji) + kolorowy pasek akcentu         │
+│  - Title + Subtitle (Subtitle opcjonalny)         │
+│  - ✕ przycisk do ręcznego zamknięcia              │
+│  - Kliknięcie → OnClick (jeśli ustawiony)         │
+│  - Slide-in animacja (OnAttachedToVisualTree)     │
+│  - Fade-out przez Opacity binding → DispatcherTimer│
+└──────────────────────────────────────────────────┘
+```
+
+### Uwagi z code review (zaimplementowane)
+
+#### Poprawki krytyczne
+
+1. **Opacity animation** (sus-senior-quality-reviewer): Usunięto style transitions z ToastHost, które kolidowały z lokalnym bindingiem `Opacity={Binding Opacity}` (style setter ma niższy priorytet niż local value w Avalonii). Zastąpiono czystą animacją w code-behind przez `Avalonia.Animation.Animation` API (wzór jak `LayoutAnimationBehavior`).
+
+2. **Thread safety** (sus-senior-quality-reviewer): Zastąpiono `Task.Run` + `Task.Delay` + `Dispatcher.UIThread.InvokeAsync` przez `Avalonia.Threading.DispatcherTimer`. Dzięki temu cały auto-close callback wykonuje się na UI thread, co eliminuje race conditions przy modyfikacji `ObservableCollection<_activeToasts>`. Usunięto `ReaderWriterLockSlim` jako niepotrzebny – wszystkie operacje są teraz wykonywane na UI thread.
+
+3. **Slide-in animation** (code-behind): Użyto bezpośrednio `Avalonia.Animation.Animation` z `TranslateTransform` i `CubicEaseOut`, wzorowane na istniejącym `LayoutAnimationBehavior.cs`.

@@ -110,6 +110,11 @@ namespace SUSModder.ViewModels
         public bool IsModPanelVisible => IsModSelected && !IsAnyToolModalOpen;
         public bool IsDeveloperMode => DeveloperModeSettings.IsEnabled;
 
+        /// <summary>
+        /// Serwis powiadomień toast (singleton).
+        /// </summary>
+        public ToastService ToastService { get; }
+
         public bool IsAdditionalActionsVisible
         {
             get => _isAdditionalActionsVisible;
@@ -491,7 +496,10 @@ namespace SUSModder.ViewModels
         public MainWindowViewModel()
         {
             _localizationService = App.GetService<SUSModder.Core.Services.Localization.ILocalizationService>();
-            
+
+            // Inicjalizuj serwis powiadomień toast (singleton z DI)
+            ToastService = App.GetService<ToastService>();
+
             // Inicjalizuj UserSettingsService
             _userSettingsService = new UserSettingsService();
             

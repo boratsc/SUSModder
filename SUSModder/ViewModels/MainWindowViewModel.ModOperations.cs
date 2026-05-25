@@ -87,6 +87,11 @@ namespace SUSModder.ViewModels
 
                     await RefreshModsListAsync(checkUpdates: false);
                     SelectedMod = Mods.FirstOrDefault(m => m.Id == currentSelectedMod.Id);
+
+                    // Powiadomienie toast
+                    ToastService.ShowSuccess(
+                        _localizationService.GetFormatted("Toast.ModInstalled", currentSelectedMod.Name),
+                        _localizationService.GetFormatted("UI.Labels.ModVersionFormat", modConfig.ModVersion));
                 }
             }
             catch (Exception ex)
@@ -615,6 +620,10 @@ namespace SUSModder.ViewModels
                     currentSelectedMod.InstallProgress = 100;
                     await Task.Delay(1500);
                     showNoUpdateMessage = true;
+
+                    // Powiadomienie toast
+                    ToastService.ShowInfo(
+                        _localizationService.Get("Toast.AllModsUpToDate"));
                     return;
                 }
 
@@ -671,6 +680,10 @@ namespace SUSModder.ViewModels
                 await Task.Delay(1500);
                 updateSuccessful = true;
                 successMessage = _localizationService.GetFormatted("ModOperations.ModUpdatedSuccess", currentSelectedMod.Name, updatedModConfig.ModVersion);
+
+                // Powiadomienie toast
+                ToastService.ShowSuccess(
+                    _localizationService.GetFormatted("Toast.ModUpdated", currentSelectedMod.Name, updatedModConfig.ModVersion));
             }
             catch (Exception ex)
             {
@@ -926,6 +939,10 @@ namespace SUSModder.ViewModels
                 RefreshModsSortingKeepSelection(currentSelectedMod);
 
                 System.Diagnostics.Debug.WriteLine($"[Uninstall] SUCCESS: Odinstalowanie moda '{currentSelectedMod.Name}' zakończone pomyślnie");
+
+                // Powiadomienie toast
+                ToastService.ShowInfo(
+                    _localizationService.GetFormatted("Toast.ModDeleted", currentSelectedMod.Name));
             }
             catch (Exception ex)
             {
