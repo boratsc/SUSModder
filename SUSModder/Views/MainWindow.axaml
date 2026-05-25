@@ -439,7 +439,7 @@
 							<Grid>
 								<!-- Navigation icon (default, no updates) -->
 								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Navigation}" FontSize="20" Foreground="White"
-											   IsVisible="{Binding !FabHasBadge}"/>
+											   IsVisible="{Binding FabHasBadge, Converter={x:Static BoolConverters.Not}}"/>
 								<!-- ArrowDownload icon (updates available) -->
 								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowDownload}" FontSize="20" Foreground="White"
 											   IsVisible="{Binding FabHasBadge}"/>
