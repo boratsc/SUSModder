@@ -59,6 +59,9 @@
       "Info": "Informacje",
       "CheckModUpdates": "Sprawdź aktualizacje modów"
     },
+    "Fab": {
+      "UpdatesBadgeTooltip": "{0} dostępnych aktualizacji"
+    },
     "ModDetails": {
       "Header": "Szczegóły moda:",
       "Name": "Nazwa:",
