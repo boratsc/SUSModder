@@ -427,13 +427,28 @@
 					Classes="status-bar">
 
 				<Grid ColumnDefinitions="Auto,*,Auto" Margin="16,5,16,5" ColumnSpacing="6">
-					<Button x:Name="FabButton"
-							Grid.Column="0"
-							Classes="fab"
-							Classes.active="{Binding IsPaneOpen}"
-							Command="{Binding TogglePaneCommand}">
-						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Navigation}" FontSize="20" Foreground="White"/>
-					</Button>
+					<Grid Grid.Column="0"
+						  Width="56" Height="56">
+						<Button x:Name="FabButton"
+								Classes="fab"
+								Classes.active="{Binding IsPaneOpen}"
+								Command="{Binding TogglePaneCommand}">
+							<ToolTip.Tip>
+								<TextBlock Text="{Binding FabBadgeTooltip}" FontSize="11" MaxWidth="200" TextWrapping="Wrap"/>
+							</ToolTip.Tip>
+							<ic:SymbolIcon Symbol="{Binding FabIconSymbol}" FontSize="20" Foreground="White"/>
+						</Button>
+						<Border Classes="fab-badge"
+								IsVisible="{Binding FabHasBadge}"
+								HorizontalAlignment="Right"
+								VerticalAlignment="Top"
+								Margin="0,-3,-3,0">
+							<TextBlock Text="{Binding FabBadgeCount}" FontSize="9"
+									   Foreground="White"
+									   HorizontalAlignment="Center"
+									   VerticalAlignment="Center"/>
+						</Border>
+					</Grid>
 
 					<Border Grid.Column="1"
 							Classes="statusbar-discord-promo"
