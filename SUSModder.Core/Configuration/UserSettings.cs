@@ -74,5 +74,12 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         [JsonPropertyName("antivirusWarningAcknowledgedSignature")]
         public string AntivirusWarningAcknowledgedSignature { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Ostatnia wersja aplikacji, którą użytkownik widział w changelogu.
+        /// Puste = nigdy nie pokazano. Służy do wyświetlania "Co nowego" po aktualizacji.
+        /// </summary>
+        [JsonPropertyName("lastSeenVersion")]
+        public string LastSeenVersion { get; set; } = string.Empty;
     }
 }

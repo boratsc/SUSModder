@@ -145,6 +145,15 @@ namespace SUSModder.Core.Services
         }
 
         /// <summary>
+        /// Zapisuje ostatnią widzianą wersję changeloga (co nowego).
+        /// </summary>
+        /// <param name="version">Wersja aplikacji (np. "2.5.0")</param>
+        public void SaveLastSeenVersion(string version)
+        {
+            UpdateUserSetting(s => s.LastSeenVersion = version);
+        }
+
+        /// <summary>
         /// Aktualizuje pojedyncze pole w ustawieniach użytkownika.
         /// </summary>
         public void UpdateUserSetting(Action<UserSettings> updateAction)

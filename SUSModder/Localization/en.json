@@ -923,6 +923,19 @@
     "CurrentVersionExample": "2.1.4",
     "NewVersionExample": "2.1.5"
   },
+  "Changelog": {
+    "WindowTitle": "What's new in SUSModder?",
+    "Subtitle": "What's new in SUSModder {version}?",
+    "CloseButton": "Close",
+    "GitHubButton": "Full changelog on GitHub →",
+    "VersionDate": "Version {version} — {date}",
+    "SectionFeatures": "New features",
+    "SectionFixes": "Bug fixes",
+    "SectionImprovements": "Improvements"
+  },
+  "Toast": {
+    "AppUpdated": "🆕 Updated to {0}! Click to see what's new."
+  },
   "StringFormats": {
     "CurrentVersion": "Current: {0}",
     "NewVersion": "New: {0}",

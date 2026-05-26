@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,6 +15,7 @@ using SUSModder.Core.Diagnostics;
 using SUSModder.Services;
 using SUSModder.Views;
 using SUSModder.ViewModels.Helpers;
+using SUSModder.Core.Models;
 using SUSModder.Core.Utilities;
 
 namespace SUSModder.ViewModels
@@ -421,6 +423,9 @@ namespace SUSModder.ViewModels
                 // Zwiększone opóźnienie aby UI był w pełni zainicjalizowany i uniknąć błędów PlatformImpl
                 await Task.Delay(1500);
 
+                // KROK 0: Sprawdź czy pokazać "Co nowego" po aktualizacji
+                await ShowChangelogIfNewVersionAsync();
+
                 // Sprawdź aktualizacje SEKWENCYJNIE - najpierw mody FULL, potem DLL
                 if (ShouldRunInteractiveModUpdateCheck())
                 {
@@ -441,6 +446,121 @@ namespace SUSModder.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"[Post-Init] Błąd podczas sprawdzania aktualizacji: {ex.Message}");
                 // Nie pokazujemy błędu użytkownikowi - aktualizacje nie są krytyczne
+            }
+        }
+
+        /// <summary>
+        /// Sprawdza czy aplikacja została zaktualizowana od ostatniego uruchomienia.
+        /// Jeśli tak: pobiera changelog z GitHub API i pokazuje dialog "Co nowego".
+        /// Jeśli GitHub API nie odpowiada – pokazuje tylko toast z linkiem do GitHub.
+        /// Zawsze pokazuje toast "Zaktualizowano do wersji X".
+        /// </summary>
+        private async Task ShowChangelogIfNewVersionAsync()
+        {
+            try
+            {
+                var userSettings = _userSettingsService.LoadUserSettings();
+                var lastSeenVersion = userSettings.LastSeenVersion ?? string.Empty;
+
+                using var changelogService = new SUSModder.Core.Services.ChangelogService();
+
+                // Sprawdź czy to nowa wersja
+                bool isNewVersion = changelogService.IsNewerVersion(AppVersion, lastSeenVersion);
+
+                if (!isNewVersion)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Changelog] Wersja {AppVersion} już wyświetlona (lastSeen: {lastSeenVersion})");
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[Changelog] Nowa wersja {AppVersion} (lastSeen: {lastSeenVersion})");
+
+                // KROK 1: Spróbuj pobrać z GitHub API (na potrzeby toasta)
+                var changelogData = await TryFetchFromGitHubAsync(changelogService);
+                ChangelogData? capturedData = changelogData;
+
+                // KROK 2: Toast z informacją o aktualizacji (jedyny widoczny element)
+                // Dialog changeloga otwiera się dopiero po kliknięciu w toasta
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    try
+                    {
+                        var toastTitle = _localizationService.GetFormatted("Toast.AppUpdated", AppVersion);
+
+                        if (capturedData != null)
+                        {
+                            // GitHub OK – kliknięcie w toasta otwiera dialog
+                            ToastService.ShowInfo(toastTitle, autoCloseMs: 8000, onClick: () =>
+                            {
+                                Dispatcher.UIThread.InvokeAsync(async () =>
+                                {
+                                    try
+                                    {
+                                        var dialog = new Views.ChangelogDialog(capturedData, _localizationService);
+                                        var mainWindow = (Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+                                        if (mainWindow != null)
+                                            await dialog.ShowDialog(mainWindow);
+                                    }
+                                    catch { /* ignoruj */ }
+                                });
+                            });
+                        }
+                        else
+                        {
+                            // GitHub fail – kliknięcie otwiera GitHub releases
+                            var githubUrl = "https://github.com/boratsc/SUSModder/releases";
+                            ToastService.ShowInfo(toastTitle, autoCloseMs: 8000, onClick: () =>
+                            {
+                                try
+                                {
+                                    Process.Start(new ProcessStartInfo
+                                    {
+                                        FileName = githubUrl,
+                                        UseShellExecute = true
+                                    });
+                                }
+                                catch { /* ignoruj */ }
+                            });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Changelog] Błąd toasta: {ex.Message}");
+                    }
+                });
+
+                // KROK 4: Zapisz wersję
+                _userSettingsService.SaveLastSeenVersion(AppVersion);
+                System.Diagnostics.Debug.WriteLine($"[Changelog] Zapisano lastSeenVersion = {AppVersion}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Changelog] Błąd: {ex.Message}");
+                // Nie blokujemy startu aplikacji
+            }
+        }
+
+        /// <summary>
+        /// Próbuje pobrać changelog z GitHub API.
+        /// </summary>
+        private async Task<ChangelogData?> TryFetchFromGitHubAsync(SUSModder.Core.Services.ChangelogService changelogService)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[Changelog] Próba GitHub API...");
+                var result = await changelogService.FetchFromGitHubAsync("boratsc", "SUSModder");
+
+                if (result != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Changelog] GitHub API sukces: wersja {result.Version}, {result.Sections.Count} sekcji");
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Changelog] GitHub API błąd: {ex.Message}");
+                return null;
             }
         }
 
