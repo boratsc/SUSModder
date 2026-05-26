@@ -13,14 +13,13 @@
         ExtendClientAreaToDecorationsHint="True">
 
     <Border CornerRadius="12" ClipToBounds="True">
-        <Panel x:Name="SplashPanel">
-            <!-- Static image (fallback, zawsze widoczny) -->
+        <Panel>
             <Image Source="/Assets/splashscreen.jpg"
                    Stretch="UniformToFill"
                    HorizontalAlignment="Stretch"
                    VerticalAlignment="Stretch"/>
 
-            <!-- Loading Progress Bar -->
+            <!-- Loading Progress Bar at Bottom - Bright cyan/yellow gradient -->
             <Border Height="6"
                     VerticalAlignment="Bottom"
                     HorizontalAlignment="Stretch"
@@ -30,6 +29,7 @@
                         HorizontalAlignment="Left"
                         Width="0"
                         CornerRadius="0,0,0,12">
+                    <!-- Gradient from cyan to yellow-green - very visible on blue -->
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
                             <GradientStop Color="#00F5FF" Offset="0.0" />
@@ -37,6 +37,7 @@
                             <GradientStop Color="#FFEB3B" Offset="1.0" />
                         </LinearGradientBrush>
                     </Border.Background>
+                    <!-- Animated Gradient Effect - Enhanced with brighter glow -->
                     <Border.Effect>
                         <DropShadowEffect Color="#00FFAA"
                                         BlurRadius="25"
@@ -47,7 +48,7 @@
                 </Border>
             </Border>
 
-            <!-- Loading Text -->
+            <!-- Loading Text - Bold and visible -->
             <TextBlock x:Name="LoadingText"
                       Text="{local:Localize Splash.Loading}"
                       FontSize="13"

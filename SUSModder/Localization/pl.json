@@ -345,6 +345,7 @@
   },
   "Toast": {
     "ModInstalled": "{0} zainstalowany pomyślnie",
+    "ModInstalledDesc": "Wersja: {0}",
     "ModUpdated": "{0} zaktualizowany do wersji {1}",
     "ModDeleted": "{0} został usunięty",
     "UpdateAvailable": "Dostępna aktualizacja: {0}",
