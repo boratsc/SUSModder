@@ -1,4 +1,7 @@
-# OpenCode/Sisyphus session artifacts
+# Agent/CI/OpenCode session artifacts
+.claude/
+.github/
+.opencode/
 .sisyphus/
 
 ## Ignore Visual Studio temporary files, build results, and
