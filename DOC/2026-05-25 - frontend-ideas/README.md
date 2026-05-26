@@ -20,6 +20,7 @@ Sesja burzy mózgów z `sus-ui` + review `sus-senior-quality-reviewer` (GLM 5.1)
 | [`12-voice-chat-integration.md`](12-voice-chat-integration.md) | Integracja voice chat: Discord / BetterCrewLink ✨ | 🟢 P2 | ~1-5 dni |
 | [`13-download-speed.md`](13-download-speed.md) | Prędkość pobierania w progress barze ✨ | 🟢 P2 | ~1-2h |
 | [`14-splash-video-webview2.md`](14-splash-video-webview2.md) | Splash screen video przez WebView2 | 🟢 P2 | ~3-4h |
+| [`15-sharpcompress.md`](15-sharpcompress.md) | Zastąpienie 7z.exe przez SharpCompress (7z + zip z progresem) | 🟢 P2 | ~2-3h |
 | [`07-future-features.md`](07-future-features.md) | Dwuetapowy flow, auto-update | ⚪ P3-P4 | 1-5 dni |
 
 ## Kolejność implementacji (po review GLM 5.1)

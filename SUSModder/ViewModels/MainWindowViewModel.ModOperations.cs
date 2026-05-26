@@ -106,6 +106,7 @@ namespace SUSModder.ViewModels
                     currentSelectedMod.ShowProgress = false;
                     currentSelectedMod.InstallProgress = 0;
                     currentSelectedMod.InstallStatusMessage = string.Empty;
+                    currentSelectedMod.DownloadSpeed = null;
                     currentSelectedMod.IsInstalling = false;
                 });
 
@@ -307,6 +308,15 @@ namespace SUSModder.ViewModels
                 });
             };
 
+            // Subskrybuj prędkość pobierania z legendary
+            epicManager.SpeedChanged += (speed) =>
+            {
+                Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    currentSelectedMod.DownloadSpeed = speed;
+                });
+            };
+
             // Subskrybuj zakończenie instalacji
             epicManager.InstallationCompleted += (completedModConfig) =>
             {
@@ -369,7 +379,14 @@ namespace SUSModder.ViewModels
                     progressReporter,
                     diagnosticsOutput,
                     callbacks,
-                    "steam"
+                    "steam",
+                    onSpeedUpdate: (speed) =>
+                    {
+                        Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            currentSelectedMod.DownloadSpeed = speed;
+                        });
+                    }
                 );
 
                 var installedConfig = allConfigs.FirstOrDefault(c => c.Id == modConfig.Id);

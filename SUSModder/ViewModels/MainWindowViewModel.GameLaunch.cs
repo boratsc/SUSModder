@@ -134,6 +134,7 @@ namespace SUSModder.ViewModels
                 currentSelectedMod.ShowProgress = false;
                 currentSelectedMod.InstallProgress = 0;
                 currentSelectedMod.InstallStatusMessage = string.Empty;
+                currentSelectedMod.DownloadSpeed = null;
                 currentSelectedMod.IsInstalling = false;
             }
         }
@@ -169,6 +170,15 @@ namespace SUSModder.ViewModels
                 {
                     currentSelectedMod.InstallProgress = percentage;
                     currentSelectedMod.InstallStatusMessage = message;
+                });
+            };
+
+            // Subskrybuj prędkość pobierania z legendary
+            epicManager.SpeedChanged += (speed) =>
+            {
+                Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    currentSelectedMod.DownloadSpeed = speed;
                 });
             };
 

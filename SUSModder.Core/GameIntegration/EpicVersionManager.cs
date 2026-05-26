@@ -44,6 +44,7 @@ namespace SUSModder.Core.GameIntegration
         public event Action<string>? LegendaryOutput;
         private readonly object _fileLock = new object();
         public event Action<int, string>? ProgressChanged;
+        public event Action<string>? SpeedChanged;
         private double _lastProgressPercentage = 0;
         private string _lastCurrentFiles = "";
         private string _lastTotalFiles = "";
@@ -973,12 +974,21 @@ namespace SUSModder.Core.GameIntegration
                 await DownloadLegendaryAsync();
             }
 
-            // Uwierzytelnij użytkownika (spróbuj import, jeśli nie uda się - manual code entry)
-            bool authenticated = await AuthenticateAsync();
-            if (!authenticated)
+            // Sprawdź czy użytkownik jest już zalogowany (sesja persisted przez legendary).
+            // Jeśli tak – pomijamy AuthenticateAsync, unikając zbędnego auth --import
+            // który może pokazywać WebView przy każdym odpaleniu moda.
+            bool isLoggedIn = await CheckAuthStatusAsync();
+            if (!isLoggedIn)
             {
-                Write("Nie udało się uwierzytelnić użytkownika. Przerywam operację.");
-                return;
+                Write("Brak aktywnej sesji Epic Games – próba uwierzytelnienia...");
+
+                // Uwierzytelnij użytkownika (spróbuj import, jeśli nie uda się - WebView dialog)
+                bool authenticated = await AuthenticateAsync();
+                if (!authenticated)
+                {
+                    Write("Nie udało się uwierzytelnić użytkownika. Przerywam operację.");
+                    return;
+                }
             }
 
             string installDirectory;
@@ -1479,6 +1489,7 @@ namespace SUSModder.Core.GameIntegration
                 if (speedMatch.Success)
                 {
                     _lastDownloadSpeed = speedMatch.Groups[1].Value;
+                    SpeedChanged?.Invoke(_lastDownloadSpeed);
                     if (_lastProgressPercentage > 0)
                         shouldReport = true;
                 }

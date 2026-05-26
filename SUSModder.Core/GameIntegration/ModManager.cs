@@ -38,7 +38,8 @@ namespace SUSModder.Core.GameIntegration
             IProgressReporter progress,
             IDiagnosticsOutput log,
             ModManagerUserCallbacks userCallbacks,
-            string mode)
+            string mode,
+            Action<string>? onSpeedUpdate = null)
         {
             this.log = log; // Przypisz log do pola klasy
 
@@ -46,7 +47,7 @@ namespace SUSModder.Core.GameIntegration
             {
                 if (mode == "steam")
                 {
-                    await InstallSteamAsync(modConfig, modConfigs, progress, log, userCallbacks);
+                    await InstallSteamAsync(modConfig, modConfigs, progress, log, userCallbacks, onSpeedUpdate);
                 }
                 else
                 {
@@ -61,7 +62,8 @@ namespace SUSModder.Core.GameIntegration
             List<ModConfiguration> modConfigs,
             IProgressReporter progress,
             IDiagnosticsOutput log,
-            ModManagerUserCallbacks userCallbacks)
+            ModManagerUserCallbacks userCallbacks,
+            Action<string>? onSpeedUpdate = null)
         {
             string modsInstallPath = PathSettings.ModsInstallPath;
             Directory.CreateDirectory(modsInstallPath);
@@ -99,7 +101,8 @@ namespace SUSModder.Core.GameIntegration
                             fileUrlAmongUs,
                             vanilla7zPath,
                             progress,
-                            "vanilla Among Us");
+                            "vanilla Among Us",
+                            onSpeedUpdate);
 
                         if (!downloaded)
                         {
@@ -150,7 +153,8 @@ namespace SUSModder.Core.GameIntegration
                         downloadUrl,
                         modFile,
                         progress,
-                        $"mod {modConfig.ModName}");
+                        $"mod {modConfig.ModName}",
+                        onSpeedUpdate);
 
                     if (!modDownloaded)
                     {
@@ -605,10 +609,16 @@ namespace SUSModder.Core.GameIntegration
             }
         }
 
-        private async Task<bool> DownloadFileWithMemoryManagementAsync(string url, string filePath, IProgressReporter progress, string fileDescription)
+        private async Task<bool> DownloadFileWithMemoryManagementAsync(
+            string url,
+            string filePath,
+            IProgressReporter progress,
+            string fileDescription,
+            Action<string>? onSpeedUpdate = null)
         {
             const int bufferSize = 8192; // 8KB buffer
             const long maxMemoryThreshold = 50 * 1024 * 1024; // 50MB threshold dla GC
+            const long speedUpdateInterval = 512 * 1024; // Aktualizuj prędkość co ~512KB
 
             try
             {
@@ -624,6 +634,8 @@ namespace SUSModder.Core.GameIntegration
                 var totalBytes = response.Content.Headers.ContentLength ?? 0;
                 var downloadedBytes = 0L;
                 var lastGcBytes = 0L;
+                var lastSpeedBytes = 0L;
+                var stopwatch = Stopwatch.StartNew();
 
                 using var contentStream = await response.Content.ReadAsStreamAsync();
                 using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize);
@@ -643,6 +655,17 @@ namespace SUSModder.Core.GameIntegration
                         progress?.Report(percentage, $"Pobieranie {fileDescription}...");
                     }
 
+                    // Aktualizuj prędkość pobierania co ~512KB
+                    if (onSpeedUpdate != null && downloadedBytes - lastSpeedBytes > speedUpdateInterval)
+                    {
+                        lastSpeedBytes = downloadedBytes;
+                        var speed = CalculateDownloadSpeed(downloadedBytes, stopwatch);
+                        if (speed != null)
+                        {
+                            onSpeedUpdate(speed);
+                        }
+                    }
+
                     // Wymuś GC co 50MB pobranych danych
                     if (downloadedBytes - lastGcBytes > maxMemoryThreshold)
                     {
@@ -654,6 +677,18 @@ namespace SUSModder.Core.GameIntegration
 
                 // Wymuś flush i zamknij strumień
                 await fileStream.FlushAsync();
+
+                // Finalna aktualizacja prędkości po zakończeniu pobierania
+                if (onSpeedUpdate != null)
+                {
+                    var finalSpeed = CalculateDownloadSpeed(downloadedBytes, stopwatch);
+                    if (finalSpeed != null)
+                    {
+                        onSpeedUpdate(finalSpeed);
+                    }
+                }
+
+                stopwatch.Stop();
 
                 log?.Write($"Pobrano {fileDescription}: {downloadedBytes:N0} bajtów do {filePath}");
                 return true;
@@ -707,6 +742,24 @@ namespace SUSModder.Core.GameIntegration
             {
                 return "unknown";
             }
+        }
+
+        /// <summary>
+        /// Oblicza prędkość pobierania na podstawie pobranych bajtów i czasu.
+        /// </summary>
+        private static string? CalculateDownloadSpeed(long bytesReceived, Stopwatch stopwatch)
+        {
+            var elapsed = stopwatch.Elapsed;
+            if (elapsed.TotalSeconds < 0.5)
+                return null;
+
+            double speed = bytesReceived / elapsed.TotalSeconds;
+
+            if (speed > 1_000_000)
+                return $"{speed / 1_000_000:F1} MB/s";
+            if (speed > 1_000)
+                return $"{speed / 1_000:F0} KB/s";
+            return $"{speed:F0} B/s";
         }
     }
 }

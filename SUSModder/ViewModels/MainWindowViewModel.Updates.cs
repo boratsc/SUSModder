@@ -330,6 +330,13 @@ namespace SUSModder.ViewModels
 
                             var epicUserInteraction = new EpicUserInteractionAdapter(_userInteractionService);
                             var epicManager = new EpicVersionManager(diagnosticsOutput, epicUserInteraction);
+                            epicManager.SpeedChanged += (speed) =>
+                            {
+                                Dispatcher.UIThread.Post(() =>
+                                {
+                                    modItem.DownloadSpeed = speed;
+                                });
+                            };
                             await epicManager.ModifyEpicAsync(updatedConfig, new object(), new object());
                         }
                         else
@@ -353,7 +360,14 @@ namespace SUSModder.ViewModels
                                 progressReporter,
                                 diagnosticsOutput,
                                 callbacks,
-                                "steam"
+                                "steam",
+                                onSpeedUpdate: (speed) =>
+                                {
+                                    Dispatcher.UIThread.Post(() =>
+                                    {
+                                        modItem.DownloadSpeed = speed;
+                                    });
+                                }
                             );
                         }
 
@@ -381,6 +395,10 @@ namespace SUSModder.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"Error updating single mod {modItem.Name}: {ex.Message}");
                 progressDialog?.UpdateProgress(100, $"Błąd: {ex.Message}");
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    modItem.DownloadSpeed = null;
+                });
                 await Task.Delay(1500);
                 return false;
             }
@@ -389,7 +407,7 @@ namespace SUSModder.ViewModels
                 IsAnyModInstalling = false;
             }
         }
-
+    
         private async Task<bool> UpdateSingleModAsync(ModItem modItem, ModUpdateInfo updateInfo)
         {
             IsAnyModInstalling = true;
@@ -505,6 +523,13 @@ namespace SUSModder.ViewModels
 
                             var epicUserInteraction = new EpicUserInteractionAdapter(_userInteractionService);
                             var epicManager = new EpicVersionManager(diagnosticsOutput, epicUserInteraction);
+                            epicManager.SpeedChanged += (speed) =>
+                            {
+                                Dispatcher.UIThread.Post(() =>
+                                {
+                                    modItem.DownloadSpeed = speed;
+                                });
+                            };
                             await epicManager.ModifyEpicAsync(updatedConfig, new object(), new object());
                         }
                         else
@@ -528,7 +553,14 @@ namespace SUSModder.ViewModels
                                 progressReporter,
                                 diagnosticsOutput,
                                 callbacks,
-                                "steam"
+                                "steam",
+                                onSpeedUpdate: (speed) =>
+                                {
+                                    Dispatcher.UIThread.Post(() =>
+                                    {
+                                        modItem.DownloadSpeed = speed;
+                                    });
+                                }
                             );
                         }
 
@@ -543,6 +575,7 @@ namespace SUSModder.ViewModels
                 {
                     modItem.InstallProgress = 100;
                     modItem.InstallStatusMessage = "Aktualizacja zakończona";
+                    modItem.DownloadSpeed = null;
                 });
                 
                 await Task.Delay(500);
@@ -554,6 +587,7 @@ namespace SUSModder.ViewModels
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     modItem.InstallStatusMessage = $"Błąd: {ex.Message}";
+                    modItem.DownloadSpeed = null;
                 });
                 return false;
             }

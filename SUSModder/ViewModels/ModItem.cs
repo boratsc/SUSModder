@@ -25,6 +25,7 @@ namespace SUSModder.ViewModels
         private bool _isInstalling = false;
         private int _installProgress = 0;
         private string _installStatusMessage = string.Empty;
+        private string? _downloadSpeed;
         private bool _showProgress = false;
 
         public int Id
@@ -162,6 +163,12 @@ namespace SUSModder.ViewModels
         {
             get => _installStatusMessage;
             set => this.RaiseAndSetIfChanged(ref _installStatusMessage, value);
+        }
+
+        public string? DownloadSpeed
+        {
+            get => _downloadSpeed;
+            set => this.RaiseAndSetIfChanged(ref _downloadSpeed, value);
         }
 
         public bool ShowProgress

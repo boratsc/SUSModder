@@ -235,6 +235,11 @@
 											   Foreground="{DynamicResource TextSecondaryBrush}"
 											   TextAlignment="Center"
 											   Margin="0,5,0,0"/>
+									<TextBlock Text="{Binding DownloadSpeed}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"
+											   TextAlignment="Center"
+											   IsVisible="{Binding DownloadSpeed, Converter={StaticResource StringNotNullOrEmptyToBoolConverter}}"/>
 								</StackPanel>
 							</Border>								<!-- Przyciski dla Vanilla - tylko Uruchom -->
 								<StackPanel IsVisible="{Binding IsVanilla}" Spacing="10">
