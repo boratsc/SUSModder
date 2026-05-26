@@ -272,3 +272,72 @@ Po każdym pliku aktualizuje się też `CurrentFile` — możemy pokazać nazwę
 - Refaktor `EpicVersionManager`: ~15min
 - Usunięcie `tools/7z.exe` + csproj clean: ~15min
 - Testy: ~30min
+
+---
+
+## Plan implementacji (2026-05-26)
+
+### Krok 1: Dodanie SharpCompress NuGet do SUSModder.Core
+
+```bash
+dotnet add SUSModder.Core\SUSModder.Core.csproj package SharpCompress --version 0.48.1
+```
+
+### Krok 2: Utworzenie IArchiveExtractor.cs
+
+**Plik:** `SUSModder.Core/Utilities/IArchiveExtractor.cs`
+
+- Interfejs `IArchiveExtractor` z metodą `ExtractAsync`
+- Record `ExtractionProgress` z `BytesExtracted`, `TotalBytes`, `CurrentFile`
+- Namespace: `SUSModder.Core.Utilities`
+
+### Krok 3: Utworzenie SharpCompressExtractor.cs
+
+**Plik:** `SUSModder.Core/Utilities/SharpCompressExtractor.cs`
+
+- Implementuje `IArchiveExtractor`
+- Używa `ReaderFactory.Open` z SharpCompress
+- Obsługuje hasło (dla 7z), progres (IProgress<ExtractionProgress>), CancellationToken
+- Wspiera 7z, ZIP, RAR — wszystkie przez jeden interfejs
+- Zabezpieczenie: maskowanie hasła w logach (jak w starej Extract7zWithPassword)
+
+### Krok 4: Refaktor ModManager.cs — instalacja Steam (7z + ZIP)
+
+**Miejsce 1 (linia 212):** `Extract7zWithPassword` dla vanilla 7z
+- Zastąpić `await Task.Run(() => Extract7zWithPassword(...))` na `await extractor.ExtractAsync(...)` z `IProgress<ExtractionProgress>`
+- Mapować progres 50-65% całości instalacji (obecnie był stały 60%)
+- Dodać formatowanie rozmiaru i ETA
+
+**Miejsce 2 (linia 266):** `ZipFile.ExtractToDirectory` dla mod ZIP
+- Zastąpić na `await extractor.ExtractAsync(...)` z progresem
+- Progres mapowany w zakresie 80-90%
+
+**Usunąć:**
+- Metodę `Extract7zWithPassword` (linie 460-512)
+- `using System.IO.Compression;`
+
+### Krok 5: Refaktor EpicVersionManager.cs — instalacja Epic (ZIP)
+
+**Miejsce (linia 378):** `ZipFile.ExtractToDirectory` dla mod ZIP
+- Zastąpić na `await extractor.ExtractAsync(...)` z progresem przez `ProgressChanged`
+- Usunąć `using System.IO.Compression;`
+
+### Krok 6: Usunięcie tools/7z.exe i tools/7z.dll
+
+**Pliki do usunięcia:**
+- `SUSModder/tools/7z.exe`
+- `SUSModder/tools/7z.dll`
+
+**W SUSModder.csproj:** usunąć blok `<ItemGroup>` z `tools\7z.exe` i `tools\7z.dll` (linie 54-63)
+
+### Krok 7: Build i test
+
+- `dotnet build SUSModder.sln` — brak błędów
+- Weryfikacja: instalacja moda Steam (vanilla 7z + ZIP moda)
+- Weryfikacja: instalacja moda Epic (ZIP moda)
+- Obsługa błędów: nieprawidłowe hasło, uszkodzone archiwum
+
+### Krok 8: Code Review
+
+- `@sus-quality-reviewer` — standardowy review średniej zmiany
+- `@sus-senior-quality-reviewer` — review architektury i bezpieczeństwa
