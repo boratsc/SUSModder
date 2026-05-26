@@ -1,0 +1,67 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:SUSModder.Controls">
+
+    <!-- Styl dla SkeletonCard -->
+    <Style Selector="controls|SkeletonCard">
+        <Setter Property="Width" Value="140"/>
+        <Setter Property="Height" Value="140"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid>
+                    <!-- Skeleton placeholder (widoczny podczas ladowania) -->
+                    <Border Name="PART_SkeletonOverlay"
+                            Width="140"
+                            Height="140"
+                            CornerRadius="8"
+                            Background="{DynamicResource ModCardBackgroundBrush}"
+                            BorderBrush="{DynamicResource ModCardBorderBrush}"
+                            BorderThickness="1"
+                            IsVisible="{TemplateBinding IsLoading}">
+                        <Border Opacity="0.5">
+                            <StackPanel VerticalAlignment="Center"
+                                        HorizontalAlignment="Center"
+                                        Spacing="8">
+                                <!-- Placeholder ikony -->
+                                <Border Width="48"
+                                        Height="48"
+                                        CornerRadius="24"
+                                        Background="#40FFFFFF"/>
+                                <!-- Placeholder tekstu -->
+                                <Border Width="80"
+                                        Height="12"
+                                        CornerRadius="6"
+                                        Background="#30FFFFFF"/>
+                            </StackPanel>
+                        </Border>
+                    </Border>
+
+                    <!-- Wlasciwa zawartosc (widoczna gdy nie laduje) -->
+                    <ContentPresenter Name="PART_Content"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalAlignment="Stretch"
+                                      VerticalAlignment="Stretch"/>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- Pulsating opacity animation dla skeleton overlay -->
+    <Style Selector="controls|SkeletonCard Border#PART_SkeletonOverlay">
+        <Style.Animations>
+            <Animation Duration="0:0:1.5" IterationCount="Infinite">
+                <KeyFrame Cue="0%">
+                    <Setter Property="Opacity" Value="0.6"/>
+                </KeyFrame>
+                <KeyFrame Cue="50%">
+                    <Setter Property="Opacity" Value="1.0"/>
+                </KeyFrame>
+                <KeyFrame Cue="100%">
+                    <Setter Property="Opacity" Value="0.6"/>
+                </KeyFrame>
+            </Animation>
+        </Style.Animations>
+    </Style>
+
+</Styles>

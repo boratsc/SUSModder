@@ -39,6 +39,12 @@
         <Setter Property="Background" Value="{DynamicResource AccentButtonBackgroundPressed}"/>
     </Style>
 
+    <!-- FAB disabled state -->
+    <Style Selector="Button.fab:disabled">
+        <Setter Property="Opacity" Value="0.45"/>
+        <Setter Property="Cursor" Value="No"/>
+    </Style>
+
     <!-- FAB active (menu open) state -->
     <Style Selector="Button.fab.active">
         <Setter Property="Background" Value="{DynamicResource SystemAccentColorDark1}"/>
@@ -115,6 +121,11 @@
 
     <Style Selector="Button.fab-menu-item:pressed">
         <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPressed}"/>
+    </Style>
+
+    <Style Selector="Button.fab-menu-item:disabled">
+        <Setter Property="Opacity" Value="0.45"/>
+        <Setter Property="Cursor" Value="No"/>
     </Style>
 
     <!-- Separator in menu -->

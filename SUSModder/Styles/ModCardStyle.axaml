@@ -18,6 +18,17 @@
         <Setter Property="CornerRadius" Value="8"/>
         <Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="RenderTransform" Value="scale(1.0)"/>
+        <Setter Property="BoxShadow" Value="0 2 8 0 #20000000"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2">
+                    <TransformOperationsTransition.Easing>
+                        <CubicEaseOut/>
+                    </TransformOperationsTransition.Easing>
+                </TransformOperationsTransition>
+            </Transitions>
+        </Setter>
     </Style>
 
     <!-- Styl dla ikony moda w karcie -->
@@ -61,6 +72,8 @@
     <Style Selector="ListBoxItem:pointerover Border.mod-card">
         <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
         <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="RenderTransform" Value="scale(1.03)"/>
+        <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
     </Style>
 
 </Styles>

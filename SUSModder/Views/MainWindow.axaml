@@ -22,6 +22,7 @@
 		<converters:DiskUsageColorConverter x:Key="DiskUsageColorConverter"/>
 		<converters:UpdatesColorConverter x:Key="UpdatesColorConverter"/>
 		<converters:StringTruncateConverter x:Key="StringTruncateConverter"/>
+		<converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
 	</Window.Resources>
 
 	<Design.DataContext>
@@ -34,6 +35,35 @@
 		<StyleInclude Source="/Styles/MenuButtonStyle.axaml"/>
 		<StyleInclude Source="/Styles/PanelStyles.axaml"/>
 		<StyleInclude Source="/Styles/StatusBarStyle.axaml"/>
+
+		<!-- Przezroczysty tooltip bez domyślnej obwoluty -->
+		<Style Selector="ToolTip">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderBrush" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Padding" Value="0"/>
+		</Style>
+
+		<!-- Skeleton card loading placeholder -->
+		<Style Selector="Border.skeleton-card">
+			<Setter Property="Background" Value="{DynamicResource ModCardBackgroundBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Opacity" Value="0.5"/>
+			<Style.Animations>
+				<Animation Duration="0:0:1.5" IterationCount="Infinite">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0.4"/>
+					</KeyFrame>
+					<KeyFrame Cue="50%">
+						<Setter Property="Opacity" Value="0.8"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="0.4"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
 	</Window.Styles>
 
 	<!-- Main Grid replacing SplitView -->
@@ -42,7 +72,29 @@
 		<!-- Main Content Area -->
 		<Grid Grid.Row="0" ColumnDefinitions="*, Auto">
 
+			<!-- Skeleton loading placeholders (widoczne podczas inicjalizacji) -->
+			<ScrollViewer Grid.Column="0" Margin="10"
+						  IsVisible="{Binding IsModsLoading}"
+						  Background="Transparent">
+				<labs:FlexPanel Direction="Row" Wrap="Wrap"
+								JustifyContent="FlexStart"
+								AlignItems="FlexStart"
+								AlignContent="FlexStart">
+					<Border Width="140" Height="140" CornerRadius="8" Classes="skeleton-card"/>
+					<Border Width="140" Height="140" CornerRadius="8" Classes="skeleton-card"/>
+					<Border Width="140" Height="140" CornerRadius="8" Classes="skeleton-card"/>
+					<Border Width="140" Height="140" CornerRadius="8" Classes="skeleton-card"/>
+					<Border Width="140" Height="140" CornerRadius="8" Classes="skeleton-card"/>
+					<Border Width="140" Height="140" CornerRadius="8" Classes="skeleton-card"/>
+					<Border Width="140" Height="140" CornerRadius="8" Classes="skeleton-card"/>
+					<Border Width="140" Height="140" CornerRadius="8" Classes="skeleton-card"/>
+					<Border Width="140" Height="140" CornerRadius="8" Classes="skeleton-card"/>
+					<Border Width="140" Height="140" CornerRadius="8" Classes="skeleton-card"/>
+				</labs:FlexPanel>
+			</ScrollViewer>
+
 				<ListBox Grid.Column="0" Margin="10"
+						 IsVisible="{Binding IsModsLoading, Converter={StaticResource InverseBoolConverter}}"
 						 ItemsSource="{Binding Mods}"
 						 SelectedItem="{Binding SelectedMod}"
 						 Background="Transparent"
@@ -73,15 +125,63 @@
 										DoubleClickInterval="300" />
 								</i:Interaction.Behaviors>
 								<ToolTip.Tip>
-									<StackPanel MaxWidth="300">
-										<TextBlock Text="{Binding Name}" 
-												   FontWeight="Bold" 
-												   FontSize="13"
-												   Margin="0,0,0,5"/>
-										<TextBlock Text="{Binding Description, Converter={StaticResource StringTruncateConverter}, ConverterParameter=150}" 
-												   TextWrapping="Wrap"
-												   FontSize="11"/>
-									</StackPanel>
+									<Border Padding="12"
+											CornerRadius="8"
+											Background="{DynamicResource PaneBackgroundBrush}"
+											BorderBrush="{DynamicResource AccentBrush}"
+											BorderThickness="1"
+											BoxShadow="0 4 16 0 #40000000">
+										<StackPanel Spacing="4" MaxWidth="260">
+											<!-- Nazwa moda (header) -->
+											<TextBlock Text="{Binding Name}"
+													   FontWeight="Bold"
+													   FontSize="14"
+													   Foreground="{DynamicResource TextPrimaryBrush}"/>
+											<!-- Separator -->
+											<Rectangle Height="1"
+													   Fill="{DynamicResource CardStrokeColorDefaultBrush}"
+													   Margin="0,2,0,4"
+													   Opacity="0.5"/>
+											<!-- Wersja moda -->
+											<StackPanel Orientation="Horizontal" Spacing="6">
+												<TextBlock Text="{loc:Localize UI.Labels.ModVersion}"
+														   FontWeight="SemiBold"
+														   FontSize="11"
+														   Opacity="0.7"
+														   Foreground="{DynamicResource TextPrimaryBrush}"/>
+												<TextBlock Text="{Binding ModVersion, TargetNullValue=—}"
+														   FontSize="11"
+														   Foreground="{DynamicResource TextPrimaryBrush}"/>
+											</StackPanel>
+											<!-- Wersja Among Us -->
+											<StackPanel Orientation="Horizontal" Spacing="6">
+												<TextBlock Text="{loc:Localize UI.Labels.GameVersion}"
+														   FontWeight="SemiBold"
+														   FontSize="11"
+														   Opacity="0.7"
+														   Foreground="{DynamicResource TextPrimaryBrush}"/>
+												<TextBlock Text="{Binding AmongVersion, TargetNullValue=—}"
+														   FontSize="11"
+														   Foreground="{DynamicResource TextPrimaryBrush}"/>
+											</StackPanel>
+											<!-- Status -->
+											<StackPanel Orientation="Horizontal" Spacing="6">
+												<TextBlock Text="{loc:Localize UI.Labels.Status}"
+														   FontWeight="SemiBold"
+														   FontSize="11"
+														   Opacity="0.7"
+														   Foreground="{DynamicResource TextPrimaryBrush}"/>
+												<TextBlock Text="{loc:Localize UI.ModStatus.Installed}"
+														   FontSize="11"
+														   Foreground="#4CAF50"
+														   IsVisible="{Binding IsInstalled}"/>
+												<TextBlock Text="{loc:Localize UI.ModStatus.NotInstalled}"
+														   FontSize="11"
+														   Foreground="#FF5252"
+														   IsVisible="{Binding IsInstalled, Converter={StaticResource InverseBoolConverter}}"/>
+											</StackPanel>
+										</StackPanel>
+									</Border>
 								</ToolTip.Tip>
 								<StackPanel>
 									<Image Classes="mod-icon"
@@ -438,6 +538,9 @@
 								Classes="fab"
 								Classes.active="{Binding IsPaneOpen}"
 								Command="{Binding TogglePaneCommand}">
+							<i:Interaction.Behaviors>
+								<behaviors:RippleBehavior RippleColor="#FFFFFF" RippleOpacity="0.25" RippleDuration="500"/>
+							</i:Interaction.Behaviors>
 							<ToolTip.Tip>
 								<TextBlock Text="{Binding FabBadgeTooltip}" FontSize="11" MaxWidth="200" TextWrapping="Wrap"/>
 							</ToolTip.Tip>
@@ -897,6 +1000,9 @@
 					<!-- Sprawdź aktualizacje modów -->
 					<Button Classes="fab-menu-item"
 							Command="{Binding CheckForModUpdatesFromMenuCommand}">
+						<i:Interaction.Behaviors>
+							<behaviors:RippleBehavior/>
+						</i:Interaction.Behaviors>
 						<StackPanel Orientation="Horizontal" Spacing="12">
 							<Grid>
 								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowDownload}" 
@@ -916,6 +1022,9 @@
 
 					<Button Classes="fab-menu-item"
 							Command="{Binding FixBlackScreenCommand}">
+						<i:Interaction.Behaviors>
+							<behaviors:RippleBehavior/>
+						</i:Interaction.Behaviors>
 						<StackPanel Orientation="Horizontal" Spacing="12">
 							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Toolbox}" FontSize="20" Foreground="#FF9800"/>
 							<TextBlock Text="{loc:Localize UI.Menu.RepairGame}" VerticalAlignment="Center"/>
@@ -924,6 +1033,9 @@
 
 					<Button Classes="fab-menu-item"
 							Command="{Binding ShowAdditionalActionsCommand}">
+						<i:Interaction.Behaviors>
+							<behaviors:RippleBehavior/>
+						</i:Interaction.Behaviors>
 						<StackPanel Orientation="Horizontal" Spacing="12">
 							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Wrench}" FontSize="20" Foreground="#F44336"/>
 							<TextBlock Text="{loc:Localize UI.Menu.ToUConfigs}" VerticalAlignment="Center"/>
@@ -932,6 +1044,9 @@
 
 					<Button Classes="fab-menu-item"
 							Command="{Binding ShowRecommendedDiscordsCommand}">
+						<i:Interaction.Behaviors>
+							<behaviors:RippleBehavior/>
+						</i:Interaction.Behaviors>
 						<StackPanel Orientation="Horizontal" Spacing="12">
 							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.PeopleTeam}" FontSize="20" Foreground="#4CAF50"/>
 							<TextBlock Text="{loc:Localize UI.Menu.RecommendedDiscords}" VerticalAlignment="Center"/>
@@ -940,6 +1055,9 @@
 
 					<Button Classes="fab-menu-item"
 							Command="{Binding ShowSUStatsConfigCommand}">
+						<i:Interaction.Behaviors>
+							<behaviors:RippleBehavior/>
+						</i:Interaction.Behaviors>
 						<StackPanel Orientation="Horizontal" Spacing="12">
 							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.DataBarVertical}" FontSize="20" Foreground="#E91E63"/>
 							<TextBlock Text="{loc:Localize UI.Menu.SUStats}" VerticalAlignment="Center"/>
@@ -948,6 +1066,9 @@
 
 					<Button Classes="fab-menu-item"
 							Command="{Binding ShowAppSettingsCommand}">
+						<i:Interaction.Behaviors>
+							<behaviors:RippleBehavior/>
+						</i:Interaction.Behaviors>
 						<StackPanel Orientation="Horizontal" Spacing="12">
 							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Settings}" FontSize="20" Foreground="#2196F3"/>
 							<TextBlock Text="{loc:Localize UI.Menu.Settings}" VerticalAlignment="Center"/>
@@ -956,6 +1077,9 @@
 
 					<Button Classes="fab-menu-item"
 							Command="{Binding ShowInfoCommand}">
+						<i:Interaction.Behaviors>
+							<behaviors:RippleBehavior/>
+						</i:Interaction.Behaviors>
 						<StackPanel Orientation="Horizontal" Spacing="12">
 							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Info}" FontSize="20" Foreground="#00BCD4"/>
 							<TextBlock Text="{loc:Localize UI.Menu.Info}" VerticalAlignment="Center"/>
@@ -965,6 +1089,9 @@
 					<Border Classes="fab-menu-separator"/>
 					<Button Classes="fab-menu-item"
 							Command="{Binding ToggleThemeCommand}">
+						<i:Interaction.Behaviors>
+							<behaviors:RippleBehavior/>
+						</i:Interaction.Behaviors>
 						<StackPanel Orientation="Horizontal" Spacing="12">
 							<TextBlock Text="{Binding ThemeButtonIcon}" FontSize="20" VerticalAlignment="Center"/>
 							<TextBlock Text="{Binding ThemeButtonText}" VerticalAlignment="Center"/>

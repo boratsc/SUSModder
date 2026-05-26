@@ -1,10 +1,30 @@
-<Style xmlns="https://github.com/avaloniaui"
-       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-       Selector="Button.link">
-	<Setter Property="Foreground" Value="#80CFFF"/>
-	<Setter Property="Background" Value="Transparent"/>
-	<Setter Property="BorderBrush" Value="Transparent"/>
-	<Setter Property="BorderThickness" Value="0"/>
-	<Setter Property="FontWeight" Value="SemiBold"/>
-	<Setter Property="Cursor" Value="Hand"/>
-</Style>
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Styl dla przycisku linkowego -->
+    <Style Selector="Button.link">
+        <Setter Property="Foreground" Value="#80CFFF"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Foreground" Duration="0:0:0.15"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <!-- Link button hover effect -->
+    <Style Selector="Button.link:pointerover">
+        <Setter Property="Foreground" Value="#B0DFFF"/>
+    </Style>
+
+    <!-- Link button disabled state -->
+    <Style Selector="Button.link:disabled">
+        <Setter Property="Opacity" Value="0.4"/>
+        <Setter Property="Cursor" Value="No"/>
+    </Style>
+
+</Styles>

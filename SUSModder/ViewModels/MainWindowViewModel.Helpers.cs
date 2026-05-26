@@ -91,6 +91,9 @@ namespace SUSModder.ViewModels
                     configs = configService.LoadConfig();
                 }
 
+                // Pokaz skeleton loading od razu (UI thread)
+                await Dispatcher.UIThread.InvokeAsync(() => IsModsLoading = true);
+
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     // Zachowaj obecny wybór
@@ -140,6 +143,8 @@ namespace SUSModder.ViewModels
                         var modItem = ModItemAdapter.FromConfig(config);
                         Mods.Add(modItem);
                     }
+
+                    IsModsLoading = false;
 
                     // Przywróć wybór jeśli możliwe
                     if (!string.IsNullOrEmpty(selectedModName))

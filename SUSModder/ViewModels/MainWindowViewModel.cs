@@ -319,6 +319,13 @@ namespace SUSModder.ViewModels
 
         public ObservableCollection<ModItem> Mods { get; } = new();
 
+        private bool _isModsLoading;
+        public bool IsModsLoading
+        {
+            get => _isModsLoading;
+            set => this.RaiseAndSetIfChanged(ref _isModsLoading, value);
+        }
+
         public bool IsPaneOpen
         {
             get => _isPaneOpen;
