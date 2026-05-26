@@ -131,6 +131,12 @@ namespace SUSModder.ViewModels
                 ToastService.ShowSuccess(
                     _localizationService.GetFormatted("Toast.ModInstalled", currentSelectedMod.Name),
                     _localizationService.GetFormatted("Toast.ModInstalledDesc", currentSelectedMod.ModVersion));
+
+                // Pokaż dialog wyboru DLL dopiero po wszystkich operacjach post-instalacyjnych.
+                // Wywołujemy ShowDllSelectionWindowInternal bezpośrednio (nie przez queue),
+                // ponieważ _activeInstallationsCount == 0 i UI jest już ustabilizowane.
+                string platform = DeterminePlatform();
+                ShowDllSelectionWindowInternal(currentSelectedMod, platform);
             }
         }
 
@@ -345,7 +351,6 @@ namespace SUSModder.ViewModels
                 await epicManager.ModifyEpicAsync(modConfig, null, null);
                 System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync returned successfully");
 
-                ShowDllSelectionWindow(currentSelectedMod, "epic");
                 return true;
             }
             catch (Exception ex)
@@ -409,7 +414,12 @@ namespace SUSModder.ViewModels
                 });
 
                 RefreshModsSortingKeepSelection(currentSelectedMod);
-                ShowDllSelectionWindow(currentSelectedMod, "steam");
+
+                // Uwaga: dialog DLL NIE jest pokazywany tutaj (przez ShowDllSelectionWindow),
+                // ponieważ zostałby dodany do kolejki i pokazałby się podczas trwania
+                // finally, ale potem RefreshModsListAsync/SelectedMod w Install() powodowały
+                // zamykanie się go natychmiast.
+                // Dialog jest pokazywany w Install() po wszystkich operacjach post-instalacyjnych.
 
                 return true;
             }
@@ -508,8 +518,13 @@ namespace SUSModder.ViewModels
             }
             
             System.Diagnostics.Debug.WriteLine($"[DLL Dialog] Załadowano konfigurację: InstallPath = {targetModConfig.InstallPath}");
-            
-            CloseDllSelectionModal();
+
+            // Uwaga: nie wołamy CloseDllSelectionModal() tutaj, ponieważ
+            // modal nie jest widoczny w momencie wywołania — ShowDllSelectionWindowInternal
+            // jest zawsze wołane gdy IsDllSelectionModalVisible == false
+            // (z queue lub z ShowDllSelectionWindow z guardem). Wywołanie
+            // CloseDllSelectionModal() powodowało flashowanie UI (najpierw false, potem true)
+            // i w niektórych przypadkach dialog zamykał się natychmiast.
 
             var dllSelectionVm = new DllModSelectionViewModel(
                 _dllModificationService,

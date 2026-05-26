@@ -143,7 +143,7 @@ namespace SUSModder.ViewModels
             // Domyślny czas auto-close zależny od typu
             _autoCloseMs = Type switch
             {
-                ToastType.Success => 4000,
+                ToastType.Success => 6000,
                 ToastType.Warning => 6000,
                 ToastType.Error => 8000,
                 ToastType.Info => 4000,
@@ -163,7 +163,7 @@ namespace SUSModder.ViewModels
                 Subtitle = subtitle,
                 AutoCloseMs = autoCloseMs ?? (type switch
                 {
-                    ToastType.Success => 4000,
+                    ToastType.Success => 6000,
                     ToastType.Warning => 6000,
                     ToastType.Error => 8000,
                     ToastType.Info => 4000,
