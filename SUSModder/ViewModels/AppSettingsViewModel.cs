@@ -39,6 +39,12 @@ namespace SUSModder.ViewModels
         private bool _telemetryEnabled = true;
         private bool _originalTelemetryEnabled = true;
 
+        // Ustawienia system tray
+        private bool _minimizeToTray = false;
+        private bool _originalMinimizeToTray = false;
+        private bool _showQuickLaunchInTray = false;
+        private bool _originalShowQuickLaunchInTray = false;
+
         // Stała lista dostępnych języków (aby uniknąć problemów z referencjami)
         private static readonly List<LanguageOption> _availableLanguages = new()
         {
@@ -238,6 +244,26 @@ namespace SUSModder.ViewModels
             }
         }
 
+        public bool MinimizeToTray
+        {
+            get => _minimizeToTray;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _minimizeToTray, value);
+                CheckForChanges();
+            }
+        }
+
+        public bool ShowQuickLaunchInTray
+        {
+            get => _showQuickLaunchInTray;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _showQuickLaunchInTray, value);
+                CheckForChanges();
+            }
+        }
+
         public LanguageOption? SelectedLanguage
         {
             get
@@ -302,6 +328,12 @@ namespace SUSModder.ViewModels
                 _developerMode = DeveloperModeSettings.IsEnabled;
                 _originalDeveloperMode = _developerMode;
 
+                // Załaduj ustawienia system tray
+                _minimizeToTray = userSettings.MinimizeToTray;
+                _originalMinimizeToTray = _minimizeToTray;
+                _showQuickLaunchInTray = userSettings.ShowQuickLaunchInTray;
+                _originalShowQuickLaunchInTray = _showQuickLaunchInTray;
+
                 // Załaduj GameMode z user settings
                 _gameMode = userSettings.Mode;
                 _originalGameMode = _gameMode;
@@ -317,6 +349,10 @@ namespace SUSModder.ViewModels
                 _originalDeveloperMode = false;
                 _gameMode = "steam";
                 _originalGameMode = "steam";
+                _minimizeToTray = false;
+                _originalMinimizeToTray = false;
+                _showQuickLaunchInTray = false;
+                _originalShowQuickLaunchInTray = false;
             }
         }
 
@@ -350,7 +386,9 @@ namespace SUSModder.ViewModels
                                _updateChannel != _originalUpdateChannel ||
                                _gameMode != _originalGameMode ||
                                (_selectedLanguage?.Code ?? "pl") != _originalLanguage ||
-                               _telemetryEnabled != _originalTelemetryEnabled;
+                               _telemetryEnabled != _originalTelemetryEnabled ||
+                               _minimizeToTray != _originalMinimizeToTray ||
+                               _showQuickLaunchInTray != _originalShowQuickLaunchInTray;
             this.RaisePropertyChanged(nameof(WindowTitle));
         }
 
@@ -504,6 +542,8 @@ namespace SUSModder.ViewModels
                     settings.ModsInstallPath = ModsInstallPath;
                     settings.TelemetryEnabled = TelemetryEnabled;
                     settings.UpdateChannel = UpdateChannel;
+                    settings.MinimizeToTray = MinimizeToTray;
+                    settings.ShowQuickLaunchInTray = ShowQuickLaunchInTray;
                     if (_selectedLanguage != null)
                     {
                         settings.Language = _selectedLanguage.Code;
@@ -518,6 +558,8 @@ namespace SUSModder.ViewModels
                 _originalUpdateChannel = UpdateChannel;
                 _originalGameMode = GameMode;
                 _originalTelemetryEnabled = TelemetryEnabled;
+                _originalMinimizeToTray = MinimizeToTray;
+                _originalShowQuickLaunchInTray = ShowQuickLaunchInTray;
                 HasUnsavedChanges = false;
 
                 // Powiadom o zapisaniu ustawień

@@ -81,5 +81,23 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         [JsonPropertyName("lastSeenVersion")]
         public string LastSeenVersion { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Czy minimalizować do zasobnika systemowego zamiast zamykania aplikacji.
+        /// </summary>
+        [JsonPropertyName("minimizeToTray")]
+        public bool MinimizeToTray { get; set; } = false;
+
+        /// <summary>
+        /// Czy pokazywać szybkie uruchamianie (3 ostatnie mody) w menu zasobnika.
+        /// </summary>
+        [JsonPropertyName("showQuickLaunchInTray")]
+        public bool ShowQuickLaunchInTray { get; set; } = false;
+
+        /// <summary>
+        /// Czy dymek informacyjny przy pierwszym minimalizowaniu został już pokazany.
+        /// </summary>
+        [JsonPropertyName("trayFirstMinimizeShown")]
+        public bool TrayFirstMinimizeShown { get; set; } = false;
     }
 }

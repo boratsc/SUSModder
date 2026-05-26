@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Reactive;
 using System.Linq;
 using Avalonia.Media;
+using SUSModder.Core.Services;
 using SUSModder.Services;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -28,6 +29,10 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     public ReactiveCommand<Unit, Unit> RemoveSingleInstanceCommand { get; private set; } = null!;
     public ReactiveCommand<Unit, Unit> LaunchMultipleInstancesCommand { get; private set; } = null!;
 
+    // System tray
+    private SystemTrayService? _systemTrayService;
+    private bool _forceClose;
+
     public MainWindow()
     {
         // Konstruktor wymagany przez designer oraz XAML loader.
@@ -42,6 +47,57 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     {
         DataContext = viewModel;
         InitializeWindow();
+    }
+
+    /// <summary>
+    /// Inicjalizuje SystemTrayService. Wywoływana z App.axaml.cs po pokazaniu MainWindow.
+    /// </summary>
+    public void InitializeSystemTray()
+    {
+        if (_systemTrayService != null)
+            return;
+
+        _systemTrayService = new SystemTrayService();
+        _systemTrayService.Initialize(this);
+        _systemTrayService.RestoreRequested += OnTrayRestoreRequested;
+
+        // Subskrybuj zmiany modów w ViewModel (aktualizacja menu tray)
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(MainWindowViewModel.InstalledModsCount))
+                {
+                    UpdateTrayModsList();
+                }
+            };
+        }
+    }
+
+    /// <summary>
+    /// Odświeża listę modów w menu tray na podstawie bieżących danych z ViewModel.
+    /// </summary>
+    internal void UpdateTrayModsList()
+    {
+        if (_systemTrayService == null || DataContext is not MainWindowViewModel vm)
+            return;
+
+        // Pobierz 3 ostatnio zainstalowane mody (full mods tylko)
+        var recentMods = vm.Mods?
+            .Where(m => m.IsInstalled && m.IsFullMod)
+            .OrderByDescending(m => m.LastUpdated)
+            .Take(3)
+            .Select(m => new TrayModInfo { Id = m.Id, Name = m.Name })
+            .ToList() ?? new List<TrayModInfo>();
+
+        _systemTrayService.UpdateRecentMods(recentMods);
+    }
+
+    private void OnTrayRestoreRequested()
+    {
+        // Gdy użytkownik kliknie "Przywróć" w menu tray,
+        // SystemTrayService.RestoreWindow() już obsługuje przywrócenie okna.
+        // To zdarzenie jest rejestrowane dla ewentualnych dodatkowych działań.
     }
 
     private void InitializeWindow()
@@ -592,13 +648,58 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
     protected override void OnClosing(WindowClosingEventArgs e)
     {
+        // Jeśli wymuszone zamknięcie (np. z menu tray "Zamknij") – omiń minimize-to-tray
+        if (_forceClose)
+        {
+            _forceClose = false;
+            goto cleanup;
+        }
+
+        // Sprawdź czy minimalizować do zasobnika zamiast zamykać
+        var userSettingsService = new UserSettingsService();
+        var settings = userSettingsService.LoadUserSettings();
+
+        if (settings.MinimizeToTray && _systemTrayService != null)
+        {
+            // Anuluj zamknięcie, schowaj do tray
+            e.Cancel = true;
+
+            _systemTrayService.Show();
+
+            // Pokaż dymek przy pierwszym minimalizowaniu
+            _systemTrayService.ShowFirstMinimizeNotificationIfNeeded();
+
+            this.Hide();
+            return;
+        }
+
+    cleanup:
         // Zwalnianie zasobów ViewModel (timery, bitmapy, background taski)
         if (DataContext is IDisposable disposableViewModel)
         {
             disposableViewModel.Dispose();
         }
 
+        _systemTrayService?.Dispose();
+        _systemTrayService = null;
+
         ConsoleLogger.Shutdown();
         base.OnClosing(e);
     }
+
+    /// <summary>
+    /// Wymusza zamknięcie aplikacji z pominięciem minimize-to-tray.
+    /// Wywoływane z SystemTrayService przy wyborze "Zamknij" w menu tray.
+    /// </summary>
+    public void ForceClose()
+    {
+        _forceClose = true;
+        Close();
+    }
+
+    /// <summary>
+    /// Zwraca instancję SystemTrayService (jeśli został zainicjalizowany).
+    /// Używane przez App.axaml.cs do przekazania serwisu do ViewModel.
+    /// </summary>
+    public SystemTrayService? SystemTrayService => _systemTrayService;
 }

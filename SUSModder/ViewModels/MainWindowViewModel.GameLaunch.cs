@@ -28,6 +28,29 @@ namespace SUSModder.ViewModels
             await Task.Run(() => Launch());
         }
 
+        /// <summary>
+        /// Uruchamia moda o podanym ID (używane przez SystemTrayService do szybkiego uruchamiania).
+        /// </summary>
+        public async void LaunchModById(int modId)
+        {
+            var configService = new ConfigService();
+            var configs = configService.LoadConfig();
+            var modConfig = configs.FirstOrDefault(c => c.Id == modId);
+
+            if (modConfig == null)
+                return;
+
+            // Znajdź ModItem pasujący do konfiguracji
+            var modItem = Mods?.FirstOrDefault(m =>
+                m.Name == modConfig.ModName && m.ModType == modConfig.ModType);
+
+            if (modItem == null)
+                return;
+
+            SelectedMod = modItem;
+            await LaunchAsync();
+        }
+
         private async void Launch()
         {
             // 1) Walidacja wyboru

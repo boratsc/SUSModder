@@ -278,6 +278,71 @@
 					</StackPanel>
 				</Border>
 
+				<!-- Sekcja zachowania okna / system tray -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="12">
+						<TextBlock Text="{local:Localize Settings.SystemTray.Title}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+						<!-- Minimalizuj do tray -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="12">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0" VerticalAlignment="Center">
+									<TextBlock Text="{local:Localize Settings.SystemTray.MinimizeToTray.Label}"
+											   FontSize="13" FontWeight="Medium"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   TextWrapping="Wrap"/>
+									<TextBlock Text="{local:Localize Settings.SystemTray.MinimizeToTray.Description}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"
+											   TextWrapping="Wrap"/>
+								</StackPanel>
+								<ToggleSwitch Grid.Column="1"
+											  IsChecked="{Binding MinimizeToTray}"
+											  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+											  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+											  VerticalAlignment="Center"
+											  Margin="10,0,0,0"/>
+							</Grid>
+						</Border>
+
+						<!-- Szybkie uruchamianie w tray -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="12">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0" VerticalAlignment="Center">
+									<TextBlock Text="{local:Localize Settings.SystemTray.QuickLaunch.Label}"
+											   FontSize="13" FontWeight="Medium"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   TextWrapping="Wrap"/>
+									<TextBlock Text="{local:Localize Settings.SystemTray.QuickLaunch.Description}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"
+											   TextWrapping="Wrap"/>
+								</StackPanel>
+								<ToggleSwitch Grid.Column="1"
+											  IsChecked="{Binding ShowQuickLaunchInTray}"
+											  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+											  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+											  VerticalAlignment="Center"
+											  Margin="10,0,0,0"/>
+							</Grid>
+						</Border>
+					</StackPanel>
+				</Border>
+
 				<!-- Sekcja resetowania aplikacji -->
 				<Border Background="{DynamicResource ModCardBackgroundBrush}"
 						BorderBrush="{DynamicResource ModCardBorderBrush}"

@@ -355,7 +355,7 @@
     "GenericInfo": "{0}",
     "ModUpdatesFound": "Znaleziono {0} aktualizacji modów",
     "AllModsUpToDate": "Wszystkie mody są aktualne",
-    "AppUpdated": "Aplikacja zaktualizowana do wersji {0}"
+    "AppUpdated": "🆕 Zaktualizowano do {0}! Kliknij, aby zobaczyć co nowego."
   },
   "Settings": {
     "WindowTitle": "Ustawienia aplikacji",
@@ -440,6 +440,17 @@
         "Label": "Wyczyść cache",
         "Button": "Wyczyść teraz",
         "Success": "Cache został wyczyszczony"
+      }
+    },
+    "SystemTray": {
+      "Title": "Zachowanie okna",
+      "MinimizeToTray": {
+        "Label": "Minimalizuj do zasobnika zamiast zamykania aplikacji",
+        "Description": "Po kliknięciu ✕ okno zostanie ukryte, a aplikacja będzie działać w zasobniku systemowym"
+      },
+      "QuickLaunch": {
+        "Label": "Pokaż szybkie uruchamianie w menu zasobnika",
+        "Description": "Wyświetla 3 ostatnio używane mody w menu kontekstowym ikonki"
       }
     },
     "FactoryReset": {
@@ -933,14 +944,22 @@
     "SectionFixes": "Poprawki",
     "SectionImprovements": "Usprawnienia"
   },
-  "Toast": {
-    "AppUpdated": "🆕 Zaktualizowano do {0}! Kliknij, aby zobaczyć co nowego."
-  },
   "StringFormats": {
     "CurrentVersion": "Obecna: {0}",
     "NewVersion": "Nowa: {0}",
     "UpdatingMod": "Aktualizowanie: {0}",
     "DllModVersion": "Wersja: {0}",
     "ServerNamePlaceholder": "[Nazwa serwera]"
+  },
+  "SystemTray": {
+    "ContextMenu": {
+      "Restore": "Przywróć SUSModder",
+      "Exit": "Zamknij"
+    },
+    "FirstMinimize": {
+      "Title": "SUSModder",
+      "Message": "Aplikacja została zminimalizowana do zasobnika systemowego.\n\nKliknij ikonkę w zasobniku, aby przywrócić okno.\nMożesz zmienić to zachowanie w Ustawieniach → Zachowanie okna.",
+      "DontShowAgain": "Nie pokazuj więcej"
+    }
   }
 }

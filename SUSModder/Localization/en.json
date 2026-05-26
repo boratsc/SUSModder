@@ -355,7 +355,7 @@
     "GenericInfo": "{0}",
     "ModUpdatesFound": "Found {0} mod updates",
     "AllModsUpToDate": "All mods are up to date",
-    "AppUpdated": "Application updated to version {0}"
+    "AppUpdated": "🆕 Updated to {0}! Click to see what's new."
   },
   "Settings": {
     "WindowTitle": "Application Settings",
@@ -440,6 +440,17 @@
         "Label": "Clear cache",
         "Button": "Clear now",
         "Success": "Cache has been cleared"
+      }
+    },
+    "SystemTray": {
+      "Title": "Window behavior",
+      "MinimizeToTray": {
+        "Label": "Minimize to system tray instead of closing",
+        "Description": "When clicking ✕ the window will be hidden and the app will keep running in the system tray"
+      },
+      "QuickLaunch": {
+        "Label": "Show quick launch in tray menu",
+        "Description": "Shows the 3 most recently used mods in the tray icon context menu"
       }
     },
     "FactoryReset": {
@@ -933,14 +944,22 @@
     "SectionFixes": "Bug fixes",
     "SectionImprovements": "Improvements"
   },
-  "Toast": {
-    "AppUpdated": "🆕 Updated to {0}! Click to see what's new."
-  },
   "StringFormats": {
     "CurrentVersion": "Current: {0}",
     "NewVersion": "New: {0}",
     "UpdatingMod": "Updating: {0}",
     "DllModVersion": "Version: {0}",
     "ServerNamePlaceholder": "[Server name]"
+  },
+  "SystemTray": {
+    "ContextMenu": {
+      "Restore": "Restore SUSModder",
+      "Exit": "Exit"
+    },
+    "FirstMinimize": {
+      "Title": "SUSModder",
+      "Message": "The application has been minimized to the system tray.\n\nClick the tray icon to restore the window.\nYou can change this behavior in Settings → Window behavior.",
+      "DontShowAgain": "Don't show again"
+    }
   }
 }

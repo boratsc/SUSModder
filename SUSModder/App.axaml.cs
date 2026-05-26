@@ -255,6 +255,11 @@ public partial class App : Application
                     await _splashWindow.CloseWithFadeAsync();
                 }
 
+                // Inicjalizuj SystemTrayService po pokazaniu MainWindow
+                mainWindow.InitializeSystemTray();
+                // Podepnij podpięcie aktualizacji modów w tray
+                mainWindow.UpdateTrayModsList();
+
                 // Po załadowaniu głównego okna uruchom zadania post-startowe.
                 _ = RunPostStartupTasksAsync(mainWindow, viewModel, userSettingsService);
 
