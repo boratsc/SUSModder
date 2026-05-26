@@ -45,7 +45,7 @@ namespace SUSModder.ViewModels
     /// - MainWindowViewModel.AppSettings.cs - Settings management
     /// - MainWindowViewModel.ExternalActions.cs - External actions (Discord, donations, etc.)
     /// </summary>
-    public partial class MainWindowViewModel : ViewModelBase
+    public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         #region Private Fields
 
@@ -642,6 +642,41 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
                     System.Diagnostics.Debug.WriteLine($"Error showing error dialog: {innerEx.Message}");
                 }
             });
+        }
+
+        #endregion
+
+        #region Dispose
+
+        private bool _disposed;
+
+        /// <summary>
+        /// Zwalnia zasoby: timery, background taski, bitmapy, serwisy IDisposable.
+        /// Wywoływane przy zamykaniu aplikacji przez MainWindow.OnClosing.
+        /// Bezpieczne do wielokrotnego wywołania (_disposed guard).
+        /// </summary>
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+
+            DisposeDiscordPromoTimer();
+            CancelStatusBarBackgroundTask();
+            DisposeVelopackService();
+            DisposeDiscordBitmaps();
+
+            GC.SuppressFinalize(this);
+        }
+
+        private void DisposeVelopackService()
+        {
+            if (_velopackUpdateService != null)
+            {
+                _velopackUpdateService.Dispose();
+                _velopackUpdateService = null;
+            }
         }
 
         #endregion

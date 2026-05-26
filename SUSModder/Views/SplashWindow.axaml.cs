@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using System;
@@ -20,28 +21,47 @@ namespace SUSModder.Views
             InitializeComponent();
             _progressBar = this.FindControl<Border>("ProgressBar");
             _loadingText = this.FindControl<TextBlock>("LoadingText");
-            _splashVideo = this.FindControl<NativeWebView>("SplashVideo");
         }
 
         /// <summary>
         /// Inicjalizuje odtwarzanie wideo splash przez NativeWebView.
+        /// NativeWebView jest tworzony tylko gdy plik wideo istnieje – w przeciwnym razie
+        /// assembly Avalonia.Controls.WebView nie jest ładowane (oszczędność ~50-100 MB RAM
+        /// dla użytkowników Steam i Epic bez pliku wideo).
         /// </summary>
         public async Task InitializeVideoAsync()
         {
             try
             {
-                if (_splashVideo == null) return;
-
-                // Ścieżki do assetów
                 var exeDir = AppContext.BaseDirectory;
                 var videoPath = Path.Combine(exeDir, "Assets", "SplashAnimation.mp4");
-                var splashJpgPath = Path.Combine(exeDir, "Assets", "splashscreen.jpg");
 
                 if (!File.Exists(videoPath))
                 {
-                    System.Diagnostics.Debug.WriteLine("[SplashWindow] SplashAnimation.mp4 not found, using static image");
+                    System.Diagnostics.Debug.WriteLine("[SplashWindow] SplashAnimation.mp4 not found, using static image only");
                     return;
                 }
+
+                // Utwórz NativeWebView tylko gdy wideo istnieje – to wymusza load assembly
+                // Avalonia.Controls.WebView dopiero w tym momencie, a nie przy starcie.
+                var splashVideo = new NativeWebView
+                {
+                    Width = 640,
+                    Height = 640,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top
+                };
+
+                // Dodaj do drzewa wizualnego (przed Image, żeby być na wierzchu)
+                var panel = this.FindControl<Panel>("SplashPanel");
+                if (panel != null)
+                {
+                    panel.Children.Insert(0, splashVideo);
+                }
+
+                _splashVideo = splashVideo;
+
+                var splashJpgPath = Path.Combine(exeDir, "Assets", "splashscreen.jpg");
 
                 // Wczytaj szablon HTML
                 var html = LoadEmbeddedHtml();
@@ -57,9 +77,14 @@ namespace SUSModder.Views
                 var htmlPath = Path.Combine(Path.GetTempPath(), "_susmodder_splash.html");
                 await File.WriteAllTextAsync(htmlPath, html);
 
-                // Ustaw źródło NativeWebView
-                _splashVideo.Source = new Uri(htmlPath);
-                System.Diagnostics.Debug.WriteLine("[SplashWindow] NativeWebView initialized with video");
+                // Ustaw źródło NativeWebView dopiero po AdapterCreated
+                // (programowo tworzony WebView wymaga gotowego adaptera do nawigacji)
+                splashVideo.AdapterCreated += async (sender, e) =>
+                {
+                    await Task.Delay(100);
+                    splashVideo.Source = new Uri(htmlPath);
+                    System.Diagnostics.Debug.WriteLine("[SplashWindow] NativeWebView lazily created and initialized with video");
+                };
             }
             catch (Exception ex)
             {

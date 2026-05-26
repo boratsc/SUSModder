@@ -592,6 +592,12 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
     protected override void OnClosing(WindowClosingEventArgs e)
     {
+        // Zwalnianie zasobów ViewModel (timery, bitmapy, background taski)
+        if (DataContext is IDisposable disposableViewModel)
+        {
+            disposableViewModel.Dispose();
+        }
+
         ConsoleLogger.Shutdown();
         base.OnClosing(e);
     }

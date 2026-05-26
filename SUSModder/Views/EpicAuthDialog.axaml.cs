@@ -3,6 +3,7 @@ using Avalonia.Input;
 using SUSModder.ViewModels;
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Web;
 
 
@@ -22,7 +23,7 @@ namespace SUSModder.Views
             _viewModel = new EpicAuthDialogViewModel(this, browserUrl);
             DataContext = _viewModel;
 
-            // Jeśli WebView2 jest dostępny, zainicjalizuj embedded przeglądarkę
+            // Jeśli NativeWebView jest dostępny, zainicjalizuj embedded przeglądarkę
             if (_viewModel.IsWebViewMode)
             {
                 InitializeWebView(browserUrl);
@@ -30,99 +31,169 @@ namespace SUSModder.Views
         }
 
         /// <summary>
-        /// Inicjalizuje NativeWebView i ustawia event handlery do przechwycenia kodu autoryzacyjnego.
+        /// Inicjalizuje NativeWebView programowo (lazy) i ustawia event handlery.
+        /// Assembly Avalonia.Controls.WebView jest ładowane dopiero w tym momencie.
+        /// Nawigacja do URL następuje dopiero po AdapterCreated – inaczej WebView nie ładuje strony.
         /// </summary>
         private void InitializeWebView(string browserUrl)
         {
             try
             {
-                var webView = this.FindControl<NativeWebView>("EpicWebView");
-                if (webView == null)
+                // Znajdź Grid dla WebView (wiersz 0 sekcji WebViewMode)
+                var webViewGrid = this.FindControl<Grid>("WebViewContainer");
+                if (webViewGrid == null)
                 {
-                    Debug.WriteLine("[EpicAuthDialog] Nie znaleziono kontrolki NativeWebView");
+                    Debug.WriteLine("[EpicAuthDialog] Nie znaleziono kontenera WebViewContainer");
                     _viewModel?.FallbackToManualMode();
                     return;
                 }
 
-                // Konfiguracja środowiska przed inicjalizacją
-                webView.AdapterCreated += (sender, e) =>
+                // Utwórz NativeWebView programowo – to ładuje assembly Avalonia.Controls.WebView
+                var webView = new NativeWebView
                 {
-                    Debug.WriteLine("[EpicAuthDialog] NativeWebView zainicjalizowany pomyślnie");
-                    if (_viewModel != null)
-                    {
-                        _viewModel.WebViewStatus = "Zaloguj się na swoje konto Epic Games";
-                    }
+                    Margin = new Avalonia.Thickness(0)
                 };
 
-                // Event: przechwycenie nawigacji
+                // Ustaw w wierszu 0 gridu (cała dostępna przestrzeń)
+                Grid.SetRow(webView, 0);
+                webViewGrid.Children.Add(webView);
+
+                // Event: przechwycenie nawigacji (localhost redirect z kodem)
                 webView.NavigationStarted += OnWebViewNavigationStarted;
 
-                // Event: nawigacja zakończona
-                webView.NavigationCompleted += (sender, e) =>
+                // Event: nawigacja zakończona – wyciągamy authorizationCode z JSON body
+                webView.NavigationCompleted += async (sender, e) =>
                 {
-                    if (_viewModel != null && e.IsSuccess)
-                    {
+                    if (!e.IsSuccess) return;
+
+                    if (_viewModel != null)
                         _viewModel.WebViewStatus = "Zaloguj się na swoje konto Epic Games";
+
+                    try
+                    {
+                        var currentUrl = webView.Source?.ToString() ?? "";
+                        if (!currentUrl.Contains("/id/api/redirect", StringComparison.OrdinalIgnoreCase))
+                            return;
+
+                        Debug.WriteLine("[EpicAuthDialog] NavigationCompleted na /id/api/redirect – próbuję InvokeScript");
+
+                        // Najpierw test czy InvokeScript w ogóle działa
+                        var testResult = await webView.InvokeScript("document.title");
+                        Debug.WriteLine($"[EpicAuthDialog] InvokeScript test (title): '{testResult}'");
+
+                        // Dla JSON response (application/json) WebView może renderować w <pre> lub jako text/plain.
+                        // Próbujemy różne selektory: <pre>, body.textContent, documentElement.textContent
+                        var bodyText = await webView.InvokeScript(
+                            "(document.querySelector('pre')?.textContent || document.body?.textContent || document.documentElement?.textContent || '').trim()");
+
+                        Debug.WriteLine($"[EpicAuthDialog] InvokeScript body (pierwsze 200 znaków): '{bodyText?.Substring(0, Math.Min(200, bodyText?.Length ?? 0))}'");
+
+                        if (string.IsNullOrWhiteSpace(bodyText))
+                        {
+                            Debug.WriteLine("[EpicAuthDialog] Body puste – InvokeScript nie działa dla tego content-type");
+                            return;
+                        }
+
+                        // InvokeScript zwraca wynik jako JSON-string, czyli wartość jest dodatkowo
+                        // zakodowana (z escape'owanymi cudzysłowami). Np. dla JS stringa '{"a":1}'
+                        // dostajemy C# string '"{\\"a\\":1}"'.
+                        // Trzeba najpierw zdeserializować zewnętrzny JSON-string.
+                        try
+                        {
+                            var rawJson = System.Text.Json.JsonSerializer.Deserialize<string>(bodyText.Trim());
+                            if (!string.IsNullOrWhiteSpace(rawJson) && rawJson.StartsWith("{"))
+                            {
+                                bodyText = rawJson;
+                            }
+                        }
+                        catch (System.Text.Json.JsonException)
+                        {
+                            Debug.WriteLine("[EpicAuthDialog] Body nie jest JSON-stringiem, próbuję użyć surowego");
+                        }
+
+                        if (!bodyText.StartsWith("{"))
+                        {
+                            Debug.WriteLine($"[EpicAuthDialog] Body nie zaczyna się od '{{' – to nie JSON: {bodyText.Substring(0, Math.Min(100, bodyText.Length))}");
+                            return;
+                        }
+
+                        Debug.WriteLine($"[EpicAuthDialog] Body: {bodyText.Substring(0, Math.Min(300, bodyText.Length))}");
+
+                        using var jsonDoc = System.Text.Json.JsonDocument.Parse(bodyText);
+
+                        if (jsonDoc.RootElement.TryGetProperty("authorizationCode", out var codeProp))
+                        {
+                            var authCode = codeProp.GetString();
+                            if (!string.IsNullOrWhiteSpace(authCode))
+                            {
+                                Debug.WriteLine("[EpicAuthDialog] Znaleziono authorizationCode!");
+                                _viewModel?.SetWebViewAuthCode(authCode);
+                                return;
+                            }
+                        }
+
+                        if (jsonDoc.RootElement.TryGetProperty("sid", out var sidProp))
+                        {
+                            var sid = sidProp.GetString();
+                            if (!string.IsNullOrWhiteSpace(sid))
+                            {
+                                Debug.WriteLine("[EpicAuthDialog] Znaleziono sid!");
+                                _viewModel?.SetWebViewAuthCode(sid);
+                                return;
+                            }
+                        }
+
+                        Debug.WriteLine("[EpicAuthDialog] JSON nie zawiera authorizationCode ani sid");
+                    }
+                    catch (Exception invokeEx)
+                    {
+                        Debug.WriteLine($"[EpicAuthDialog] Błąd InvokeScript: {invokeEx.Message}");
                     }
                 };
 
-                Debug.WriteLine($"[EpicAuthDialog] Inicjalizacja NativeWebView z URL: {browserUrl}");
-                webView.Source = new Uri(browserUrl);
+                // Czekamy aż adapter WebView będzie gotowy, potem ładujemy URL
+                webView.AdapterCreated += async (sender, e) =>
+                {
+                    Debug.WriteLine("[EpicAuthDialog] NativeWebView zainicjalizowany pomyślnie – ładuję URL");
+
+                    if (_viewModel != null)
+                        _viewModel.WebViewStatus = "Zaloguj się na swoje konto Epic Games";
+
+                    await Task.Delay(100);
+                    Debug.WriteLine($"[EpicAuthDialog] Ładowanie URL: {browserUrl}");
+                    webView.Source = new Uri(browserUrl);
+                };
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[EpicAuthDialog] Wyjątek podczas inicjalizacji NativeWebView: {ex.Message}");
+                Debug.WriteLine($"[EpicAuthDialog] Wyjątek: {ex.Message}");
                 _viewModel?.FallbackToManualMode();
             }
         }
 
-
         /// <summary>
-        /// Przechwytuje nawigację NativeWebView.
-        /// Gdy Epic przekieruje na https://localhost/?code=XXXXX, wyciągamy kod i zamykamy dialog.
+        /// Otwiera link do legendary GitHub w systemowej przeglądarce.
         /// </summary>
-        private void OnWebViewNavigationStarted(object? sender, WebViewNavigationStartingEventArgs e)
+        private void OnLegendaryLinkClick(object? sender, Avalonia.Input.PointerPressedEventArgs e)
         {
             try
             {
-                var uri = e.Request!;
-                Debug.WriteLine($"[EpicAuthDialog] Nawigacja do: {uri?.Host}{uri?.PathAndQuery}");
-
-                // Sprawdź czy to redirect na localhost z kodem autoryzacyjnym
-                if (string.Equals(uri?.Host ?? "", "localhost", StringComparison.OrdinalIgnoreCase))
+                Process.Start(new ProcessStartInfo
                 {
-                    // Zatrzymaj nawigację - nie chcemy faktycznie nawigować na localhost
-                    e.Cancel = true;
-
-                    // Wyciągnij kod z query string
-                    var queryParams = uri != null ? HttpUtility.ParseQueryString(uri.Query) : null;
-                    var authCode = queryParams?["code"];
-
-                    if (!string.IsNullOrWhiteSpace(authCode))
-                    {
-                        Debug.WriteLine($"[EpicAuthDialog] Przechwycono kod autoryzacyjny: {authCode.Substring(0, Math.Min(10, authCode.Length))}...");
-                        _viewModel?.SetWebViewAuthCode(authCode);
-                    }
-                    else
-                    {
-                        Debug.WriteLine("[EpicAuthDialog] Redirect na localhost ale bez kodu - prawdopodobnie błąd");
-                        if (_viewModel != null)
-                        {
-                            _viewModel.WebViewStatus = "Nie udało się uzyskać kodu. Spróbuj ponownie.";
-                        }
-                    }
-                }
+                    FileName = "https://github.com/derrod/legendary",
+                    UseShellExecute = true
+                });
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[EpicAuthDialog] Błąd przechwytywania nawigacji: {ex.Message}");
+                Debug.WriteLine($"[EpicAuthDialog] Błąd otwierania linku: {ex.Message}");
             }
         }
 
         /// <summary>
         /// Otwiera URL w zewnętrznej (systemowej) przeglądarce - jako alternatywa dla NativeWebView.
         /// </summary>
-        private void OnOpenInExternalBrowser(object? sender, PointerPressedEventArgs e)
+        private void OnOpenInExternalBrowser(object? sender, Avalonia.Input.PointerPressedEventArgs e)
         {
             try
             {
@@ -141,19 +212,36 @@ namespace SUSModder.Views
             }
         }
 
-        private void OnLegendaryLinkClick(object? sender, PointerPressedEventArgs e)
+        /// <summary>
+        /// Przechwytuje nawigację NativeWebView.
+        /// Łapie redirect na localhost (z redirectUrl w JSON /id/api/redirect) i wyciąga code.
+        /// </summary>
+        private void OnWebViewNavigationStarted(object? sender, WebViewNavigationStartingEventArgs e)
         {
             try
             {
-                Process.Start(new ProcessStartInfo
+                var uri = e.Request!;
+                Debug.WriteLine($"[EpicAuthDialog] Nawigacja do: {uri?.Host}{uri?.PathAndQuery}");
+
+                if (uri == null) return;
+
+                // Sprawdź czy to redirect na localhost z kodem autoryzacyjnym
+                // (z pola "redirectUrl" w JSON response /id/api/redirect)
+                if (string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase))
                 {
-                    FileName = "https://github.com/derrod/legendary",
-                    UseShellExecute = true
-                });
+                    var queryParams = HttpUtility.ParseQueryString(uri.Query);
+                    var authCode = queryParams["code"];
+
+                    if (!string.IsNullOrWhiteSpace(authCode))
+                    {
+                        Debug.WriteLine($"[EpicAuthDialog] Przechwycono kod z localhost: {authCode.Substring(0, Math.Min(10, authCode.Length))}...");
+                        _viewModel?.SetWebViewAuthCode(authCode);
+                    }
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore if browser fails to open
+                Debug.WriteLine($"[EpicAuthDialog] Błąd nawigacji: {ex.Message}");
             }
         }
     }

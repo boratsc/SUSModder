@@ -20,6 +20,7 @@ namespace SUSModder.Core.Services
         /// <summary>
         /// W pełni asynchroniczna wersja LoadConfig - unika blokującego .GetAwaiter().GetResult()
         /// przy pobieraniu konfiguracji z API (15s timeout).
+        /// Cache'owanie odbywa się w ConfigManager (30s TTL, unieważniany przy SaveConfig).
         /// </summary>
         public Task<List<ModConfiguration>> LoadConfigAsync()
         {
@@ -27,7 +28,16 @@ namespace SUSModder.Core.Services
         }
 
         /// <summary>
-        /// Zapisuje konfigurację modów do pliku config.json.
+        /// Czyści cache konfiguracji w ConfigManager.
+        /// Wywołaj po ręcznej zmianie configu, aby następne LoadConfigAsync pobrało świeże dane.
+        /// </summary>
+        public void InvalidateConfigCache()
+        {
+            ConfigManager.InvalidateConfigCache();
+        }
+
+        /// <summary>
+        /// Zapisuje konfigurację modów do pliku config.json (ConfigManager automatycznie unieważnia cache).
         /// </summary>
         public void SaveConfig(List<ModConfiguration> configs)
         {
@@ -134,7 +144,7 @@ namespace SUSModder.Core.Services
                         configs.Add(updatedMod);
                     }
 
-                    ConfigManager.SaveConfig(configs);
+                    SaveConfig(configs);
                     return true;
                 }
                 catch (Exception ex)
@@ -183,7 +193,10 @@ namespace SUSModder.Core.Services
 
         public async Task<bool> RefreshConfigFromApiAsync()
         {
-            return await ConfigManager.RefreshConfigFromApiAsync();
+            var result = await ConfigManager.RefreshConfigFromApiAsync();
+            // Unieważnij cache, aby następne LoadConfigAsync pobrało świeże dane
+            InvalidateConfigCache();
+            return result;
         }
 
 

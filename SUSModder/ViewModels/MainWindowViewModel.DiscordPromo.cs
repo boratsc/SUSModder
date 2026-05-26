@@ -198,7 +198,7 @@ namespace SUSModder.ViewModels
 
         private void RotateDiscordPromo()
         {
-            if (_discordPromoServers.Count == 0)
+            if (_disposed || _discordPromoServers.Count == 0)
             {
                 CurrentPromotedDiscord = null;
                 return;
@@ -246,5 +246,36 @@ namespace SUSModder.ViewModels
             this.RaisePropertyChanged(nameof(CurrentPromotedDiscordDescription));
             this.RaisePropertyChanged(nameof(CurrentPromotedDiscordInviteLink));
         }
+
+        #region IDisposable support
+
+        /// <summary>
+        /// Zatrzymuje timer rotacji DiscordPromo.
+        /// </summary>
+        private void DisposeDiscordPromoTimer()
+        {
+            _discordPromoRotationTimer.Stop();
+        }
+
+        /// <summary>
+        /// Zwalnia bitmapę aktualnie promowanego Discorda oraz wszystkie bitmapy
+        /// z listy preloaded serwerów, aby uniknąć wycieków pamięci.
+        /// </summary>
+        private void DisposeDiscordBitmaps()
+        {
+            // Dispose bitmapy aktualnie wyświetlanego serwera
+            if (_currentPromotedDiscord != null)
+            {
+                _currentPromotedDiscord.DisposeIconBitmap();
+            }
+
+            // Dispose bitmap wszystkich serwerów w liście rotacyjnej
+            foreach (var server in _discordPromoServers)
+            {
+                server.DisposeIconBitmap();
+            }
+        }
+
+        #endregion
     }
 }

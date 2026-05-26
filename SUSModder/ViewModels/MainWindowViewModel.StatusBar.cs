@@ -100,6 +100,7 @@ namespace SUSModder.ViewModels
         private static readonly TimeSpan MinModUpdateCheckInterval = TimeSpan.FromMinutes(2);
         private string _apiBaseUrl = string.Empty;
         private int _onlineUsersCount;
+        private CancellationTokenSource? _statusBarCts;
 
         public int OnlineUsersCount
         {
@@ -533,15 +534,30 @@ public int AvailableUpdatesCount
 
         /// <summary>
         /// Timer do auto-refresh statusu API (co 30 sekund)
+        /// Używa CancellationToken, aby można było przerwać przy Dispose.
         /// </summary>
         private void StartApiStatusAutoRefresh()
         {
+            _statusBarCts = new CancellationTokenSource();
+            var token = _statusBarCts.Token;
+
             Task.Run(async () =>
             {
-                while (true)
+                while (!token.IsCancellationRequested)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(30));
-                    
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(30), token);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        // Normalne przerwanie przy Dispose, wychodzimy
+                        break;
+                    }
+
+                    if (token.IsCancellationRequested)
+                        break;
+
                     try
                     {
                         await CheckApiConnectionAsync();
@@ -551,7 +567,7 @@ public int AvailableUpdatesCount
                         System.Diagnostics.Debug.WriteLine($"Auto-refresh API status error: {ex.Message}");
                     }
                 }
-            });
+            }, token);
         }
 
         /// <summary>
@@ -641,6 +657,25 @@ public int AvailableUpdatesCount
                 }
             });
         }
+
+        #region IDisposable support
+
+        /// <summary>
+        /// Anuluje background task do auto-refresh statusu API i zwalnia semafor.
+        /// </summary>
+        private void CancelStatusBarBackgroundTask()
+        {
+            if (_statusBarCts != null)
+            {
+                _statusBarCts.Cancel();
+                _statusBarCts.Dispose();
+                _statusBarCts = null;
+            }
+
+            _modUpdateCheckSemaphore.Dispose();
+        }
+
+        #endregion
 
         #endregion
     }

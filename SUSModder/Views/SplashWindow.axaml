@@ -1,7 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:SUSModder.Services.Localization"
-        xmlns:wv="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.WebView"
         x:Class="SUSModder.Views.SplashWindow"
         Title="SUSModder"
         Width="640"
@@ -14,18 +13,12 @@
         ExtendClientAreaToDecorationsHint="True">
 
     <Border CornerRadius="12" ClipToBounds="True">
-        <Panel>
-            <!-- Fallback static image -->
+        <Panel x:Name="SplashPanel">
+            <!-- Static image (fallback, zawsze widoczny) -->
             <Image Source="/Assets/splashscreen.jpg"
                    Stretch="UniformToFill"
                    HorizontalAlignment="Stretch"
                    VerticalAlignment="Stretch"/>
-
-            <!-- NativeWebView z animacją wideo -->
-            <wv:NativeWebView x:Name="SplashVideo"
-                              Width="640" Height="640"
-                              HorizontalAlignment="Left"
-                              VerticalAlignment="Top"/>
 
             <!-- Loading Progress Bar -->
             <Border Height="6"

@@ -662,11 +662,13 @@ namespace SUSModder.Core.GameIntegration
                 Write("Import sesji nie powiódł się. Pokazuję dialog logowania...");
                 Write(stderr);
 
-                // Przygotuj OAuth URL - używamy responseType=code, który po zalogowaniu
-                // przekieruje na https://localhost/?code=XXXXX (tak jak robi to Heroic Games Launcher).
-                // Embedded WebView2 przechwytuje ten redirect automatycznie.
-                // W trybie fallback (systemowa przeglądarka) użytkownik kopiuje kod ręcznie.
-                string oauthUrl = "https://www.epicgames.com/id/login?responseType=code";
+                // Używamy tego samego flow co legendary: /id/login?redirectUrl=<encoded>/id/api/redirect
+                // (zob. legendary/api/egs.py:get_auth_url() oraz legendary issue #468).
+                // Po zalogowaniu NativeWebView ładuje /id/api/redirect który zwraca JSON.
+                // Wyciągamy authorizationCode z body przez InvokeScript (JavaScript injection).
+                var redirectUrl = Uri.EscapeDataString(
+                    "https://www.epicgames.com/id/api/redirect?clientId=34a02cf8f4414e29b15921876da36f9a&responseType=code");
+                string oauthUrl = $"https://www.epicgames.com/id/login?redirectUrl={redirectUrl}";
 
                 Write($"OAuth URL: {oauthUrl}");
 

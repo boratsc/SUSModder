@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using SUSModder.Core.Repositories;
 using SUSModder.Core.Services;
@@ -155,6 +156,12 @@ namespace SUSModder.Core.Configuration
         private static readonly string configFilePath = Path.Combine(exeDir, "config.json");
         private static readonly string appSettingsFilePath = Path.Combine(exeDir, "appsettings.json");
 
+        // Cache dla LoadConfigAsync — unika zbędnych requestów API przy częstych odświeżeniach UI.
+        // Unieważniany automatycznie przez SaveConfig(). TTL: 30s.
+        private static readonly MemoryCache _configCache = new(new MemoryCacheOptions());
+        private const string ConfigCacheKey = "ModConfigList";
+        private static readonly TimeSpan ConfigCacheTtl = TimeSpan.FromSeconds(30);
+
         public static List<ModConfiguration> LoadConfig()
         {
             var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
@@ -238,9 +245,17 @@ namespace SUSModder.Core.Configuration
         /// <summary>
         /// W pełni asynchroniczna wersja LoadConfig - unika blokującego .GetAwaiter().GetResult()
         /// na wywołaniu FetchConfigFromApiAsync() (które ma 15s timeout).
+        /// Wynik jest cache'owany na 30s. Unieważniany przez SaveConfig().
         /// </summary>
         public static async Task<List<ModConfiguration>> LoadConfigAsync()
         {
+            // Sprawdź cache
+            if (_configCache.TryGetValue(ConfigCacheKey, out List<ModConfiguration>? cachedConfigs) && cachedConfigs != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Async] Returning cached config");
+                return cachedConfigs;
+            }
+
             var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
             var configRepo = new ConfigRepository(exeDir);
 
@@ -255,7 +270,7 @@ namespace SUSModder.Core.Configuration
                 if (vanillaUpdated)
                 {
                     configRepo.SaveConfig(localConfigs);
-                    System.Diagnostics.Debug.WriteLine("[ConfigManager] Vanilla config restored/updated in local config.");
+                    System.Diagnostics.Debug.WriteLine("[Async] Vanilla config restored/updated in local config.");
                 }
                 else
                 {
@@ -263,6 +278,9 @@ namespace SUSModder.Core.Configuration
                 }
 
                 System.Diagnostics.Debug.WriteLine("[Async] Using local config");
+
+                // Cache'uj wynik lokalny na 30s
+                _configCache.Set(ConfigCacheKey, localConfigs, ConfigCacheTtl);
                 return localConfigs;
             }
 
@@ -299,6 +317,7 @@ namespace SUSModder.Core.Configuration
                     System.Diagnostics.Debug.WriteLine("[Async] Config saved successfully");
 
                     PersistVanillaPathIfNeeded(apiConfigs);
+                    _configCache.Set(ConfigCacheKey, apiConfigs, ConfigCacheTtl);
                     return apiConfigs;
                 }
             }
@@ -313,6 +332,7 @@ namespace SUSModder.Core.Configuration
                 EnsureVanillaConfigPresent(previousConfigs);
                 configRepo.SaveConfig(previousConfigs);
                 PersistVanillaPathIfNeeded(previousConfigs);
+                _configCache.Set(ConfigCacheKey, previousConfigs, ConfigCacheTtl);
                 return previousConfigs;
             }
 
@@ -430,6 +450,17 @@ namespace SUSModder.Core.Configuration
             }
             var json = JsonSerializer.Serialize(configs, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(configFilePath, json);
+
+            // Unieważnij cache – następne LoadConfigAsync pobierze świeże dane
+            _configCache.Remove(ConfigCacheKey);
+        }
+
+        /// <summary>
+        /// Ręcznie unieważnia cache konfiguracji. Następne wywołanie LoadConfigAsync pobierze świeże dane.
+        /// </summary>
+        public static void InvalidateConfigCache()
+        {
+            _configCache.Remove(ConfigCacheKey);
         }
 
         private static List<ModConfiguration>? LoadConfigFromFile(string? filePath)
