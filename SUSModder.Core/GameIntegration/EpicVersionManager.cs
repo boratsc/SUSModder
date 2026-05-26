@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -375,7 +374,36 @@ namespace SUSModder.Core.GameIntegration
             try
             {
                 Write($"Rozpakowuję archiwum moda: {modFile} do {tempExtractPath}");
-                ZipFile.ExtractToDirectory(modFile, tempExtractPath, overwriteFiles: true);
+
+                var extractionProgress = new Progress<ExtractionProgress>(p =>
+                {
+                    int pct;
+                    if (p.PercentComplete.HasValue)
+                    {
+                        pct = (int)p.PercentComplete.Value;
+                    }
+                    else if (p.TotalBytes > 0)
+                    {
+                        pct = (int)(p.BytesExtracted * 100 / p.TotalBytes);
+                    }
+                    else
+                    {
+                        ProgressChanged?.Invoke(60,
+                            $"Rozpakowywanie... ({p.BytesExtracted} B)");
+                        return;
+                    }
+
+                    string currentFile = !string.IsNullOrEmpty(p.CurrentFile)
+                        ? $" ({Path.GetFileName(p.CurrentFile)})"
+                        : "";
+                    int mapped = 50 + (pct * 20 / 100); // 50-70% overall
+                    ProgressChanged?.Invoke(mapped,
+                        $"Rozpakowywanie: {pct}%{currentFile}");
+                });
+
+                var extractor = new SharpCompressExtractor();
+                await extractor.ExtractAsync(modFile, tempExtractPath, progress: extractionProgress);
+
                 Write("Pomyślnie rozpakowano archiwum moda");
             }
             catch (Exception ex)

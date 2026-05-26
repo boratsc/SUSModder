@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -209,7 +208,32 @@ namespace SUSModder.Core.GameIntegration
                     log.Write($"Rozpakowuję vanilla 7z: {vanilla7zPath} do {modFolderPath}");
 
                     string zipPassword = SecretProvider.Get7zPassword();
-                    await Task.Run(() => Extract7zWithPassword(vanilla7zPath, modFolderPath, zipPassword));
+
+                    var extractionProgress = new Progress<ExtractionProgress>(p =>
+                    {
+                        int pct;
+                        if (p.PercentComplete.HasValue)
+                        {
+                            pct = (int)p.PercentComplete.Value;
+                        }
+                        else if (p.TotalBytes > 0)
+                        {
+                            pct = (int)(p.BytesExtracted * 100 / p.TotalBytes);
+                        }
+                        else
+                        {
+                            // Brak info o postępie – pokaż tylko tekst
+                            progress.Report(58, $"Rozpakowywanie... ({FormatSize(p.BytesExtracted)})");
+                            return;
+                        }
+
+                        int mappedProgress = 50 + (pct * 15 / 100); // 50-65% overall
+                        progress.Report(mappedProgress,
+                            $"Rozpakowywanie: {pct}% ({FormatSize(p.BytesExtracted)}/{FormatSize(p.TotalBytes)})");
+                    });
+
+                    var extractor = new SharpCompressExtractor();
+                    await extractor.ExtractAsync(vanilla7zPath, modFolderPath, zipPassword, extractionProgress);
 
                     log.Write("Rozpakowano vanilla.");
                     break; // Jeśli rozpakowywanie się udało, wychodzimy z pętli
@@ -263,7 +287,32 @@ namespace SUSModder.Core.GameIntegration
             try
             {
                 log.Write($"Rozpakowuję archiwum moda: {modFile} do {tempExtractPath}");
-                ZipFile.ExtractToDirectory(modFile, tempExtractPath, overwriteFiles: true);
+
+                var extractionProgress = new Progress<ExtractionProgress>(p =>
+                {
+                    int pct;
+                    if (p.PercentComplete.HasValue)
+                    {
+                        pct = (int)p.PercentComplete.Value;
+                    }
+                    else if (p.TotalBytes > 0)
+                    {
+                        pct = (int)(p.BytesExtracted * 100 / p.TotalBytes);
+                    }
+                    else
+                    {
+                        progress.Report(85, $"Rozpakowywanie moda... ({FormatSize(p.BytesExtracted)})");
+                        return;
+                    }
+
+                    int mappedProgress = 80 + (pct * 10 / 100); // 80-90% overall
+                    progress.Report(mappedProgress,
+                        $"Rozpakowywanie moda: {pct}% ({FormatSize(p.BytesExtracted)}/{FormatSize(p.TotalBytes)})");
+                });
+
+                var extractor = new SharpCompressExtractor();
+                await extractor.ExtractAsync(modFile, tempExtractPath, progress: extractionProgress);
+
                 log.Write("Pomyślnie rozpakowano archiwum moda");
             }
             catch (Exception ex)
@@ -457,58 +506,12 @@ namespace SUSModder.Core.GameIntegration
             GC.WaitForPendingFinalizers();
         }
 
-        private void Extract7zWithPassword(string archivePath, string extractPath, string password)
+        private static string FormatSize(long bytes)
         {
-            try
-            {
-                log?.Write($"Rozpakowuję archiwum 7z: {archivePath} do {extractPath} (z hasłem)");
-
-                // Ścieżka do 7z.exe w katalogu aplikacji
-                string? appDirPath = Path.GetDirectoryName(Environment.ProcessPath);
-                if (string.IsNullOrEmpty(appDirPath))
-                {
-                    throw new InvalidOperationException("Nie można określić katalogu aplikacji.");
-                }
-
-                string sevenZipPath = Path.Combine(appDirPath, "tools", "7z.exe");
-                Directory.CreateDirectory(extractPath);
-
-                if (!File.Exists(sevenZipPath))
-                {
-                    log?.Write($"Nie znaleziono 7z.exe w katalogu: {Path.Combine(appDirPath, "tools")}");
-                    throw new FileNotFoundException($"Nie znaleziono 7z.exe: {sevenZipPath}");
-                }
-
-                using (var process = new Process())
-                {
-                    process.StartInfo.FileName = sevenZipPath;
-                    process.StartInfo.Arguments = $"x \"{archivePath}\" -o\"{extractPath}\" -p{password} -y";
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.CreateNoWindow = true;
-                    process.StartInfo.RedirectStandardOutput = true;
-                    process.StartInfo.RedirectStandardError = true;
-
-                    log?.Write($"Uruchamiam 7z.exe do rozpakowania: {archivePath}");
-                    process.Start();
-
-                    string output = process.StandardOutput.ReadToEnd();
-                    string error = process.StandardError.ReadToEnd();
-                    process.WaitForExit();
-
-                    if (process.ExitCode != 0)
-                    {
-                        throw new Exception($"Błąd podczas rozpakowywania archiwum. Kod wyjścia: {process.ExitCode}. Błąd: {error}");
-                    }
-
-                    log?.Write("Archiwum rozpakowane pomyślnie.");
-                }
-            }
-            catch (Exception ex)
-            {
-                string safeErrorMessage = ex.Message.Replace(password, "***HIDDEN***");
-                log?.Write($"Błąd podczas rozpakowywania archiwum: {safeErrorMessage}");
-                throw new Exception(safeErrorMessage, ex.InnerException);
-            }
+            if (bytes < 1024) return $"{bytes} B";
+            if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+            if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024.0):F1} MB";
+            return $"{bytes / (1024.0 * 1024.0 * 1024.0):F2} GB";
         }
 
         private async Task SafeDeleteDirectory(string directoryPath)
