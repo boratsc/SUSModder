@@ -71,6 +71,9 @@ namespace SUSModder.ViewModels
                 progressCallback?.Invoke(0.4, "Odświeżanie listy modów...");
                 await RefreshModsListAsync(preloadedConfigs: _loadedConfigs);
 
+                // Odblokuj interakcję — po kroku 4 lista modów jest w pełni załadowana
+                _isInitializing = false;
+
                 // KROK 5: Równoległe operacje w tle (80%)
                 progressCallback?.Invoke(0.6, "Ładowanie zasobów...");
                 var backgroundTasks = new List<Task>
@@ -612,11 +615,18 @@ namespace SUSModder.ViewModels
                         ConfigManager.SaveConfig(modConfigs);
                         Console.WriteLine($"[InstallationMap] ✅ Zaimportowano {imported.Count} modów do config.json");
 
-                        // Odśwież UI po imporcie
-                        await Dispatcher.UIThread.InvokeAsync(async () =>
+                        // Odśwież UI po imporcie (pomiń jeśli trwa instalacja)
+                        if (_activeInstallationsCount == 0)
                         {
-                            await RefreshModsListAsync();
-                        });
+                            await Dispatcher.UIThread.InvokeAsync(async () =>
+                            {
+                                await RefreshModsListAsync();
+                            });
+                        }
+                        else
+                        {
+                            Console.WriteLine("[InstallationMap] ⏭ Pomijam odświeżenie UI - trwa instalacja");
+                        }
                     }
                 }
 
@@ -634,11 +644,18 @@ namespace SUSModder.ViewModels
                     Console.WriteLine($"[InstallationMap] ✅ Wyczyszczono {cleaned} modów z config.json");
                     System.Diagnostics.Debug.WriteLine($"[InstallationMap] Wyczyszczono {cleaned} modów z config.json");
 
-                    // Odśwież UI po oczyszczeniu
-                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    // Odśwież UI po oczyszczeniu (pomiń jeśli trwa instalacja)
+                    if (_activeInstallationsCount == 0)
                     {
-                        await RefreshModsListAsync();
-                    });
+                        await Dispatcher.UIThread.InvokeAsync(async () =>
+                        {
+                            await RefreshModsListAsync();
+                        });
+                    }
+                    else
+                    {
+                        Console.WriteLine("[InstallationMap] ⏭ Pomijam odświeżenie UI - trwa instalacja");
+                    }
                 }
                 else
                 {

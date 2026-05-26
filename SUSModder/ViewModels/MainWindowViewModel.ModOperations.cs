@@ -30,10 +30,14 @@ namespace SUSModder.ViewModels
 
         private async void Install()
         {
+            if (_isInitializing)
+                return;
+
             if (SelectedMod == null || SelectedMod.IsInstalling)
                 return;
 
             var currentSelectedMod = SelectedMod;
+            bool success = false;
 
             // Zwiększ licznik aktywnych instalacji
             lock (_installationLock)
@@ -66,7 +70,6 @@ namespace SUSModder.ViewModels
                 }
 
                 string platform = DeterminePlatform();
-                bool success = false;
 
                 if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
                 {
@@ -84,14 +87,6 @@ namespace SUSModder.ViewModels
                         modConfig.ModVersion,
                         disableAutoUpdatePrompt: false,
                         pinnedInstallVersion: null);
-
-                    await RefreshModsListAsync(checkUpdates: false);
-                    SelectedMod = Mods.FirstOrDefault(m => m.Id == currentSelectedMod.Id);
-
-                    // Powiadomienie toast
-                    ToastService.ShowSuccess(
-                        _localizationService.GetFormatted("Toast.ModInstalled", currentSelectedMod.Name),
-                        _localizationService.GetFormatted("UI.Labels.ModVersionFormat", modConfig.ModVersion));
                 }
             }
             catch (Exception ex)
@@ -124,6 +119,19 @@ namespace SUSModder.ViewModels
                 // Odśwież statystyki status bara
                 await RefreshStatusBarAsync();
             }
+
+            // Odświeżenie listy modów PO dekrementacji licznika — wtedy guard
+            // _activeInstallationsCount == 0 w RefreshModsListAsync nie zablokuje go.
+            if (success)
+            {
+                await RefreshModsListAsync(checkUpdates: false);
+                SelectedMod = Mods.FirstOrDefault(m => m.Id == currentSelectedMod.Id);
+
+                // Powiadomienie toast
+                ToastService.ShowSuccess(
+                    _localizationService.GetFormatted("Toast.ModInstalled", currentSelectedMod.Name),
+                    _localizationService.GetFormatted("Toast.ModInstalledDesc", currentSelectedMod.ModVersion));
+            }
         }
 
         /// <summary>
@@ -131,6 +139,9 @@ namespace SUSModder.ViewModels
         /// </summary>
         private async Task InstallWithVersionSelection()
         {
+            if (_isInitializing)
+                return;
+
             if (SelectedMod == null || SelectedMod.IsInstalling)
                 return;
 
@@ -611,6 +622,9 @@ namespace SUSModder.ViewModels
 
         private async void Update()
         {
+            if (_isInitializing)
+                return;
+
             if (SelectedMod == null || SelectedMod.IsInstalling)
                 return;
 
@@ -842,6 +856,9 @@ namespace SUSModder.ViewModels
 
         private async void Uninstall()
         {
+            if (_isInitializing)
+                return;
+
             if (SelectedMod == null || SelectedMod.IsInstalling)
                 return;
 

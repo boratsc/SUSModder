@@ -86,6 +86,9 @@ namespace SUSModder.ViewModels
         private bool _isVersionSelectionModalVisible = false;
         private VersionSelectionViewModel? _versionSelectionModalViewModel;
 
+        // Flaga blokująca interakcję podczas inicjalizacji aplikacji
+        private bool _isInitializing = true;
+
         // Zarządzanie wielokrotnymi instalacjami i dialogami DLL
         private int _activeInstallationsCount = 0;
         private readonly object _installationLock = new object();

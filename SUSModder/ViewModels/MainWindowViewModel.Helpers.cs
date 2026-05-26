@@ -69,6 +69,14 @@ namespace SUSModder.ViewModels
 
         private async Task RefreshModsListAsync(bool checkUpdates = true, List<ModConfiguration>? preloadedConfigs = null)
         {
+            // Nie odświeżaj listy podczas trwającej instalacji — ModItem.IsInstalling
+            // zostałby zresetowany przez Mods.Clear() + nowe ModItem.
+            if (_activeInstallationsCount > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[RefreshModsListAsync] Pomijam odświeżenie — {_activeInstallationsCount} aktywnych instalacji");
+                return;
+            }
+
             try
             {
                 List<ModConfiguration> configs;

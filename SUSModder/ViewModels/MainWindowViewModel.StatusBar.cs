@@ -481,7 +481,11 @@ public int AvailableUpdatesCount
 
                         if (configRefreshed)
                         {
-                            await RefreshModsListAsync(checkUpdates: false);
+                            // Pomiń odświeżenie jeśli trwa instalacja (nie niszcz ModItem w trakcie)
+                            if (_activeInstallationsCount == 0)
+                            {
+                                await RefreshModsListAsync(checkUpdates: false);
+                            }
                         }
                     }
                     
@@ -589,7 +593,8 @@ public int AvailableUpdatesCount
 
                 // Jeśli config został zaktualizowany (np. doszły nowe mody),
                 // przeładuj listę modów od razu bez czekania na restart aplikacji.
-                if (result.ConfigWasUpdated)
+                // Pomiń jeśli trwa instalacja (nie niszcz ModItem w trakcie).
+                if (result.ConfigWasUpdated && _activeInstallationsCount == 0)
                 {
                     await RefreshModsListAsync(checkUpdates: false);
                 }
