@@ -15,6 +15,7 @@ using SUSModder.Services.Localization;
 using SUSModder.Core.Services;
 using SUSModder.Core.Services.Localization;
 using SUSModder.Core.Configuration;
+using SUSModder.Core.Data;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Utilities;
@@ -26,6 +27,8 @@ public partial class App : Application
     private SplashWindow? _splashWindow;
     private static ServiceProvider? _serviceProvider;
     private TelemetryService? _telemetryService;
+    private DatabaseService? _databaseService;
+    private UserSettingsService? _dbUserSettingsService;
 
     public override void Initialize()
     {
@@ -48,12 +51,30 @@ public partial class App : Application
         // Rejestracja serwisu powiadomień toast
         services.AddSingleton<ToastService>();
 
+        // Rejestracja DatabaseService i repozytoriów SQLite
+        services.AddSingleton<DatabaseService>();
+        services.AddSingleton<IUserSettingsRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new UserSettingsRepository(db);
+        });
+        services.AddSingleton<IModRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new ModRepository(db);
+        });
+        services.AddSingleton<ITouConfigRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new TouConfigRepository(db);
+        });
+
         // Rejestracja serwisu lokalizacji
         services.AddSingleton<ILocalizationService>(sp =>
         {
             var locService = new LocalizationService();
 
-            // Odczytaj zapisany język z user settings
+            // Odczytaj zapisany język z user settings (JSON fallback przed inicjalizacją bazy)
             var userSettingsService = new UserSettingsService();
             var userSettings = userSettingsService.LoadUserSettings();
             var savedLanguage = userSettings.Language;
@@ -103,17 +124,47 @@ public partial class App : Application
             var forceOnboardingFlagPath = Path.Combine(UserSettingsService.GetAppDataFolder(), "force-onboarding.flag");
             var forceOnboarding = File.Exists(forceOnboardingFlagPath);
 
-            // KROK 1: Inicjalizacja ustawień (10%)
-            _splashWindow?.UpdateProgress(0.0, "Inicjalizacja...");
-            await Task.Run(() =>
+            // KROK 0: Inicjalizacja bazy danych SQLite (przed ustawieniami)
+            _splashWindow?.UpdateProgress(0.0, "Inicjalizacja bazy danych...");
+            _databaseService = _serviceProvider?.GetService<DatabaseService>();
+            if (_databaseService != null)
             {
-                // Upewnij się, że TelemetryEnabled istnieje w appsettings.json
-                ConfigManager.EnsureTelemetryEnabledExists();
-            });
+                await _databaseService.InitializeAsync();
+                System.Diagnostics.Debug.WriteLine("[App] Baza danych SQLite zainicjalizowana.");
+
+                // Ustaw repozytoria w ConfigManager (migracja z JSON na SQLite)
+                var modRepo = _serviceProvider?.GetService<IModRepository>();
+                if (modRepo != null)
+                {
+                    ConfigManager.SetRepository(modRepo);
+                    System.Diagnostics.Debug.WriteLine("[App] ConfigManager -> SQLite repository set.");
+                }
+
+                var touRepo = _serviceProvider?.GetService<ITouConfigRepository>();
+                if (touRepo != null)
+                {
+                    ConfigManager.SetTouConfigRepository(touRepo);
+                    System.Diagnostics.Debug.WriteLine("[App] ConfigManager -> TouConfig repository set.");
+                }
+            }
+
+            // Utwórz UserSettingsService z repozytorium SQLite (po inicjalizacji bazy)
+            var userSettingsRepo = _serviceProvider?.GetService<IUserSettingsRepository>();
+            _dbUserSettingsService = userSettingsRepo != null
+                ? new UserSettingsService(userSettingsRepo)
+                : new UserSettingsService();
+
+            // Ustaw domyślne repozytorium, aby wszystkie nowe UserSettingsService() używały SQLite
+            if (userSettingsRepo != null)
+            {
+                UserSettingsService.SetDefaultRepository(userSettingsRepo);
+                System.Diagnostics.Debug.WriteLine("[App] UserSettingsService default repository set (SQLite).");
+            }
+
             await _splashWindow?.AnimateProgressAsync(0.1)!;
 
             // KROK 1.5: Sprawdź czy język jest ustawiony, jeśli nie - pokaż dialog wyboru języka
-            var userSettingsService = new UserSettingsService();
+            var userSettingsService = _dbUserSettingsService;
             if (forceOnboarding)
             {
                 userSettingsService.UpdateUserSetting(settings => settings.Language = string.Empty);

@@ -1,8 +1,9 @@
 # POC: Migracja konfiguracji z plików JSON na SQLite
 
 **Data:** 2026-05-27
-**Status:** ✅ Zatwierdzony (2026-05-27)
+**Status:** ✅ **Zaimplementowano** (2026-05-27)
 **Autor:** SUSModder planning agent (DeepSeek V4 Pro)
+**Implementacja:** SUSModder builder (deepseek-v4-pro)
 **Target:** .NET 10.0, `Microsoft.Data.Sqlite` 10.0.8
 **Zależność:** `SUSModder.Core`
 
@@ -353,5 +354,53 @@ DatabaseService.InitializeAsync()
 | Języki | PL + EN (i18n) |
 
 ---
+
+---
+
+## 11. Stan implementacji (2026-05-27)
+
+### ✅ Zaimplementowane
+
+#### Nowe pliki (`SUSModder.Core/Data/`):
+| Plik | Linii | Odpowiedzialność |
+|------|-------|-----------------|
+| `DatabaseService.cs` | ~560 | Połączenie, PRAGMA (WAL/NORMAL/FK), migracje schematu, WAL checkpoint, JSON→SQLite import, cleanup `.bak` + `.sqlite-migrated` flag |
+| `IModRepository.cs` | ~45 | Interfejs CRUD dla katalogu modów |
+| `ModRepository.cs` | ~490 | CRUD (INSERT/UPDATE/DELETE/UPSERT), write-through cache (`List<ModConfiguration>`), API fetch+merge |
+| `IUserSettingsRepository.cs` | ~30 | Interfejs dla ustawień użytkownika |
+| `UserSettingsRepository.cs` | ~170 | CRUD dla 16 kolumn (singleton), parametryzowane SQL, cache w pamięci |
+| `ITouConfigRepository.cs` | ~25 | Interfejs dla historii konfiguracji ToU |
+| `TouConfigRepository.cs` | ~75 | CRUD dla tou_configs, sortowane DESC |
+| `Models/TouConfig.cs` | ~25 | Typowany model (`Id`, `Hash`, `CreatedAt`) |
+
+#### Zmodyfikowane pliki:
+| Plik | Kluczowa zmiana |
+|------|----------------|
+| `SUSModder.Core.csproj` | +`Microsoft.Data.Sqlite` 10.0.8 |
+| `ModConfig.cs` | `ConfigManager` → fasada delegująca do `IModRepository`/`ITouConfigRepository`; 5 metod → no-opy `[Obsolete]` |
+| `UserSettingsService.cs` | Dual-mode: SQLite / JSON fallback; `SetDefaultRepository()` dla wszystkich instancji |
+| `ConfigService.cs` | Deleguje przez `ConfigManager` (bez zmian API) |
+| `GameLocator.cs` | Usunięty `SaveConfigurationSetting("Mode")` |
+| `ModConfigHandler.cs` | `AddConfigToJSON` → `ConfigManager.AddTouConfig()` |
+| `LoadServerConfigDialog.axaml.cs` | `LoadSavedConfigs` → `ConfigManager.GetTouConfigs()` |
+| `App.axaml.cs` | DI: `DatabaseService` + 3 repozytoria; init bazy przed Avalonia |
+| `CLAUDE.md` | Dodana sekcja "Data Layer (SQLite)" |
+
+### 🔑 Kluczowe decyzje implementacyjne
+
+1. **ConfigManager zachowany jako fasada** — 35+ call sites nie wymagało zmiany. Wszystkie delegują przez statyczną fasadę do SQLite.
+2. **UserSettingsService.SetDefaultRepository()** — dialogi (`PlatformSelection`, `LanguageSelection`) tworzą `new UserSettingsService()` bez parametrów; default repo zapewnia, że wszystkie instancje używają SQLite.
+3. **Write-through cache** — `ModRepository` ładuje wszystkie mody do `List<ModConfiguration>` przy starcie; zapis do DB jest natychmiastowy.
+4. **One-shot migracja** — przy pierwszym uruchomieniu JSON → SQLite; pliki JSON → `.bak`; flaga `.sqlite-migrated`.
+5. **Recovery z buggy first-run** — `EnsureDataMigratedIfEmpty()` sprawdza puste tabele i ponawia migrację.
+
+### ⚠️ Znane warningi (nieszkodliwe)
+- `CS0618` w `ConfigService.cs` (1x), `ThemeManager.cs` (2x) — metody `[Obsolete]`, do usunięcia przy pełnym usunięciu `ConfigManager` w przyszłości.
+
+### 🔜 Do zrobienia w przyszłości
+- Pełne usunięcie `ConfigManager` (zastąpienie DI we wszystkich call sites)
+- Usunięcie martwego kodu `ThemeManager.cs`
+- Testy E2E (install → update → uninstall na SQLite)
+- Testy crash-recovery (WAL recovery po awarii)
 
 *Analiza źródłowa: `mcp-rag` (repo-wide), bezpośredni odczyt `UserSettings.cs`, `UserSettingsService.cs`, `TelemetryService.cs`, `ConfigManager`, `ConfigRepository`, `InstallationMapManager.cs`, `ModConfigHandler.cs`.*

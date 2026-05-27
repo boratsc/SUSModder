@@ -156,14 +156,70 @@ namespace SUSModder.Core.Configuration
         private static readonly string configFilePath = Path.Combine(exeDir, "config.json");
         private static readonly string appSettingsFilePath = Path.Combine(exeDir, "appsettings.json");
 
+        // Repozytorium SQLite (ustawiane przez DI)
+        private static Data.IModRepository? _modRepository;
+        private static Data.ITouConfigRepository? _touConfigRepository;
+
         // Cache dla LoadConfigAsync — unika zbędnych requestów API przy częstych odświeżeniach UI.
-        // Unieważniany automatycznie przez SaveConfig(). TTL: 30s.
         private static readonly MemoryCache _configCache = new(new MemoryCacheOptions());
         private const string ConfigCacheKey = "ModConfigList";
         private static readonly TimeSpan ConfigCacheTtl = TimeSpan.FromSeconds(30);
 
+        /// <summary>
+        /// Ustawia repozytorium SQLite. Wywoływane podczas inicjalizacji aplikacji (DI).
+        /// Po ustawieniu, ConfigManager deleguje wszystkie operacje do SQLite.
+        /// </summary>
+        public static void SetRepository(Data.IModRepository repository)
+        {
+            _modRepository = repository ?? throw new ArgumentNullException(nameof(repository));
+            System.Diagnostics.Debug.WriteLine("[ConfigManager] SQLite repository set.");
+        }
+
+        /// <summary>
+        /// Sprawdza czy repozytorium SQLite jest dostępne.
+        /// </summary>
+        public static bool IsUsingSqlite => _modRepository != null;
+
+        /// <summary>
+        /// Ustawia repozytorium konfiguracji ToU.
+        /// </summary>
+        public static void SetTouConfigRepository(Data.ITouConfigRepository repository)
+        {
+            _touConfigRepository = repository ?? throw new ArgumentNullException(nameof(repository));
+        }
+
+        /// <summary>
+        /// Dodaje konfigurację ToU (hash). Deleguje do SQLite lub JSON.
+        /// </summary>
+        public static void AddTouConfig(string hash)
+        {
+            if (_touConfigRepository != null)
+            {
+                _touConfigRepository.AddConfig(hash);
+                return;
+            }
+
+            // Fallback JSON
+            AddTouConfigToJson(hash);
+        }
+
+        /// <summary>
+        /// Pobiera wszystkie zapisane konfiguracje ToU. Deleguje do SQLite lub JSON.
+        /// </summary>
+        public static System.Collections.Generic.List<Models.TouConfig> GetTouConfigs()
+        {
+            if (_touConfigRepository != null)
+                return _touConfigRepository.GetAllConfigs();
+
+            // Fallback JSON
+            return GetTouConfigsFromJson();
+        }
+
         public static List<ModConfiguration> LoadConfig()
         {
+            // SQLite path
+            if (_modRepository != null)
+                return _modRepository.GetAllMods();
             var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
             var configRepo = new ConfigRepository(exeDir);
 
@@ -249,6 +305,10 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         public static async Task<List<ModConfiguration>> LoadConfigAsync()
         {
+            // SQLite path
+            if (_modRepository != null)
+                return _modRepository.GetAllMods();
+
             // Sprawdź cache
             if (_configCache.TryGetValue(ConfigCacheKey, out List<ModConfiguration>? cachedConfigs) && cachedConfigs != null)
             {
@@ -341,6 +401,10 @@ namespace SUSModder.Core.Configuration
 
         public static async Task<bool> RefreshConfigFromApiAsync()
         {
+            // SQLite path
+            if (_modRepository != null)
+                return await _modRepository.RefreshFromApiAsync();
+
             try
             {
                 var currentExeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
@@ -443,6 +507,14 @@ namespace SUSModder.Core.Configuration
 
         public static void SaveConfig(List<ModConfiguration> configs)
         {
+            // SQLite path
+            if (_modRepository != null)
+            {
+                _modRepository.SaveAllMods(configs);
+                _configCache.Remove(ConfigCacheKey);
+                return;
+            }
+
             var dir = Path.GetDirectoryName(configFilePath) ?? string.Empty;
             if (!Directory.Exists(dir))
             {
@@ -456,11 +528,12 @@ namespace SUSModder.Core.Configuration
         }
 
         /// <summary>
-        /// Ręcznie unieważnia cache konfiguracji. Następne wywołanie LoadConfigAsync pobierze świeże dane.
+        /// Ręcznie unieważnia cache konfiguracji.
         /// </summary>
         public static void InvalidateConfigCache()
         {
             _configCache.Remove(ConfigCacheKey);
+            _modRepository?.ClearCache();
         }
 
         private static List<ModConfiguration>? LoadConfigFromFile(string? filePath)
@@ -870,292 +943,132 @@ namespace SUSModder.Core.Configuration
             return JsonSerializer.Serialize(normalized);
         }
 
+        /// <summary>
+        /// [DEPRECATED - SQLite Migration] Zapis do appsettings.json jest wyłączony.
+        /// Ustawienia (Mode, Theme, Language, Telemetry) są teraz w user_settings (SQLite/JSON).
+        /// Użyj UserSettingsService.UpdateUserSetting() zamiast tego.
+        /// </summary>
+        [Obsolete("Zapis do appsettings.json jest wyłączony. Użyj UserSettingsService.", false)]
         public static void SaveConfigurationSetting(string key, string value)
         {
-            var json = File.ReadAllText(appSettingsFilePath);
-            var jsonObj = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(json);
-            if (jsonObj != null && jsonObj.ContainsKey("Configuration"))
-            {
-                var configuration = jsonObj["Configuration"];
-                if (configuration.ContainsKey(key))
-                {
-                    configuration[key] = value;
-                }
-                else
-                {
-                    configuration.Add(key, value);
-                }
-
-                var updatedJson = JsonSerializer.Serialize(jsonObj, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(appSettingsFilePath, updatedJson);
-            }
+            System.Diagnostics.Debug.WriteLine($"[ConfigManager] SaveConfigurationSetting('{key}') - IGNORED (appsettings.json is now read-only)");
         }
+        /// <summary>
+        /// [DEPRECATED - SQLite Migration] Motyw jest teraz w user_settings (kolumna theme).
+        /// Użyj UserSettingsService: userSettings.Theme = "dark" / "light" / "pink".
+        /// </summary>
+        [Obsolete("Theme jest teraz w user_settings. Użyj UserSettingsService.", false)]
         public static void SaveThemeSetting(string theme)
         {
-            try
-            {
-                // Użyj appSettingsFilePath zamiast GetConfigPath()
-                if (File.Exists(appSettingsFilePath))
-                {
-                    var json = File.ReadAllText(appSettingsFilePath);
-                    var config = JsonSerializer.Deserialize<JsonElement>(json);
-
-                    var configDict = new Dictionary<string, object>();
-
-                    // Skopiuj istniejące ustawienia
-                    foreach (var property in config.EnumerateObject())
-                    {
-                        if (property.Name == "Configuration")
-                        {
-                            var configSection = new Dictionary<string, object>();
-                            foreach (var configProp in property.Value.EnumerateObject())
-                            {
-                                if (configProp.Name == "Theme")
-                                {
-                                    configSection[configProp.Name] = theme;
-                                }
-                                else
-                                {
-                                    configSection[configProp.Name] = configProp.Value.ToString();
-                                }
-                            }
-                            configDict[property.Name] = configSection;
-                        }
-                        else
-                        {
-                            try
-                            {
-                                var deserializedValue = JsonSerializer.Deserialize<object>(property.Value.GetRawText());
-                                if (deserializedValue != null)
-                                {
-                                    configDict[property.Name] = deserializedValue;
-                                }
-                                else
-                                {
-                                    // Użyj raw text jako fallback
-                                    configDict[property.Name] = property.Value.GetRawText();
-                                }
-                            }
-                            catch (JsonException)
-                            {
-                                // Jeśli deserializacja się nie powiedzie, użyj raw text
-                                configDict[property.Name] = property.Value.GetRawText();
-                            }
-                        }
-                    }
-
-                    var updatedJson = JsonSerializer.Serialize(configDict, new JsonSerializerOptions
-                    {
-                        WriteIndented = true
-                    });
-                    File.WriteAllText(appSettingsFilePath, updatedJson);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Błąd zapisywania motywu: {ex.Message}");
-            }
-        }
-
-        public static string GetThemeSetting()
-        {
-            try
-            {
-                var configBuilder = new ConfigurationBuilder()
-                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-
-                var configuration = configBuilder.Build();
-                return configuration["Configuration:Theme"] ?? "dark";
-            }
-            catch
-            {
-                return "dark"; // domyślny motyw
-            }
-        }
-
-        public static void SaveLanguageSetting(string language)
-        {
-            try
-            {
-                if (File.Exists(appSettingsFilePath))
-                {
-                    var json = File.ReadAllText(appSettingsFilePath);
-                    var config = JsonSerializer.Deserialize<JsonElement>(json);
-
-                    var configDict = new Dictionary<string, object>();
-
-                    // Skopiuj istniejące ustawienia
-                    foreach (var property in config.EnumerateObject())
-                    {
-                        if (property.Name == "Configuration")
-                        {
-                            var configSection = new Dictionary<string, object>();
-                            bool languageFound = false;
-
-                            foreach (var configProp in property.Value.EnumerateObject())
-                            {
-                                if (configProp.Name == "Language")
-                                {
-                                    configSection[configProp.Name] = language;
-                                    languageFound = true;
-                                }
-                                else
-                                {
-                                    configSection[configProp.Name] = configProp.Value.ToString();
-                                }
-                            }
-
-                            // Jeśli parametr Language nie istniał, dodaj go
-                            if (!languageFound)
-                            {
-                                configSection["Language"] = language;
-                            }
-
-                            configDict[property.Name] = configSection;
-                        }
-                        else
-                        {
-                            try
-                            {
-                                var deserializedValue = JsonSerializer.Deserialize<object>(property.Value.GetRawText());
-                                if (deserializedValue != null)
-                                {
-                                    configDict[property.Name] = deserializedValue;
-                                }
-                                else
-                                {
-                                    configDict[property.Name] = property.Value.GetRawText();
-                                }
-                            }
-                            catch (JsonException)
-                            {
-                                configDict[property.Name] = property.Value.GetRawText();
-                            }
-                        }
-                    }
-
-                    var updatedJson = JsonSerializer.Serialize(configDict, new JsonSerializerOptions
-                    {
-                        WriteIndented = true
-                    });
-                    File.WriteAllText(appSettingsFilePath, updatedJson);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Błąd zapisywania języka: {ex.Message}");
-            }
-        }
-
-        public static string GetLanguageSetting()
-        {
-            try
-            {
-                var configBuilder = new ConfigurationBuilder()
-                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-
-                var configuration = configBuilder.Build();
-                var language = configuration["Configuration:Language"];
-
-                // Zwróć pusty string jeśli parametr nie istnieje lub jest pusty
-                // To spowoduje pokazanie dialogu wyboru języka
-                return language ?? string.Empty;
-            }
-            catch
-            {
-                // W przypadku błędu zwróć pusty string, aby pokazać dialog
-                return string.Empty;
-            }
+            System.Diagnostics.Debug.WriteLine($"[ConfigManager] SaveThemeSetting('{theme}') - IGNORED (theme is now in user_settings)");
         }
 
         /// <summary>
-        /// Sprawdza czy w appsettings.json istnieje klucz TelemetryEnabled.
-        /// Jeśli nie istnieje, dodaje go z wartością true.
+        /// [DEPRECATED - SQLite Migration] Motyw jest teraz w user_settings.
+        /// Użyj UserSettingsService.LoadUserSettings().Theme.
         /// </summary>
+        [Obsolete("Theme jest teraz w user_settings. Użyj UserSettingsService.", false)]
+        public static string GetThemeSetting()
+        {
+            System.Diagnostics.Debug.WriteLine("[ConfigManager] GetThemeSetting() - IGNORED (theme is now in user_settings)");
+            return "dark"; // domyślny
+        }
+
+        /// <summary>
+        /// [DEPRECATED - SQLite Migration] Język jest teraz w user_settings (kolumna language).
+        /// Użyj UserSettingsService: userSettings.Language = "pl" / "en".
+        /// </summary>
+        [Obsolete("Language jest teraz w user_settings. Użyj UserSettingsService.", false)]
+        public static void SaveLanguageSetting(string language)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ConfigManager] SaveLanguageSetting('{language}') - IGNORED (language is now in user_settings)");
+        }
+
+        /// <summary>
+        /// [DEPRECATED - SQLite Migration] Język jest teraz w user_settings.
+        /// Użyj UserSettingsService.LoadUserSettings().Language.
+        /// </summary>
+        [Obsolete("Language jest teraz w user_settings. Użyj UserSettingsService.", false)]
+        public static string GetLanguageSetting()
+        {
+            System.Diagnostics.Debug.WriteLine("[ConfigManager] GetLanguageSetting() - IGNORED (language is now in user_settings)");
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// [DEPRECATED - SQLite Migration] TelemetryEnabled jest teraz w user_settings.
+        /// appsettings.json jest read-only.
+        /// </summary>
+        [Obsolete("TelemetryEnabled jest teraz w user_settings. Użyj UserSettingsService.", false)]
         public static void EnsureTelemetryEnabledExists()
+        {
+            System.Diagnostics.Debug.WriteLine("[ConfigManager] EnsureTelemetryEnabledExists() - IGNORED (telemetry_enabled is now in user_settings)");
+        }
+
+        #region TouConfig JSON Fallback (tymczasowe - do usunięcia po pełnej migracji)
+
+        private static void AddTouConfigToJson(string hash)
         {
             try
             {
-                if (!File.Exists(appSettingsFilePath))
-                    return;
+                string jsonFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SUSModder", "touConfigsBase.json");
+                var newEntry = new { hash, date = DateTime.Now.ToString("yyyy-MM-dd, HH:mm") };
 
-                var json = File.ReadAllText(appSettingsFilePath);
-                var config = JsonSerializer.Deserialize<JsonElement>(json);
-
-                var configDict = new Dictionary<string, object>();
-                bool needsUpdate = false;
-
-                // Skopiuj istniejące ustawienia
-                foreach (var property in config.EnumerateObject())
+                List<dynamic> configList;
+                if (File.Exists(jsonFile))
                 {
-                    if (property.Name == "Configuration")
-                    {
-                        var configSection = new Dictionary<string, object>();
-                        bool telemetryFound = false;
-
-                        foreach (var configProp in property.Value.EnumerateObject())
-                        {
-                            if (configProp.Name == "TelemetryEnabled")
-                            {
-                                telemetryFound = true;
-                            }
-                            
-                            // Zachowaj typ danych (bool, string, int, etc.)
-                            configSection[configProp.Name] = configProp.Value.ValueKind switch
-                            {
-                                JsonValueKind.True => true,
-                                JsonValueKind.False => false,
-                                JsonValueKind.Number => configProp.Value.GetInt32(),
-                                _ => configProp.Value.ToString()
-                            };
-                        }
-
-                        // Jeśli parametr TelemetryEnabled nie istniał, dodaj go
-                        if (!telemetryFound)
-                        {
-                            configSection["TelemetryEnabled"] = true;
-                            needsUpdate = true;
-                        }
-
-                        configDict[property.Name] = configSection;
-                    }
-                    else
-                    {
-                        try
-                        {
-                            var deserializedValue = JsonSerializer.Deserialize<object>(property.Value.GetRawText());
-                            if (deserializedValue != null)
-                            {
-                                configDict[property.Name] = deserializedValue;
-                            }
-                            else
-                            {
-                                configDict[property.Name] = property.Value.GetRawText();
-                            }
-                        }
-                        catch (JsonException)
-                        {
-                            configDict[property.Name] = property.Value.GetRawText();
-                        }
-                    }
+                    var json = File.ReadAllText(jsonFile);
+                    configList = Newtonsoft.Json.JsonConvert.DeserializeObject<List<dynamic>>(json) ?? new List<dynamic>();
                 }
-
-                // Zapisz tylko jeśli coś się zmieniło
-                if (needsUpdate)
+                else
                 {
-                    var updatedJson = JsonSerializer.Serialize(configDict, new JsonSerializerOptions
-                    {
-                        WriteIndented = true
-                    });
-                    File.WriteAllText(appSettingsFilePath, updatedJson);
+                    configList = new List<dynamic>();
+                    Directory.CreateDirectory(Path.GetDirectoryName(jsonFile)!);
                 }
+                configList.Add(newEntry);
+                File.WriteAllText(jsonFile, Newtonsoft.Json.JsonConvert.SerializeObject(configList, Newtonsoft.Json.Formatting.Indented));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Błąd podczas sprawdzania/dodawania TelemetryEnabled: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[ConfigManager] AddTouConfigToJson error: {ex.Message}");
             }
         }
+
+        private static System.Collections.Generic.List<Models.TouConfig> GetTouConfigsFromJson()
+        {
+            try
+            {
+                string jsonFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SUSModder", "touConfigsBase.json");
+                if (!File.Exists(jsonFile))
+                    return new System.Collections.Generic.List<Models.TouConfig>();
+
+                var json = File.ReadAllText(jsonFile);
+                var configs = Newtonsoft.Json.JsonConvert.DeserializeObject<List<dynamic>>(json);
+                if (configs == null)
+                    return new System.Collections.Generic.List<Models.TouConfig>();
+
+                var result = new System.Collections.Generic.List<Models.TouConfig>();
+                foreach (var config in configs)
+                {
+                    result.Add(new Models.TouConfig
+                    {
+                        Hash = config.hash?.ToString() ?? string.Empty,
+                        CreatedAt = config.date?.ToString() ?? string.Empty
+                    });
+                }
+
+                // Sortuj od najnowszych
+                result.Sort((a, b) => string.Compare(b.CreatedAt, a.CreatedAt, StringComparison.Ordinal));
+                return result;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ConfigManager] GetTouConfigsFromJson error: {ex.Message}");
+                return new System.Collections.Generic.List<Models.TouConfig>();
+            }
+        }
+
+        #endregion
+
     }
 }

@@ -304,9 +304,8 @@ namespace SUSModder.Core.GameIntegration
             // Zapisz ścieżkę Vanilla do user-settings (fallback po update)
             userSettingsService.UpdateUserSetting(settings => settings.VanillaInstallPath = installPath);
 
-            // Synchronizuj Mode z UserSettings do appsettings.json (dla kompatybilności)
-            configuration["Configuration:Mode"] = userMode;
-            ConfigManager.SaveConfigurationSetting("Mode", userMode);
+            // Mode jest zapisywany w user-settings (wywoływane przez caller)
+            // appsettings.json pozostaje read-only – zapis został usunięty (SQLite migration)
 
             Console.WriteLine($"Among Us Vanilla ({userMode}) został dodany do listy modów. InstallPath: {installPath}");
 

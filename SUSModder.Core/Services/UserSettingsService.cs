@@ -2,11 +2,14 @@ using System;
 using System.IO;
 using System.Text.Json;
 using SUSModder.Core.Configuration;
+using SUSModder.Core.Data;
 
 namespace SUSModder.Core.Services
 {
     /// <summary>
-    /// Zarządza ustawieniami użytkownika przechowywanymi w %APPDATA%/SUSModder/.
+    /// Zarządza ustawieniami użytkownika.
+    /// Preferuje SQLite (przez IUserSettingsRepository) gdy dostępne.
+    /// Fallback do user-settings.json dla backward compatibility.
     /// Te ustawienia NIE są nadpisywane podczas aktualizacji aplikacji.
     /// </summary>
     public class UserSettingsService
@@ -19,8 +22,45 @@ namespace SUSModder.Core.Services
         private static readonly string UserSettingsPath = Path.Combine(AppDataFolder, "user-settings.json");
         private static readonly string VersionFilePath = Path.Combine(AppContext.BaseDirectory, "version.json");
 
+        private readonly IUserSettingsRepository? _repository;
         private UserSettings? _cachedSettings;
         private AppVersion? _cachedVersion;
+
+        /// <summary>
+        /// Domyślne repozytorium używane gdy tworzona jest instancja bez parametrów.
+        /// Ustawiane przez App.axaml.cs podczas inicjalizacji.
+        /// </summary>
+        private static IUserSettingsRepository? _defaultRepository;
+
+        /// <summary>
+        /// Ustawia domyślne repozytorium dla wszystkich instancji tworzonych bez parametrów.
+        /// </summary>
+        public static void SetDefaultRepository(IUserSettingsRepository repository)
+        {
+            _defaultRepository = repository ?? throw new ArgumentNullException(nameof(repository));
+        }
+
+        /// <summary>
+        /// Konstruktor bezparametrowy - używa domyślnego repozytorium (SQLite) jeśli ustawione,
+        /// w przeciwnym razie fallback do JSON.
+        /// </summary>
+        public UserSettingsService() : this(_defaultRepository)
+        {
+        }
+
+        /// <summary>
+        /// Konstruktor z repozytorium SQLite - preferowana ścieżka.
+        /// </summary>
+        /// <param name="repository">Repozytorium ustawień (null = fallback do JSON).</param>
+        public UserSettingsService(IUserSettingsRepository? repository)
+        {
+            _repository = repository;
+        }
+
+        /// <summary>
+        /// Czy używamy SQLite do przechowywania ustawień.
+        /// </summary>
+        private bool UseSqlite => _repository != null;
 
         /// <summary>
         /// Ścieżka do katalogu z danymi aplikacji w %APPDATA%
@@ -28,7 +68,9 @@ namespace SUSModder.Core.Services
         public static string GetAppDataFolder() => AppDataFolder;
 
         /// <summary>
-        /// Wczytuje ustawienia użytkownika. Jeśli plik nie istnieje, tworzy domyślny.
+        /// Wczytuje ustawienia użytkownika.
+        /// SQLite: z bazy danych.
+        /// JSON: z pliku user-settings.json (fallback).
         /// </summary>
         public UserSettings LoadUserSettings()
         {
@@ -37,28 +79,30 @@ namespace SUSModder.Core.Services
 
             try
             {
-                EnsureAppDataFolderExists();
-
-                if (File.Exists(UserSettingsPath))
+                if (UseSqlite)
                 {
-                    var json = File.ReadAllText(UserSettingsPath);
-                    _cachedSettings = JsonSerializer.Deserialize<UserSettings>(json) ?? new UserSettings();
-                    
-                    // Auto-detect channel from current version if not set or if mismatch
+                    _cachedSettings = _repository!.LoadSettings();
                     DetectAndUpdateChannelIfNeeded(_cachedSettings);
-
-                    // Uruchom migracje konfiguracji (np. zmiana domyślnych wartości po aktualizacji)
                     RunMigrations(_cachedSettings);
                 }
                 else
                 {
-                    // Pierwsza instalacja - migruj z appsettings.json jeśli istnieje
-                    _cachedSettings = MigrateFromAppSettings() ?? new UserSettings();
-                    
-                    // Auto-detect channel from current version
-                    DetectAndUpdateChannelIfNeeded(_cachedSettings);
-                    
-                    SaveUserSettings(_cachedSettings);
+                    EnsureAppDataFolderExists();
+
+                    if (File.Exists(UserSettingsPath))
+                    {
+                        var json = File.ReadAllText(UserSettingsPath);
+                        _cachedSettings = JsonSerializer.Deserialize<UserSettings>(json) ?? new UserSettings();
+
+                        DetectAndUpdateChannelIfNeeded(_cachedSettings);
+                        RunMigrations(_cachedSettings);
+                    }
+                    else
+                    {
+                        _cachedSettings = MigrateFromAppSettings() ?? new UserSettings();
+                        DetectAndUpdateChannelIfNeeded(_cachedSettings);
+                        SaveUserSettings(_cachedSettings);
+                    }
                 }
 
                 return _cachedSettings;
@@ -72,20 +116,30 @@ namespace SUSModder.Core.Services
         }
 
         /// <summary>
-        /// Zapisuje ustawienia użytkownika do pliku.
+        /// Zapisuje ustawienia użytkownika.
+        /// SQLite: do bazy danych.
+        /// JSON: do pliku user-settings.json (fallback).
         /// </summary>
         public void SaveUserSettings(UserSettings settings)
         {
             try
             {
-                EnsureAppDataFolderExists();
+                if (UseSqlite)
+                {
+                    _repository!.SaveSettings(settings);
+                }
+                else
+                {
+                    EnsureAppDataFolderExists();
 
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                var json = JsonSerializer.Serialize(settings, options);
-                File.WriteAllText(UserSettingsPath, json);
+                    var options = new JsonSerializerOptions { WriteIndented = true };
+                    var json = JsonSerializer.Serialize(settings, options);
+                    File.WriteAllText(UserSettingsPath, json);
+
+                    System.Diagnostics.Debug.WriteLine($"[UserSettingsService] Zapisano ustawienia do JSON: {UserSettingsPath}");
+                }
 
                 _cachedSettings = settings;
-                System.Diagnostics.Debug.WriteLine($"[UserSettingsService] Zapisano ustawienia do: {UserSettingsPath}");
             }
             catch (Exception ex)
             {
@@ -96,6 +150,7 @@ namespace SUSModder.Core.Services
 
         /// <summary>
         /// Wczytuje informacje o wersji aplikacji z version.json.
+        /// (NIE migruje do SQLite - version.json zostaje jako plik)
         /// </summary>
         public AppVersion LoadAppVersion()
         {
@@ -111,7 +166,6 @@ namespace SUSModder.Core.Services
                 }
                 else
                 {
-                    // Fallback - migruj z appsettings.json
                     _cachedVersion = MigrateVersionFromAppSettings() ?? new AppVersion();
                     SaveAppVersion(_cachedVersion);
                 }
@@ -128,6 +182,7 @@ namespace SUSModder.Core.Services
 
         /// <summary>
         /// Zapisuje informacje o wersji aplikacji do version.json.
+        /// (NIE migruje do SQLite - version.json zostaje jako plik)
         /// </summary>
         public void SaveAppVersion(AppVersion version)
         {
@@ -150,7 +205,6 @@ namespace SUSModder.Core.Services
         /// <summary>
         /// Zapisuje ostatnią widzianą wersję changeloga (co nowego).
         /// </summary>
-        /// <param name="version">Wersja aplikacji (np. "2.5.0")</param>
         public void SaveLastSeenVersion(string version)
         {
             UpdateUserSetting(s => s.LastSeenVersion = version);
@@ -190,25 +244,20 @@ namespace SUSModder.Core.Services
         {
             _cachedSettings = null;
             _cachedVersion = null;
+
+            if (UseSqlite)
+            {
+                _repository!.ClearCache();
+            }
         }
 
         /// <summary>
         /// Wykrywa kanał z aktualnej wersji aplikacji i aktualizuje ustawienia jeśli potrzeba.
         /// WYŁĄCZONE: Użytkownik powinien mieć pełną kontrolę nad kanałem aktualizacji.
-        /// Auto-detekcja uniemożliwiała przełączanie się między kanałami (beta <-> release).
         /// </summary>
         private void DetectAndUpdateChannelIfNeeded(UserSettings settings)
         {
             // DISABLED: Auto-detection prevents manual channel switching
-            // User should have full control over update channel selection in settings
-            
-            // Original logic (disabled):
-            // - Detect channel from version (e.g. "2.3.0-beta" -> "beta", "2.2.0" -> "release")
-            // - Auto-update settings.UpdateChannel if mismatch
-            //
-            // Problem: User on release 2.2.2 switches to beta manually,
-            // but auto-detection immediately resets it back to "release"
-            // because version.json still says "2.2.2" (no "-beta" suffix)
         }
 
         /// <summary>
@@ -222,13 +271,10 @@ namespace SUSModder.Core.Services
                 bool changed = false;
 
                 // Migration 1 (v2.4.0): Domyślnie włącz opcje system tray
-                // Obsługuje przypadki, gdy poprzednia wersja zapisała "false" do JSON
-                // (przed v2.4.0 domyślną wartością było false).
                 while (settings.SettingsVersion < 1)
                 {
                     System.Diagnostics.Debug.WriteLine("[UserSettingsService] Migracja ustawień do wersji 1: włączanie domyślnych opcji tray");
 
-                    // Ustaw na true tylko jeśli obecnie są false (czyli na starych domyślnych)
                     if (!settings.MinimizeToTray)
                     {
                         settings.MinimizeToTray = true;
@@ -245,7 +291,6 @@ namespace SUSModder.Core.Services
                 }
 
                 // --- przyszłe migracje (SettingsVersion < 2, < 3, ...) dodawać tutaj ---
-                // while (settings.SettingsVersion < 2) { ... }
 
                 if (changed)
                 {
@@ -255,22 +300,12 @@ namespace SUSModder.Core.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[UserSettingsService] Błąd podczas migracji ustawień: {ex.Message}");
-                // Nie przerywaj ładowania - migracja to opt-in poprawka
-            }
-        }
-
-        private void EnsureAppDataFolderExists()
-        {
-            if (!Directory.Exists(AppDataFolder))
-            {
-                Directory.CreateDirectory(AppDataFolder);
-                System.Diagnostics.Debug.WriteLine($"[UserSettingsService] Utworzono katalog: {AppDataFolder}");
+                System.Diagnostics.Debug.WriteLine($"[UserSettingsService] Błąd migracji ustawień: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Migracja ustawień z appsettings.json (dla użytkowników aktualizujących z wersji <= 2.1.5).
+        /// Migruje ustawienia z appsettings.json przy pierwszym uruchomieniu.
         /// </summary>
         private UserSettings? MigrateFromAppSettings()
         {
@@ -286,32 +321,10 @@ namespace SUSModder.Core.Services
 
                 var settings = new UserSettings();
 
-                // Configuration section
-                if (root.TryGetProperty("Configuration", out var config))
-                {
-                    // Mode NIE jest migrowane z appsettings.json celowo:
-                    // pusty Mode wymusza dialog wyboru platformy przy pierwszym uruchomieniu / po resecie.
-                    // appsettings.json nie jest kasowany podczas factory reset, więc gdyby migrować Mode,
-                    // dialog platformy nigdy by nie był pokazywany po resecie.
-
-                    if (config.TryGetProperty("lastLaunchId", out var lastLaunch))
-                        settings.LastLaunchId = lastLaunch.GetInt32();
-
-                    if (config.TryGetProperty("Theme", out var theme))
-                        settings.Theme = theme.GetString() ?? "dark";
-
-                    if (config.TryGetProperty("Language", out var lang))
-                        settings.Language = lang.GetString() ?? string.Empty;
-
-                    if (config.TryGetProperty("TelemetryEnabled", out var telemetry))
-                        settings.TelemetryEnabled = telemetry.GetBoolean();
-                }
-
-                // AppSettings section
                 if (root.TryGetProperty("AppSettings", out var appSettings))
                 {
-                    if (appSettings.TryGetProperty("ModsInstallPath", out var modsPath))
-                        settings.ModsInstallPath = modsPath.GetString() ?? string.Empty;
+                    if (appSettings.TryGetProperty("DefaultModsPath", out var pathProp))
+                        settings.ModsInstallPath = Environment.ExpandEnvironmentVariables(pathProp.GetString() ?? string.Empty);
                 }
 
                 System.Diagnostics.Debug.WriteLine("[UserSettingsService] Zmigrowano ustawienia z appsettings.json");
@@ -319,13 +332,19 @@ namespace SUSModder.Core.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[UserSettingsService] Błąd migracji z appsettings.json: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[UserSettingsService] Błąd migracji z appsettings: {ex.Message}");
                 return null;
             }
         }
 
+        private void EnsureAppDataFolderExists()
+        {
+            if (!Directory.Exists(AppDataFolder))
+                Directory.CreateDirectory(AppDataFolder);
+        }
+
         /// <summary>
-        /// Migracja wersji z appsettings.json.
+        /// Migruje wersję z appsettings.json do version.json.
         /// </summary>
         private AppVersion? MigrateVersionFromAppSettings()
         {
@@ -341,21 +360,19 @@ namespace SUSModder.Core.Services
 
                 if (root.TryGetProperty("Configuration", out var config))
                 {
-                    if (config.TryGetProperty("CurrentVersion", out var version))
-                    {
-                        return new AppVersion
-                        {
-                            CurrentVersion = version.GetString() ?? "2.1.6",
-                            LastUpdateDate = DateTime.UtcNow.ToString("O")
-                        };
-                    }
+                    var version = new AppVersion();
+                    if (config.TryGetProperty("CurrentVersion", out var verProp))
+                        version.CurrentVersion = verProp.GetString() ?? string.Empty;
+
+                    System.Diagnostics.Debug.WriteLine("[UserSettingsService] Zmigrowano wersję z appsettings.json");
+                    return version;
                 }
 
                 return null;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[UserSettingsService] Błąd migracji wersji z appsettings.json: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[UserSettingsService] Błąd migracji wersji: {ex.Message}");
                 return null;
             }
         }
