@@ -38,6 +38,7 @@ namespace SUSModder.ViewModels
 
             var currentSelectedMod = SelectedMod;
             bool success = false;
+            ModConfiguration? modConfig = null;
 
             // Zwiększ licznik aktywnych instalacji
             lock (_installationLock)
@@ -59,7 +60,7 @@ namespace SUSModder.ViewModels
                 // Pobierz konfigurację moda
                 var configService = new ConfigService();
                 var allConfigs = configService.LoadConfig();
-                var modConfig = allConfigs.FirstOrDefault(c => c.ModName == currentSelectedMod.Name);
+                modConfig = allConfigs.FirstOrDefault(c => c.ModName == currentSelectedMod.Name);
 
                 if (modConfig == null)
                 {
@@ -124,19 +125,7 @@ namespace SUSModder.ViewModels
             // _activeInstallationsCount == 0 w RefreshModsListAsync nie zablokuje go.
             if (success)
             {
-                await RefreshModsListAsync(checkUpdates: false);
-                SelectedMod = Mods.FirstOrDefault(m => m.Id == currentSelectedMod.Id);
-
-                // Powiadomienie toast
-                ToastService.ShowSuccess(
-                    _localizationService.GetFormatted("Toast.ModInstalled", currentSelectedMod.Name),
-                    _localizationService.GetFormatted("Toast.ModInstalledDesc", currentSelectedMod.ModVersion));
-
-                // Pokaż dialog wyboru DLL dopiero po wszystkich operacjach post-instalacyjnych.
-                // Wywołujemy ShowDllSelectionWindowInternal bezpośrednio (nie przez queue),
-                // ponieważ _activeInstallationsCount == 0 i UI jest już ustabilizowane.
-                string platform = DeterminePlatform();
-                ShowDllSelectionWindowInternal(currentSelectedMod, platform);
+                await ShowPostInstallFlowAsync(currentSelectedMod, modConfig);
             }
         }
 
@@ -214,6 +203,8 @@ namespace SUSModder.ViewModels
             }
             SyncIsAnyModInstalling();
 
+            bool success = false;
+
             try
             {
                 // Ustaw flagę instalacji
@@ -239,7 +230,6 @@ namespace SUSModder.ViewModels
                 };
 
                 string platform = DeterminePlatform();
-                bool success = false;
 
                 if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
                 {
@@ -298,6 +288,12 @@ namespace SUSModder.ViewModels
 
                 // Odśwież statystyki status bara
                 await RefreshStatusBarAsync();
+            }
+
+            // Poinstalacyjny flow sukcesu (działający po finally)
+            if (success)
+            {
+                await ShowPostInstallFlowAsync(modItem, modConfig);
             }
         }
 
@@ -549,6 +545,104 @@ namespace SUSModder.ViewModels
 
             this.RaisePropertyChanged(nameof(IsModPanelVisible));
             System.Diagnostics.Debug.WriteLine($"DEBUG {platform} Path: {targetModConfig.InstallPath}");
+        }
+
+        /// <summary>
+        /// Sprawdza czy dialog poinstalacyjny ma być pominięty (flag DontShowPostInstallDialog).
+        /// </summary>
+        private async Task<bool> IsPostInstallDialogSuppressedAsync(ModItem modItem)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(modItem.InstallPath))
+                    return false;
+
+                var installMap = await InstallationMapManager.LoadInstallationMapAsync(modItem.InstallPath);
+                return installMap?.FullMod?.DontShowPostInstallDialog ?? false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Współdzielony flow poinstalacyjny: odświeża listę, pokazuje modal sukcesu i opcjonalnie toast.
+        /// Toast pokazywany TYLKO gdy dialog jest pominięty (DontShowAgain).
+        /// </summary>
+        private async Task ShowPostInstallFlowAsync(ModItem modItem, ModConfiguration? modConfig)
+        {
+            await RefreshModsListAsync(checkUpdates: false);
+            SelectedMod = Mods.FirstOrDefault(m => m.Id == modItem.Id);
+
+            string platform = DeterminePlatform();
+            bool supportsDll = !string.IsNullOrEmpty(modConfig?.DllInstallPath);
+            bool dialogSuppressed = await IsPostInstallDialogSuppressedAsync(modItem);
+
+            if (dialogSuppressed)
+            {
+                // Toast tylko gdy dialog pominięty — bo modal sam w sobie jest powiadomieniem
+                ToastService.ShowSuccess(
+                    _localizationService.GetFormatted("Toast.ModInstalled", modItem.Name),
+                    _localizationService.GetFormatted("Toast.ModInstalledDesc", modItem.ModVersion));
+                return;
+            }
+
+            // Pokaż modal inline (jak DLL selection, a nie osobne okienko)
+            var vm = new PostInstallSuccessViewModel(modItem.Name, supportsDll, _localizationService);
+            vm.CloseRequested += OnPostInstallSuccessCloseRequested;
+            PostInstallSuccessViewModel = vm;
+            IsPostInstallSuccessVisible = true;
+        }
+
+        private void OnPostInstallSuccessCloseRequested(object? sender, EventArgs e)
+        {
+            if (sender is PostInstallSuccessViewModel vm)
+            {
+                vm.CloseRequested -= OnPostInstallSuccessCloseRequested;
+
+                // Zapisz flagę "Nie pokazuj więcej" jeśli zaznaczona
+                if (vm.DontShowAgain && SelectedMod != null && !string.IsNullOrWhiteSpace(SelectedMod.InstallPath))
+                {
+                    _ = SaveDontShowPostInstallDialogAsync(SelectedMod.InstallPath);
+                }
+
+                // Ukryj modal
+                IsPostInstallSuccessVisible = false;
+                PostInstallSuccessViewModel = null;
+
+                // Wykonaj wybraną akcję
+                if (vm.Result == PostInstallAction.Launch)
+                {
+                    _ = LaunchAsync();
+                }
+                else if (vm.Result == PostInstallAction.AddDll)
+                {
+                    string platform = DeterminePlatform();
+                    ShowDllSelectionWindowInternal(SelectedMod!, platform);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Zapisuje flagę DontShowPostInstallDialog w installation-map.json.
+        /// </summary>
+        private async Task SaveDontShowPostInstallDialogAsync(string installPath)
+        {
+            try
+            {
+                var installMap = await InstallationMapManager.LoadInstallationMapAsync(installPath);
+                if (installMap?.FullMod != null)
+                {
+                    installMap.FullMod.DontShowPostInstallDialog = true;
+                    installMap.FullMod.LastUpdated = DateTime.Now;
+                    await InstallationMapManager.SaveInstallationMapAsync(installPath, installMap);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PostInstall] Błąd podczas zapisywania flagi: {ex.Message}");
+            }
         }
 
         private async Task PersistInstalledVersionStateAsync(
@@ -1008,6 +1102,32 @@ namespace SUSModder.ViewModels
 
                 // Odśwież statystyki status bara
                 await RefreshStatusBarAsync();
+            }
+        }
+
+        /// <summary>
+        /// Przełącza auto-aktualizację dla wybranego moda i zapisuje stan.
+        /// </summary>
+        public async Task ToggleAutoUpdateAsync(ModItem modItem, bool enabled)
+        {
+            try
+            {
+                if (modItem == null || string.IsNullOrWhiteSpace(modItem.InstallPath))
+                    return;
+
+                modItem.AutoUpdateEnabled = enabled;
+
+                var installMap = await InstallationMapManager.LoadInstallationMapAsync(modItem.InstallPath);
+                if (installMap?.FullMod != null)
+                {
+                    installMap.FullMod.AutoUpdateEnabled = enabled;
+                    installMap.FullMod.LastUpdated = DateTime.Now;
+                    await InstallationMapManager.SaveInstallationMapAsync(modItem.InstallPath, installMap);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AutoUpdate] Błąd podczas zapisywania ustawienia: {ex.Message}");
             }
         }
 

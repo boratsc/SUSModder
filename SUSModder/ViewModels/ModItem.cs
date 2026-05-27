@@ -20,6 +20,7 @@ namespace SUSModder.ViewModels
         private bool? _hasRoles;
         private string? _pinnedInstallVersion;
         private bool _disableAutoUpdatePrompt;
+        private bool _autoUpdateEnabled;
 
         // Nowe właściwości dla instalacji
         private bool _isInstalling = false;
@@ -63,6 +64,7 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _modVersion, value);
                 this.RaisePropertyChanged(nameof(IsPinnedVersionInstall));
+                this.RaisePropertyChanged(nameof(IsAutoUpdateToggleVisible));
             }
         }
 
@@ -82,6 +84,7 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(CanInstall));
                 this.RaisePropertyChanged(nameof(CanUninstall));
                 this.RaisePropertyChanged(nameof(IsPinnedVersionInstall));
+                this.RaisePropertyChanged(nameof(IsAutoUpdateToggleVisible));
             }
         }
 
@@ -92,6 +95,7 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _pinnedInstallVersion, value);
                 this.RaisePropertyChanged(nameof(IsPinnedVersionInstall));
+                this.RaisePropertyChanged(nameof(IsAutoUpdateToggleVisible));
             }
         }
 
@@ -102,8 +106,29 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _disableAutoUpdatePrompt, value);
                 this.RaisePropertyChanged(nameof(IsPinnedVersionInstall));
+                this.RaisePropertyChanged(nameof(IsAutoUpdateToggleVisible));
             }
         }
+
+        /// <summary>
+        /// Gdy true, aktualizacje tego moda są instalowane automatycznie
+        /// (bez wyświetlania dialogu potwierdzenia).
+        /// </summary>
+        public bool AutoUpdateEnabled
+        {
+            get => _autoUpdateEnabled;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _autoUpdateEnabled, value);
+            }
+        }
+
+        /// <summary>
+        /// Czy przełącznik auto-aktualizacji powinien być widoczny.
+        /// Tylko dla zainstalowanych modów (nie Vanilla, nie przypiętych wersji).
+        /// </summary>
+        public bool IsAutoUpdateToggleVisible =>
+            IsInstalled && !IsVanilla && !IsPinnedVersionInstall;
 
         public string GitHubRepoOrLink
         {
@@ -120,7 +145,12 @@ namespace SUSModder.ViewModels
         public string ModType
         {
             get => _modType;
-            set => this.RaiseAndSetIfChanged(ref _modType, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _modType, value);
+                this.RaisePropertyChanged(nameof(IsVanilla));
+                this.RaisePropertyChanged(nameof(IsAutoUpdateToggleVisible));
+            }
         }
 
         public string DllInstallPath
