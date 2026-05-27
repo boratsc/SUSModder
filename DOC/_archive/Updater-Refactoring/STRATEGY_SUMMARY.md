@@ -117,7 +117,7 @@ releases-beta/
 ```javascript
 // GET /api/download-latest
 // → Zwraca: /susmodder-versions/SUSModder-2.2.0.zip
-// → URL: https://susmodder.boracik.pl/SUSModder-2.2.0.zip
+// → URL: https://susmodder.app/SUSModder-2.2.0.zip
 ```
 
 #### 3. Velopack manifest (nowe instalacje i v2.2.0+)
@@ -178,7 +178,7 @@ releases-beta/
 1. Zainstaluj v2.0.2 (obecna wersja produkcyjna)
 2. Kliknij "Sprawdź aktualizacje"
 3. ✅ Powinien znaleźć v2.2.0
-4. ✅ Pobrać ZIP z https://susmodder.boracik.pl/SUSModder-2.2.0.zip (~50MB)
+4. ✅ Pobrać ZIP z https://susmodder.app/SUSModder-2.2.0.zip (~50MB)
 5. ✅ Uruchomić Updater.exe
 6. ✅ Zrestartować się do v2.2.0
 7. ✅ Velopack framework zainstalowany (Update.exe w katalogu nadrzędnym)

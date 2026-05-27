@@ -20,7 +20,7 @@ susmodder-versions/
 └── SUSModder-2.4.0.zip
 ```
 
-**URL:** `https://susmodder.boracik.pl/SUSModder-2.2.0.zip`
+**URL:** `https://susmodder.app/SUSModder-2.2.0.zip`
 
 **Przeznaczenie:**
 - Główny link dla użytkowników na v2.0.2 i starszych
@@ -95,7 +95,7 @@ app.get('/api/download-latest', (req, res) => {
     
     if (fs.existsSync(versionedFile)) {
         res.download(versionedFile);
-        // URL zwrócony użytkownikowi: https://susmodder.boracik.pl/SUSModder-2.2.0.zip
+        // URL zwrócony użytkownikowi: https://susmodder.app/SUSModder-2.2.0.zip
     } else {
         // Fallback do legacy folder
         const legacyFile = `/srv/synapsekit-boracik/nginx/html/susmodder/releases/legacy/SUSModder-2.2.0-legacy.zip`;
@@ -127,7 +127,7 @@ Serwer:
 1. Aplikacja wysyła: GET /api/susmodder-current-version?current=2.0.2
 2. Backend odpowiada: { "currentVersion": "2.2.0", "downloadUrl": "/api/download-latest" }
 3. Aplikacja pobiera: GET /api/download-latest
-4. Backend zwraca: https://susmodder.boracik.pl/SUSModder-2.2.0.zip
+4. Backend zwraca: https://susmodder.app/SUSModder-2.2.0.zip
 5. Użytkownik pobiera ZIP (~50MB)
 6. Updater.exe instaluje
 7. Restart → v2.2.0 z Velopack framework
@@ -181,7 +181,7 @@ ssh debian@vps-b99a39c3.vps.ovh.net "ls -lh /srv/synapsekit-boracik/nginx/html/s
 
 ```bash
 # Test download (versions)
-curl -I https://susmodder.boracik.pl/SUSModder-2.2.0.zip
+curl -I https://susmodder.app/SUSModder-2.2.0.zip
 # Oczekiwane: HTTP/1.1 200 OK, Content-Length: ~52MB
 
 # Test download (legacy backup)
@@ -215,7 +215,7 @@ A: Każda nowa wersja stable (np. 2.4.0) powinna mieć swój ZIP w `/susmodder-v
 - [ ] Build: `.\SKRYPTY\Build\sign-and-build.ps1 -ReleaseVersion "2.2.0"`
 - [ ] Weryfikacja: Sprawdź `releases-legacy/SUSModder-2.2.0-legacy.zip`
 - [ ] Deploy: `.\SKRYPTY\Build\deploy-to-server.ps1 -ReleaseVersion "2.2.0"`
-- [ ] Weryfikacja upload #1: `curl -I https://susmodder.boracik.pl/SUSModder-2.2.0.zip`
+- [ ] Weryfikacja upload #1: `curl -I https://susmodder.app/SUSModder-2.2.0.zip`
 - [ ] Weryfikacja upload #2: `curl -I https://susmodder.app/releases/legacy/SUSModder-2.2.0-legacy.zip`
 - [ ] Test API: `curl "https://susmodder.app/api/download-latest?current=2.0.2"`
 - [ ] Test w aplikacji: Uruchom v2.0.2 → "Sprawdź aktualizacje"

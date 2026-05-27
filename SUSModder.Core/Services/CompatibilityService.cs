@@ -33,7 +33,7 @@ namespace SUSModder.Core.Services
             _log = log;
 
             var baseUrl = configuration.GetSection("Configuration")["BaseUrl"]
-                ?? "https://susmodder.boracik.pl/";
+                ?? "https://susmodder.app/";
             _baseUrl = baseUrl.TrimEnd('/');
         }
 

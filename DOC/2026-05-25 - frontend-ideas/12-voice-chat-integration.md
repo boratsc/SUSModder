@@ -17,7 +17,7 @@ Clair to nasz własny bot Discord (discord.js v14, Docker), który już obsługu
 - **Wyniki gier Among Us** przez Mira API (SUSTATS → Clair API → Discord embed)
 - **SignalR WebSocket** do real-time komunikacji
 - System ekonomii, role, slash commands
-- Kategoryzację ról z susmodder.boracik.pl/api/roles-modifiers
+- Kategoryzację ról z susmodder.app/api/roles-modifiers
 
 ### Co dodać do Clair (V1, ~1 dzień)
 

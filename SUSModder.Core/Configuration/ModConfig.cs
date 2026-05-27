@@ -492,7 +492,7 @@ namespace SUSModder.Core.Configuration
                         jsonObj.ContainsKey("Configuration") &&
                         jsonObj["Configuration"].ContainsKey("UpdateServerUrl"))
                     {
-                        return jsonObj["Configuration"]["UpdateServerUrl"].ToString() ?? "https://susmodder.boracik.pl/api/susmodder-config";
+                        return jsonObj["Configuration"]["UpdateServerUrl"].ToString() ?? "https://susmodder.app/api/susmodder-config";
                     }
                 }
             }
@@ -502,7 +502,7 @@ namespace SUSModder.Core.Configuration
             }
 
             // Fallback do domyślnego URL-a
-            return "https://susmodder.boracik.pl/api/susmodder-config";
+            return "https://susmodder.app/api/susmodder-config";
         }
 
         public static void SaveConfig(List<ModConfiguration> configs)

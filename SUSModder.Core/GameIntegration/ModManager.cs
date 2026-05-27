@@ -74,7 +74,7 @@ namespace SUSModder.Core.GameIntegration
             string vanilla7zName = $"{modConfig.AmongVersion.Replace("-", "").Replace(".", "")}";
             string vanilla7zPath = Path.Combine(vanillaDir, vanilla7zName + ".7z");
 
-            string baseUrl = configuration.GetSection("Configuration")["BaseUrl"] ?? "https://susmodder.boracik.pl/";
+            string baseUrl = configuration.GetSection("Configuration")["BaseUrl"] ?? "https://susmodder.app/";
             string fileUrlAmongUs = $"{baseUrl}api/susmodder-download-version?version={vanilla7zName}";
 
             // Unikalna nazwa katalogu temp dla każdej instalacji, aby uniknąć konfliktów przy równoczesnych instalacjach

@@ -1,8 +1,8 @@
 # 14 – Splash screen video przez WebView2
 
-**Priorytet:** 🟡 P2 (wstrzymane)
+**Priorytet:** 🟡 P2
 **Effort:** ~6-8h (przekroczone)
-**Status:** 🛑 Nierozwiązany – wideo nie wyświetla się poprawnie
+**Status:** 🛑 **Zaniechane (2026-05-27)** – nierozwiązywalne problemy techniczne z WebView2. Zostaje statyczny splash screen (`splashscreen.jpg`).
 
 ## Cel
 

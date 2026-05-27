@@ -563,7 +563,7 @@ catch (Exception ex)
 
 **Rekomendacja:**
 - Dodanie weryfikacji SHA256 hash archiwum przed rozpakowanie
-- HTTPS dla UpdateServerUrl (już zaimplementowane: `https://susmodder.boracik.pl`)
+- HTTPS dla UpdateServerUrl (już zaimplementowane: `https://susmodder.app`)
 
 ---
 
