@@ -84,20 +84,29 @@ namespace SUSModder.Core.Configuration
 
         /// <summary>
         /// Czy minimalizować do zasobnika systemowego zamiast zamykania aplikacji.
+        /// Domyślnie włączone od wersji 2.4.0 (migracja: UserSettingsService.RunMigrations).
         /// </summary>
         [JsonPropertyName("minimizeToTray")]
-        public bool MinimizeToTray { get; set; } = false;
+        public bool MinimizeToTray { get; set; } = true;
 
         /// <summary>
         /// Czy pokazywać szybkie uruchamianie (3 ostatnie mody) w menu zasobnika.
+        /// Domyślnie włączone od wersji 2.4.0 (migracja: UserSettingsService.RunMigrations).
         /// </summary>
         [JsonPropertyName("showQuickLaunchInTray")]
-        public bool ShowQuickLaunchInTray { get; set; } = false;
+        public bool ShowQuickLaunchInTray { get; set; } = true;
 
         /// <summary>
         /// Czy dymek informacyjny przy pierwszym minimalizowaniu został już pokazany.
         /// </summary>
         [JsonPropertyName("trayFirstMinimizeShown")]
         public bool TrayFirstMinimizeShown { get; set; } = false;
+
+        /// <summary>
+        /// Wersja schematu ustawień. Używana do migracji przy aktualizacjach.
+        /// 0 = brak/niewersjonowany, 1 = pierwsza wersjonowana migracja (v2.4.0: domyślnie włączone tray).
+        /// </summary>
+        [JsonPropertyName("settingsVersion")]
+        public int SettingsVersion { get; set; } = 0;
     }
 }

@@ -46,6 +46,9 @@ namespace SUSModder.Core.Services
                     
                     // Auto-detect channel from current version if not set or if mismatch
                     DetectAndUpdateChannelIfNeeded(_cachedSettings);
+
+                    // Uruchom migracje konfiguracji (np. zmiana domyślnych wartości po aktualizacji)
+                    RunMigrations(_cachedSettings);
                 }
                 else
                 {
@@ -206,6 +209,55 @@ namespace SUSModder.Core.Services
             // Problem: User on release 2.2.2 switches to beta manually,
             // but auto-detection immediately resets it back to "release"
             // because version.json still says "2.2.2" (no "-beta" suffix)
+        }
+
+        /// <summary>
+        /// Uruchamia migracje konfiguracji użytkownika po aktualizacji aplikacji.
+        /// Każda migracja jest identyfikowana przez SettingsVersion.
+        /// </summary>
+        private void RunMigrations(UserSettings settings)
+        {
+            try
+            {
+                bool changed = false;
+
+                // Migration 1 (v2.4.0): Domyślnie włącz opcje system tray
+                // Obsługuje przypadki, gdy poprzednia wersja zapisała "false" do JSON
+                // (przed v2.4.0 domyślną wartością było false).
+                while (settings.SettingsVersion < 1)
+                {
+                    System.Diagnostics.Debug.WriteLine("[UserSettingsService] Migracja ustawień do wersji 1: włączanie domyślnych opcji tray");
+
+                    // Ustaw na true tylko jeśli obecnie są false (czyli na starych domyślnych)
+                    if (!settings.MinimizeToTray)
+                    {
+                        settings.MinimizeToTray = true;
+                        changed = true;
+                    }
+                    if (!settings.ShowQuickLaunchInTray)
+                    {
+                        settings.ShowQuickLaunchInTray = true;
+                        changed = true;
+                    }
+
+                    settings.SettingsVersion = 1;
+                    changed = true;
+                }
+
+                // --- przyszłe migracje (SettingsVersion < 2, < 3, ...) dodawać tutaj ---
+                // while (settings.SettingsVersion < 2) { ... }
+
+                if (changed)
+                {
+                    SaveUserSettings(settings);
+                    System.Diagnostics.Debug.WriteLine($"[UserSettingsService] Migracja ustawień zakończona (SettingsVersion={settings.SettingsVersion})");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[UserSettingsService] Błąd podczas migracji ustawień: {ex.Message}");
+                // Nie przerywaj ładowania - migracja to opt-in poprawka
+            }
         }
 
         private void EnsureAppDataFolderExists()

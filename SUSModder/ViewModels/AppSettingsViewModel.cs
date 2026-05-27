@@ -39,11 +39,11 @@ namespace SUSModder.ViewModels
         private bool _telemetryEnabled = true;
         private bool _originalTelemetryEnabled = true;
 
-        // Ustawienia system tray
-        private bool _minimizeToTray = false;
-        private bool _originalMinimizeToTray = false;
-        private bool _showQuickLaunchInTray = false;
-        private bool _originalShowQuickLaunchInTray = false;
+        // Ustawienia system tray (domyślnie włączone od v2.4.0)
+        private bool _minimizeToTray = true;
+        private bool _originalMinimizeToTray = true;
+        private bool _showQuickLaunchInTray = true;
+        private bool _originalShowQuickLaunchInTray = true;
 
         // Stała lista dostępnych języków (aby uniknąć problemów z referencjami)
         private static readonly List<LanguageOption> _availableLanguages = new()
@@ -349,10 +349,10 @@ namespace SUSModder.ViewModels
                 _originalDeveloperMode = false;
                 _gameMode = "steam";
                 _originalGameMode = "steam";
-                _minimizeToTray = false;
-                _originalMinimizeToTray = false;
-                _showQuickLaunchInTray = false;
-                _originalShowQuickLaunchInTray = false;
+                _minimizeToTray = true;
+                _originalMinimizeToTray = true;
+                _showQuickLaunchInTray = true;
+                _originalShowQuickLaunchInTray = true;
             }
         }
 
@@ -858,7 +858,8 @@ namespace SUSModder.ViewModels
                     LicenseAccepted = false,
                     FirstRunDate = string.Empty,
                     VanillaInstallPath = string.Empty,
-                    AntivirusWarningAcknowledgedSignature = string.Empty
+                    AntivirusWarningAcknowledgedSignature = string.Empty,
+                    SettingsVersion = 1 // Oznacz jako już zmigrowane, aby uniknąć redundantnej migracji
                 };
                 _userSettingsService.SaveUserSettings(resetUserSettings);
 
