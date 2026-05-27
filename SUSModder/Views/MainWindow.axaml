@@ -816,30 +816,30 @@
 									<local:RecommendedDiscordsPanel/>
 								</Panel>
 
-							<Panel IsVisible="{Binding IsRepairOptionsVisible}" Classes="fade-in-panel">
-								<local:RepairOptionsPanel/>
-							</Panel>
+						<Panel IsVisible="{Binding IsRepairOptionsVisible}" Classes="fade-in-panel">
+							<local:RepairOptionsPanel/>
+						</Panel>
 
-							<ContentControl Content="{Binding VersionSelectionModalViewModel}"
-											IsVisible="{Binding IsVersionSelectionModalVisible}"
-											Classes="fade-in-panel">
-								<ContentControl.DataTemplates>
-									<DataTemplate DataType="vm:VersionSelectionViewModel">
-										<local:VersionSelectionPanel/>
-									</DataTemplate>
-								</ContentControl.DataTemplates>
-							</ContentControl>
+						<ContentControl Content="{Binding PostInstallSuccessViewModel}"
+										IsVisible="{Binding IsPostInstallSuccessVisible}"
+										Classes="fade-in-panel">
+							<ContentControl.DataTemplates>
+								<DataTemplate DataType="vm:PostInstallSuccessViewModel">
+									<local:PostInstallSuccessView/>
+								</DataTemplate>
+							</ContentControl.DataTemplates>
+						</ContentControl>
 
-							<ContentControl Content="{Binding PostInstallSuccessViewModel}"
-											IsVisible="{Binding IsPostInstallSuccessVisible}"
-											Classes="fade-in-panel">
-								<ContentControl.DataTemplates>
-									<DataTemplate DataType="vm:PostInstallSuccessViewModel">
-										<local:PostInstallSuccessView/>
-									</DataTemplate>
-								</ContentControl.DataTemplates>
-							</ContentControl>
-						</Grid>
+						<ContentControl Content="{Binding VersionSelectionModalViewModel}"
+										IsVisible="{Binding IsVersionSelectionModalVisible}"
+										Classes="fade-in-panel">
+							<ContentControl.DataTemplates>
+								<DataTemplate DataType="vm:VersionSelectionViewModel">
+									<local:VersionSelectionPanel/>
+								</DataTemplate>
+							</ContentControl.DataTemplates>
+						</ContentControl>
+					</Grid>
 					</Grid>
 				</Border>
 			</Border>

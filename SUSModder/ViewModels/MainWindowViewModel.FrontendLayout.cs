@@ -35,6 +35,7 @@ namespace SUSModder.ViewModels
             IsDllModalVisible ||
             IsDllSelectionModalVisible ||
             IsVersionSelectionModalVisible ||
+            IsPostInstallSuccessVisible ||
             IsSUStatsConfigVisible ||
             IsAppSettingsVisible ||
             IsRecommendedDiscordsVisible ||
@@ -89,6 +90,11 @@ namespace SUSModder.ViewModels
                     return _localizationService.Get("UI.Repair.DialogTitle");
                 }
 
+                if (IsPostInstallSuccessVisible && PostInstallSuccessViewModel != null)
+                {
+                    return PostInstallSuccessViewModel.Title;
+                }
+
                 return _localizationService.Get("UI.Menu.Info");
             }
         }
@@ -121,6 +127,8 @@ namespace SUSModder.ViewModels
             IsAppSettingsVisible = false;
             IsRecommendedDiscordsVisible = false;
             IsRepairOptionsVisible = false;
+            IsPostInstallSuccessVisible = false;
+            PostInstallSuccessViewModel = null;
             if (IsVersionSelectionModalVisible)
             {
                 VersionSelectionModalViewModel?.CancelSelection();

@@ -33,28 +33,9 @@
 		<Style Selector="Button.secondary-button:pointerover">
 			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
 		</Style>
-
-		<!-- Hover effect dla przycisku X -->
-		<Style Selector="Button.dismiss-button:pointerover">
-			<Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
-		</Style>
 	</UserControl.Styles>
 
-	<Grid Margin="30">
-		<!-- Przycisk X w prawym górnym rogu -->
-		<Button Command="{Binding DismissCommand}"
-		        HorizontalAlignment="Right"
-		        VerticalAlignment="Top"
-		        Margin="-20,-20,0,0"
-		        Width="32" Height="32"
-		        CornerRadius="16"
-		        Background="Transparent"
-		        BorderThickness="0"
-		        Foreground="{DynamicResource TextSecondaryBrush}"
-		        FontSize="14"
-		        Content="✕"/>
-
-		<StackPanel Spacing="20" VerticalAlignment="Center">
+	<StackPanel Spacing="20" VerticalAlignment="Center" Margin="30">
 
 			<!-- Ikona sukcesu -->
 			<Border HorizontalAlignment="Center">
@@ -113,5 +94,4 @@
 		          Content="{Binding DontShowAgainCheckbox}"/>
 
 	</StackPanel>
-	</Grid>
 </UserControl>
