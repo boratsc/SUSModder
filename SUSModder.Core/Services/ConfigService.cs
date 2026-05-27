@@ -45,11 +45,13 @@ namespace SUSModder.Core.Services
         }
 
         /// <summary>
-        /// Zapisuje pojedyncze ustawienie do appsettings.json (np. tryb Mode).
+        /// [DEPRECATED - SQLite Migration] appsettings.json jest read-only.
+        /// Tryb Mode jest teraz w user_settings. Użyj UserSettingsService.
         /// </summary>
+        [Obsolete("appsettings.json jest read-only. Użyj UserSettingsService.", false)]
         public void SaveConfigurationSetting(string key, string value)
         {
-            ConfigManager.SaveConfigurationSetting(key, value);
+            // No-op – appsettings.json is now read-only
         }
         public string GetAppVersion()
         {

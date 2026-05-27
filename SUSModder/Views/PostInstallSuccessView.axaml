@@ -33,9 +33,27 @@
 		<Style Selector="Button.secondary-button:pointerover">
 			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
 		</Style>
+
+		<!-- Hover effect dla przycisku X -->
+		<Style Selector="Button.dismiss-button:pointerover">
+			<Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
+		</Style>
 	</UserControl.Styles>
 
 	<Grid Margin="30">
+		<!-- Przycisk X w prawym górnym rogu -->
+		<Button Command="{Binding DismissCommand}"
+		        HorizontalAlignment="Right"
+		        VerticalAlignment="Top"
+		        Margin="-20,-20,0,0"
+		        Width="32" Height="32"
+		        CornerRadius="16"
+		        Background="Transparent"
+		        BorderThickness="0"
+		        Foreground="{DynamicResource TextSecondaryBrush}"
+		        FontSize="14"
+		        Content="✕"/>
+
 		<StackPanel Spacing="20" VerticalAlignment="Center">
 
 			<!-- Ikona sukcesu -->
@@ -87,25 +105,25 @@
 				        Content="{Binding AddDllButton}"/>
 			</StackPanel>
 
-		<!-- Checkbox "Nie pokazuj więcej" -->
-		<CheckBox IsChecked="{Binding DontShowAgain}"
-		          HorizontalAlignment="Center"
-		          FontSize="12"
-		          Foreground="{DynamicResource TextSecondaryBrush}"
-		          Content="{Binding DontShowAgainCheckbox}"/>
+			<!-- Checkbox "Nie pokazuj więcej" -->
+			<CheckBox IsChecked="{Binding DontShowAgain}"
+			          HorizontalAlignment="Center"
+			          FontSize="12"
+			          Foreground="{DynamicResource TextSecondaryBrush}"
+			          Content="{Binding DontShowAgainCheckbox}"/>
 
-		<!-- Przycisk zamknięcia (dismiss) -->
-		<Button Command="{Binding DismissCommand}"
-		        HorizontalAlignment="Center"
-		        FontSize="13"
-		        Padding="20,6"
-		        CornerRadius="6"
-		        Background="Transparent"
-		        BorderThickness="1"
-		        BorderBrush="{DynamicResource TextSecondaryBrush}"
-		        Foreground="{DynamicResource TextSecondaryBrush}"
-		        Content="✕ Zamknij"/>
+			<!-- Przycisk zamknięcia (dismiss) -->
+			<Button Command="{Binding DismissCommand}"
+			        HorizontalAlignment="Center"
+			        FontSize="13"
+			        Padding="20,6"
+			        CornerRadius="6"
+			        Background="Transparent"
+			        BorderThickness="1"
+			        BorderBrush="{DynamicResource TextSecondaryBrush}"
+			        Foreground="{DynamicResource TextSecondaryBrush}"
+			        Content="✕ Zamknij"/>
 
-	</StackPanel>
+		</StackPanel>
 	</Grid>
 </UserControl>

@@ -3,12 +3,14 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
+using SUSModder.Core.Services;
 using SUSModder.Core.Configuration;
 
 namespace SUSModder.Services
 {
     /// <summary>
-    /// Zarządza motywami aplikacji (Dark, Light, Pink)
+    /// Zarządza motywami aplikacji (Dark, Light, Pink).
+    /// Motyw przechowywany w user_settings (SQLite/JSON), nie w appsettings.json.
     /// </summary>
     public class ThemeManager
     {
@@ -17,6 +19,7 @@ namespace SUSModder.Services
         private readonly Uri _pinkThemeUri = new Uri("avares://SUSModder/Themes/PinkTheme.axaml");
         
         private ResourceDictionary? _currentThemeDictionary;
+        private readonly UserSettingsService _userSettingsService;
 
         public enum ThemeType
         {
@@ -25,14 +28,24 @@ namespace SUSModder.Services
             Pink
         }
 
+        public ThemeManager() : this(new UserSettingsService())
+        {
+        }
+
+        public ThemeManager(UserSettingsService userSettingsService)
+        {
+            _userSettingsService = userSettingsService;
+        }
+
         /// <summary>
-        /// Wczytuje zapisany motyw z konfiguracji
+        /// Wczytuje zapisany motyw z user_settings.
         /// </summary>
         public ThemeType LoadSavedTheme()
         {
             try
             {
-                var savedTheme = ConfigManager.GetThemeSetting();
+                var userSettings = _userSettingsService.LoadUserSettings();
+                var savedTheme = userSettings.Theme;
                 var theme = savedTheme switch
                 {
                     "light" => ThemeType.Light,
@@ -45,13 +58,10 @@ namespace SUSModder.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Błąd wczytywania motywu: {ex.Message}");
-                return ThemeType.Dark; // domyślnie ciemny
+                return ThemeType.Dark;
             }
         }
 
-        /// <summary>
-        /// Przełącza na następny motyw w kolejności (Dark -> Light -> Pink -> Dark)
-        /// </summary>
         public ThemeType ToggleTheme(ThemeType currentTheme)
         {
             var newTheme = currentTheme switch
@@ -61,13 +71,12 @@ namespace SUSModder.Services
                 ThemeType.Pink => ThemeType.Dark,
                 _ => ThemeType.Dark
             };
-
             SaveTheme(newTheme);
             return newTheme;
         }
 
         /// <summary>
-        /// Zapisuje wybrany motyw do konfiguracji
+        /// Zapisuje wybrany motyw do user_settings.
         /// </summary>
         public void SaveTheme(ThemeType theme)
         {
@@ -79,7 +88,7 @@ namespace SUSModder.Services
                     ThemeType.Pink => "pink",
                     _ => "dark"
                 };
-                ConfigManager.SaveThemeSetting(themeValue);
+                _userSettingsService.UpdateUserSetting(settings => settings.Theme = themeValue);
                 System.Diagnostics.Debug.WriteLine($"Zapisano motyw: {themeValue}");
             }
             catch (Exception ex)
