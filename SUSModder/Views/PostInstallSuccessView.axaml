@@ -87,13 +87,25 @@
 				        Content="{Binding AddDllButton}"/>
 			</StackPanel>
 
-			<!-- Checkbox "Nie pokazuj więcej" -->
-			<CheckBox IsChecked="{Binding DontShowAgain}"
-			          HorizontalAlignment="Center"
-			          FontSize="12"
-			          Foreground="{DynamicResource TextSecondaryBrush}"
-			          Content="{Binding DontShowAgainCheckbox}"/>
+		<!-- Checkbox "Nie pokazuj więcej" -->
+		<CheckBox IsChecked="{Binding DontShowAgain}"
+		          HorizontalAlignment="Center"
+		          FontSize="12"
+		          Foreground="{DynamicResource TextSecondaryBrush}"
+		          Content="{Binding DontShowAgainCheckbox}"/>
 
-		</StackPanel>
+		<!-- Przycisk zamknięcia (dismiss) -->
+		<Button Command="{Binding DismissCommand}"
+		        HorizontalAlignment="Center"
+		        FontSize="13"
+		        Padding="20,6"
+		        CornerRadius="6"
+		        Background="Transparent"
+		        BorderThickness="1"
+		        BorderBrush="{DynamicResource TextSecondaryBrush}"
+		        Foreground="{DynamicResource TextSecondaryBrush}"
+		        Content="✕ Zamknij"/>
+
+	</StackPanel>
 	</Grid>
 </UserControl>
