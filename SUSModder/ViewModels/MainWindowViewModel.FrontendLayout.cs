@@ -35,7 +35,6 @@ namespace SUSModder.ViewModels
             IsDllModalVisible ||
             IsDllSelectionModalVisible ||
             IsVersionSelectionModalVisible ||
-            IsPostInstallSuccessVisible ||
             IsSUStatsConfigVisible ||
             IsAppSettingsVisible ||
             IsRecommendedDiscordsVisible ||
