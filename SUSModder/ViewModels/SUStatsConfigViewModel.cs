@@ -556,25 +556,41 @@ namespace SUSModder.ViewModels
                 var active = await _sustatsRepo.GetActiveAsync();
                 if (active == null) return;
 
-                // Znajdź pasującą guildę na liście
+                // Znajdź pasującą guildę i pobierz świeże credentials z API
                 var match = AvailableGuilds.FirstOrDefault(g => g.GuildId == active.GuildId);
                 if (match != null)
                 {
-                    SelectedGuild = match;
+                    _selectedGuild = match;
+                    this.RaisePropertyChanged(nameof(SelectedGuild));
+
+                    try
+                    {
+                        var tokenInfo = await _discordAuthRepo.GetTokenInfoAsync();
+                        if (tokenInfo != null)
+                        {
+                            var accessToken = CredentialProtector.Unprotect(tokenInfo.AccessTokenEncrypted);
+                            var fresh = await _clairDiscordService.GetCredentialsAsync(accessToken, match.GuildId);
+                            if (fresh != null)
+                            {
+                                fresh.TokenEncrypted = CredentialProtector.Protect(fresh.Token);
+                                fresh.SecretEncrypted = CredentialProtector.Protect(fresh.Secret);
+                                await _sustatsRepo.SaveAsync(fresh);
+                                GlobalSelectedServer = new AmongToken { Id = 0, ServerName = fresh.ServerName, Token = fresh.Token, Secret = fresh.Secret, Endpoint = fresh.Endpoint };
+                                IsStatsEnabled = true;
+                                IsStatsToggleVisible = true;
+                                LogDiagnostics($"[SUStats] Credentials odświeżone dla: {fresh.ServerName}");
+                            }
+                        }
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        await _sustatsRepo.DeleteAsync(active.GuildId);
+                        _selectedGuild = null;
+                        this.RaisePropertyChanged(nameof(SelectedGuild));
+                        ClearGlobalSelection();
+                        LogDiagnostics($"[SUStats] Dostęp do {active.ServerName} utracony — wpis usunięty.");
+                    }
                 }
-
-                // Odtwórz GlobalSelectedServer
-                GlobalSelectedServer = new AmongToken
-                {
-                    Id = 0,
-                    ServerName = active.ServerName,
-                    Token = active.Token,
-                    Secret = active.Secret,
-                    Endpoint = active.Endpoint,
-                };
-
-                IsStatsEnabled = true;
-                IsStatsToggleVisible = true;
             }
             catch (Exception ex)
             {
