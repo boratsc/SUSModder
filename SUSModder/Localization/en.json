@@ -30,6 +30,7 @@
       "Version": "Version",
       "ModVersion": "Mod version",
       "PinnedVersionInfo": "📌 Version pinned",
+      "AutoUpdate": "Auto-update",
       "GameVersion": "Game version",
       "ModVersionFormat": "Mod version: {0}",
       "GameVersionFormat": "AmongUs version: {0}",
@@ -341,12 +342,22 @@
       "SingleRecommendation": "We recommend uninstalling this program or adding an exception for the mods folder:\n{0}",
       "MultipleRecommendation": "More than one antivirus product was detected. It is worth uninstalling unnecessary programs because they can additionally cause conflicts with mods.",
       "Acknowledge": "I have read this information"
+    },
+    "PostInstallSuccess": {
+      "Title": "Mod installed",
+      "TitleWithName": "✅ {0} installed successfully! 🎉",
+      "Message": "This mod supports DLL modifications.\nWould you like to add additional plugins?",
+      "MessageNoDll": "The mod has been installed successfully. Would you like to launch the game?",
+      "LaunchButton": "🚀 Launch",
+      "AddDllButton": "🔧 Add DLL...",
+      "DontShowAgain": "Don't show this again"
     }
   },
   "Toast": {
     "ModInstalled": "{0} installed successfully",
     "ModInstalledDesc": "Version: {0}",
     "ModUpdated": "{0} updated to version {1}",
+    "ModUpdateStarted": "Updating {0}...",
     "ModDeleted": "{0} has been removed",
     "UpdateAvailable": "Update available: {0}",
     "DownloadError": "Download error – check your connection",
@@ -355,6 +366,7 @@
     "DllRemoved": "DLL {0} removed",
     "GenericInfo": "{0}",
     "ModUpdatesFound": "Found {0} mod updates",
+    "ModUpdatesAutoUpdated": "Auto-updated {0} mod(s)",
     "AllModsUpToDate": "All mods are up to date",
     "AppUpdated": "🆕 Updated to {0}! Click to see what's new."
   },

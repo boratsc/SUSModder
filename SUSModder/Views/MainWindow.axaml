@@ -419,6 +419,24 @@
 											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 											Command="{Binding $parent[local:MainWindow].DataContext.UpdateCommand}"/>
 
+									<!-- Auto-update toggle -->
+									<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+											BorderBrush="{DynamicResource BorderBrush}"
+											BorderThickness="1"
+											CornerRadius="8"
+											Padding="10,6"
+											IsVisible="{Binding IsAutoUpdateToggleVisible}">
+										<Grid ColumnDefinitions="*,Auto">
+											<TextBlock Text="{loc:Localize UI.Labels.AutoUpdate}"
+													   VerticalAlignment="Center"
+													   FontSize="12"
+													   Foreground="{DynamicResource TextPrimaryBrush}"/>
+											<ToggleSwitch Grid.Column="1"
+														  IsChecked="{Binding AutoUpdateEnabled}"
+														  Click="AutoUpdateToggle_Click"/>
+										</Grid>
+									</Border>
+
 									<Button Content="{loc:Localize UI.Buttons.Delete}"
 											HorizontalAlignment="Stretch"
 											Padding="12"
@@ -808,6 +826,16 @@
 								<ContentControl.DataTemplates>
 									<DataTemplate DataType="vm:VersionSelectionViewModel">
 										<local:VersionSelectionPanel/>
+									</DataTemplate>
+								</ContentControl.DataTemplates>
+							</ContentControl>
+
+							<ContentControl Content="{Binding PostInstallSuccessViewModel}"
+											IsVisible="{Binding IsPostInstallSuccessVisible}"
+											Classes="fade-in-panel">
+								<ContentControl.DataTemplates>
+									<DataTemplate DataType="vm:PostInstallSuccessViewModel">
+										<local:PostInstallSuccessView/>
 									</DataTemplate>
 								</ContentControl.DataTemplates>
 							</ContentControl>

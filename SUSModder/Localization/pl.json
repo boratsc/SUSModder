@@ -30,6 +30,7 @@
       "Version": "Wersja",
       "ModVersion": "Wersja moda",
       "PinnedVersionInfo": "📌 Wersja przypięta",
+      "AutoUpdate": "Auto-aktualizacja",
       "GameVersion": "Wersja gry",
       "ModVersionFormat": "Wersja moda: {0}",
       "GameVersionFormat": "Wersja AmongUs: {0}",
@@ -341,12 +342,22 @@
       "SingleRecommendation": "Zalecamy odinstalowanie tego programu lub dodanie wyjątku dla katalogu modów:\n{0}",
       "MultipleRecommendation": "Wykryto więcej niż jedno oprogramowanie antywirusowe. Warto odinstalować zbędne programy, ponieważ mogą dodatkowo powodować konflikty z modami.",
       "Acknowledge": "Zapoznałem się z informacją"
+    },
+    "PostInstallSuccess": {
+      "Title": "Mod zainstalowany",
+      "TitleWithName": "✅ {0} zainstalowany pomyślnie! 🎉",
+      "Message": "Ten mod obsługuje modyfikacje DLL.\nCzy chcesz dodać dodatkowe pluginy?",
+      "MessageNoDll": "Mod został zainstalowany pomyślnie. Czy chcesz uruchomić grę?",
+      "LaunchButton": "🚀 Uruchom",
+      "AddDllButton": "🔧 Dodaj DLL...",
+      "DontShowAgain": "Nie pokazuj więcej"
     }
   },
   "Toast": {
     "ModInstalled": "{0} zainstalowany pomyślnie",
     "ModInstalledDesc": "Wersja: {0}",
     "ModUpdated": "{0} zaktualizowany do wersji {1}",
+    "ModUpdateStarted": "Aktualizuję {0}...",
     "ModDeleted": "{0} został usunięty",
     "UpdateAvailable": "Dostępna aktualizacja: {0}",
     "DownloadError": "Błąd pobierania – sprawdź połączenie",
@@ -355,6 +366,7 @@
     "DllRemoved": "DLL {0} usunięty",
     "GenericInfo": "{0}",
     "ModUpdatesFound": "Znaleziono {0} aktualizacji modów",
+    "ModUpdatesAutoUpdated": "Auto-zaktualizowano {0} modów",
     "AllModsUpToDate": "Wszystkie mody są aktualne",
     "AppUpdated": "🆕 Zaktualizowano do {0}! Kliknij, aby zobaczyć co nowego."
   },

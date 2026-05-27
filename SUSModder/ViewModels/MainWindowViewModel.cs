@@ -85,6 +85,8 @@ namespace SUSModder.ViewModels
         private DllModSelectionViewModel? _dllSelectionModalViewModel;
         private bool _isVersionSelectionModalVisible = false;
         private VersionSelectionViewModel? _versionSelectionModalViewModel;
+        private bool _isPostInstallSuccessVisible = false;
+        private PostInstallSuccessViewModel? _postInstallSuccessViewModel;
 
         // Flaga blokująca interakcję podczas inicjalizacji aplikacji
         private bool _isInitializing = true;
@@ -248,6 +250,22 @@ namespace SUSModder.ViewModels
         {
             get => _versionSelectionModalViewModel;
             set => this.RaiseAndSetIfChanged(ref _versionSelectionModalViewModel, value);
+        }
+
+        public bool IsPostInstallSuccessVisible
+        {
+            get => _isPostInstallSuccessVisible;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isPostInstallSuccessVisible, value);
+                NotifyToolModalStateChanged();
+            }
+        }
+
+        public PostInstallSuccessViewModel? PostInstallSuccessViewModel
+        {
+            get => _postInstallSuccessViewModel;
+            set => this.RaiseAndSetIfChanged(ref _postInstallSuccessViewModel, value);
         }
 
         public ObservableCollection<ModItem> DllMods
