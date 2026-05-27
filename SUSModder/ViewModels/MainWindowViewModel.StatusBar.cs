@@ -614,6 +614,10 @@ public int AvailableUpdatesCount
                         tooltipBuilder.AppendLine($"• {update.ModName}");
                     }
                     AvailableUpdatesTooltip = tooltipBuilder.ToString().TrimEnd();
+
+                    // Auto-aktualizacja w tle dla modów z włączoną auto-aktualizacją
+                    // Nie blokujemy - uruchamiamy w tle
+                    _ = ProcessAutoUpdatesSilentlyAsync(result.InstalledModUpdates);
                 }
                 else
                 {

@@ -173,6 +173,7 @@ namespace SUSModder.ViewModels
                                         {
                                             mod.ModVersion = installMap.FullMod.ModVersion;
                                             mod.DisableAutoUpdatePrompt = installMap.FullMod.DisableAutoUpdatePrompt;
+                                            mod.AutoUpdateEnabled = installMap.FullMod.AutoUpdateEnabled;
                                             mod.PinnedInstallVersion = installMap.FullMod.PinnedInstallVersion;
                                         });
                                     }
@@ -181,6 +182,7 @@ namespace SUSModder.ViewModels
                                         await Dispatcher.UIThread.InvokeAsync(() =>
                                         {
                                             mod.DisableAutoUpdatePrompt = false;
+                                            mod.AutoUpdateEnabled = false;
                                             mod.PinnedInstallVersion = null;
                                         });
                                     }
@@ -190,6 +192,7 @@ namespace SUSModder.ViewModels
                                     await Dispatcher.UIThread.InvokeAsync(() =>
                                     {
                                         mod.DisableAutoUpdatePrompt = false;
+                                        mod.AutoUpdateEnabled = false;
                                         mod.PinnedInstallVersion = null;
                                     });
                                 }
@@ -199,6 +202,7 @@ namespace SUSModder.ViewModels
                                 await Dispatcher.UIThread.InvokeAsync(() =>
                                 {
                                     mod.DisableAutoUpdatePrompt = false;
+                                    mod.AutoUpdateEnabled = false;
                                     mod.PinnedInstallVersion = null;
                                 });
                             }

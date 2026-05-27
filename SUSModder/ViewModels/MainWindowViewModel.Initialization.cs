@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -433,7 +434,35 @@ namespace SUSModder.ViewModels
                 if (ShouldRunInteractiveModUpdateCheck())
                 {
                     System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji modów FULL...");
-                    await CheckForModUpdatesAsync();
+
+                    // KROK 1: Sprawdź dostępne aktualizacje
+                    var updateManager = new ModUpdateManager();
+                    var result = await updateManager.CheckForUpdatesAsync();
+
+                    // Jeśli config został zaktualizowany, odśwież listę modów
+                    if (result.ConfigWasUpdated)
+                    {
+                        await RefreshModsListAsync();
+                    }
+
+                    if (result.Success && result.InstalledModUpdates.Any())
+                    {
+                        // KROK 2: Auto-aktualizuj mody z włączoną auto-aktualizacją (ciche, w tle)
+                        // IsModAutoUpdateEnabledAsync ładuje ustawienie bezpośrednio z Installation Map,
+                        // omijając asynchroniczne ładowanie w RefreshModsListAsync (fire-and-forget).
+                        System.Diagnostics.Debug.WriteLine($"[Post-Init] Auto-aktualizuję mody z włączoną auto-aktualizacją...");
+                        await ProcessAutoUpdatesSilentlyAsync(result.InstalledModUpdates);
+
+                        // KROK 3: Odśwież licznik statusu — ProcessAutoUpdatesSilentlyAsync już zaktualizował
+                        // status, jeśli coś auto-zaktualizował. Jeśli zostały jeszcze jakieś aktualizacje
+                        // (mod bez auto-aktualizacji), zobaczą licznik na pasku statusu.
+                        await CheckForModUpdatesForStatusBarAsync(force: true);
+                    }
+                    else
+                    {
+                        // Brak aktualizacji lub błąd — zaktualizuj status
+                        await CheckForModUpdatesForStatusBarAsync(force: true);
+                    }
                 }
                 else
                 {
