@@ -171,6 +171,19 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         }
     }
 
+    /// <summary>
+    /// Obsługa przełącznika auto-aktualizacji dla moda.
+    /// Zapisuje ustawienie do installation-map.json.
+    /// </summary>
+    private async void AutoUpdateToggle_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm || vm.SelectedMod == null)
+            return;
+
+        var modItem = vm.SelectedMod;
+        await vm.ToggleAutoUpdateAsync(modItem, modItem.AutoUpdateEnabled);
+    }
+
     private async Task RemoveSingleInstanceAsync()
     {
         try

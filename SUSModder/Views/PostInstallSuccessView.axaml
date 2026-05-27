@@ -1,0 +1,99 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             x:Class="SUSModder.Views.PostInstallSuccessView"
+             x:DataType="vm:PostInstallSuccessViewModel"
+             Background="{DynamicResource CardBackgroundBrush}">
+
+	<UserControl.Styles>
+		<!-- Animacja fade-in -->
+		<Style Selector="UserControl">
+			<Style.Animations>
+				<Animation Duration="0:0:0.3" FillMode="Forward">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+
+		<!-- Hover effect dla Launch -->
+		<Style Selector="Button.primary-button:pointerover">
+			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+		<Style Selector="Button.primary-button:pressed">
+			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+
+		<!-- Hover effect dla Add DLL -->
+		<Style Selector="Button.secondary-button:pointerover">
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+	</UserControl.Styles>
+
+	<Grid Margin="30">
+		<StackPanel Spacing="20" VerticalAlignment="Center">
+
+			<!-- Ikona sukcesu -->
+			<Border HorizontalAlignment="Center">
+				<TextBlock Text="✅" FontSize="48"/>
+			</Border>
+
+			<!-- Tytuł -->
+			<TextBlock FontSize="22"
+			           FontWeight="Bold"
+			           Foreground="{DynamicResource TextPrimaryBrush}"
+			           TextAlignment="Center"
+			           TextWrapping="Wrap"
+			           Text="{Binding TitleWithName}"/>
+
+			<!-- Wiadomość -->
+			<TextBlock FontSize="14"
+			           Foreground="{DynamicResource TextSecondaryBrush}"
+			           TextAlignment="Center"
+			           TextWrapping="Wrap"
+			           Margin="0,0,0,10"
+			           Text="{Binding Message}"/>
+
+			<!-- Przyciski -->
+			<StackPanel Orientation="Horizontal"
+			            HorizontalAlignment="Center"
+			            Spacing="15">
+				<Button Command="{Binding LaunchCommand}"
+				        Classes="primary-button"
+				        FontSize="16"
+				        FontWeight="SemiBold"
+				        Padding="20,12"
+				        CornerRadius="8"
+				        Background="{DynamicResource AccentBrush}"
+				        Foreground="White"
+				        BorderThickness="0"
+				        Content="{Binding LaunchButton}"/>
+
+				<Button Command="{Binding AddDllCommand}"
+				        Classes="secondary-button"
+				        FontSize="16"
+				        FontWeight="SemiBold"
+				        Padding="20,12"
+				        CornerRadius="8"
+				        Background="{DynamicResource SecondaryBackgroundBrush}"
+				        BorderBrush="{DynamicResource AccentBrush}"
+				        BorderThickness="1"
+				        Foreground="{DynamicResource TextPrimaryBrush}"
+				        Content="{Binding AddDllButton}"/>
+			</StackPanel>
+
+			<!-- Checkbox "Nie pokazuj więcej" -->
+			<CheckBox IsChecked="{Binding DontShowAgain}"
+			          HorizontalAlignment="Center"
+			          FontSize="12"
+			          Foreground="{DynamicResource TextSecondaryBrush}"
+			          Content="{Binding DontShowAgainCheckbox}"/>
+
+		</StackPanel>
+	</Grid>
+</UserControl>
