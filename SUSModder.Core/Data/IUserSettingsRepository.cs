@@ -18,9 +18,14 @@ namespace SUSModder.Core.Data
         void SaveSettings(UserSettings settings);
 
         /// <summary>
-        /// Aktualizuje pojedyncze pole w ustawieniach.
+        /// Aktualizuje pojedyncze pole w ustawieniach (alias dla UpdateSetting z wsparciem nullable).
         /// </summary>
         void UpdateSetting(string columnName, object value);
+
+        /// <summary>
+        /// Aktualizuje pojedyncze pole w ustawieniach z obsługą wartości null.
+        /// </summary>
+        void UpdateSingleField(string column, object? value);
 
         /// <summary>
         /// Czyści cache w pamięci.

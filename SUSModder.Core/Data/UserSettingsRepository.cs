@@ -62,13 +62,13 @@ namespace SUSModder.Core.Data
                     mods_install_path, license_accepted, first_run_date, update_channel,
                     vanilla_install_path, av_warning_sig, last_seen_version,
                     minimize_to_tray, show_quick_launch_tray, tray_first_minimize_shown,
-                    settings_version
+                    settings_version, active_sustats_guild_id
                 ) VALUES (
                     1, @mode, @last_launch_id, @theme, @language, @telemetry_enabled,
                     @mods_install_path, @license_accepted, @first_run_date, @update_channel,
                     @vanilla_install_path, @av_warning_sig, @last_seen_version,
                     @minimize_to_tray, @show_quick_launch_tray, @tray_first_minimize_shown,
-                    @settings_version
+                    @settings_version, @active_sustats_guild_id
                 )
                 ON CONFLICT(id) DO UPDATE SET
                     mode = excluded.mode,
@@ -86,7 +86,8 @@ namespace SUSModder.Core.Data
                     minimize_to_tray = excluded.minimize_to_tray,
                     show_quick_launch_tray = excluded.show_quick_launch_tray,
                     tray_first_minimize_shown = excluded.tray_first_minimize_shown,
-                    settings_version = excluded.settings_version;";
+                    settings_version = excluded.settings_version,
+                    active_sustats_guild_id = excluded.active_sustats_guild_id;";
 
             cmd.Parameters.AddWithValue("@mode", settings.Mode ?? string.Empty);
             cmd.Parameters.AddWithValue("@last_launch_id", settings.LastLaunchId);
@@ -104,6 +105,7 @@ namespace SUSModder.Core.Data
             cmd.Parameters.AddWithValue("@show_quick_launch_tray", settings.ShowQuickLaunchInTray ? 1 : 0);
             cmd.Parameters.AddWithValue("@tray_first_minimize_shown", settings.TrayFirstMinimizeShown ? 1 : 0);
             cmd.Parameters.AddWithValue("@settings_version", settings.SettingsVersion);
+            cmd.Parameters.AddWithValue("@active_sustats_guild_id", settings.ActiveSustatsGuildId ?? (object)DBNull.Value);
 
             cmd.ExecuteNonQuery();
 
@@ -126,7 +128,7 @@ namespace SUSModder.Core.Data
                 "mods_install_path", "license_accepted", "first_run_date", "update_channel",
                 "vanilla_install_path", "av_warning_sig", "last_seen_version",
                 "minimize_to_tray", "show_quick_launch_tray", "tray_first_minimize_shown",
-                "settings_version"
+                "settings_version", "active_sustats_guild_id"
             };
 
             if (!allowedColumns.Contains(columnName))
@@ -145,6 +147,13 @@ namespace SUSModder.Core.Data
             }
 
             System.Diagnostics.Debug.WriteLine($"[UserSettingsRepository] Zaktualizowano {columnName} = {value}");
+        }
+
+        /// <inheritdoc/>
+        public void UpdateSingleField(string column, object? value)
+        {
+            // Deleguje do istniejącej metody UpdateSetting (obsługuje whitelist kolumn)
+            UpdateSetting(column, value ?? string.Empty);
         }
 
         /// <inheritdoc/>
@@ -179,7 +188,10 @@ namespace SUSModder.Core.Data
                 MinimizeToTray = reader.GetInt32(reader.GetOrdinal("minimize_to_tray")) != 0,
                 ShowQuickLaunchInTray = reader.GetInt32(reader.GetOrdinal("show_quick_launch_tray")) != 0,
                 TrayFirstMinimizeShown = reader.GetInt32(reader.GetOrdinal("tray_first_minimize_shown")) != 0,
-                SettingsVersion = reader.GetInt32(reader.GetOrdinal("settings_version"))
+                SettingsVersion = reader.GetInt32(reader.GetOrdinal("settings_version")),
+                ActiveSustatsGuildId = reader.IsDBNull(reader.GetOrdinal("active_sustats_guild_id"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("active_sustats_guild_id"))
             };
         }
     }

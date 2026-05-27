@@ -763,6 +763,26 @@
     "SettingsChangeError": "Error changing settings",
     "TestServerName": "Test SUStats server",
     "TestServerOffline": "Test server (offline)"
+    },
+  "DiscordAuth": {
+    "LoginButton": "Sign in with Discord",
+    "LoggedInAs": "Signed in as: {0}",
+    "LogoutButton": "Sign out",
+    "SelectGuild": "Select Discord server",
+    "NoGuilds": "No servers with active SUStats",
+    "NoPermission": "You don't have permission on this server",
+    "LoadingGuilds": "Loading servers...",
+    "LoginError": "Login error: {0}",
+    "BrowserOpened": "Browser opened — sign in with Discord",
+    "SessionExpired": "Discord session expired. Please sign in again.",
+    "LoginPrompt": "To use statistics, sign in with Discord.",
+    "LoginDescription": "SUSModder will access your Discord ID and server list to retrieve SUStats credentials.",
+    "StatsEnabled": "Statistics enabled",
+    "SavedServer": "Saved for server: {0}",
+    "RefreshGuilds": "Refresh server list",
+    "SelectGuildPlaceholder": "Select server...",
+    "NoGuildsHint": "Make sure you have an active SUStats on one of your Discord servers.",
+    "CredentialsError": "Error fetching credentials: {0}"
   },
   "RecommendedDiscords": {
     "WindowTitle": "Recommended Discords",

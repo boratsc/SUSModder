@@ -108,5 +108,13 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         [JsonPropertyName("settingsVersion")]
         public int SettingsVersion { get; set; } = 0;
+
+        /// <summary>
+        /// ID aktywnego serwera Discord dla SUSTATS (GuildId).
+        /// Ustawiane po wyborze serwera w UI. Null = brak wybranego serwera.
+        /// Mapowane na kolumnę active_sustats_guild_id w SQLite.
+        /// </summary>
+        [JsonPropertyName("activeSustatsGuildId")]
+        public string? ActiveSustatsGuildId { get; set; }
     }
 }

@@ -1,11 +1,14 @@
 ﻿using Microsoft.Extensions.Configuration;
+using SUSModder.Core.Data;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.Models;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System;
 using System.Linq;
+using System.Net;
 
 namespace SUSModder.Core.Configuration
 {
@@ -18,13 +21,38 @@ namespace SUSModder.Core.Configuration
         };
         private readonly IConfiguration _configuration;
         private readonly IDiagnosticsOutput _diagnosticsOutput;
+        private readonly ISustatsCredentialsRepository? _credentialsRepository;
 
+        /// <summary>
+        /// Konstruktor używany przez nowy Discord OAuth flow.
+        /// </summary>
+        public SUStatsService(
+            IConfiguration configuration,
+            IDiagnosticsOutput diagnosticsOutput,
+            ISustatsCredentialsRepository credentialsRepository)
+        {
+            _configuration = configuration;
+            _diagnosticsOutput = diagnosticsOutput;
+            _credentialsRepository = credentialsRepository;
+        }
+
+        /// <summary>
+        /// Stary konstruktor bez repozytorium — do usunięcia po pełnej migracji na Discord OAuth.
+        /// </summary>
+        [Obsolete("Use constructor with ISustatsCredentialsRepository for Discord OAuth flow")]
         public SUStatsService(IConfiguration configuration, IDiagnosticsOutput diagnosticsOutput)
         {
             _configuration = configuration;
             _diagnosticsOutput = diagnosticsOutput;
+            _credentialsRepository = null;
         }
 
+        #region Deprecated — susmodder-api flow (do usunięcia po migracji na Discord OAuth)
+
+        /// <summary>
+        /// Pobiera listę serwerów SUStats z susmodder-api.
+        /// </summary>
+        [Obsolete("Use Discord OAuth flow instead. Call GetActiveCredentialsAsync() or use ISustatsCredentialsRepository directly.")]
         public async Task<List<AmongToken>> GetSUStatsServersAsync()
         {
             try
@@ -127,6 +155,10 @@ namespace SUSModder.Core.Configuration
             }
         }
 
+        /// <summary>
+        /// Waliduje sekret SUStats przez zapytanie do susmodder-api.
+        /// </summary>
+        [Obsolete("Use Discord OAuth flow instead. Credentials are obtained from Clair API via Discord OAuth, not from user-entered secrets.")]
         public async Task<AmongToken?> ValidateServerBySecretAsync(string secret)
         {
             if (string.IsNullOrWhiteSpace(secret))
@@ -218,5 +250,173 @@ namespace SUSModder.Core.Configuration
             }
         }
 
+        #endregion
+
+        #region Discord OAuth flow
+
+        /// <summary>
+        /// Zwraca aktualnie aktywne dane uwierzytelniające SUStats
+        /// pobrane z lokalnej bazy SQLite (przez Discord OAuth flow).
+        /// </summary>
+        public async Task<SustatsCredentials?> GetActiveCredentialsAsync()
+        {
+            if (_credentialsRepository == null)
+            {
+                _diagnosticsOutput.Write(
+                    "BŁĄD: ISustatsCredentialsRepository nie jest skonfigurowane. " +
+                    "Użyj konstruktora z ISustatsCredentialsRepository.");
+                return null;
+            }
+
+            try
+            {
+                _diagnosticsOutput.Write("Pobieranie aktywnych danych uwierzytelniających SUStats...");
+                var creds = await _credentialsRepository.GetActiveAsync();
+
+                if (creds == null)
+                {
+                    _diagnosticsOutput.Write("Brak aktywnych danych uwierzytelniających SUStats.");
+                    return null;
+                }
+
+                _diagnosticsOutput.Write(
+                    $"Znaleziono aktywne dane dla serwera: {creds.ServerName} (GuildId: {creds.GuildId})");
+                return creds;
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput.Write($"Błąd podczas pobierania aktywnych danych SUStats: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Sprawdza czy użytkownik ma aktywne uwierzytelnienie SUStats
+        /// przez Discord OAuth (istniejące SustatsCredentials w SQLite).
+        /// </summary>
+        public async Task<bool> IsDiscordAuthAvailableAsync()
+        {
+            if (_credentialsRepository == null)
+            {
+                _diagnosticsOutput.Write(
+                    "BŁĄD: ISustatsCredentialsRepository nie jest skonfigurowane. " +
+                    "Użyj konstruktora z ISustatsCredentialsRepository.");
+                return false;
+            }
+
+            try
+            {
+                var creds = await _credentialsRepository.GetActiveAsync();
+                bool available = creds != null;
+
+                _diagnosticsOutput.Write(
+                    available
+                        ? "SUStats Discord OAuth jest dostępny."
+                        : "SUStats Discord OAuth nie jest dostępny — brak aktywnych danych.");
+
+                return available;
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput.Write($"Błąd podczas sprawdzania dostępności Discord OAuth: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Wysyła dane statystyk gry do Clair API.
+        /// Używa token+secret uzyskanych przez Discord OAuth flow.
+        /// </summary>
+        /// <param name="token">Token autoryzacyjny (Authorization: Bearer).</param>
+        /// <param name="secret">Tajny klucz (X-Secret header).</param>
+        /// <param name="endpoint">Bazowy URL endpointu Clair API.</param>
+        /// <param name="statsData">Dane statystyk w formacie JSON.</param>
+        /// <returns>True jeśli wysyłka się powiodła, false w przypadku błędu.</returns>
+        public async Task<bool> SendGameStatsAsync(
+            string token,
+            string secret,
+            string endpoint,
+            string statsData)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                _diagnosticsOutput.Write("BŁĄD: Token jest pusty");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(secret))
+            {
+                _diagnosticsOutput.Write("BŁĄD: Secret jest pusty");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(endpoint))
+            {
+                _diagnosticsOutput.Write("BŁĄD: Endpoint jest pusty");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(statsData))
+            {
+                _diagnosticsOutput.Write("BŁĄD: Dane statystyk są puste");
+                return false;
+            }
+
+            try
+            {
+                var url = endpoint.TrimEnd('/') + "/api/among-data";
+                _diagnosticsOutput.Write($"Wysyłanie statystyk gry do: {url}");
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, url)
+                {
+                    Content = new StringContent(statsData, Encoding.UTF8, "application/json")
+                };
+
+                request.Headers.Clear();
+                request.Headers.Add("Authorization", $"Bearer {token}");
+                request.Headers.Add("X-Secret", secret);
+                request.Headers.Add("User-Agent", "SUSModder/1.0");
+
+                var response = await _httpClient.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _diagnosticsOutput.Write(
+                        $"Statystyki gry wysłane pomyślnie. HTTP {response.StatusCode}");
+                    return true;
+                }
+
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _diagnosticsOutput.Write(
+                    $"BŁĄD wysyłania statystyk gry: HTTP {response.StatusCode} - {errorContent}");
+
+                // 401/403 oznaczają problem z autoryzacją — nie próbuj ponownie
+                if (response.StatusCode == HttpStatusCode.Unauthorized ||
+                    response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    _diagnosticsOutput.Write(
+                        "BŁĄD autoryzacji — token lub secret są nieprawidłowe.");
+                }
+
+                return false;
+            }
+            catch (HttpRequestException ex)
+            {
+                _diagnosticsOutput.Write($"Błąd HTTP podczas wysyłania statystyk gry: {ex.Message}");
+                return false;
+            }
+            catch (TaskCanceledException ex)
+            {
+                _diagnosticsOutput.Write($"Timeout podczas wysyłania statystyk gry: {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _diagnosticsOutput.Write($"Nieoczekiwany błąd podczas wysyłania statystyk gry: {ex.Message}");
+                return false;
+            }
+        }
+
+        #endregion
     }
 }

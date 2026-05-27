@@ -16,6 +16,10 @@ namespace SUSModder.Core.Data
         private SqliteConnection? _connection;
         private readonly object _lock = new();
 
+        // Aktualna wersja schematu bazy danych.
+        // Zwiększaj przy każdej zmianie schematu (CREATE TABLE, ALTER TABLE, etc.).
+        private const int LatestSchemaVersion = 2;
+
         public DatabaseService()
         {
             var appData = Path.Combine(
@@ -70,8 +74,8 @@ namespace SUSModder.Core.Data
                 if (isNewDatabase)
                 {
                     CreateAllTables(conn);
-                    SetUserVersion(conn, 1);
-                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Nowa baza utworzona.");
+                    SetUserVersion(conn, LatestSchemaVersion);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Nowa baza utworzona (v{0}).", LatestSchemaVersion);
 
                     // Importuj dane ze starych plików JSON
                     MigrateFromJson(conn);
@@ -161,7 +165,7 @@ namespace SUSModder.Core.Data
             cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_mods_name ON mods(ModName);";
             cmd.ExecuteNonQuery();
 
-            // Tabela user_settings (singleton, 16 kolumn)
+            // Tabela user_settings (singleton, 16 kolumn + active_sustats_guild_id)
             cmd.CommandText = @"
                 CREATE TABLE IF NOT EXISTS user_settings (
                     id                  INTEGER PRIMARY KEY CHECK (id = 1),
@@ -180,7 +184,8 @@ namespace SUSModder.Core.Data
                     minimize_to_tray    INTEGER NOT NULL DEFAULT 1,
                     show_quick_launch_tray INTEGER NOT NULL DEFAULT 1,
                     tray_first_minimize_shown INTEGER NOT NULL DEFAULT 0,
-                    settings_version    INTEGER NOT NULL DEFAULT 0
+                    settings_version    INTEGER NOT NULL DEFAULT 0,
+                    active_sustats_guild_id TEXT DEFAULT NULL
                 );";
             cmd.ExecuteNonQuery();
 
@@ -201,7 +206,35 @@ namespace SUSModder.Core.Data
             cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_tou_configs_hash ON tou_configs(hash);";
             cmd.ExecuteNonQuery();
 
-            System.Diagnostics.Debug.WriteLine("[DatabaseService] Wszystkie tabele utworzone.");
+            // Tabela discord_auth (singleton, przechowuje zaszyfrowane tokeny Discord OAuth2)
+            cmd.CommandText = @"
+                CREATE TABLE IF NOT EXISTS discord_auth (
+                    id                  INTEGER PRIMARY KEY CHECK (id = 1),
+                    access_token_enc    TEXT NOT NULL,
+                    refresh_token_enc   TEXT NOT NULL,
+                    token_type          TEXT NOT NULL DEFAULT 'Bearer',
+                    expires_at          TEXT NOT NULL,
+                    discord_user_id     TEXT,
+                    discord_username    TEXT,
+                    created_at          TEXT NOT NULL DEFAULT (datetime('now')),
+                    updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
+                );";
+            cmd.ExecuteNonQuery();
+
+            // Tabela sustats_credentials (przechowuje token+secret SUSTATS dla serwerów Discord)
+            cmd.CommandText = @"
+                CREATE TABLE IF NOT EXISTS sustats_credentials (
+                    guild_id            TEXT PRIMARY KEY,
+                    server_name         TEXT NOT NULL,
+                    token_enc           TEXT NOT NULL,
+                    secret_enc          TEXT NOT NULL,
+                    endpoint            TEXT NOT NULL,
+                    created_at          TEXT NOT NULL DEFAULT (datetime('now')),
+                    updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
+                );";
+            cmd.ExecuteNonQuery();
+
+            System.Diagnostics.Debug.WriteLine("[DatabaseService] Wszystkie tabele utworzone (v2 – discord_auth, sustats_credentials).");
         }
 
         /// <summary>
@@ -212,22 +245,86 @@ namespace SUSModder.Core.Data
             var currentVersion = GetUserVersion(conn);
             System.Diagnostics.Debug.WriteLine($"[DatabaseService] Aktualna wersja schematu: {currentVersion}");
 
-            // Miejsce na przyszłe migracje:
-            // if (currentVersion < 2)
-            // {
-            //     BackupDatabase();
-            //     using var cmd = conn.CreateCommand();
-            //     cmd.CommandText = "ALTER TABLE user_settings ADD COLUMN new_field TEXT NOT NULL DEFAULT '';";
-            //     cmd.ExecuteNonQuery();
-            //     SetUserVersion(conn, 2);
-            // }
-
             if (currentVersion < 1)
             {
                 // Pierwsza migracja: utwórz tabele jeśli nie istnieją
+                // CreateAllTables tworzy wszystkie tabele do LatestSchemaVersion
                 BackupDatabase();
                 CreateAllTables(conn);
-                SetUserVersion(conn, 1);
+                SetUserVersion(conn, LatestSchemaVersion);
+            }
+
+            if (currentVersion < 2)
+            {
+                // Migracja v2: dodanie kolumny active_sustats_guild_id + tabele Discord OAuth2
+                // Używamy jawnej transakcji — jeśli którykolwiek krok się nie powiedzie,
+                // cała migracja jest wycofywana, a baza pozostaje w stanie v1.
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v2 – Discord OAuth2...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+
+                    // Dodaj kolumnę active_sustats_guild_id do user_settings (jeśli nie istnieje)
+                    // SQLite nie ma ALTER TABLE ADD COLUMN IF NOT EXISTS – sprawdzamy przez pragma_table_info
+                    cmd.CommandText = @"
+                        SELECT COUNT(*) FROM pragma_table_info('user_settings')
+                        WHERE name = 'active_sustats_guild_id';";
+                    var colExists = (long)(cmd.ExecuteScalar() ?? 0) > 0;
+
+                    if (!colExists)
+                    {
+                        cmd.CommandText = @"
+                            ALTER TABLE user_settings ADD COLUMN active_sustats_guild_id TEXT DEFAULT NULL;";
+                        cmd.ExecuteNonQuery();
+                        System.Diagnostics.Debug.WriteLine("[DatabaseService] Dodano kolumnę active_sustats_guild_id.");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("[DatabaseService] Kolumna active_sustats_guild_id już istnieje – pomijam.");
+                    }
+
+                    // Utwórz tabelę discord_auth (jeśli nie istnieje)
+                    cmd.CommandText = @"
+                        CREATE TABLE IF NOT EXISTS discord_auth (
+                            id                  INTEGER PRIMARY KEY CHECK (id = 1),
+                            access_token_enc    TEXT NOT NULL,
+                            refresh_token_enc   TEXT NOT NULL,
+                            token_type          TEXT NOT NULL DEFAULT 'Bearer',
+                            expires_at          TEXT NOT NULL,
+                            discord_user_id     TEXT,
+                            discord_username    TEXT,
+                            created_at          TEXT NOT NULL DEFAULT (datetime('now')),
+                            updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
+                        );";
+                    cmd.ExecuteNonQuery();
+
+                    // Utwórz tabelę sustats_credentials (jeśli nie istnieje)
+                    cmd.CommandText = @"
+                        CREATE TABLE IF NOT EXISTS sustats_credentials (
+                            guild_id            TEXT PRIMARY KEY,
+                            server_name         TEXT NOT NULL,
+                            token_enc           TEXT NOT NULL,
+                            secret_enc          TEXT NOT NULL,
+                            endpoint            TEXT NOT NULL,
+                            created_at          TEXT NOT NULL DEFAULT (datetime('now')),
+                            updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
+                        );";
+                    cmd.ExecuteNonQuery();
+
+                    tx.Commit();
+                    SetUserVersion(conn, 2);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v2 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v2: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore rollback errors */ }
+                    throw;
+                }
             }
         }
 

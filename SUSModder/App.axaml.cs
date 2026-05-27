@@ -18,9 +18,20 @@ using SUSModder.Core.Configuration;
 using SUSModder.Core.Data;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.GameIntegration;
+using SUSModder.Core.Services.Discord;
 using SUSModder.Core.Utilities;
 
 namespace SUSModder;
+
+/// <summary>
+/// Prosta implementacja IDiagnosticsOutput dla startu aplikacji (przed inicjalizacją UI).
+/// Przekierowuje komunikaty do Debug.WriteLine.
+/// </summary>
+internal class DebugDiagnosticsOutput : IDiagnosticsOutput
+{
+    public static readonly DebugDiagnosticsOutput Instance = new();
+    public void Write(string message) => System.Diagnostics.Debug.WriteLine($"[App/Diag] {message}");
+}
 
 public partial class App : Application
 {
@@ -87,6 +98,37 @@ public partial class App : Application
             // W przeciwnym razie pozostaw domyślny język "pl" z LocalizationService
 
             return locService;
+        });
+
+        // Rejestracja diagnostyki
+        services.AddSingleton<IDiagnosticsOutput>(_ => DebugDiagnosticsOutput.Instance);
+
+        // Rejestracja OAuthLoopbackListener dla Discord OAuth2 flow
+        services.AddSingleton<OAuthLoopbackListener>();
+
+        // Rejestracja serwisów Discord OAuth2 (Core)
+        services.AddSingleton<IDiscordAuthRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new DiscordAuthRepository(db);
+        });
+        services.AddSingleton<ISustatsCredentialsRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new SustatsCredentialsRepository(db);
+        });
+        services.AddSingleton<IDiscordOAuthService>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var authRepo = sp.GetRequiredService<IDiscordAuthRepository>();
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            return new DiscordOAuthService(config, authRepo, diag);
+        });
+        services.AddSingleton<IClairDiscordService>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            return new ClairDiscordService(config, diag);
         });
 
         _serviceProvider = services.BuildServiceProvider();

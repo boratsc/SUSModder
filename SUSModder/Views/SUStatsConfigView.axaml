@@ -9,12 +9,47 @@
 		<vm:SUStatsConfigViewModel/>
 	</Design.DataContext>
 
+	<UserControl.Styles>
+		<!-- Styl przycisku logowania przez Discord -->
+		<Style Selector="Button.discord-login-button">
+			<Setter Property="Background" Value="#5865F2"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="FontSize" Value="16"/>
+			<Setter Property="Padding" Value="24,12"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+		</Style>
+
+		<!-- Styl przycisku wylogowania -->
+		<Style Selector="Button.discord-logout-button">
+			<Setter Property="Background" Value="{DynamicResource ModCardBackgroundBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Padding" Value="12,6"/>
+			<Setter Property="CornerRadius" Value="6"/>
+			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="Cursor" Value="Hand"/>
+		</Style>
+
+		<!-- Styl przycisku odświeżania -->
+		<Style Selector="Button.refresh-button">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Padding" Value="8,4"/>
+			<Setter Property="CornerRadius" Value="4"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Cursor" Value="Hand"/>
+		</Style>
+	</UserControl.Styles>
+
 	<Grid RowDefinitions="*,Auto" Margin="0">
 		<ScrollViewer Grid.Row="0" Padding="0,0,10,0">
 
-			<!-- Główna zawartość -->
-			<Border
-					Background="{DynamicResource ModCardBackgroundBrush}"
+			<!-- Główna karta -->
+			<Border Background="{DynamicResource ModCardBackgroundBrush}"
 					BorderBrush="{DynamicResource ModCardBorderBrush}"
 					BorderThickness="1"
 					CornerRadius="8"
@@ -22,149 +57,167 @@
 
 				<StackPanel Spacing="20">
 
-					<!-- Instrukcja konfiguracji (widoczna przed logowaniem) -->
-					<Border Background="{DynamicResource TertiaryBackgroundBrush}"
-							BorderBrush="{DynamicResource BorderBrush}"
-							BorderThickness="1"
-							CornerRadius="6"
-							Padding="14"
-							IsVisible="{Binding IsPasswordValid, Converter={x:Static BoolConverters.Not}}">
-						<StackPanel Spacing="8">
-							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideTitle}"
-									   FontSize="13" FontWeight="SemiBold"
-									   Foreground="{DynamicResource TextPrimaryBrush}"/>
-							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideIntro}"
-									   FontSize="12"
-									   TextWrapping="Wrap"
-									   Foreground="{DynamicResource TextSecondaryBrush}"/>
-							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideStep1}"
-									   FontSize="12"
-									   TextWrapping="Wrap"
-									   Foreground="{DynamicResource TextSecondaryBrush}"/>
-							<Button Content="https://clairbot.app"
-									Padding="0"
-									HorizontalAlignment="Left"
-									Background="Transparent"
-									BorderThickness="0"
-									Foreground="{DynamicResource AccentBrush}"
-									FontSize="12"
-									Click="OpenClairbotLink_Click"/>
-							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideStep2}"
-									   FontSize="12"
-									   TextWrapping="Wrap"
-									   Foreground="{DynamicResource TextSecondaryBrush}"/>
-							<Button Content="https://hub.clairbot.app/among-us"
-									Padding="0"
-									HorizontalAlignment="Left"
-									Background="Transparent"
-									BorderThickness="0"
-									Foreground="{DynamicResource AccentBrush}"
-									FontSize="12"
-									Click="OpenClairHubLink_Click"/>
-							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideStep3}"
-									   FontSize="12"
-									   TextWrapping="Wrap"
-									   Foreground="{DynamicResource TextSecondaryBrush}"/>
-							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideStep4}"
-									   FontSize="12"
-									   TextWrapping="Wrap"
-									   Foreground="{DynamicResource TextSecondaryBrush}"/>
-							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideStep5}"
-									   FontSize="12"
-									   TextWrapping="Wrap"
-									   Foreground="{DynamicResource TextSecondaryBrush}"/>
-							<TextBlock Text="{local:Localize SUStatsConfig.SetupGuideStep6}"
-									   FontSize="12"
-									   TextWrapping="Wrap"
-									   Foreground="{DynamicResource TextSecondaryBrush}"/>
-						</StackPanel>
-					</Border>
+					<!-- ============================================================ -->
+					<!-- Panel: Niezalogowany                                           -->
+					<!-- ============================================================ -->
+					<StackPanel IsVisible="{Binding ShowLoginPanel}" Spacing="16"
+								VerticalAlignment="Center" HorizontalAlignment="Center">
 
-					<!-- Sekcja hasła -->
-					<StackPanel Spacing="12">
-						<TextBlock Text="{local:Localize SUStatsConfig.PasswordSection}"
-								   FontSize="15" FontWeight="SemiBold"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-
-						<TextBlock Text="{local:Localize SUStatsConfig.PasswordPrompt}"
-								   FontSize="12"
-								   Foreground="{DynamicResource TextSecondaryBrush}"
-								   TextWrapping="Wrap"/>
-
-						<Grid ColumnDefinitions="*,Auto">
-							<TextBox Grid.Column="0"
-									 x:Name="PasswordTextBox"
-									 Text="{Binding EnteredPassword}"
-									 PasswordChar="•"
-									 PlaceholderText="{local:Localize SUStatsConfig.PasswordPlaceholder}"
-									 FontSize="13"
-									 Padding="10,8"
-									 CornerRadius="6"
-									 Background="{DynamicResource SecondaryBackgroundBrush}"
-									 BorderBrush="{DynamicResource BorderBrush}"
-									 BorderThickness="1"
-									 Margin="0,0,8,0"/>
-
-							<Button Grid.Column="1"
-									Content="{local:Localize SUStatsConfig.CheckButton}"
-									Background="{DynamicResource AccentBrush}"
-									Foreground="White"
-									Padding="15,8"
-									CornerRadius="6"
-									FontSize="13"
-									FontWeight="SemiBold"
-									Command="{Binding CheckPasswordCommand}"
-									IsEnabled="{Binding IsCheckingPassword, Converter={x:Static BoolConverters.Not}}"/>
-						</Grid>
-
-						<!-- Status sprawdzania hasła -->
-						<TextBlock Text="{Binding PasswordStatusMessage}"
-								   Foreground="{Binding PasswordStatusColor}"
-								   FontSize="11"
-								   Margin="0,5,0,0"
-								   IsVisible="{Binding PasswordStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-
-						<!-- Checkbox zapamiętaj logowanie -->
-						<CheckBox IsChecked="{Binding RememberLogin}"
-								  Content="{local:Localize SUStatsConfig.RememberLogin}"
-								  FontSize="12"
-								  Margin="0,5,0,0"
-								  Foreground="{DynamicResource TextPrimaryBrush}"/>
-					</StackPanel>
-
-					<!-- Separator -->
-					<Border Height="1"
-							Background="{DynamicResource BorderBrush}"
-							IsVisible="{Binding IsPasswordValid}"/>
-
-					<!-- Sekcja konfiguracji (widoczna tylko po poprawnym haśle) -->
-					<StackPanel Spacing="15" IsVisible="{Binding IsPasswordValid}">
-
-						<!-- Informacja o serwerze -->
-						<Border Background="{DynamicResource SecondaryBackgroundBrush}"
-								BorderBrush="{DynamicResource AccentBrush}"
-								BorderThickness="1"
-								CornerRadius="6"
-								Padding="12">
-							<StackPanel Spacing="6">
-								<TextBlock Text="{local:Localize SUStatsConfig.ServerConnected}"
-										   FontSize="13" FontWeight="SemiBold"
-										   Foreground="{DynamicResource AccentBrush}"/>
-
-								<TextBlock Text="{Binding ValidatedServerName}"
-										   FontSize="15" FontWeight="Bold"
-										   Foreground="{DynamicResource TextPrimaryBrush}"/>
-
-
-							</StackPanel>
-						</Border>
-
-						<!-- Switch włączania rejestrowania -->
 						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
 								BorderBrush="{DynamicResource BorderBrush}"
 								BorderThickness="1"
+								CornerRadius="8"
+								Padding="32">
+							<StackPanel Spacing="16" HorizontalAlignment="Center">
+								<!-- Ikona Discord -->
+								<Border Background="#5865F2"
+										CornerRadius="40"
+										Width="64" Height="64"
+										HorizontalAlignment="Center">
+									<TextBlock Text="&#xE103;"
+											   FontSize="28"
+											   Foreground="White"
+											   HorizontalAlignment="Center"
+											   VerticalAlignment="Center"/>
+								</Border>
+
+								<TextBlock Text="{local:Localize DiscordAuth.LoginPrompt}"
+										   FontSize="15"
+										   FontWeight="SemiBold"
+										   Foreground="{DynamicResource TextPrimaryBrush}"
+										   TextAlignment="Center"
+										   TextWrapping="Wrap"/>
+
+								<TextBlock Text="{local:Localize DiscordAuth.LoginDescription}"
+										   FontSize="12"
+										   Foreground="{DynamicResource TextSecondaryBrush}"
+										   TextAlignment="Center"
+										   TextWrapping="Wrap"/>
+
+								<Button Content="{local:Localize DiscordAuth.LoginButton}"
+										Command="{Binding LoginCommand}"
+										IsEnabled="{Binding IsLoginInProgress, Converter={x:Static BoolConverters.Not}}"
+										Classes="discord-login-button"
+										HorizontalAlignment="Center"/>
+							</StackPanel>
+						</Border>
+					</StackPanel>
+
+					<!-- ============================================================ -->
+					<!-- Panel: Zalogowany                                             -->
+					<!-- ============================================================ -->
+					<StackPanel IsVisible="{Binding ShowLoggedInPanel}" Spacing="16">
+
+						<!-- Pasek statusu użytkownika -->
+						<Border Background="{DynamicResource SecondaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
 								CornerRadius="6"
-								Padding="15">
+								Padding="12,8">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8"
+											VerticalAlignment="Center">
+									<TextBlock Text="&#x2713;"
+											   Foreground="#57F287"
+											   FontSize="16"
+											   VerticalAlignment="Center"/>
+									<TextBlock Text="{Binding StatusText}"
+											   FontSize="13"
+											   Foreground="{DynamicResource TextSecondaryBrush}"
+											   VerticalAlignment="Center"/>
+									<TextBlock Text="{Binding DiscordUsername}"
+											   FontSize="13"
+											   FontWeight="SemiBold"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   VerticalAlignment="Center"/>
+								</StackPanel>
+
+								<Button Grid.Column="1"
+										Content="{local:Localize DiscordAuth.LogoutButton}"
+										Command="{Binding LogoutCommand}"
+										Classes="discord-logout-button"/>
+							</Grid>
+						</Border>
+
+						<!-- Wskaźnik ładowania guilds -->
+						<ProgressBar IsVisible="{Binding ShowLoadingGuilds}"
+									 IsIndeterminate="True"
+									 Height="4"
+									 Foreground="{DynamicResource AccentBrush}"
+									 Margin="0,4,0,0"/>
+
+						<TextBlock Text="{local:Localize DiscordAuth.LoadingGuilds}"
+								   IsVisible="{Binding ShowLoadingGuilds}"
+								   FontSize="12"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   HorizontalAlignment="Center"/>
+
+						<!-- Selektor serwera Discord -->
+						<Border IsVisible="{Binding ShowGuildSelector}"
+								Background="{DynamicResource TertiaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="14">
+							<StackPanel Spacing="10">
+								<Grid ColumnDefinitions="*,Auto">
+									<TextBlock Grid.Column="0"
+											   Text="{local:Localize DiscordAuth.SelectGuild}"
+											   FontSize="13"
+											   FontWeight="SemiBold"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   VerticalAlignment="Center"/>
+
+									<Button Grid.Column="1"
+											Content="&#x21BB;"
+											Command="{Binding RefreshGuildsCommand}"
+											Classes="refresh-button"
+											ToolTip.Tip="{local:Localize DiscordAuth.RefreshGuilds}"/>
+								</Grid>
+
+								<ComboBox ItemsSource="{Binding AvailableGuilds}"
+										  SelectedItem="{Binding SelectedGuild}"
+										  DisplayMemberBinding="{Binding GuildName}"
+										  PlaceholderText="{local:Localize DiscordAuth.SelectGuildPlaceholder}"
+										  Background="{DynamicResource SecondaryBackgroundBrush}"
+										  BorderBrush="{DynamicResource BorderBrush}"
+										  FontSize="13"
+										  Padding="8,6"
+										  CornerRadius="4"/>
+							</StackPanel>
+						</Border>
+
+						<!-- Komunikat: brak serwerów -->
+						<Border IsVisible="{Binding ShowNoGuildsMessage}"
+								Background="{DynamicResource TertiaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="14">
+							<StackPanel Spacing="8" HorizontalAlignment="Center">
+								<TextBlock Text="&#x26A0;"
+										   FontSize="20"
+										   HorizontalAlignment="Center"/>
+								<TextBlock Text="{local:Localize DiscordAuth.NoGuilds}"
+										   FontSize="13"
+										   Foreground="{DynamicResource TextSecondaryBrush}"
+										   TextAlignment="Center"
+										   TextWrapping="Wrap"/>
+								<TextBlock Text="{local:Localize DiscordAuth.NoGuildsHint}"
+										   FontSize="11"
+										   Foreground="{DynamicResource TextSecondaryBrush}"
+										   TextAlignment="Center"
+										   TextWrapping="Wrap"/>
+							</StackPanel>
+						</Border>
+
+						<!-- Przełącznik statystyk -->
+						<Border IsVisible="{Binding IsStatsToggleVisible}"
+								Background="{DynamicResource TertiaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="14">
 							<Grid ColumnDefinitions="*,Auto">
 								<StackPanel Grid.Column="0" VerticalAlignment="Center">
 									<TextBlock Text="{local:Localize SUStatsConfig.EnableStats}"
@@ -182,60 +235,53 @@
 											  Margin="10,0,0,0"/>
 							</Grid>
 						</Border>
-
-						<!-- Status rejestrowania -->
-						<Border Background="{Binding StatsStatusBackgroundBrush}"
-								BorderBrush="{Binding StatsStatusBorderBrush}"
-								BorderThickness="1"
-								CornerRadius="6"
-								Padding="12"
-								IsVisible="{Binding ShowStatsStatus}">
-							<StackPanel Orientation="Horizontal" Spacing="8">
-								<TextBlock Text="{Binding StatsStatusIcon}"
-										   FontSize="14"
-										   VerticalAlignment="Center"/>
-								<TextBlock Text="{Binding StatsStatusMessage}"
-										   Foreground="{Binding StatsStatusTextBrush}"
-										   FontSize="12"
-										   VerticalAlignment="Center"/>
-							</StackPanel>
-						</Border>
 					</StackPanel>
+
+					<!-- ============================================================ -->
+					<!-- Komunikat błędu                                               -->
+					<!-- ============================================================ -->
+					<Border IsVisible="{Binding HasError}"
+							Background="#40E04040"
+							BorderBrush="#E04040"
+							BorderThickness="1"
+							CornerRadius="6"
+							Padding="12">
+						<StackPanel Orientation="Horizontal" Spacing="8">
+							<TextBlock Text="&#x26A0;"
+									   FontSize="14"
+									   VerticalAlignment="Center"
+									   Foreground="#E04040"/>
+							<TextBlock Text="{Binding ErrorMessage}"
+									   Foreground="#E04040"
+									   FontSize="12"
+									   VerticalAlignment="Center"
+									   TextWrapping="Wrap"/>
+						</StackPanel>
+					</Border>
 
 				</StackPanel>
 			</Border>
 		</ScrollViewer>
 
-			<!-- Footer -->
+		<!-- ============================================================ -->
+		<!-- Footer                                                       -->
+		<!-- ============================================================ -->
 		<Border Grid.Row="1"
-					BorderBrush="{DynamicResource BorderBrush}"
-					BorderThickness="0,1,0,0"
-					Padding="0,15,0,0"
-					Margin="0,20,0,0">
-				<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
-
-					<!-- Przycisk wylogowania (widoczny tylko gdy hasło jest poprawne) -->
-					<Button Content="{local:Localize SUStatsConfig.LogoutButton}"
-							Padding="12,8"
-							CornerRadius="6"
-							FontSize="13"
-							Background="{DynamicResource ModCardBackgroundBrush}"
-							Foreground="{DynamicResource TextPrimaryBrush}"
-							BorderBrush="{DynamicResource ModCardBorderBrush}"
-							BorderThickness="1"
-							Command="{Binding ResetCommand}"
-							IsVisible="{Binding IsPasswordValid}"/>
-
-					<Button Content="{local:Localize SUStatsConfig.CloseButton}"
-							Padding="15,8"
-							CornerRadius="6"
-							FontSize="13"
-							Background="{DynamicResource ModCardBackgroundBrush}"
-							Foreground="{DynamicResource TextPrimaryBrush}"
-							BorderBrush="{DynamicResource ModCardBorderBrush}"
-							BorderThickness="1"
-							Click="CloseButton_Click"/>
-				</StackPanel>
+				BorderBrush="{DynamicResource BorderBrush}"
+				BorderThickness="0,1,0,0"
+				Padding="0,12,0,0"
+				Margin="0,8,0,0">
+			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+				<Button Content="{local:Localize SUStatsConfig.CloseButton}"
+						Padding="15,8"
+						CornerRadius="6"
+						FontSize="13"
+						Background="{DynamicResource ModCardBackgroundBrush}"
+						Foreground="{DynamicResource TextPrimaryBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						Click="CloseButton_Click"/>
+			</StackPanel>
 		</Border>
 	</Grid>
 </UserControl>

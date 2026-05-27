@@ -763,6 +763,26 @@
     "SettingsChangeError": "Błąd podczas zmiany ustawień",
     "TestServerName": "Testowy serwer SUStats",
     "TestServerOffline": "Serwer testowy (offline)"
+    },
+  "DiscordAuth": {
+    "LoginButton": "Zaloguj przez Discord",
+    "LoggedInAs": "Zalogowano jako: {0}",
+    "LogoutButton": "Wyloguj",
+    "SelectGuild": "Wybierz serwer Discord",
+    "NoGuilds": "Brak serwerów z aktywnym SUStats",
+    "NoPermission": "Nie masz uprawnień na tym serwerze",
+    "LoadingGuilds": "Pobieranie serwerów...",
+    "LoginError": "Błąd logowania: {0}",
+    "BrowserOpened": "Otworzono przeglądarkę — zaloguj się przez Discord",
+    "SessionExpired": "Sesja Discord wygasła. Zaloguj się ponownie.",
+    "LoginPrompt": "Aby korzystać ze statystyk, zaloguj się przez Discord.",
+    "LoginDescription": "SUSModder uzyska dostęp do Twojego identyfikatora Discord i listy serwerów, aby pobrać dane logowania SUStats.",
+    "StatsEnabled": "Statystyki włączone",
+    "SavedServer": "Zapisane dla serwera: {0}",
+    "RefreshGuilds": "Odśwież listę serwerów",
+    "SelectGuildPlaceholder": "Wybierz serwer...",
+    "NoGuildsHint": "Upewnij się, że posiadasz aktywny SUStats na jednym ze swoich serwerów Discord.",
+    "CredentialsError": "Błąd pobierania danych uwierzytelniających: {0}"
   },
   "RecommendedDiscords": {
     "WindowTitle": "Polecane Discordy",
