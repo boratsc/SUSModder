@@ -20,7 +20,8 @@ namespace SUSModder.Core.Configuration
                 ModType = config.ModType,
                 DllInstallPath = config.DllInstallPath ?? string.Empty,
                 LastUpdated = config.LastUpdated,
-                HasRoles = config.HasRoles
+                HasRoles = config.HasRoles,
+                LobbyRegionBaseUrl = config.LobbyRegionBaseUrl
             };
         }
 
@@ -40,7 +41,8 @@ namespace SUSModder.Core.Configuration
                 ModType = item.ModType,
                 DllInstallPath = item.DllInstallPath,
                 LastUpdated = item.LastUpdated,
-                HasRoles = item.HasRoles
+                HasRoles = item.HasRoles,
+                LobbyRegionBaseUrl = item.LobbyRegionBaseUrl
             };
         }
     }

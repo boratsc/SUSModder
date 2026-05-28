@@ -1,6 +1,8 @@
 using ReactiveUI;
 using System.Collections.ObjectModel;
 using System.Reactive;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Linq;
 using Avalonia;
 using Avalonia.Styling;
@@ -8,6 +10,7 @@ using Avalonia.Markup.Xaml;
 using System;
 using System.ComponentModel;
 using SUSModder.Core.Services;
+using SUSModder.Core.Services.Localization;
 using SUSModder.Core.Configuration;
 using Avalonia.Controls;
 using DynamicData;
@@ -87,6 +90,9 @@ namespace SUSModder.ViewModels
         private VersionSelectionViewModel? _versionSelectionModalViewModel;
         private bool _isPostInstallSuccessVisible = false;
         private PostInstallSuccessViewModel? _postInstallSuccessViewModel;
+        private bool _isLobbyBoardVisible = false;
+        private LobbyBoardPanelViewModel? _lobbyBoardViewModel;
+        private string _lobbyCodesTickerText = "";
 
         // Flaga blokująca interakcję podczas inicjalizacji aplikacji
         private bool _isInitializing = true;
@@ -187,6 +193,39 @@ namespace SUSModder.ViewModels
                 NotifyToolModalStateChanged();
             }
         }
+
+        public bool IsLobbyBoardVisible
+        {
+            get => _isLobbyBoardVisible;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isLobbyBoardVisible, value);
+                NotifyToolModalStateChanged();
+            }
+        }
+
+        public LobbyBoardPanelViewModel? LobbyBoardViewModel
+        {
+            get => _lobbyBoardViewModel;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _lobbyBoardViewModel, value);
+                this.RaisePropertyChanged(nameof(LobbyCodesTickerText));
+                this.RaisePropertyChanged(nameof(HasLobbyCodesTicker));
+            }
+        }
+
+        public string LobbyCodesTickerText
+        {
+            get => _lobbyCodesTickerText;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _lobbyCodesTickerText, value);
+                this.RaisePropertyChanged(nameof(HasLobbyCodesTicker));
+            }
+        }
+
+        public bool HasLobbyCodesTicker => !string.IsNullOrEmpty(LobbyCodesTickerText) && LobbyBoardViewModel != null;
 
         public bool IsRecommendedDiscordsVisible
         {
@@ -479,6 +518,9 @@ namespace SUSModder.ViewModels
                 {
                     // Deselect
                     IsModContentVisible = false;
+                    IsLobbyBoardVisible = false;
+                    LobbyBoardViewModel?.Dispose();
+                    LobbyBoardViewModel = null;
                 }
             }
         }
@@ -510,8 +552,9 @@ namespace SUSModder.ViewModels
     public ReactiveCommand<ModItem, Unit> InstallDllToModCommand { get; }
     public ReactiveCommand<ModItem, Unit> UninstallDllFromModCommand { get; }
     public ReactiveCommand<Unit, Unit> CloseDllDialogCommand { get; }
-    public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
-    public ReactiveCommand<Unit, Unit> ShowDllSelectionCommand { get; }
+        public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
+        public ReactiveCommand<Unit, Unit> ShowLobbyBoardCommand { get; }
+        public ReactiveCommand<Unit, Unit> ShowDllSelectionCommand { get; }
     public ReactiveCommand<Unit, Unit> CheckForAppUpdatesCommand { get; }
         public ReactiveCommand<Unit, Unit> CheckForModUpdatesFromMenuCommand { get; private set; }
     public ReactiveCommand<string, Unit> ExecuteRepairOptionCommand { get; }
@@ -582,6 +625,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             ShowAppSettingsCommand = ReactiveCommand.Create(ShowAppSettings);
             this.RaisePropertyChanged(nameof(IsDeveloperMode));
             ShowRecommendedDiscordsCommand = ReactiveCommand.Create(ShowRecommendedDiscords);
+            ShowLobbyBoardCommand = ReactiveCommand.Create(ShowLobbyBoardFromMenu);
             ShowSUStatsConfigCommand = ReactiveCommand.Create(ShowSUStatsConfig);
             ExecuteRepairOptionCommand = ReactiveCommand.CreateFromTask<string>(ExecuteRepairOptionFromModalAsync);
             InitializeFrontendLayout();
@@ -696,6 +740,29 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             DisposeDiscordBitmaps();
 
             GC.SuppressFinalize(this);
+        }
+
+        public void ShowLobbyBoard()
+        {
+            var mod = SelectedMod;
+            if (mod == null) return;
+
+            LobbyBoardViewModel?.Dispose();
+
+            var lobbyService = App.GetService<ILobbyBoardService>();
+            var locService = App.GetService<ILocalizationService>();
+            var vm = new LobbyBoardPanelViewModel(lobbyService, locService, SUSModder.Core.Configuration.ModItemAdapter.ToConfig(mod));
+            LobbyBoardViewModel = vm;
+
+            // Nasłuchuj zmian tickera
+            vm.WhenAnyValue(x => x.TickerText)
+                .Subscribe(ticker =>
+                {
+                    LobbyCodesTickerText = ticker ?? "";
+                })
+                .DisposeWith(vm.Disposables);
+
+            IsLobbyBoardVisible = true;
         }
 
         private void DisposeVelopackService()

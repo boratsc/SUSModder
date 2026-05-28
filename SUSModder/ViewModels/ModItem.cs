@@ -214,6 +214,15 @@ namespace SUSModder.ViewModels
         public bool IsInstalled => !string.IsNullOrEmpty(InstallPath);
         public bool IsFullMod => ModType.Equals("full", StringComparison.OrdinalIgnoreCase);
         public bool IsDllMod => ModType.Equals("dll", StringComparison.OrdinalIgnoreCase);
+        // Lobby Board
+        private string? _lobbyRegionBaseUrl;
+
+        public string? LobbyRegionBaseUrl
+        {
+            get => _lobbyRegionBaseUrl;
+            set => this.RaiseAndSetIfChanged(ref _lobbyRegionBaseUrl, value);
+        }
+
         public bool IsVanilla => ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase);
         public bool IsPinnedVersionInstall =>
             IsInstalled &&

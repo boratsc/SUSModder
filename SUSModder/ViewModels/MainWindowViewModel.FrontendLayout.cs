@@ -32,6 +32,7 @@ namespace SUSModder.ViewModels
         public bool IsAnyToolModalOpen =>
             IsInfoPanelVisible ||
             IsAdditionalActionsVisible ||
+            IsLobbyBoardVisible ||
             IsDllModalVisible ||
             IsDllSelectionModalVisible ||
             IsVersionSelectionModalVisible ||
@@ -45,6 +46,11 @@ namespace SUSModder.ViewModels
         {
             get
             {
+                if (IsLobbyBoardVisible)
+                {
+                    return "🎮 Lobby";
+                }
+
                 if (IsDllModalVisible)
                 {
                     return _localizationService.Get("UI.Menu.DllMods");
@@ -122,6 +128,9 @@ namespace SUSModder.ViewModels
         {
             IsInfoPanelVisible = false;
             IsAdditionalActionsVisible = false;
+            IsLobbyBoardVisible = false;
+            LobbyBoardViewModel?.Dispose();
+            LobbyBoardViewModel = null;
             IsDllModificationsVisible = false;
             IsSUStatsConfigVisible = false;
             IsAppSettingsVisible = false;

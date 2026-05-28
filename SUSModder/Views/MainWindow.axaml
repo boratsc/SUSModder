@@ -44,6 +44,23 @@
 			<Setter Property="Padding" Value="0"/>
 		</Style>
 
+		<!-- Wspólny styl dla przycisków panelu szczegółów moda -->
+		<Style Selector="Button.mod-detail-btn">
+			<Setter Property="Padding" Value="12"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="FontSize" Value="14"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="HorizontalAlignment" Value="Stretch"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Opacity" Value="1.0"/>
+		</Style>
+		<Style Selector="Button.mod-detail-btn:pointerover /template/ ContentPresenter">
+			<Setter Property="Opacity" Value="0.85"/>
+		</Style>
+		<Style Selector="Button.mod-detail-btn:pressed /template/ ContentPresenter">
+			<Setter Property="Opacity" Value="0.7"/>
+		</Style>
+
 		<!-- Skeleton card loading placeholder -->
 		<Style Selector="Border.skeleton-card">
 			<Setter Property="Background" Value="{DynamicResource ModCardBackgroundBrush}"/>
@@ -352,11 +369,7 @@
 							</Border>								<!-- Przyciski dla Vanilla - tylko Uruchom -->
 								<StackPanel IsVisible="{Binding IsVanilla}" Spacing="10">
 									<Button Content="{loc:Localize UI.Buttons.Launch}"
-											HorizontalAlignment="Stretch"
-											Padding="12"
-											CornerRadius="8"
-											FontSize="14"
-											FontWeight="SemiBold"
+											Classes="mod-detail-btn"
 											Background="{DynamicResource SuccessBrush}"
 											Foreground="White"
 											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
@@ -373,25 +386,18 @@
 									</StackPanel.IsVisible>
 
 									<Button Content="{loc:Localize UI.Buttons.InstallLatest}"
-											HorizontalAlignment="Stretch"
-											Padding="12"
-											CornerRadius="8"
-											FontSize="14"
-											FontWeight="SemiBold"
+											Classes="mod-detail-btn"
 											Background="{DynamicResource AccentBrush}"
 											Foreground="White"
 											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 											Command="{Binding $parent[local:MainWindow].DataContext.InstallCommand}"/>
 
 									<Button Content="{loc:Localize UI.Buttons.SelectVersion}"
-											HorizontalAlignment="Stretch"
-											Padding="12"
-											CornerRadius="8"
-											FontSize="13"
-											Background="{DynamicResource SecondaryBackgroundBrush}"
+											Classes="mod-detail-btn"
+											Background="Transparent"
 											BorderBrush="{DynamicResource AccentBrush}"
-											BorderThickness="1"
-											Foreground="{DynamicResource TextPrimaryBrush}"
+											BorderThickness="2"
+											Foreground="{DynamicResource AccentBrush}"
 											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 											Command="{Binding $parent[local:MainWindow].DataContext.InstallWithVersionSelectionCommand}"/>
 								</StackPanel>
@@ -406,33 +412,21 @@
 									</StackPanel.IsVisible>
 
 									<Button Content="{loc:Localize UI.Buttons.Launch}"
-											HorizontalAlignment="Stretch"
-											Padding="12"
-											CornerRadius="8"
-											FontSize="14"
-											FontWeight="SemiBold"
+											Classes="mod-detail-btn"
 											Background="{DynamicResource SuccessBrush}"
 											Foreground="White"
 											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 											Command="{Binding $parent[local:MainWindow].DataContext.LaunchCommand}"/>
 
 									<Button Content="{loc:Localize UI.Buttons.Delete}"
-											HorizontalAlignment="Stretch"
-											Padding="12"
-											CornerRadius="8"
-											FontSize="14"
-											FontWeight="SemiBold"
+											Classes="mod-detail-btn"
 											Background="{DynamicResource DangerBrush}"
 											Foreground="White"
 											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 											Command="{Binding $parent[local:MainWindow].DataContext.UninstallCommand}"/>
 
 									<Button Content="{loc:Localize UI.Buttons.AddDll}"
-											HorizontalAlignment="Stretch"
-											Padding="12"
-											CornerRadius="8"
-											FontSize="14"
-											FontWeight="SemiBold"
+											Classes="mod-detail-btn"
 											Background="{DynamicResource DllButtonBrush}"
 											Foreground="White"
 											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
@@ -441,16 +435,10 @@
 
 								<!-- Przycisk Role - widoczny dla modów z opisami ról (NIE dla Vanilla) -->
 								<Button Content="{loc:Localize UI.Buttons.Roles}"
-										HorizontalAlignment="Stretch"
+										Classes="mod-detail-btn"
 										Margin="0,10,0,0"
-										Padding="12"
-										CornerRadius="8"
-										FontSize="14"
-										FontWeight="SemiBold"
-										Background="{DynamicResource ModCardBackgroundBrush}"
-										Foreground="{DynamicResource TextPrimaryBrush}"
-										BorderBrush="{DynamicResource ModCardBorderBrush}"
-										BorderThickness="1"
+										Background="#1976D2"
+										Foreground="White"
 										Command="{Binding $parent[local:MainWindow].DataContext.ShowRolesCommand}">
 									<Button.IsVisible>
 										<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
@@ -461,6 +449,18 @@
 											<Binding Path="HasRoles" FallbackValue="False"/>
 										</MultiBinding>
 									</Button.IsEnabled>
+								</Button>
+
+								<!-- Przycisk Lobby Board - otwiera tablicę kodów dla tego moda -->
+								<Button Content="{loc:Localize UI.Menu.LobbyBoard}"
+										Classes="mod-detail-btn"
+										Margin="0,8,0,0"
+										Background="#7B1FA2"
+										Foreground="White"
+										Command="{Binding $parent[local:MainWindow].DataContext.ShowLobbyBoardCommand}">
+									<Button.IsVisible>
+										<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+									</Button.IsVisible>
 								</Button>
 								</StackPanel> <!-- koniec Row 0 -->
 
@@ -486,6 +486,23 @@
 													  OnContent=""
 													  Click="AutoUpdateToggle_Click"/>
 									</Grid>
+								</Border>
+
+								<!-- Ticker kodów Lobby Board (przewijane ostatnie 3 kody) -->
+								<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+										BorderBrush="{DynamicResource AccentBrush}"
+										BorderThickness="1"
+										CornerRadius="8"
+										Padding="10,6"
+										Margin="0,10,0,0"
+										IsVisible="{Binding $parent[local:MainWindow].DataContext.HasLobbyCodesTicker}">
+									<ScrollViewer HorizontalScrollBarVisibility="Hidden"
+												  VerticalScrollBarVisibility="Disabled">
+										<TextBlock Text="{Binding $parent[local:MainWindow].DataContext.LobbyCodesTickerText}"
+												   FontSize="12"
+												   Foreground="{DynamicResource TextSecondaryBrush}"
+												   TextTrimming="None"/>
+									</ScrollViewer>
 								</Border>
 
 								<!-- Sekcja "Zainstalowano w:" - ukrywana podczas operacji -->
@@ -794,6 +811,16 @@
 												 DataContext="{Binding}"
 												 Classes="fade-in-panel"/>
 
+								<ContentControl Content="{Binding LobbyBoardViewModel}"
+												IsVisible="{Binding IsLobbyBoardVisible}"
+												Classes="fade-in-panel">
+									<ContentControl.DataTemplates>
+										<DataTemplate DataType="vm:LobbyBoardPanelViewModel">
+											<local:LobbyBoardPanel/>
+										</DataTemplate>
+									</ContentControl.DataTemplates>
+								</ContentControl>
+
 								<local:AdditionalActionsPanel IsVisible="{Binding IsAdditionalActionsVisible}"
 															  DataContext="{Binding}"
 															  Classes="fade-in-panel"/>
@@ -1095,6 +1122,17 @@
 						<StackPanel Orientation="Horizontal" Spacing="12">
 							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.DataBarVertical}" FontSize="20" Foreground="#E91E63"/>
 							<TextBlock Text="{loc:Localize UI.Menu.SUStats}" VerticalAlignment="Center"/>
+						</StackPanel>
+					</Button>
+
+					<Button Classes="fab-menu-item"
+							Command="{Binding ShowLobbyBoardCommand}">
+						<i:Interaction.Behaviors>
+							<behaviors:RippleBehavior/>
+						</i:Interaction.Behaviors>
+						<StackPanel Orientation="Horizontal" Spacing="12">
+							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.People}" FontSize="20" Foreground="#9C27B0"/>
+							<TextBlock Text="{loc:Localize UI.Menu.LobbyBoard}" VerticalAlignment="Center"/>
 						</StackPanel>
 					</Button>
 

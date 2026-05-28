@@ -58,7 +58,8 @@
       "Exit": "Exit",
       "RecommendedDiscords": "Recommended Discords",
       "Info": "Information",
-      "CheckModUpdates": "Check mod updates"
+      "CheckModUpdates": "Check mod updates",
+      "LobbyBoard": "Lobby Board"
     },
     "Fab": {
       "UpdatesBadgeTooltip": "{0} available updates"
@@ -993,6 +994,55 @@
       "Title": "SUSModder",
       "Message": "The application has been minimized to the system tray.\n\nClick the tray icon to restore the window.\nYou can change this behavior in Settings → Window behavior.",
       "DontShowAgain": "Don't show again"
+    }
+  },
+  "Lobby": {
+    "Panel": {
+      "Title": "Lobby",
+      "TabCodes": "Codes ({0})",
+      "TabMessages": "Announcements ({0})",
+      "Refresh": "Refresh",
+      "NoCodes": "No active codes",
+      "NoMessages": "No announcements",
+      "Loading": "Loading...",
+      "ServiceUnavailable": "Service unavailable. Please try again later.",
+      "SelectModFirst": "Select a mod first"
+    },
+    "Code": {
+      "CopyButton": "Copy",
+      "PublishButton": "Share code",
+      "DeleteButton": "Remove my code",
+      "InvalidFormat": "Invalid lobby code format (4-6 characters A-Z, 0-9)",
+      "RateLimited": "Please wait before sharing again (5 min cooldown)",
+      "PublishSuccess": "Code shared!",
+      "Copied": "Copied!"
+    },
+    "Message": {
+      "Placeholder": "Looking for players, advertising server... (max 280 chars)",
+      "PublishButton": "Post announcement",
+      "DeleteButton": "Remove my announcement",
+      "TooShort": "Message too short (minimum 10 characters)",
+      "TooLong": "Message too long (maximum 280 characters)",
+      "DisallowedUrl": "Only discord.gg links are allowed",
+      "TooManyLinks": "Maximum 1 Discord link",
+      "ContentBlocked": "Content blocked by moderation",
+      "Duplicate": "Identical content already exists",
+      "DailyLimitReached": "Daily post limit reached (20)",
+      "UserBanned": "Account temporarily blocked",
+      "PublishSuccess": "Announcement posted!",
+      "ModerationWarning": "Warning: further violations will block the account."
+    },
+    "Report": {
+      "Button": "Report",
+      "Spam": "Spam",
+      "Inappropriate": "Inappropriate content",
+      "Scam": "Scam",
+      "Done": "Reported"
+    },
+    "Region": {
+      "ModdedEU": "Modded EU",
+      "ModdedNA": "Modded NA",
+      "ModdedAsia": "Modded Asia"
     }
   }
 }

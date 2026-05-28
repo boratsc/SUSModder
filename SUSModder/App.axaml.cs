@@ -103,6 +103,18 @@ public partial class App : Application
         // Rejestracja diagnostyki
         services.AddSingleton<IDiagnosticsOutput>(_ => DebugDiagnosticsOutput.Instance);
 
+        // Rejestracja IHardwareIdProvider
+        services.AddSingleton<IHardwareIdProvider, WindowsHardwareIdProvider>();
+
+        // Rejestracja Lobby Board serwisu
+        services.AddSingleton<ILobbyBoardService>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            var hwid = sp.GetRequiredService<IHardwareIdProvider>();
+            return new LobbyBoardService(config, diag, hwid);
+        });
+
         // Rejestracja OAuthLoopbackListener dla Discord OAuth2 flow
         services.AddSingleton<OAuthLoopbackListener>();
 

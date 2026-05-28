@@ -148,6 +148,15 @@ namespace SUSModder.Core.Configuration
         [JsonPropertyName("HasRoles")]
         public bool? HasRoles { get; set; }
 
+        /// <summary>
+        /// URL serwera modowanego regionu Among Us dla tego moda.
+        /// Używane do live lookupu stanu lobby (np. "https://au-eu.duikbo.at").
+        /// Opcjonalne — jeśli null, live lookup nie jest dostępny.
+        /// Ustawiane przez API backendowy dla modów z DLL Bridge.
+        /// </summary>
+        [JsonPropertyName("LobbyRegionBaseUrl")]
+        public string? LobbyRegionBaseUrl { get; set; } = null;
+
     }
 
     public static class ConfigManager

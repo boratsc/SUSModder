@@ -472,5 +472,23 @@ namespace SUSModder.Views
         {
             return (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
         }
+
+        private void OnLobbyBoardClick(object? sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainWindowViewModel vm && vm.SelectedMod != null)
+            {
+                // Toggle lobby board
+                if (vm.IsLobbyBoardVisible)
+                {
+                    vm.IsLobbyBoardVisible = false;
+                }
+                else
+                {
+                    vm.IsInfoPanelVisible = false;
+                    vm.IsAdditionalActionsVisible = false;
+                    vm.ShowLobbyBoard();
+                }
+            }
+        }
     }
 }

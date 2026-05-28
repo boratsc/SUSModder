@@ -58,7 +58,8 @@
       "Exit": "Wyjdź",
       "RecommendedDiscords": "Polecane Discordy",
       "Info": "Informacje",
-      "CheckModUpdates": "Sprawdź aktualizacje modów"
+      "CheckModUpdates": "Sprawdź aktualizacje modów",
+      "LobbyBoard": "Tablica Lobby"
     },
     "Fab": {
       "UpdatesBadgeTooltip": "{0} dostępnych aktualizacji"
@@ -993,6 +994,55 @@
       "Title": "SUSModder",
       "Message": "Aplikacja została zminimalizowana do zasobnika systemowego.\n\nKliknij ikonkę w zasobniku, aby przywrócić okno.\nMożesz zmienić to zachowanie w Ustawieniach → Zachowanie okna.",
       "DontShowAgain": "Nie pokazuj więcej"
+    }
+  },
+  "Lobby": {
+    "Panel": {
+      "Title": "Lobby",
+      "TabCodes": "Kody ({0})",
+      "TabMessages": "Ogłoszenia ({0})",
+      "Refresh": "Odśwież",
+      "NoCodes": "Brak aktywnych kodów",
+      "NoMessages": "Brak ogłoszeń",
+      "Loading": "Ładowanie...",
+      "ServiceUnavailable": "Usługa niedostępna. Spróbuj ponownie później.",
+      "SelectModFirst": "Wybierz najpierw moda z listy"
+    },
+    "Code": {
+      "CopyButton": "Kopiuj",
+      "PublishButton": "Udostępnij kod",
+      "DeleteButton": "Usuń mój kod",
+      "InvalidFormat": "Nieprawidłowy format kodu lobby (4-6 znaków A-Z, 0-9)",
+      "RateLimited": "Poczekaj przed kolejnym udostępnieniem (limit 5 min)",
+      "PublishSuccess": "Kod udostępniony!",
+      "Copied": "Skopiowano!"
+    },
+    "Message": {
+      "Placeholder": "Szukam graczy, reklamuję serwer... (max 280 znaków)",
+      "PublishButton": "Opublikuj ogłoszenie",
+      "DeleteButton": "Usuń moje ogłoszenie",
+      "TooShort": "Wiadomość za krótka (minimum 10 znaków)",
+      "TooLong": "Wiadomość za długa (maksimum 280 znaków)",
+      "DisallowedUrl": "Dozwolone tylko linki discord.gg",
+      "TooManyLinks": "Maksymalnie 1 link Discord",
+      "ContentBlocked": "Treść nie przeszła moderacji",
+      "Duplicate": "Identyczna treść już istnieje",
+      "DailyLimitReached": "Osiągnięto dzienny limit wpisów (20)",
+      "UserBanned": "Konto tymczasowo zablokowane",
+      "PublishSuccess": "Ogłoszenie opublikowane!",
+      "ModerationWarning": "Uwaga: kolejne naruszenia zablokują konto."
+    },
+    "Report": {
+      "Button": "Zgłoś",
+      "Spam": "Spam",
+      "Inappropriate": "Nieodpowiednia treść",
+      "Scam": "Oszustwo",
+      "Done": "Zgłoszono"
+    },
+    "Region": {
+      "ModdedEU": "Modded EU",
+      "ModdedNA": "Modded NA",
+      "ModdedAsia": "Modded Asia"
     }
   }
 }

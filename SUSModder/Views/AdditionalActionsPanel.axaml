@@ -71,12 +71,21 @@
                         Foreground="White"
                         Click="OnLoadLocalTxtConfigClick"/>
 
-				<Button Content="{loc:Localize Tools.ChangePresetNames}"
-						HorizontalAlignment="Stretch"
-						Margin="0,0,0,5" Padding="10"
-						Background="{DynamicResource AccentBrush}"
-						Foreground="White"
-						Click="OnChangePresetNamesClick"/>
+			<Button Content="{loc:Localize Tools.ChangePresetNames}"
+					HorizontalAlignment="Stretch"
+					Margin="0,0,0,5" Padding="10"
+					Background="{DynamicResource AccentBrush}"
+					Foreground="White"
+					Click="OnChangePresetNamesClick"/>
+
+				<Separator Margin="0,10"/>
+
+				<Button Content="🎮 {loc:Localize Lobby.Panel.Title}"
+					HorizontalAlignment="Stretch"
+					Margin="0,0,0,5" Padding="10"
+					Background="{DynamicResource AccentBrush}"
+					Foreground="White"
+					Click="OnLobbyBoardClick"/>
 
 			</StackPanel>
 		</StackPanel>

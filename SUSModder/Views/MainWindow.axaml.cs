@@ -715,4 +715,14 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     /// Używane przez App.axaml.cs do przekazania serwisu do ViewModel.
     /// </summary>
     public SystemTrayService? SystemTrayService => _systemTrayService;
+
+    private void OnLobbyBoardHeaderClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+        {
+            ViewModel.IsInfoPanelVisible = false;
+            ViewModel.IsAdditionalActionsVisible = false;
+            ViewModel.ShowLobbyBoard();
+        }
+    }
 }
