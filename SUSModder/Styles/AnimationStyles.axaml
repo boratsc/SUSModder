@@ -99,6 +99,31 @@
 		</Setter>
 	</Style>
 
+	<!-- Grid variant for pinned-bottom layout -->
+	<Style Selector="Grid.mod-content-slide">
+		<Setter Property="Opacity" Value="0"/>
+		<Setter Property="RenderTransform">
+			<Setter.Value>
+				<TranslateTransform Y="20"/>
+			</Setter.Value>
+		</Setter>
+		<Setter Property="Transitions">
+			<Transitions>
+				<DoubleTransition Property="Opacity" Duration="0:0:0.4" Easing="CubicEaseOut"/>
+				<TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.4" Easing="CubicEaseOut"/>
+			</Transitions>
+		</Setter>
+	</Style>
+
+	<Style Selector="Grid.mod-content-slide.visible">
+		<Setter Property="Opacity" Value="1"/>
+		<Setter Property="RenderTransform">
+			<Setter.Value>
+				<TranslateTransform Y="0"/>
+			</Setter.Value>
+		</Setter>
+	</Style>
+
 	<!-- Najbardziej bajerancka wersja - kombinacja fade + slide + scale -->
 	<Style Selector="StackPanel.mod-content-fancy">
 		<Setter Property="Opacity" Value="0"/>

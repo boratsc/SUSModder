@@ -217,9 +217,17 @@
 								<Binding Path="IsModSelected"/>
 							</Panel.IsVisible>
 
-							<StackPanel DataContext="{Binding SelectedMod}"
-										Classes="mod-content-slide"
-										Classes.visible="{Binding $parent[local:MainWindow].DataContext.IsModContentVisible}">
+							<Grid DataContext="{Binding SelectedMod}"
+									  Classes="mod-content-slide"
+									  Classes.visible="{Binding $parent[local:MainWindow].DataContext.IsModContentVisible}">
+								<Grid.RowDefinitions>
+									<RowDefinition Height="*"/>
+									<RowDefinition Height="Auto"/>
+								</Grid.RowDefinitions>
+
+								<!-- Row 0: zawartość przewijalna -->
+								<StackPanel Grid.Row="0">
+
 								<!-- Header z akcentem i developer menu -->
 								<Border Background="{DynamicResource AccentBrush}"
 										CornerRadius="8"
@@ -408,35 +416,6 @@
 											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 											Command="{Binding $parent[local:MainWindow].DataContext.LaunchCommand}"/>
 
-									<Button Content="{loc:Localize UI.Buttons.Update}"
-											HorizontalAlignment="Stretch"
-											Padding="12"
-											CornerRadius="8"
-											FontSize="14"
-											FontWeight="SemiBold"
-											Background="{DynamicResource AccentBrush}"
-											Foreground="White"
-											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
-											Command="{Binding $parent[local:MainWindow].DataContext.UpdateCommand}"/>
-
-									<!-- Auto-update toggle -->
-									<Border Background="{DynamicResource TertiaryBackgroundBrush}"
-											BorderBrush="{DynamicResource BorderBrush}"
-											BorderThickness="1"
-											CornerRadius="8"
-											Padding="10,6"
-											IsVisible="{Binding IsAutoUpdateToggleVisible}">
-										<Grid ColumnDefinitions="*,Auto">
-											<TextBlock Text="{loc:Localize UI.Labels.AutoUpdate}"
-													   VerticalAlignment="Center"
-													   FontSize="12"
-													   Foreground="{DynamicResource TextPrimaryBrush}"/>
-											<ToggleSwitch Grid.Column="1"
-														  IsChecked="{Binding AutoUpdateEnabled}"
-														  Click="AutoUpdateToggle_Click"/>
-										</Grid>
-									</Border>
-
 									<Button Content="{loc:Localize UI.Buttons.Delete}"
 											HorizontalAlignment="Stretch"
 											Padding="12"
@@ -483,6 +462,29 @@
 										</MultiBinding>
 									</Button.IsEnabled>
 								</Button>
+								</StackPanel> <!-- koniec Row 0 -->
+
+								<!-- Row 1: sekcja przypięta do dołu -->
+								<StackPanel Grid.Row="1">
+
+								<!-- Auto-update toggle -->
+								<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+										BorderBrush="{DynamicResource BorderBrush}"
+										BorderThickness="1"
+										CornerRadius="8"
+										Padding="10,6"
+										Margin="0,10,0,0"
+										IsVisible="{Binding IsAutoUpdateToggleVisible}">
+									<Grid ColumnDefinitions="*,Auto">
+										<TextBlock Text="{loc:Localize UI.Labels.AutoUpdate}"
+												   VerticalAlignment="Center"
+												   FontSize="12"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+										<ToggleSwitch Grid.Column="1"
+													  IsChecked="{Binding AutoUpdateEnabled}"
+													  Click="AutoUpdateToggle_Click"/>
+									</Grid>
+								</Border>
 
 								<!-- Sekcja "Zainstalowano w:" - ukrywana podczas operacji -->
 								<StackPanel Margin="0,25,0,0">
@@ -537,8 +539,10 @@
 												BorderThickness="1"
 												Command="{Binding $parent[local:MainWindow].DataContext.CreateShortcutCommand}"/>
 									</Grid>
+
 								</StackPanel>
-							</StackPanel>
+							</StackPanel> <!-- koniec Row 1 -->
+							</Grid> <!-- koniec mod-content grid -->
 						</Panel>
 					</Panel>
 				</Border>
