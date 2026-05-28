@@ -482,6 +482,8 @@
 												   Foreground="{DynamicResource TextPrimaryBrush}"/>
 										<ToggleSwitch Grid.Column="1"
 													  IsChecked="{Binding AutoUpdateEnabled}"
+													  OffContent=""
+													  OnContent=""
 													  Click="AutoUpdateToggle_Click"/>
 									</Grid>
 								</Border>
