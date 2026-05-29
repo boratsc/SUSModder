@@ -157,6 +157,14 @@ namespace SUSModder.Core.Configuration
         [JsonPropertyName("LobbyRegionBaseUrl")]
         public string? LobbyRegionBaseUrl { get; set; } = null;
 
+        /// <summary>
+        /// Czy mod wspiera udostępnianie kodów lobby (lobby board).
+        /// Ustawiane przez API backendowy. Panel lobby wyświetlany tylko dla modów
+        /// z SupportsLobbySharing == true.
+        /// </summary>
+        [JsonPropertyName("SupportsLobbySharing")]
+        public bool SupportsLobbySharing { get; set; } = false;
+
     }
 
     public static class ConfigManager

@@ -131,10 +131,10 @@ namespace SUSModder.Core.Data
             cmd.CommandText = @"
                 INSERT INTO mods (Id, ModName, PngFileName, InstallPath, GitHubRepoOrLink,
                     EpicGitHubRepoOrLink, ModType, DllInstallPath, ModVersion, AmongVersion,
-                    LastUpdated, Description, HasRoles)
+                    LastUpdated, Description, HasRoles, LobbyRegionBaseUrl, SupportsLobbySharing)
                 VALUES (@Id, @ModName, @PngFileName, @InstallPath, @GitHubRepoOrLink,
                     @EpicGitHubRepoOrLink, @ModType, @DllInstallPath, @ModVersion, @AmongVersion,
-                    @LastUpdated, @Description, @HasRoles);";
+                    @LastUpdated, @Description, @HasRoles, @LobbyRegionBaseUrl, @SupportsLobbySharing);";
 
             BindModParameters(cmd, mod);
             cmd.ExecuteNonQuery();
@@ -168,10 +168,10 @@ namespace SUSModder.Core.Data
             cmd.CommandText = @"
                 INSERT INTO mods (Id, ModName, PngFileName, InstallPath, GitHubRepoOrLink,
                     EpicGitHubRepoOrLink, ModType, DllInstallPath, ModVersion, AmongVersion,
-                    LastUpdated, Description, HasRoles)
+                    LastUpdated, Description, HasRoles, LobbyRegionBaseUrl, SupportsLobbySharing)
                 VALUES (@Id, @ModName, @PngFileName, @InstallPath, @GitHubRepoOrLink,
                     @EpicGitHubRepoOrLink, @ModType, @DllInstallPath, @ModVersion, @AmongVersion,
-                    @LastUpdated, @Description, @HasRoles)
+                    @LastUpdated, @Description, @HasRoles, @LobbyRegionBaseUrl, @SupportsLobbySharing)
                 ON CONFLICT(Id) DO UPDATE SET
                     ModName = excluded.ModName,
                     PngFileName = excluded.PngFileName,
@@ -185,6 +185,8 @@ namespace SUSModder.Core.Data
                     LastUpdated = excluded.LastUpdated,
                     Description = excluded.Description,
                     HasRoles = excluded.HasRoles,
+                    LobbyRegionBaseUrl = excluded.LobbyRegionBaseUrl,
+                    SupportsLobbySharing = excluded.SupportsLobbySharing,
                     UpdatedAt = datetime('now');";
 
             BindModParameters(cmd, mod);
@@ -300,10 +302,10 @@ namespace SUSModder.Core.Data
                     insertCmd.CommandText = @"
                         INSERT INTO mods (Id, ModName, PngFileName, InstallPath, GitHubRepoOrLink,
                             EpicGitHubRepoOrLink, ModType, DllInstallPath, ModVersion, AmongVersion,
-                            LastUpdated, Description, HasRoles)
+                            LastUpdated, Description, HasRoles, LobbyRegionBaseUrl, SupportsLobbySharing)
                         VALUES (@Id, @ModName, @PngFileName, @InstallPath, @GitHubRepoOrLink,
                             @EpicGitHubRepoOrLink, @ModType, @DllInstallPath, @ModVersion, @AmongVersion,
-                            @LastUpdated, @Description, @HasRoles);";
+                            @LastUpdated, @Description, @HasRoles, @LobbyRegionBaseUrl, @SupportsLobbySharing);";
                     BindModParameters(insertCmd, mod);
                     insertCmd.Parameters.AddWithValue("@Id", mod.Id);
                     insertCmd.ExecuteNonQuery();
@@ -371,6 +373,8 @@ namespace SUSModder.Core.Data
             cmd.Parameters.AddWithValue("@LastUpdated", mod.LastUpdated?.ToString("O") ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@Description", mod.Description ?? string.Empty);
             cmd.Parameters.AddWithValue("@HasRoles", mod.HasRoles.HasValue ? (object)(mod.HasRoles.Value ? 1 : 0) : DBNull.Value);
+            cmd.Parameters.AddWithValue("@LobbyRegionBaseUrl", (object?)mod.LobbyRegionBaseUrl ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@SupportsLobbySharing", mod.SupportsLobbySharing ? 1 : 0);
         }
 
         private static ModConfiguration MapModFromReader(SqliteDataReader reader)
@@ -389,7 +393,9 @@ namespace SUSModder.Core.Data
                 AmongVersion = reader.GetString(reader.GetOrdinal("AmongVersion")),
                 LastUpdated = reader.IsDBNull(reader.GetOrdinal("LastUpdated")) ? null : DateTime.Parse(reader.GetString(reader.GetOrdinal("LastUpdated"))),
                 Description = reader.GetString(reader.GetOrdinal("Description")),
-                HasRoles = reader.IsDBNull(reader.GetOrdinal("HasRoles")) ? null : reader.GetInt32(reader.GetOrdinal("HasRoles")) != 0
+                HasRoles = reader.IsDBNull(reader.GetOrdinal("HasRoles")) ? null : reader.GetInt32(reader.GetOrdinal("HasRoles")) != 0,
+                LobbyRegionBaseUrl = reader.IsDBNull(reader.GetOrdinal("LobbyRegionBaseUrl")) ? null : reader.GetString(reader.GetOrdinal("LobbyRegionBaseUrl")),
+                SupportsLobbySharing = !reader.IsDBNull(reader.GetOrdinal("SupportsLobbySharing")) && reader.GetInt32(reader.GetOrdinal("SupportsLobbySharing")) != 0
             };
         }
 

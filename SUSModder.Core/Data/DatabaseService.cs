@@ -18,7 +18,7 @@ namespace SUSModder.Core.Data
 
         // Aktualna wersja schematu bazy danych.
         // Zwiększaj przy każdej zmianie schematu (CREATE TABLE, ALTER TABLE, etc.).
-        private const int LatestSchemaVersion = 2;
+        private const int LatestSchemaVersion = 3;
 
         public DatabaseService()
         {
@@ -153,6 +153,8 @@ namespace SUSModder.Core.Data
                     LastUpdated     TEXT,
                     Description     TEXT    NOT NULL DEFAULT '',
                     HasRoles        INTEGER,
+                    LobbyRegionBaseUrl TEXT,
+                    SupportsLobbySharing INTEGER NOT NULL DEFAULT 0,
                     CreatedAt       TEXT    NOT NULL DEFAULT (datetime('now')),
                     UpdatedAt       TEXT    NOT NULL DEFAULT (datetime('now'))
                 );";
@@ -322,6 +324,54 @@ namespace SUSModder.Core.Data
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v2: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore rollback errors */ }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 3)
+            {
+                // Migracja v3: dodanie kolumn LobbyRegionBaseUrl i SupportsLobbySharing do tabeli mods.
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v3 – lobby board columns...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+
+                    // Dodaj LobbyRegionBaseUrl (jeśli nie istnieje)
+                    cmd.CommandText = @"
+                        SELECT COUNT(*) FROM pragma_table_info('mods')
+                        WHERE name = 'LobbyRegionBaseUrl';";
+                    var lobbyUrlExists = (long)(cmd.ExecuteScalar() ?? 0) > 0;
+                    if (!lobbyUrlExists)
+                    {
+                        cmd.CommandText = "ALTER TABLE mods ADD COLUMN LobbyRegionBaseUrl TEXT;";
+                        cmd.ExecuteNonQuery();
+                        System.Diagnostics.Debug.WriteLine("[DatabaseService] Dodano kolumnę LobbyRegionBaseUrl.");
+                    }
+
+                    // Dodaj SupportsLobbySharing (jeśli nie istnieje)
+                    cmd.CommandText = @"
+                        SELECT COUNT(*) FROM pragma_table_info('mods')
+                        WHERE name = 'SupportsLobbySharing';";
+                    var supportsLobbyExists = (long)(cmd.ExecuteScalar() ?? 0) > 0;
+                    if (!supportsLobbyExists)
+                    {
+                        cmd.CommandText = "ALTER TABLE mods ADD COLUMN SupportsLobbySharing INTEGER NOT NULL DEFAULT 0;";
+                        cmd.ExecuteNonQuery();
+                        System.Diagnostics.Debug.WriteLine("[DatabaseService] Dodano kolumnę SupportsLobbySharing.");
+                    }
+
+                    tx.Commit();
+                    SetUserVersion(conn, 3);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v3 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v3: {ex.Message}. Wycofywanie...");
                     try { tx.Rollback(); } catch { /* ignore rollback errors */ }
                     throw;
                 }

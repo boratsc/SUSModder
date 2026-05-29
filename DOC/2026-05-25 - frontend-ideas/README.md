@@ -2,9 +2,9 @@
 
 Sesja burzy mózgów z `sus-ui` + review `sus-senior-quality-reviewer` (GLM 5.1).
 
-## Status implementacji (aktualizacja 2026-05-27)
+## Status implementacji (aktualizacja 2026-05-29)
 
-**12 z 17 pomysłów w pełni zaimplementowanych**, 1 zaniechany, 4 pozostałych do realizacji (P1-P3).
+**13 z 18 pomysłów w pełni lub częściowo zaimplementowanych**, 1 zaniechany, 4 pozostałych do realizacji.
 
 Dodatkowo zrealizowano:
 - **[POC] Migracja JSON → SQLite** – cała warstwa danych przepisana z plików JSON na `Microsoft.Data.Sqlite` 10.0.8 (✅ zaimplementowane 2026-05-27)
@@ -27,9 +27,10 @@ Dodatkowo zrealizowano:
 | [`13-download-speed.md`](13-download-speed.md) | Prędkość pobierania w progress barze ✨ | 🟢 P2 | ~1-2h | ✅ **Zrobione** |
 | [`15-sharpcompress.md`](15-sharpcompress.md) | Zastąpienie 7z.exe przez SharpCompress (7z + zip z progresem) | 🟢 P2 | ~2-3h | ✅ **Zrobione** |
 | [`14-splash-video-webview2.md`](14-splash-video-webview2.md) | Splash screen video przez WebView2 | 🟢 P2 | ~6-8h | 🛑 **Zaniechane** — problemy techniczne WebView2 |
-| [`10-lobby-code-sharing.md`](10-lobby-code-sharing.md) | Udostępnianie kodów lobby (P2P mini-chat) ✨ | 🟢 P2 | ~3-5 dni | ⏳ Do zrobienia |
+| [`10-lobby-code-sharing.md`](10-lobby-code-sharing.md) | Udostępnianie kodów lobby + ogłoszenia + bridge | 🟢 P2 | ~6 dni | ✅ **Gotowe** (MVP + bridge auto-fill); backlog P3 ⏸️ |
 | [`11-lobby-searcher.md`](11-lobby-searcher.md) | Wyszukiwarka lobby (skanowanie serwerów AU) ✨ | 🟢 P2 | ~3-5 dni | ⏳ Do zrobienia (zależne od PoC) |
-| [`12-voice-chat-integration.md`](12-voice-chat-integration.md) | Integracja voice chat: Discord / BetterCrewLink ✨ | 🟢 P2 | ~1-5 dni | ⏳ Do zrobienia |
+| [`12-voice-chat-integration.md`](12-voice-chat-integration.md) | Integracja voice chat: Discord / BetterCrewLink ✨ | 🟢 P2 | ~1-5 dni | 🔧 **Częściowo** — OAuth ✅, reszta ⏳ — [plan](../PLAN/2026-05-29-voice-chat-integration-plan.md) |
+| [`16-mod-pack-sharing.md`](16-mod-pack-sharing.md) | Udostępnianie zestawów modów (kody + linki) | 🟡 P1 | ~8-12 dni | ⏳ Spec gotowa — [plan](../PLAN/2026-05-29-mod-pack-sharing-plan.md) |
 | [`07-future-features.md`](07-future-features.md) | Dwuetapowy flow, auto-update | ⚪ P3-P4 | 1-5 dni | ✅ **Zrobione** (częściowo: PostInstall + auto-update) |
 
 ## Kolejność implementacji (po review GLM 5.1)
@@ -45,8 +46,10 @@ P1 ── 3. Toast notifications ───────────────�
         ────────────────────────────────────────
         z P0+P1 zostało: ~3-5h
 P2 ── 8. Mikrointerakcje ────────────────────── ✅ 1 dzień (zrobione)
-        9. Lobby code sharing ✨ ─────────────── ⏳ 3-5 dni
+        9. Lobby code sharing ✨ ─────────────── ✅ MVP + Bridge (auto-fill)
        10. Lobby searcher ✨ ─────────────────── ⏳ 3-5 dni (bazuje na DOC/Lobby-searcher/PoC.md)
+       11. Voice chat ✨ ─────────────────────── 🔧 OAuth ✅; Discord+BCL ⏳
+       12. Mod pack sharing ─────────────────── ⏳ 8-12 dni (plan gotowy)
 P3 ── 11. Dwuetapowy flow + auto-update ─────── ✅ kilka dni (zrobione)
         Splash video ─────────────────────────── 🛑 ZANIECHANE
 ```
@@ -67,7 +70,7 @@ P3 ── 11. Dwuetapowy flow + auto-update ─────── ✅ kilka dni 
 | Plik | Temat | Status |
 |------|-------|--------|
 | [`09-offline-error-state.md`](09-offline-error-state.md) | Empty state + tryb offline przy braku neta | ⏳ Do zrobienia |
-| [`10-lobby-code-sharing.md`](10-lobby-code-sharing.md) | P2P mini-chat do dzielenia się kodami lobby per mod | ⏳ Do zrobienia |
+| [`10-lobby-code-sharing.md`](10-lobby-code-sharing.md) | Tablica kodów lobby + ogłoszenia per mod | ✅ MVP (susmodder.app) |
 | [`11-lobby-searcher.md`](11-lobby-searcher.md) | Aktywne skanowanie serwerów Among Us w poszukiwaniu lobby | ⏳ Do zrobienia |
 
 ## Kontekst techniczny
@@ -81,7 +84,7 @@ P3 ── 11. Dwuetapowy flow + auto-update ─────── ✅ kilka dni 
 
 ---
 
-## Podsumowanie implementacji (stan na 2026-05-27)
+## Podsumowanie implementacji (stan na 2026-05-29)
 
 ### W pełni zaimplementowane ✅
 
@@ -99,6 +102,9 @@ P3 ── 11. Dwuetapowy flow + auto-update ─────── ✅ kilka dni 
 | 10 | **Auto-update modów** – cicha aktualizacja w tle z progresem UI | `86a5854` | 2026-05-27 |
 | 11 | **SQLite migration** – JSON → SQLite, 3 tabele, 7 repozytoriów, migracja one-shot | `3737cb7` | 2026-05-27 |
 | 12 | **FAB badge + kontekstowa ikona** – licznik aktualizacji, badge tooltip | `(z AvailableUpdatesCount)` | 2026-05-27 |
+| 13 | **Lobby Board (code sharing MVP)** – kody + ogłoszenia, backend susmodder.app | `LobbyBoardService`, `LobbyBoardPanel` | 2026-05-29 |
+| 14 | **Discord OAuth2 + Clair REST (SUStats)** – logowanie bez ręcznych tokenów | `DiscordOAuthService`, `SUStatsConfigViewModel` | 2026-05-29 |
+| 15 | **Lobby Bridge** – gra → auto-fill w SUSModder | `LobbyBridgeFileReader` + `susmodder-integration` | 2026-05-29 |
 
 ### Zaniechane 🛑
 
@@ -111,13 +117,15 @@ P3 ── 11. Dwuetapowy flow + auto-update ─────── ✅ kilka dni 
 | # | Temat | Priorytet | Uwagi |
 |---|-------|-----------|-------|
 | 5 | **Offline / error state** | 🟡 P1 | Detekcja offline + empty state + tryb offline |
-| 10 | **Lobby code sharing** | 🟢 P2 | P2P mini-chat przez Nostr |
+| 10 | **Lobby backlog** | P3 ⏸️ | Auto-publish, dystrybucja DLL, live lookup — odłożone |
 | 11 | **Lobby searcher** | 🟢 P2 | Zależne od PoC w Pythonie |
-| 12 | **Voice chat integration** | 🟢 P2 | Clair + Discord + BetterCrewLink |
+| 12 | **Voice chat (reszta)** | 🟢 P2 | Serwer Discord, BCL, Rich Presence — [plan](../PLAN/2026-05-29-voice-chat-integration-plan.md) |
+| 16 | **Mod pack sharing** | 🟡 P1 | [plan](../PLAN/2026-05-29-mod-pack-sharing-plan.md) |
 
-### Szacowany pozostały czas: ~5-10 dni
+### Szacowany pozostały czas: ~12-18 dni
 - Offline state: 1-2h
-- Lobby code sharing: 3-5 dni (Nostr)
-- Lobby searcher: 3-5 dni (zależne od PoC)
-- Voice chat: 1-5 dni (Clair already exists)
-- **Razem: ~5-10 dni programistycznych**
+- Lobby backlog (auto-publish, dystrybucja, live lookup): ⏸️ odłożone
+- Lobby searcher: 3-5 dni
+- Voice chat (Discord + BCL): 2-3 dni
+- Mod pack sharing: 8-12 dni
+- **Razem: ~12-18 dni programistycznych** (część równolegle)

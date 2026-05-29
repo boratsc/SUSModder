@@ -28,6 +28,7 @@ using SUSModder.ViewModels.Helpers;
 using Microsoft.Extensions.Configuration;
 using FluentIcons.Common;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Lobby;
 
 namespace SUSModder.ViewModels
 {
@@ -751,7 +752,8 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
 
             var lobbyService = App.GetService<ILobbyBoardService>();
             var locService = App.GetService<ILocalizationService>();
-            var vm = new LobbyBoardPanelViewModel(lobbyService, locService, SUSModder.Core.Configuration.ModItemAdapter.ToConfig(mod));
+            var bridgeReader = App.GetService<LobbyBridgeFileReader>();
+            var vm = new LobbyBoardPanelViewModel(lobbyService, locService, SUSModder.Core.Configuration.ModItemAdapter.ToConfig(mod), bridgeReader);
             LobbyBoardViewModel = vm;
 
             // Nasłuchuj zmian tickera

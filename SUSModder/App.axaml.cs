@@ -18,6 +18,7 @@ using SUSModder.Core.Configuration;
 using SUSModder.Core.Data;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.GameIntegration;
+using SUSModder.Core.Lobby;
 using SUSModder.Core.Services.Discord;
 using SUSModder.Core.Utilities;
 
@@ -113,6 +114,13 @@ public partial class App : Application
             var diag = sp.GetRequiredService<IDiagnosticsOutput>();
             var hwid = sp.GetRequiredService<IHardwareIdProvider>();
             return new LobbyBoardService(config, diag, hwid);
+        });
+
+        // Rejestracja Lobby Bridge File Reader (FileSystemWatcher na lobby-bridge.json)
+        services.AddSingleton<LobbyBridgeFileReader>(sp =>
+        {
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            return new LobbyBridgeFileReader(diag);
         });
 
         // Rejestracja OAuthLoopbackListener dla Discord OAuth2 flow
@@ -341,6 +349,10 @@ public partial class App : Application
                 _splashWindow?.UpdateProgress(mappedProgress, status);
             });
             await _splashWindow?.AnimateProgressAsync(0.9)!;
+
+            // KROK 4.5: Uruchom Lobby Bridge File Reader (monitorowanie lobby-bridge.json)
+            var bridgeReader = _serviceProvider?.GetService<LobbyBridgeFileReader>();
+            bridgeReader?.Start();
 
             // KROK 5: Zamiana okien (100%)
             _splashWindow?.UpdateProgress(0.9, "Finalizacja...");

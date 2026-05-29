@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using ReactiveUI;
 using SUSModder.Core.Configuration;
+using SUSModder.Core.Lobby;
 using SUSModder.Core.Models;
 using SUSModder.Core.Services;
 using SUSModder.Core.Services.Localization;
@@ -177,11 +178,20 @@ namespace SUSModder.ViewModels
         public LobbyBoardPanelViewModel(
             ILobbyBoardService lobbyService,
             ILocalizationService loc,
-            ModConfiguration mod)
+            ModConfiguration mod,
+            LobbyBridgeFileReader? bridgeReader = null)
         {
             _lobbyService = lobbyService ?? throw new ArgumentNullException(nameof(lobbyService));
             _loc = loc ?? throw new ArgumentNullException(nameof(loc));
             _mod = mod ?? throw new ArgumentNullException(nameof(mod));
+
+            // Subskrypcja na auto-detekcję kodu z DLL bridge
+            if (bridgeReader != null)
+            {
+                bridgeReader.LobbyCodeDetected += OnLobbyCodeDetected;
+                Disposable.Create(() => bridgeReader.LobbyCodeDetected -= OnLobbyCodeDetected)
+                    .DisposeWith(Disposables);
+            }
 
             // Computed: MessageCharCount
             _messageCharCount = this
@@ -365,6 +375,29 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(CodeTabHeader));
                 this.RaisePropertyChanged(nameof(MessageTabHeader));
             }
+        }
+
+        // ══════════════════════════════════════════════════════
+        // Auto-detekcja kodu z DLL bridge
+        // ══════════════════════════════════════════════════════
+
+        private void OnLobbyCodeDetected(object? sender, LobbyCodeDetectedEventArgs e)
+        {
+            // Sprawdź czy kod dotyczy tego moda
+            if (e.ModId != _mod.Id)
+                return;
+
+            // Auto-fill formularza na głównym wątku UI
+            RxApp.MainThreadScheduler.Schedule(() =>
+            {
+                CodeInput = e.Code;
+                SelectedRegion = e.Region;
+                MaxPlayers = e.MaxPlayers;
+                CurrentPlayers = 0; // Nie znamy liczby graczy z bridge
+
+                // Przełącz na zakładkę kody
+                SelectedTab = 0;
+            });
         }
 
         // ══════════════════════════════════════════════════════

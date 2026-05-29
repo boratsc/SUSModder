@@ -1,11 +1,12 @@
 # Plan Wdrożenia: Etap 1 - Code Sharing + Chat (Lobby Board)
 
-**Data:** 2026-05-28
-**Status:** Faza 0 ✅ Zakończona — plan zaakceptowany po triple review (security + architecture + UI) + aktualizacja regionów i currentPlayers. Gotowy do Fazy 1.
-**Aktualizacje:** 
+**Data:** 2026-05-28  
+**Status:** ✅ **MVP ZAKOŃCZONE** (Fazy 0–3, backend + klient) — 2026-05-29  
+**Plan V2:** [`2026-05-29-lobby-code-sharing-v2-plan.md`](2026-05-29-lobby-code-sharing-v2-plan.md) (bridge DLL, live lookup UI)  
+**Aktualizacje:**
 - 2026-05-28: Regiony — tylko modowane (Modded EU/NA/Asia), vanilla usunięte
 - 2026-05-28: currentPlayers — live lookup przez REST API modowanego regionu (PoC: `lookup_lobby.py`). Klient queryuje serwer regionu bezpośrednio, server susmodder.app tylko cache'uje snapshot.
-- 2026-05-28: Dodany PATCH /api/lobby-board/{id} do cache'owania wyników lookupu
+- 2026-05-29: **Fazy 1–3 zaimplementowane** — backend susmodder.app + klient SUSModder (LobbyBoardPanel, LobbyBoardService). Weryfikacja: `dotnet build` OK.
 **Źródła:** DOC/POC/2026-05-27-lobby-code-sharing.md, DOC/2026-05-25 - frontend-ideas/10-lobby-code-sharing.md, DOC/POC/Lobby-searcher/lookup_lobby.py
 **Priorytet:** P2
 
@@ -479,7 +480,7 @@ public class LobbyCodeDetectedEventArgs : EventArgs
 
 **Implementacja:** FileSystemWatcher na `%APPDATA%/SUSModder/lobby-bridge.json`. Ignoruje wpisy starsze niż 90 sekund. Wymaga osobnego repo `SUSModder.Bridge` dla DLL wstrzykiwanej do Among Us.
 
-**UWAGA:** LobbyBridgeFileReader = V2. NIE wchodzi do MVP Etapu 1.
+**Status (2026-05-29):** ✅ Bridge **gotowy** — auto-fill E2E działa. Auto-publish na API ⏸️ odłożone (P3, nie testowane — akceptowane).
 
 ---
 
@@ -651,15 +652,38 @@ Lobby.Region.Unknown       | Nieznany | Unknown
 
 ---
 
+## Weryfikacja implementacji MVP (2026-05-29)
+
+| Faza | Zakres | Status |
+|------|--------|--------|
+| 0 | Plan, kontrakty API, review | ✅ |
+| 1 | Backend `/api/lobby-board` + moderacja + Redis | ✅ |
+| 2 | Core: `LobbyBoardService`, validators, `IHardwareIdProvider` | ✅ |
+| 3 | UI: `LobbyBoardPanel`, i18n, integracja MainWindow | ✅ |
+| 4 | DLL Bridge | ✅ Gotowy (auto-fill E2E) — backlog: auto-publish ⏸️ |
+| 5 | Deployment / dystrybucja DLL | ⏸️ P3 backlog |
+
+**Pliki klienta (implementacja):**
+- `SUSModder.Core/Services/LobbyBoardService.cs`, `ILobbyBoardService.cs`
+- `SUSModder.Core/Models/LobbyBoardModels.cs`
+- `SUSModder.Core/Validators/LobbyEntryValidator.cs`
+- `SUSModder.Core/Utilities/IHardwareIdProvider.cs`, `WindowsHardwareIdProvider.cs`
+- `SUSModder.Core/Lobby/LobbyBridgeFileReader.cs` (✅ E2E — auto-fill działa)
+- **Bridge DLL:** `D:\Development\susmodder-integration` — `SUSModder.Integration.dll` (✅ E2E zweryfikowany)
+- `SUSModder/Views/LobbyBoardPanel.axaml`, `LobbyBoardPanelViewModel.cs`
+- `SUSModder/Localization/pl.json`, `en.json` — sekcja `Lobby`
+
+---
+
 ## Część 4: Kolejność implementacji (krok po kroku)
 
-### Faza 0 - Przygotowanie (obecna) ✅
+### Faza 0 - Przygotowanie ✅
 0.1. Potwierdzenie decyzji D1-D10 przez właściciela
 0.2. Kontrakty API (ten dokument)
 0.3. Review: security, architecture, UI
 0.4. Finalny plan zaakceptowany
 
-### Faza 1 - Backend (1-1.5 dnia)
+### Faza 1 - Backend (1-1.5 dnia) ✅
 1.1. Tabela `lobby_board` + indeksy (region CHECK z nowymi wartościami)
 1.2. Tabela `lobby_blocklist` z seed data
 1.3. Tabela `lobby_reports`
@@ -681,7 +705,7 @@ Lobby.Region.Unknown       | Nieznany | Unknown
 1.10. Cleanup cron (soft-delete co 10 min, hard delete co 24h)
 1.11. Testy API (curl / Postman)
 
-### Faza 2 - Core (0.5-1 dnia)
+### Faza 2 - Core (0.5-1 dnia) ✅
 2.1. Dodanie `LobbyBoardEndpoint` do appsettings.json
 2.2. Modele: `LobbyBoardEntry`, `PostEntryResult`, `LobbyEntryType`, `AmongUsAuth`, `LobbyLookupResult`
 2.3. Lobby code ↔ gameId konwerter (port `game_name_to_int` / `int_to_game_name` z `lookup_lobby.py` do C#)
@@ -697,7 +721,7 @@ Lobby.Region.Unknown       | Nieznany | Unknown
 2.7. Nowe pola `SupportsLobbySharing` + `LobbyRegionBaseUrl` w `ModConfiguration`
 2.8. Rejestracja w DI (App.axaml.cs)
 
-### Faza 3 - UI (1 dzień)
+### Faza 3 - UI (1 dzień) ✅
 3.1. `LobbyBoardItemViewModel`
 3.2. `LobbyBoardPanelViewModel`:
      - Zakładki Kody/Ogłoszenia
@@ -714,14 +738,14 @@ Lobby.Region.Unknown       | Nieznany | Unknown
 3.5. i18n: dodanie wszystkich kluczy do pl.json i en.json
 3.6. Testy ręczne: publikacja kodu, publikacja wiadomości, refresh, zgłaszanie
 
-### Faza 4 - DLL Bridge (2-3 dni, V2)
-4.1. Nowe repo `SUSModder.Bridge`
-4.2. Harmony patch dla TOU-Mira
-4.3. `LobbyBridgeFileReader` w Core
-4.4. Integracja auto-wykrywania w UI
-4.5. Dystrybucja przez DllModificationService
+### Faza 4 - DLL Bridge ✅
+4.1. Repo `D:\Development\susmodder-integration` — ✅
+4.2. `LobbyBridgeFileReader` + auto-fill UI — ✅
+4.3. E2E gra → bridge → SUSModder — ✅
+4.4. Auto-publish + toast + dystrybucja — ⏸️ backlog P3
+4.5. `LobbyUIInjector` (Share Code) — 🔧 opcjonalnie w susmodder-integration
 
-### Faza 5 - Testy i wdrożenie (0.5 dnia)
+### Faza 5 - Testy i wdrożenie (0.5 dnia) 🔧
 5.1. Testy end-to-end (publikacja → odczyt → usunięcie)
 5.2. Testy moderacji (rate limit, duplicate, URL block, word filter)
 5.3. Testy shadow/hard ban
@@ -747,12 +771,12 @@ Lobby.Region.Unknown       | Nieznany | Unknown
 
 ## Podsumowanie
 
-**Szacowany czas MVP (Fazy 1-3): ~3.5-4 dni**
-- Backend: 1-1.5 dnia
-- Core: 1 dzień (w tym port game_name_to_int z Pythona do C#)
-- UI: 1-1.5 dnia (w tym integracja live lookup)
+**MVP (Fazy 1-3): ✅ Zakończone (~4 dni robocze)**
 
-**Poza MVP (Faza 4): +2-3 dni**
-- DLL Bridge dla auto-wykrywania kodu
+**Bridge:** ✅ Gotowy (auto-fill). Backlog P3: auto-publish, dystrybucja, live lookup — odłożone.
+
+Szczegóły: [`2026-05-29-lobby-code-sharing-v2-plan.md`](2026-05-29-lobby-code-sharing-v2-plan.md)
 
 **Poza scope (Etap 2 i 3): osobne wdrożenia**
+- Etap 2: Lobby Searcher ([`11-lobby-searcher.md`](../2026-05-25%20-%20frontend-ideas/11-lobby-searcher.md))
+- Etap 3: BetterCrewLink ([`2026-05-29-voice-chat-integration-plan.md`](2026-05-29-voice-chat-integration-plan.md))

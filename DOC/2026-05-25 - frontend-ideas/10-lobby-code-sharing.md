@@ -1,153 +1,174 @@
-# 10 – Udostępnianie kodów do lobby (P2P mini-chat)
+# 10 – Udostępnianie kodów do lobby (Lobby Board)
 
-**Priorytet:** 🟢 P2
-**Effort:** MVP ~1-2 dni, Nostr ~3-5 dni, auto-detect ~5-7 dni
+**Priorytet:** 🟢 P2  
+**Effort:** MVP ✅ ~4 dni, Bridge ✅ ~2 dni, polish/backlog ⏸️  
+**Status:** ✅ **MVP** + ✅ **Bridge (gra → auto-fill w SUSModder)** — feature uznany za gotowy; auto-publish na API odłożony  
+**Repo bridge:** `D:\Development\susmodder-integration` (osobne repozytorium)  
+**Plan wdrożenia:** [`DOC/PLAN/2026-05-28-lobby-code-sharing-phase0-plan.md`](../PLAN/2026-05-28-lobby-code-sharing-phase0-plan.md) (Fazy 0–3 ✅)  
+**Plan V2:** [`DOC/PLAN/2026-05-29-lobby-code-sharing-v2-plan.md`](../PLAN/2026-05-29-lobby-code-sharing-v2-plan.md)
+
+---
 
 ## Cel
 
-Umożliwić użytkownikom SUSModder dzielenie się kodami do lobby między sobą – bez centralnego serwera, na zasadzie sieci P2P.
+Umożliwić użytkownikom SUSModder dzielenie się kodami do lobby oraz krótkimi ogłoszeniami per mod — bez konieczności przeszukiwania Discorda.
 
 ## Dlaczego to potrzebne
 
-- **Serwery Among Us mają bugi** – wyszukiwanie publicznych lobby często nie działa, kody nie są widoczne
-- **Społeczność jest rozproszona** – gracze są na wielu serwerach Discord, nie ma jednego miejsca z kodami
-- **Wielu graczy nie jest na żadnym serwerze na stałe** – potrzebują prostego sposobu na znalezienie/udostępnienie kodu bez dołączania do kolejnego Discorda
-- **Obecny flow jest uciążliwy** – znalezienie kodu = otwórz Discord → znajdź serwer → znajdź kanał → skopiuj kod → wklej w grze. SUSModder może to zrobić w 2 kliknięcia.
+- **Serwery Among Us mają bugi** – wyszukiwanie publicznych lobby często nie działa
+- **Społeczność jest rozproszona** – gracze są na wielu serwerach Discord
+- **Obecny flow jest uciążliwy** – Discord → serwer → kanał → kopiuj → wklej w grze
+- **SUSModder może to skrócić do 2 kliknięć** w panelu moda
 
-## Założenia
+---
 
-- **Bez serwera** – komunikacja P2P, brak backendu do utrzymania (docelowo Nostr)
-- **Per mod** – kody są przypisane do konkretnego moda (np. Town of Us, The Other Roles)
-- **Tymczasowe** – kody lobby mają krótki TTL (np. 15 min), auto-wygasają
-- **Lekkie** – nie bloatware, nie kolejny Discord
+## Stan implementacji (2026-05-29)
 
-## Jak to działałoby z perspektywy usera
+### ✅ Zrobione (MVP — Etap 1)
 
-1. User instaluje/uruchamia mod (np. Town of Us)
-2. W panelu moda pojawia się nowa sekcja: **"Lobby"**
-3. Widzi listę kodów lobby udostępnionych przez innych graczy
-4. Może ręcznie wkleić swój kod
+| Warstwa | Co | Pliki / endpoint |
+|---------|-----|------------------|
+| **Backend** | `GET/POST/DELETE/PATCH /api/lobby-board`, `POST .../report` | susmodder.app |
+| **Backend** | Moderacja W0–W5, Redis rate limit, heat system | PostgreSQL + Redis |
+| **Backend** | TTL: kod 20 min, wiadomość 4 h | zgodnie z D4/D3 |
+| **Core** | `ILobbyBoardService` + `LobbyBoardService` | `SUSModder.Core/Services/` |
+| **Core** | `LobbyEntryValidator`, `IHardwareIdProvider` | `Validators/`, `Utilities/` |
+| **Core** | `SupportsLobbySharing`, `LobbyRegionBaseUrl` w `ModConfiguration` | `ModConfig.cs`, SQLite v3 |
+| **Core** | Konwerter kod ↔ gameId + `LookupLobbyStateAsync` (API regionu) | `LobbyBoardService.cs` |
+| **UI** | `LobbyBoardPanel` — zakładki Kody / Ogłoszenia | `Views/LobbyBoardPanel.axaml` |
+| **UI** | Publikacja, refresh 30 s, kopiowanie, zgłaszanie, usuwanie własnych | `LobbyBoardPanelViewModel.cs` |
+| **UI** | Integracja w prawym panelu moda (`ShowLobbyBoard`) | `MainWindowViewModel.cs` |
+| **i18n** | Sekcja `Lobby.*` PL/EN | `pl.json`, `en.json` |
 
-`
-+---------------------------------------------+
-|  🎮 Lobby - Town of Us                      |
-|  Udostępnione kody (ostatnie 15 min)        |
-|                                             |
-|  +-------------------------------------+   |
-|  | 🔴 EU-MAIN  | 12/15 graczy          |   |
-|  | Kod: ABCDEF | 2 min temu            |   |
-|  +-------------------------------------+   |
-|  +-------------------------------------+   |
-|  | 🟢 NA-EAST  | 8/10 graczy           |   |
-|  | Kod: XYZ123 | 5 min temu            |   |
-|  +-------------------------------------+   |
-|                                             |
-|  [Twój kod: ______] [Udostępnij]            |
-+---------------------------------------------+
-`
+### ✅ Bridge — gotowe (2026-05-29)
 
-## Protokół komunikacji – przegląd opcji
+| Co | Stan | Uwagi |
+|----|------|-------|
+| **`SUSModder.Integration.dll`** | ✅ | Repo: `D:\Development\susmodder-integration` — TOU-Mira, Syzyf, Harmony |
+| **`LobbyBridgeFileReader`** | ✅ | Gra → `lobby-bridge.json` → auto-fill formularza Lobby Board (E2E OK) |
+| Protokół bridge v1 | ✅ | Zgodny obustronnie (`isPublic`, TTL 90s) |
 
-Szukamy czegoś lekkiego, chat-only, szyfrowanego, bez własnego serwera.
+### ⏸️ Odłożone (niski priorytet — backlog)
 
-| Protokół | Opis | Waga | Serwer? | Szyfrowanie | Ocena |
-|----------|------|------|---------|-------------|-------|
-| **Nostr** | Prosty protokół pub/sub przez relaye | Bardzo lekki | Publiczne relaye | NIP-04 (opcjonalne) | ⭐ Najlepszy |
-| **Matrix** | Zdecentralizowany chat (federacja) | Ciężki | Homeserver | E2E (Olm/Megolm) | ❌ Overkill |
-| **WebRTC** | P2P data channels | Średni | STUN (publiczny) | DTLS (wbudowane) | ⚠️ Słaby .NET |
-| **Tox** (toxcore) | P2P IM przez DHT | Średni | Brak | NaCl | ⚠️ Słaby binding |
-| **libp2p** | Modularny P2P stack (IPFS) | Ciężki | DHT | Noise | ❌ Overkill |
-| **MQTT** | Pub/sub, bardzo lekki | Mikro | Broker | TLS | ⚠️ Potrzebny broker |
-| **Własne API** | susmodder.app/api/lobby-codes | Lekki | Nasz serwer | HTTPS | ✅ MVP |
+| Co | Stan | Uwagi |
+|----|------|-------|
+| Auto-publikacja na API | ⏸️ | Nie testowane; user klika „Udostępnij” ręcznie po auto-fill — wystarczy na teraz |
+| Toast po wykryciu kodu | ⏸️ | Polish UX |
+| Dystrybucja DLL przez katalog | ⏸️ | Ręczna instalacja do `BepInEx/plugins/` wystarczy na dev |
+| Przycisk Share Code w grze | 🔧 | `LobbyUIInjector` — rozbudowa w susmodder-integration |
+| Live `currentPlayers` | ⏸️ | `LookupLobbyStateAsync` w Core, bez UI |
+| AmongUsAuth settings | ⏸️ | Do live lookupu |
 
-### Rekomendacja: Nostr
+### ⏳ Poza scope / backlog (V2+)
 
-**Dlaczego Nostr?**
+| Feature | Priorytet | Uwagi |
+|---------|-----------|-------|
+| Auto-publish bridge → API | P3 ⏸️ | Odłożone — auto-fill + ręczny „Udostępnij” wystarczy |
+| Live player count w UI | P3 ⏸️ | `LookupLobbyStateAsync` gotowy w Core |
+| Dystrybucja DLL katalogowa | P3 ⏸️ | Dev: ręczna instalacja |
+| Admin panel moderacji | P3 | Backend V2 |
+| Nostr (decentralizacja) | P4 | Nie planowane |
 
-- **Zero infrastruktury** – publiczne, darmowe relaye (nie trzeba nic hostować)
-- **Bardzo lekki** – jeden JSON na wiadomość:
-  {"kind":1, "content":"KOD:ABCDEF EU-MAIN 12/15", "tags":[["m","TownOfUs"],["v","5.1.2"]]}
-- **Naturalny TTL** – relaye same czyszczą stare eventy
-- **Prosty klient w C#** – NNostr.Client (NuGet) lub własna implementacja (~300 linii)
-- **Per-mod "pokoje"** – przez tagi ["m", "TownOfUs"], subskrypcja z filtrem #m
+---
 
-**Flow z Nostr:**
-1. User wkleja kod → apka tworzy Nostr event
-2. Event wysyłany na publiczne relaye
-3. Inni userzy subskrybują relaye z filtrem: #m = "TownOfUs"
-4. Widzą kody w czasie rzeczywistym
-5. Eventy starsze niż 15 min ignorowane (filtr po created_at)
+## Jak to działa (z perspektywy usera)
 
-### Strategia: API (MVP) → Nostr (V2)
+1. User wybiera mod z `SupportsLobbySharing = true` (np. Town of Us)
+2. W prawym panelu otwiera sekcję **Lobby**
+3. Zakładka **Kody** — lista aktywnych kodów (TTL 20 min), region Modded EU/NA/Asia
+4. Zakładka **Ogłoszenia** — krótkie wiadomości (max 280 znaków, TTL 4 h, tylko discord.gg)
+5. User wkleja swój kod ręcznie i klika **Udostępnij kod**
+6. Inni gracze kopiują kod jednym kliknięciem
 
-1. **MVP:** Własne API (1-2 dni) – działa od razu, zero ryzyka, mamy backend
-2. **V2:** Nostr (2-3 dni) – prawdziwy P2P, bez serwera, lepsza skala
+```
++--------------------------------------------------------------+
+|  Lobby - Town of Us                              [Odśwież]   |
+|  [ Kody (3) ]  [ Ogłoszenia (1) ]                            |
+|                                                              |
+|  Modded EU  |  ABCDEF  |  ?/15  |  2 min temu  [Kopiuj][Zgłoś]|
+|  Modded NA  |  XYZ123  |  8/10  |  5 min temu  [Kopiuj][Zgłoś]|
+|                                                              |
+|  Kod: [______]  Region: [Modded EU ▼]  Gracze: [_]/15       |
+|  [Udostępnij kod]                                            |
++--------------------------------------------------------------+
+```
 
-## V3: Auto-wykrywanie kodu lobby (przyszłość)
+---
 
-Automatyczne udostępnianie kodu przy tworzeniu gry **wymaga integracji z modem** – osobny DLL wstrzykujący się w proces Among Us i komunikujący z SUSModder.
+## Architektura (zrealizowana)
 
-### Dlaczego to trudne
+**Decyzja D1:** Backend = **susmodder.app** (nie Clair, nie Nostr).
 
-- Każdy mod ma inną strukturę wewnętrzną – nie ma uniwersalnego API
-- Trzeba per-mod DLL-i które hookują tworzenie lobby
-- Realne tylko dla modów z udokumentowanym API
+```
+SUSModder klient ──GET/POST──▶ susmodder.app/api/lobby-board
+SUSModder klient ──GET /api/games/{id}──▶ serwer modowanego regionu AU  (live lookup, opcjonalnie)
+```
 
-Uwaga: DLL injection jako mechanizm **nie jest blokowany przez Windows Defender** w kontekście Among Us – BepInEx (używany przez SUSModder) już działa na tej samej zasadzie i nie powoduje false positives.
+| Aspekt | Wybór | Uzasadnienie |
+|--------|-------|--------------|
+| Protokół MVP | REST API susmodder.app | Pełna kontrola moderacji, TTL, heat system |
+| Chat | Tablica ogłoszeń (nie IRC) | Prostsze, mniejsze ryzyko spamu |
+| Tożsamość | `X-User-Hash` (SHA256 HWID) | Anonimowość, spójne z telemetrią |
+| Regiony | Modded EU / NA / Asia | Vanilla regiony usunięte (D11) |
+| Nostr | ❌ Odrzucone na MVP | API działa; Nostr = ewentualny Etap 3 |
 
-### Realne mody do integracji
+---
 
-| Mod | API | Status |
-|-----|-----|--------|
-| **Town of Us** | Mira API | Ma hooki do lobby – realne |
-| **The Other Roles** | ? | Do sprawdzenia |
-| Pozostałe | Brak / nieznane | Mało realne |
+## Decyzje (rozstrzygnięte)
 
-### Flow techniczny (Town of Us + Mira API)
+| # | Pytanie | Odpowiedź |
+|---|---------|-----------|
+| D1 | Backend? | susmodder.app `/api/lobby-board` |
+| D2 | Chat w scope? | Tak — tablica ogłoszeń per mod |
+| D3 | TTL wiadomości? | **4 h** |
+| D4 | TTL kodu? | **20 min** |
+| D5 | MVP: API czy Nostr? | **API** (Nostr = przyszłość, nie planowane) |
+| D6 | Treść chatu? | Tylko kody + metadane + ogłoszenia (discord.gg allowlist) |
+| D7 | Gdzie w UI? | **Prawy panel moda** (expandable Lobby Board) |
+| D8 | Zgłaszanie kodów? | **Tak** — `POST /api/lobby-board/{id}/report` |
+| D9 | Auto-detect kodu? | ✅ **Bridge gotowy** — auto-fill; auto-publish ⏸️ P3 |
+| D10 | Admin moderacji? | **V2** |
+| D11 | Regiony? | Tylko modowane (Modded EU/NA/Asia) |
+| D12 | Live currentPlayers? | Klient → REST regionu AU; PATCH = opcjonalny cache |
 
-`
-Among Us + Town of Us + SUSModder.DLL
-  +-> user tworzy lobby
-  +-> Mira API hook wyzwala event
-  +-> SUSModder.DLL wysyła kod do SUSModder (named pipe / localhost HTTP)
-  +-> SUSModder publikuje na Nostr / API
-`
+---
 
-**Effort:** ~5-7 dni na pierwszy mod (ToU + Mira), potem ~2-3 dni na każdy kolejny.
+## Bridge — auto-wykrywanie kodu lobby ✅
 
-## Wyzwania
+Flow produkcyjny (wystarczający na obecny etap):
 
-### 1. Bezpieczeństwo i moderacja
+```
+Gra (Make Public) → lobby-bridge.json → SUSModder auto-fill → user klika „Udostępnij kod”
+```
 
-- Nostr: brak centralnej moderacji = ryzyko spamu
-- Ograniczyć do samych kodów + region + player count, **bez dowolnych wiadomości tekstowych**
-- Można dodać "zgłoś" → lokalny filtr per user
+**Repo pluginu:** `D:\Development\susmodder-integration`  
+**E2E auto-fill:** ✅ zweryfikowany  
+**Auto-publish na API:** ⏸️ odłożone (P3) — nie priorytet
 
-### 2. Auto-wygasanie
+| Mod | ModId | Status |
+|-----|-------|--------|
+| Town of Us: Mira | 13 | ✅ |
+| Town of Us: Syzyf | 7 | ✅ |
 
-- Kody lobby mają sens tylko przez ~15 minut
-- Nostr: filtrowanie po created_at po stronie klienta
-- API: auto-cleanup na backendzie
+Backlog: [`2026-05-29-lobby-code-sharing-v2-plan.md`](../PLAN/2026-05-29-lobby-code-sharing-v2-plan.md) (auto-publish, dystrybucja, live lookup).
 
-### 3. Gdzie w UI?
+---
 
-Opcje:
-- **W prawym panelu**, jako nowa sekcja przy szczegółach moda (rekomendowane)
-- **W FAB menu**, jako nowa opcja "Kody lobby"
-- **Osobne okno** – LobbyWindow
+## Wyzwania i mitygacje (zachowane)
 
-## Minimalna wersja (MVP)
+| Wyzwanie | Mitygacja |
+|----------|-----------|
+| Spam | Rate limit 5 min, 20/dzień, heat system, word filter |
+| Linki | Tylko `discord.gg`, max 1 link |
+| Brak moderacji centralnej | Zgłoszenia + shadow/hard ban po heat |
+| Nieaktualny player count | TTL 20 min; live lookup w V2 |
+| Token w .exe | Akceptowane ryzyko (istniejąca architektura) + warstwy W1–W5 |
 
-1. Backend: POST /api/lobby-codes – wyślij kod, GET /api/lobby-codes?modId=X – pobierz aktywne
-2. UI: w panelu moda, pod przyciskami Install/Launch, sekcja "Udostępnione lobby"
-3. **User ręcznie wkleja kod** – MVP to tylko manualne udostępnianie
-4. Auto-cleanup: kody starsze niż 15 min ignorowane
+---
 
-## Decyzje
+## Powiązane dokumenty
 
-- [ ] MVP przez API czy od razu Nostr?
-- [ ] Tylko kody + metadane, czy też dowolne wiadomości?
-- [ ] Auto-wygasanie: 10, 15 czy 30 minut?
-- [ ] Gdzie w UI: prawy panel, status bar, FAB, osobne okno?
-- [ ] Czy user może "zgłosić" nieodpowiedni kod?
-- [ ] Auto-detect – czy w ogóle robić? Tylko dla ToU + Mira?
+- POC: [`DOC/POC/2026-05-27-lobby-code-sharing.md`](../POC/2026-05-27-lobby-code-sharing.md)
+- Etap 2 (Lobby Searcher): [`11-lobby-searcher.md`](11-lobby-searcher.md)
+- Voice (BetterCrewLink): [`12-voice-chat-integration.md`](12-voice-chat-integration.md)
+- Mod packs (integration.dll): [`16-mod-pack-sharing.md`](16-mod-pack-sharing.md)

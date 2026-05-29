@@ -223,6 +223,14 @@ namespace SUSModder.ViewModels
             set => this.RaiseAndSetIfChanged(ref _lobbyRegionBaseUrl, value);
         }
 
+        private bool _supportsLobbySharing;
+
+        public bool SupportsLobbySharing
+        {
+            get => _supportsLobbySharing;
+            set => this.RaiseAndSetIfChanged(ref _supportsLobbySharing, value);
+        }
+
         public bool IsVanilla => ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase);
         public bool IsPinnedVersionInstall =>
             IsInstalled &&
