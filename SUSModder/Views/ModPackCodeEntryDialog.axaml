@@ -1,0 +1,53 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SUSModder.Services.Localization"
+        x:Class="SUSModder.Views.ModPackCodeEntryDialog"
+        Title="{loc:Localize ModPacks.CodeEntryTitle}"
+        Width="440" Height="220"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="True">
+
+	<Window.Styles>
+		<FluentTheme />
+		<Style Selector="Window">
+			<Style.Animations>
+				<Animation Duration="0:0:0.2" FillMode="Forward">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+	</Window.Styles>
+
+	<Border Margin="0,30,0,0">
+		<Grid Margin="24,10,24,24" RowDefinitions="Auto,*,Auto">
+			<TextBlock Grid.Row="0"
+                       Text="{loc:Localize ModPacks.CodeEntryPrompt}"
+                       FontSize="14"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,12"/>
+
+			<TextBox Grid.Row="1"
+                     x:Name="CodeTextBox"
+                     PlaceholderText="{loc:Localize ModPacks.CodeEntryPlaceholder}"
+                     FontSize="16"
+                     HorizontalAlignment="Stretch"/>
+
+			<StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,16,0,0">
+				<Button Content="{loc:Localize UI.Buttons.Cancel}" Width="100" Click="CancelButton_Click"/>
+				<Button Content="{loc:Localize UI.Buttons.OK}" Width="100"
+                        Background="{DynamicResource AccentBrush}" Foreground="White"
+                        Click="OkButton_Click"/>
+			</StackPanel>
+		</Grid>
+	</Border>
+</Window>

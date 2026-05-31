@@ -1,0 +1,70 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SUSModder.Services.Localization"
+        x:Class="SUSModder.Views.ModPackPreviewDialog"
+        Title="{loc:Localize ModPacks.PreviewTitle}"
+        Width="520" Height="500"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="True">
+
+	<Window.Styles>
+		<FluentTheme />
+		<Style Selector="Window">
+			<Style.Animations>
+				<Animation Duration="0:0:0.2" FillMode="Forward">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+	</Window.Styles>
+
+	<Border Margin="0,30,0,0">
+		<Grid Margin="20,10,20,20" RowDefinitions="Auto,*,Auto,Auto">
+			<TextBlock Grid.Row="0" x:Name="HeaderText"
+                       FontSize="18" FontWeight="Bold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+			<ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+				<StackPanel Spacing="8">
+					<TextBlock x:Name="DetailsText" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13"/>
+
+					<Border x:Name="ExternalWarningPanel" IsVisible="False"
+                            Background="#33FF5722" BorderBrush="#FFFF5722" BorderThickness="1"
+                            CornerRadius="6" Padding="10" Margin="0,8,0,0">
+						<StackPanel Spacing="6">
+							<TextBlock Text="{loc:Localize ModPacks.ExternalDllWarning}"
+                                       Foreground="#FFFF8A65" FontWeight="SemiBold" TextWrapping="Wrap"/>
+							<TextBlock Text="{loc:Localize ModPacks.ExternalDllCaution}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" FontSize="12"/>
+							<TextBlock x:Name="VtStatusText" TextWrapping="Wrap" FontSize="12"/>
+							<CheckBox x:Name="RiskConsentCheckBox"
+                                      Content="{loc:Localize ModPacks.RiskConsent}"
+                                      IsVisible="False"/>
+						</StackPanel>
+					</Border>
+				</StackPanel>
+			</ScrollViewer>
+
+			<TextBlock Grid.Row="2" x:Name="BlockedText" IsVisible="False"
+                       Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+
+			<StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,16,0,0">
+				<Button Content="{loc:Localize UI.Buttons.Cancel}" Width="120" Click="CancelButton_Click"/>
+				<Button x:Name="InstallButton" Content="{loc:Localize ModPacks.InstallButton}" Width="160"
+                        Background="{DynamicResource AccentBrush}" Foreground="White"
+                        IsEnabled="False" Click="InstallButton_Click"/>
+			</StackPanel>
+		</Grid>
+	</Border>
+</Window>

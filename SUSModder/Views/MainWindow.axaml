@@ -1126,6 +1126,28 @@
 					</Button>
 
 					<Button Classes="fab-menu-item"
+							Command="{Binding ShareModPackCommand}">
+						<i:Interaction.Behaviors>
+							<behaviors:RippleBehavior/>
+						</i:Interaction.Behaviors>
+						<StackPanel Orientation="Horizontal" Spacing="12">
+							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Box}" FontSize="20" Foreground="#00BCD4"/>
+							<TextBlock Text="{loc:Localize ModPacks.ShareMenu}" VerticalAlignment="Center"/>
+						</StackPanel>
+					</Button>
+
+					<Button Classes="fab-menu-item"
+							Command="{Binding EnterModPackCodeCommand}">
+						<i:Interaction.Behaviors>
+							<behaviors:RippleBehavior/>
+						</i:Interaction.Behaviors>
+						<StackPanel Orientation="Horizontal" Spacing="12">
+							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ClipboardPaste}" FontSize="20" Foreground="#00BCD4"/>
+							<TextBlock Text="{loc:Localize ModPacks.EnterCodeMenu}" VerticalAlignment="Center"/>
+						</StackPanel>
+					</Button>
+
+					<Button Classes="fab-menu-item"
 							Command="{Binding ShowLobbyBoardCommand}">
 						<i:Interaction.Behaviors>
 							<behaviors:RippleBehavior/>

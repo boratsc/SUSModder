@@ -555,6 +555,8 @@ namespace SUSModder.ViewModels
     public ReactiveCommand<Unit, Unit> CloseDllDialogCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowLobbyBoardCommand { get; }
+        public ReactiveCommand<Unit, Unit> ShareModPackCommand { get; }
+        public ReactiveCommand<Unit, Unit> EnterModPackCodeCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowDllSelectionCommand { get; }
     public ReactiveCommand<Unit, Unit> CheckForAppUpdatesCommand { get; }
         public ReactiveCommand<Unit, Unit> CheckForModUpdatesFromMenuCommand { get; private set; }
@@ -594,8 +596,7 @@ namespace SUSModder.ViewModels
             // Załaduj konfigurację z DI (cache'owana - budowana raz w App.ConfigureServices)
             _configuration = App.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
 
-            var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-            var configRepository = new ConfigRepository(exeDir);
+            var configRepository = new ConfigRepository();
             ModConfigHandler.Initialize(configRepository, _userInteractionService);
 
             // Initialize commands
@@ -627,6 +628,8 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             this.RaisePropertyChanged(nameof(IsDeveloperMode));
             ShowRecommendedDiscordsCommand = ReactiveCommand.Create(ShowRecommendedDiscords);
             ShowLobbyBoardCommand = ReactiveCommand.Create(ShowLobbyBoardFromMenu);
+            ShareModPackCommand = ReactiveCommand.CreateFromTask(ShowModPackCreatorAsync);
+            EnterModPackCodeCommand = ReactiveCommand.CreateFromTask(ShowModPackCodeEntryAsync);
             ShowSUStatsConfigCommand = ReactiveCommand.Create(ShowSUStatsConfig);
             ExecuteRepairOptionCommand = ReactiveCommand.CreateFromTask<string>(ExecuteRepairOptionFromModalAsync);
             InitializeFrontendLayout();

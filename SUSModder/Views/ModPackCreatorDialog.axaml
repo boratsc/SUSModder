@@ -1,0 +1,74 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SUSModder.Services.Localization"
+        x:Class="SUSModder.Views.ModPackCreatorDialog"
+        Title="{loc:Localize ModPacks.CreatorTitle}"
+        Width="520" Height="580"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="True">
+
+	<Window.Styles>
+		<FluentTheme />
+		<Style Selector="Window">
+			<Style.Animations>
+				<Animation Duration="0:0:0.2" FillMode="Forward">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+	</Window.Styles>
+
+	<Border Margin="0,30,0,0">
+		<Grid Margin="20,10,20,20" RowDefinitions="*,Auto">
+			<ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+				<StackPanel Spacing="10">
+					<TextBlock Text="{loc:Localize ModPacks.PackNameLabel}" FontWeight="SemiBold"/>
+					<TextBox x:Name="PackNameBox"/>
+
+					<TextBlock Text="{loc:Localize ModPacks.CreatorNameLabel}" FontWeight="SemiBold"/>
+					<TextBox x:Name="CreatorNameBox" PlaceholderText="{loc:Localize ModPacks.CreatorNameOptional}"/>
+
+					<TextBlock Text="{loc:Localize ModPacks.FullModLabel}" FontWeight="SemiBold"/>
+					<ComboBox x:Name="FullModCombo" HorizontalAlignment="Stretch"/>
+
+					<TextBlock Text="{loc:Localize ModPacks.VersionLabel}" FontWeight="SemiBold"/>
+					<ComboBox x:Name="VersionCombo" HorizontalAlignment="Stretch" PlaceholderText="{loc:Localize ModPacks.VersionLatest}"/>
+
+					<TextBlock Text="{loc:Localize ModPacks.DllModsLabel}" FontWeight="SemiBold"/>
+					<StackPanel x:Name="DllModsPanel" Spacing="4"/>
+
+					<CheckBox x:Name="IncludeTouCheck" Content="{loc:Localize ModPacks.TouConfigLabel}"/>
+					<CheckBox x:Name="IncludeIntegrationCheck" Content="{loc:Localize ModPacks.IntegrationLabel}"/>
+
+					<TextBlock Text="{loc:Localize ModPacks.DiscordLabel}" FontWeight="SemiBold"/>
+					<TextBox x:Name="DiscordInviteBox" PlaceholderText="discord.gg/..."/>
+
+					<TextBlock Text="{loc:Localize ModPacks.TtlLabel}" FontWeight="SemiBold"/>
+					<ComboBox x:Name="TtlCombo" HorizontalAlignment="Stretch" SelectedIndex="1">
+						<ComboBoxItem Content="{loc:Localize ModPacks.Ttl7Days}" Tag="7"/>
+						<ComboBoxItem Content="{loc:Localize ModPacks.Ttl30Days}" Tag="30"/>
+						<ComboBoxItem Content="{loc:Localize ModPacks.Ttl90Days}" Tag="90"/>
+					</ComboBox>
+
+					<TextBlock x:Name="ErrorText" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" IsVisible="False"/>
+				</StackPanel>
+			</ScrollViewer>
+
+			<StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,16,0,0">
+				<Button Content="{loc:Localize UI.Buttons.Cancel}" Width="110" Click="CancelButton_Click"/>
+				<Button x:Name="CreateButton" Content="{loc:Localize ModPacks.CreateButton}" Width="140"
+                        Background="{DynamicResource AccentBrush}" Foreground="White"
+                        Click="CreateButton_Click"/>
+			</StackPanel>
+		</Grid>
+	</Border>
+</Window>
