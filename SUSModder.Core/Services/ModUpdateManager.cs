@@ -8,6 +8,7 @@ using SUSModder.Core.Repositories;
 using System.IO;
 using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Models;
+using SUSModder.Core.Utilities;
 
 namespace SUSModder.Core.Services
 {
@@ -19,10 +20,7 @@ namespace SUSModder.Core.Services
         public ModUpdateManager()
         {
             _configService = new ConfigService();
-
-            // Inicjalizuj ConfigRepository
-            string exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-            _configRepository = new ConfigRepository(exeDir);
+            _configRepository = new ConfigRepository();
         }
 
         public async Task<ModUpdateResult> CheckForUpdatesAsync()

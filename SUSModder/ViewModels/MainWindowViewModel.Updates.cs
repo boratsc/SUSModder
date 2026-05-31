@@ -522,7 +522,7 @@ namespace SUSModder.ViewModels
                         else
                         {
                             var configBuilder = new ConfigurationBuilder()
-                                .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                                .SetBasePath(SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory())
                                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
                             var configuration = configBuilder.Build();
                             
@@ -769,7 +769,7 @@ namespace SUSModder.ViewModels
                         else
                         {
                             var configBuilder = new ConfigurationBuilder()
-                                .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                                .SetBasePath(SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory())
                                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
                             var configuration = configBuilder.Build();
                             

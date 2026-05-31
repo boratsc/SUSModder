@@ -39,8 +39,7 @@ namespace SUSModder.Views
             try
             {
                 // Inicjalizuj ConfigRepository
-                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                _configRepository = new ConfigRepository(exeDir);
+                _configRepository = new ConfigRepository();
 
                 // Inicjalizuj UserInteractionService
                 _userInteractionService = new UserInteractionService(

@@ -202,8 +202,9 @@ namespace SUSModder.ViewModels
                     // Usuń config.json i zamknij aplikację
                     try
                     {
-                        string exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                        string configPath = Path.Combine(exeDir, "config.json");
+                        string configPath = Path.Combine(
+                            SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory(),
+                            "config.json");
                         if (File.Exists(configPath))
                             File.Delete(configPath);
                     }

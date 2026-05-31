@@ -9,9 +9,7 @@ namespace SUSModder.Core.Utilities
     {
         private static string _modsInstallPath = string.Empty;
         private static readonly string _defaultModsPath;
-        private static readonly string _configFilePath = Path.Combine(
-            Path.GetDirectoryName(Environment.ProcessPath)!,
-            "appsettings.json");
+        private static readonly string _configFilePath = ApplicationPaths.AppSettingsPath;
         private static string? _cachedModsInstallPath = null;
 
         static PathSettings()

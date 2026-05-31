@@ -181,8 +181,7 @@ namespace SUSModder.Core.Services
             try
             {
                 // Użyj ConfigRepository do pobrania z API
-                var exeDir = AppDomain.CurrentDomain.BaseDirectory;
-                var configRepo = new ConfigRepository(exeDir);
+                var configRepo = new ConfigRepository();
 
                 return await configRepo.LoadConfigFromApiAsync();
             }

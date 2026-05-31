@@ -5,6 +5,7 @@ using System.Text.Json;
 using SUSModder.Core.Configuration;
 using System.Net.Http;
 using System.Threading.Tasks;
+using SUSModder.Core.Utilities;
 
 namespace SUSModder.Core.Repositories
 {
@@ -12,6 +13,11 @@ namespace SUSModder.Core.Repositories
     {
         private readonly string configFilePath;
         private readonly string appSettingsFilePath;
+
+        public ConfigRepository()
+            : this(ApplicationPaths.GetApplicationDirectory())
+        {
+        }
 
         public ConfigRepository(string exeDir)
         {

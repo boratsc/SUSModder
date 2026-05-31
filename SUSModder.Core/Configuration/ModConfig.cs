@@ -169,9 +169,9 @@ namespace SUSModder.Core.Configuration
 
     public static class ConfigManager
     {
-        private static readonly string exeDir = Path.GetDirectoryName(Environment.ProcessPath)!;
-        private static readonly string configFilePath = Path.Combine(exeDir, "config.json");
-        private static readonly string appSettingsFilePath = Path.Combine(exeDir, "appsettings.json");
+        private static string AppDirectory => ApplicationPaths.GetApplicationDirectory();
+        private static string ConfigFilePath => Path.Combine(AppDirectory, "config.json");
+        private static string AppSettingsFilePath => ApplicationPaths.AppSettingsPath;
 
         // Repozytorium SQLite (ustawiane przez DI)
         private static Data.IModRepository? _modRepository;
@@ -237,10 +237,9 @@ namespace SUSModder.Core.Configuration
             // SQLite path
             if (_modRepository != null)
                 return _modRepository.GetAllMods();
-            var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-            var configRepo = new ConfigRepository(exeDir);
+            var configRepo = new ConfigRepository();
 
-            System.Diagnostics.Debug.WriteLine($"Looking for config in: {exeDir}");
+            System.Diagnostics.Debug.WriteLine($"Looking for config in: {AppDirectory}");
 
             var localConfigs = configRepo.LoadConfig();
             System.Diagnostics.Debug.WriteLine($"Local configs count: {localConfigs.Count}");
@@ -333,10 +332,9 @@ namespace SUSModder.Core.Configuration
                 return cachedConfigs;
             }
 
-            var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-            var configRepo = new ConfigRepository(exeDir);
+            var configRepo = new ConfigRepository();
 
-            System.Diagnostics.Debug.WriteLine($"[Async] Looking for config in: {exeDir}");
+            System.Diagnostics.Debug.WriteLine($"[Async] Looking for config in: {AppDirectory}");
 
             var localConfigs = configRepo.LoadConfig();
             System.Diagnostics.Debug.WriteLine($"[Async] Local configs count: {localConfigs.Count}");
@@ -424,8 +422,7 @@ namespace SUSModder.Core.Configuration
 
             try
             {
-                var currentExeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                var configRepo = new ConfigRepository(currentExeDir);
+                var configRepo = new ConfigRepository();
 
                 var localConfigs = configRepo.LoadConfig();
                 var apiConfigs = await FetchConfigFromApiAsync();
@@ -500,9 +497,9 @@ namespace SUSModder.Core.Configuration
         {
             try
             {
-                if (File.Exists(appSettingsFilePath))
+                if (File.Exists(AppSettingsFilePath))
                 {
-                    var json = File.ReadAllText(appSettingsFilePath);
+                    var json = File.ReadAllText(AppSettingsFilePath);
                     var jsonObj = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(json);
 
                     if (jsonObj != null &&
@@ -532,13 +529,13 @@ namespace SUSModder.Core.Configuration
                 return;
             }
 
-            var dir = Path.GetDirectoryName(configFilePath) ?? string.Empty;
+            var dir = Path.GetDirectoryName(ConfigFilePath) ?? string.Empty;
             if (!Directory.Exists(dir))
             {
                 Directory.CreateDirectory(dir);
             }
             var json = JsonSerializer.Serialize(configs, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(configFilePath, json);
+            File.WriteAllText(ConfigFilePath, json);
 
             // Unieważnij cache – następne LoadConfigAsync pobierze świeże dane
             _configCache.Remove(ConfigCacheKey);
