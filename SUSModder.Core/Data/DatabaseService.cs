@@ -18,7 +18,7 @@ namespace SUSModder.Core.Data
 
         // Aktualna wersja schematu bazy danych.
         // Zwiększaj przy każdej zmianie schematu (CREATE TABLE, ALTER TABLE, etc.).
-        private const int LatestSchemaVersion = 3;
+        private const int LatestSchemaVersion = 4;
 
         public DatabaseService()
         {
@@ -187,8 +187,25 @@ namespace SUSModder.Core.Data
                     show_quick_launch_tray INTEGER NOT NULL DEFAULT 1,
                     tray_first_minimize_shown INTEGER NOT NULL DEFAULT 0,
                     settings_version    INTEGER NOT NULL DEFAULT 0,
-                    active_sustats_guild_id TEXT DEFAULT NULL
+                    active_sustats_guild_id TEXT DEFAULT NULL,
+                    mod_packs_enabled     INTEGER NOT NULL DEFAULT 1,
+                    mod_packs_auto_install INTEGER NOT NULL DEFAULT 0
                 );";
+            cmd.ExecuteNonQuery();
+
+            // Historia zainstalowanych paczek modów
+            cmd.CommandText = @"
+                CREATE TABLE IF NOT EXISTS mod_pack_history (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    pack_id         TEXT    NOT NULL,
+                    name            TEXT    NOT NULL,
+                    creator_name    TEXT,
+                    installed_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+                    mods_installed  TEXT    NOT NULL DEFAULT '[]'
+                );";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_mod_pack_history_pack ON mod_pack_history(pack_id);";
             cmd.ExecuteNonQuery();
 
             // Wstaw domyślny wiersz singleton
@@ -375,6 +392,61 @@ namespace SUSModder.Core.Data
                     try { tx.Rollback(); } catch { /* ignore rollback errors */ }
                     throw;
                 }
+            }
+
+            if (currentVersion < 4)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v4 – mod pack sharing...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+
+                    EnsureColumn(cmd, "user_settings", "mod_packs_enabled",
+                        "ALTER TABLE user_settings ADD COLUMN mod_packs_enabled INTEGER NOT NULL DEFAULT 1;");
+                    EnsureColumn(cmd, "user_settings", "mod_packs_auto_install",
+                        "ALTER TABLE user_settings ADD COLUMN mod_packs_auto_install INTEGER NOT NULL DEFAULT 0;");
+
+                    cmd.CommandText = @"
+                        CREATE TABLE IF NOT EXISTS mod_pack_history (
+                            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                            pack_id         TEXT    NOT NULL,
+                            name            TEXT    NOT NULL,
+                            creator_name    TEXT,
+                            installed_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+                            mods_installed  TEXT    NOT NULL DEFAULT '[]'
+                        );";
+                    cmd.ExecuteNonQuery();
+
+                    cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_mod_pack_history_pack ON mod_pack_history(pack_id);";
+                    cmd.ExecuteNonQuery();
+
+                    tx.Commit();
+                    SetUserVersion(conn, 4);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v4 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v4: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+        }
+
+        private static void EnsureColumn(SqliteCommand cmd, string table, string column, string alterSql)
+        {
+            cmd.CommandText = $@"
+                SELECT COUNT(*) FROM pragma_table_info('{table}')
+                WHERE name = '{column}';";
+            var exists = (long)(cmd.ExecuteScalar() ?? 0) > 0;
+            if (!exists)
+            {
+                cmd.CommandText = alterSql;
+                cmd.ExecuteNonQuery();
             }
         }
 

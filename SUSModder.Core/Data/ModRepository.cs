@@ -325,8 +325,7 @@ namespace SUSModder.Core.Data
         {
             try
             {
-                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                var appSettingsPath = Path.Combine(exeDir, "appsettings.json");
+                var appSettingsPath = ApplicationPaths.AppSettingsPath;
 
                 if (!File.Exists(appSettingsPath))
                     return new List<ModConfiguration>();

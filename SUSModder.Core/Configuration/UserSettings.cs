@@ -116,5 +116,17 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         [JsonPropertyName("activeSustatsGuildId")]
         public string? ActiveSustatsGuildId { get; set; }
+
+        /// <summary>
+        /// Czy pokazywać opcje udostępniania zestawów modów.
+        /// </summary>
+        [JsonPropertyName("modPacksEnabled")]
+        public bool ModPacksEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Czy po deep linku od razu pokazywać instalację (bez dodatkowego kroku — nadal wymaga potwierdzenia w preview).
+        /// </summary>
+        [JsonPropertyName("modPacksAutoInstall")]
+        public bool ModPacksAutoInstall { get; set; } = false;
     }
 }

@@ -62,13 +62,15 @@ namespace SUSModder.Core.Data
                     mods_install_path, license_accepted, first_run_date, update_channel,
                     vanilla_install_path, av_warning_sig, last_seen_version,
                     minimize_to_tray, show_quick_launch_tray, tray_first_minimize_shown,
-                    settings_version, active_sustats_guild_id
+                    settings_version, active_sustats_guild_id,
+                    mod_packs_enabled, mod_packs_auto_install
                 ) VALUES (
                     1, @mode, @last_launch_id, @theme, @language, @telemetry_enabled,
                     @mods_install_path, @license_accepted, @first_run_date, @update_channel,
                     @vanilla_install_path, @av_warning_sig, @last_seen_version,
                     @minimize_to_tray, @show_quick_launch_tray, @tray_first_minimize_shown,
-                    @settings_version, @active_sustats_guild_id
+                    @settings_version, @active_sustats_guild_id,
+                    @mod_packs_enabled, @mod_packs_auto_install
                 )
                 ON CONFLICT(id) DO UPDATE SET
                     mode = excluded.mode,
@@ -87,7 +89,9 @@ namespace SUSModder.Core.Data
                     show_quick_launch_tray = excluded.show_quick_launch_tray,
                     tray_first_minimize_shown = excluded.tray_first_minimize_shown,
                     settings_version = excluded.settings_version,
-                    active_sustats_guild_id = excluded.active_sustats_guild_id;";
+                    active_sustats_guild_id = excluded.active_sustats_guild_id,
+                    mod_packs_enabled = excluded.mod_packs_enabled,
+                    mod_packs_auto_install = excluded.mod_packs_auto_install;";
 
             cmd.Parameters.AddWithValue("@mode", settings.Mode ?? string.Empty);
             cmd.Parameters.AddWithValue("@last_launch_id", settings.LastLaunchId);
@@ -106,6 +110,8 @@ namespace SUSModder.Core.Data
             cmd.Parameters.AddWithValue("@tray_first_minimize_shown", settings.TrayFirstMinimizeShown ? 1 : 0);
             cmd.Parameters.AddWithValue("@settings_version", settings.SettingsVersion);
             cmd.Parameters.AddWithValue("@active_sustats_guild_id", settings.ActiveSustatsGuildId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@mod_packs_enabled", settings.ModPacksEnabled ? 1 : 0);
+            cmd.Parameters.AddWithValue("@mod_packs_auto_install", settings.ModPacksAutoInstall ? 1 : 0);
 
             cmd.ExecuteNonQuery();
 
@@ -128,7 +134,8 @@ namespace SUSModder.Core.Data
                 "mods_install_path", "license_accepted", "first_run_date", "update_channel",
                 "vanilla_install_path", "av_warning_sig", "last_seen_version",
                 "minimize_to_tray", "show_quick_launch_tray", "tray_first_minimize_shown",
-                "settings_version", "active_sustats_guild_id"
+                "settings_version", "active_sustats_guild_id",
+                "mod_packs_enabled", "mod_packs_auto_install"
             };
 
             if (!allowedColumns.Contains(columnName))
@@ -191,8 +198,23 @@ namespace SUSModder.Core.Data
                 SettingsVersion = reader.GetInt32(reader.GetOrdinal("settings_version")),
                 ActiveSustatsGuildId = reader.IsDBNull(reader.GetOrdinal("active_sustats_guild_id"))
                     ? null
-                    : reader.GetString(reader.GetOrdinal("active_sustats_guild_id"))
+                    : reader.GetString(reader.GetOrdinal("active_sustats_guild_id")),
+                ModPacksEnabled = TryGetBool(reader, "mod_packs_enabled", true),
+                ModPacksAutoInstall = TryGetBool(reader, "mod_packs_auto_install", false)
             };
+        }
+
+        private static bool TryGetBool(SqliteDataReader reader, string column, bool defaultValue)
+        {
+            try
+            {
+                var ordinal = reader.GetOrdinal(column);
+                return reader.IsDBNull(ordinal) ? defaultValue : reader.GetInt32(ordinal) != 0;
+            }
+            catch
+            {
+                return defaultValue;
+            }
         }
     }
 }
