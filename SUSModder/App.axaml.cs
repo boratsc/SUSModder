@@ -36,6 +36,10 @@ internal class DebugDiagnosticsOutput : IDiagnosticsOutput
 
 public partial class App : Application
 {
+    /// <summary>Deep link susmodder://pack/... przekazany przy starcie (Program.Main).</summary>
+    public static string? PendingModPackCode { get; set; }
+    public static bool PendingModPackAutoInstall { get; set; }
+
     private SplashWindow? _splashWindow;
     private static ServiceProvider? _serviceProvider;
     private TelemetryService? _telemetryService;
@@ -53,7 +57,7 @@ public partial class App : Application
         var services = new ServiceCollection();
 
         // Zbuduj IConfiguration raz i zarejestruj jako singleton
-        var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+        var exeDir = SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory();
         var appSettingsPath = Path.Combine(exeDir, "appsettings.json");
         var configuration = new ConfigurationBuilder()
             .AddJsonFile(appSettingsPath, optional: false, reloadOnChange: true)
@@ -121,6 +125,15 @@ public partial class App : Application
         {
             var diag = sp.GetRequiredService<IDiagnosticsOutput>();
             return new LobbyBridgeFileReader(diag);
+        });
+
+        // Mod Pack Sharing
+        services.AddSingleton<IModPackService>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            var hwid = sp.GetRequiredService<IHardwareIdProvider>();
+            return new ModPackService(config, diag, hwid);
         });
 
         // Rejestracja OAuthLoopbackListener dla Discord OAuth2 flow
@@ -376,6 +389,19 @@ public partial class App : Application
 
                 // Po załadowaniu głównego okna uruchom zadania post-startowe.
                 _ = RunPostStartupTasksAsync(mainWindow, viewModel, userSettingsService);
+
+                // IPC: druga instancja może przekazać susmodder://pack/...
+                viewModel.StartModPackDeepLinkServer();
+
+                // Deep link mod pack (susmodder://pack/CODE) z argumentów startowych
+                if (!string.IsNullOrEmpty(PendingModPackCode))
+                {
+                    var code = PendingModPackCode;
+                    var auto = PendingModPackAutoInstall;
+                    PendingModPackCode = null;
+                    PendingModPackAutoInstall = false;
+                    _ = viewModel.HandlePendingModPackDeepLinkAsync(code, auto);
+                }
 
                 // Inicjalizuj telemetrię i wyślij heartbeat w tle (tylko Windows)
                 // Przeniesione z KROK 2 - WMI queries w HardwareIdProvider trwają 1-5s
