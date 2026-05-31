@@ -36,6 +36,22 @@
       "problemMatcher": ["$msCompile"]
     },
     {
+      "label": "rebuild Debug",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}/SUSModder.sln",
+        "-c",
+        "Debug",
+        "--no-incremental",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
+      "group": "build",
+      "problemMatcher": ["$msCompile"]
+    },
+    {
       "label": "clean",
       "type": "shell",
       "command": "dotnet",

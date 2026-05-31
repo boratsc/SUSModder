@@ -7,8 +7,8 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build Debug",
-      // Launch the Windows host exe so Environment.ProcessPath points to the app, not dotnet.exe
-      "program": "${workspaceFolder}/SUSModder/bin/Debug/net10.0-windows/SUSModder.exe",
+      // DLL + cwd — odporniejsze na uszkodzony apphost (BadImageFormatException na .exe)
+      "program": "${workspaceFolder}/SUSModder/bin/Debug/net10.0-windows/SUSModder.dll",
       "args": [],
       "cwd": "${workspaceFolder}/SUSModder/bin/Debug/net10.0-windows",
       "console": "internalConsole",
