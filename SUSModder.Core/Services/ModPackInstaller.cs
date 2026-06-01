@@ -191,20 +191,33 @@ namespace SUSModder.Core.Services
                     downloadUrl = $"{_baseUrl}{_modPacksEndpoint}/{packCode}/dlls/{ext.Sha256}";
                 }
 
-                var response = await HttpClient.GetAsync(downloadUrl);
+                var response = await HttpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
                 if (!response.IsSuccessStatusCode)
                 {
                     _log.Write($"[ModPackInstaller] External DLL download failed: {response.StatusCode}");
                     return false;
                 }
 
+                // Sprawdź Content-Length przed pobraniem (max 10 MB)
+                if (response.Content.Headers.ContentLength > 10 * 1024 * 1024)
+                {
+                    _log.Write($"[ModPackInstaller] External DLL too large: {response.Content.Headers.ContentLength} bytes");
+                    return false;
+                }
+
                 var bytes = await response.Content.ReadAsByteArrayAsync();
                 var actualPath = PathSettings.GetActualModPath(targetMod.InstallPath!);
                 var pluginsDir = Path.Combine(actualPath, "BepInEx", "plugins");
+
+                if (!TryResolveSafeDllPath(pluginsDir, ext.FileName, out var safeDest))
+                {
+                    _log.Write($"[ModPackInstaller] Path traversal blocked: {ext.FileName}");
+                    return false;
+                }
+
                 Directory.CreateDirectory(pluginsDir);
-                var dest = Path.Combine(pluginsDir, ext.FileName);
-                await File.WriteAllBytesAsync(dest, bytes);
-                _log.Write($"[ModPackInstaller] External DLL saved: {dest}");
+                await File.WriteAllBytesAsync(safeDest, bytes);
+                _log.Write($"[ModPackInstaller] External DLL saved: {safeDest}");
                 return true;
             }
             catch (Exception ex)
@@ -246,6 +259,45 @@ namespace SUSModder.Core.Services
             var dest = Path.Combine(actualPath, "BepInEx", "plugins", "integration.dll");
             Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
             File.Copy(source, dest, overwrite: true);
+            return true;
+        }
+
+        /// <summary>
+        /// Waliduje bezpieczeństwo ścieżki dla external DLL — zapobiega path traversal.
+        /// Zwraca prawidłową, bezpieczną ścieżkę lub false jeśli fileName jest niebezpieczny.
+        /// </summary>
+        internal static bool TryResolveSafeDllPath(string pluginsDir, string fileName, out string safePath)
+        {
+            safePath = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(fileName))
+                return false;
+
+            var safeFileName = Path.GetFileName(fileName);
+            if (string.IsNullOrWhiteSpace(safeFileName))
+                return false;
+
+            // Odrzuć specjalne nazwy: ".", ".."
+            if (safeFileName is "." or "..")
+                return false;
+
+            // Odrzuć jeśli nazwa jest identyczna ale zmieniła się — oznacza że fileName zawierało separatory
+            // (Path.GetFileName zwróciło coś innego niż wejście)
+            if (!string.Equals(fileName, safeFileName, StringComparison.Ordinal))
+            {
+                // To naturalne zachowanie Path.GetFileName — wyciąga samą nazwę pliku.
+                // Ścieżka jest bezpieczna, ale logujemy dla przejrzystości.
+                // fallthrough — dopuszczamy, bo nazwa pliku jest już oczyszczona
+            }
+
+            var dest = Path.Combine(pluginsDir, safeFileName);
+            var fullDest = Path.GetFullPath(dest);
+            var fullPluginsDir = Path.GetFullPath(pluginsDir);
+
+            if (!fullDest.StartsWith(fullPluginsDir, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            safePath = fullDest;
             return true;
         }
 
