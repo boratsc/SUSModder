@@ -1,0 +1,70 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SUSModder.ViewModels"
+        x:Class="SUSModder.Views.SteamQrAuthDialog"
+        x:DataType="vm:SteamQrAuthDialogViewModel"
+        Title="Logowanie Steam"
+        Width="560" Height="640"
+        MinWidth="480" MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+	<Grid RowDefinitions="Auto,*,Auto" Margin="20">
+		<StackPanel Grid.Row="0" Spacing="8">
+			<TextBlock Text="Pobieranie Among Us ze Steam"
+			           FontSize="18"
+			           FontWeight="Bold"
+			           Foreground="{DynamicResource TextPrimaryBrush}"/>
+			<TextBlock Text="SUSModder nie prosi o hasło Steam. Zeskanuj kod w aplikacji Steam na telefonie."
+			           TextWrapping="Wrap"
+			           Foreground="{DynamicResource TextSecondaryBrush}"/>
+			<TextBlock Text="{Binding StatusText}"
+			           FontWeight="SemiBold"
+			           Foreground="{DynamicResource TextPrimaryBrush}"/>
+		</StackPanel>
+
+		<Border Grid.Row="1"
+		        Margin="0,16"
+		        Padding="12"
+		        Background="{DynamicResource CardBackgroundBrush}"
+		        BorderBrush="{DynamicResource BorderBrush}"
+		        BorderThickness="1"
+		        CornerRadius="8">
+			<ScrollViewer HorizontalScrollBarVisibility="Auto"
+			              VerticalScrollBarVisibility="Auto">
+				<TextBlock Text="{Binding QrDisplay}"
+				           FontFamily="Consolas,Courier New,monospace"
+				           FontSize="11"
+				           LineHeight="12"
+				           TextWrapping="NoWrap"/>
+			</ScrollViewer>
+		</Border>
+
+		<StackPanel Grid.Row="2" Spacing="8">
+			<TextBlock Text="{Binding ErrorText}"
+			           IsVisible="{Binding HasError}"
+			           TextWrapping="Wrap"
+			           Foreground="#E57373"/>
+
+			<Grid ColumnDefinitions="*,Auto,Auto">
+				<ProgressBar Grid.Column="0"
+				             IsIndeterminate="True"
+				             IsVisible="{Binding IsBusy}"
+				             Height="6"
+				             VerticalAlignment="Center"
+				             Margin="0,0,12,0"/>
+
+				<Button Grid.Column="1"
+				        Content="Użyj kopii zapasowej (7z)"
+				        Command="{Binding FallbackCommand}"
+				        Classes="secondary-button"
+				        Margin="0,0,8,0"/>
+				<Button Grid.Column="2"
+				        Content="Anuluj"
+				        Command="{Binding CancelCommand}"
+				        Classes="secondary-button"/>
+			</Grid>
+		</StackPanel>
+	</Grid>
+</Window>

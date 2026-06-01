@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using SUSModder.Core.Models;
 using SUSModder.Core.Utilities;
 
 namespace SUSModder.Services
@@ -101,6 +102,9 @@ namespace SUSModder.Services
         {
             return Task.FromResult<string?>(null);
         }
+
+        public Task<bool> RunSteamQrDownloadAsync(SteamQrDownloadContext context) =>
+            Task.FromResult(false);
 
         /// <summary>
         /// Resetuje liczniki retry - wywołaj przed nową instalacją

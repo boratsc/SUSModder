@@ -1,61 +1,39 @@
-# Steam Integration - Quick Overview
+# Steam Integration — DepotDownloader Migration
 
-**Status**: PoC Complete
-**Data**: 2025-11-07
+**Status:** POC v1.0 (2026-06-01)  
+**Poprzedni POC:** 2025-11-07 (ogólna analiza SteamCMD vs DD)
 
 ## Problem
 
-Obecny system pobierania gier ze Steam (własne repo) łamie EULA. Potrzebujemy legalnej metody.
+SUSModder 2.x pobiera vanillę Among Us jako hostowane paczki `.7z` z CDN (`among-steam/`). To redystrybucja plików gry — koszt CDN, ryzyko prawne, brak elastyczności wersji.
 
-## Rozwiązanie: Hybrydowe Podejście
+## Rozwiązanie (2026-06)
 
-### Opcja 1: SteamCMD (Domyślna)
-- ✅ **Oficjalny tool Valve** - zero ryzyka prawnego
-- ❌ Email-based Steam Guard (gorsze UX)
-- ❌ Brak real-time progress reporting
+**DepotDownloader 3.4.0** jako główne źródło vanilli (CDN Valve, manifest pinning z backendu). Paczki `.7z` zostają jako **fallback**.
 
-### Opcja 2: DepotDownloader (Opt-in)
-- ✅ **QR code authentication** - świetne UX
-- ✅ Real-time progress reporting
-- ⚠️ Community tool (gray area prawnie, ale szeroko akceptowane)
+**Wersja vanilli:** zawsze dokładnie ta z `modConfig.AmongVersion`. **Cache per wersja** — kilka modów na tej samej wersji AU = jedno pobranie, potem kopia z `Among Us - Vanilla/extracted/{storageVersion}/`.
 
-## Dlaczego Hybrydowe?
+**Auth Steam:** bez formularza login/hasło w aplikacji (odrzucenie modelu z SUSModder 3.0). Kaskada:
 
-1. **Bezpieczeństwo**: SteamCMD jako safe default
-2. **User choice**: Każdy może wybrać co preferuje
-3. **Gradual rollout**: Obserwuj feedback przed pełnym commitem do jednej metody
-4. **Fallback**: Oficjalna opcja zawsze dostępna
+1. DepotDownloader z pinned `-manifest` (zapisany token lub QR auth)
+2. QR auth (`-qr -remember-password`) — jedyne interaktywne logowanie
+3. Fallback 7z z CDN (ta sama `storageVersion`)
 
-## Porównanie
+## Dokumenty
 
-| Feature | SteamCMD | DepotDownloader | Legendary (Epic) |
-|---------|----------|-----------------|------------------|
-| **Legal Status** | ✅ Official | ⚠️ Community | ✅ Official |
-| **Auth UX** | ⭐⭐ Email codes | ⭐⭐⭐⭐ QR code | ⭐⭐⭐⭐⭐ Web OAuth |
-| **Progress** | ⭐⭐ Unreliable | ⭐⭐⭐⭐ Event-based | ⭐⭐⭐⭐⭐ Regex parsing |
-| **Speed** | ~100 Mbit/s | ~15 Mbit/s | ~100 Mbit/s |
-| **Integration** | ⭐⭐⭐ NuGet | ⭐⭐⭐⭐ NuGet | ⭐⭐⭐⭐⭐ Process |
+| Dokument | Opis |
+|----------|------|
+| **[2026-06-01-depotdownloader-migration-poc.md](2026-06-01-depotdownloader-migration-poc.md)** | **Aktualny plan migracji** — architektura 2.x, backend manifestów, auth, fazy implementacji |
+| [STEAM_INTEGRATION_POC.md](STEAM_INTEGRATION_POC.md) | Wcześniejsza analiza (2025-11) — SteamCMD vs DD, hybrydowe podejście |
 
-## Quick Links
+## Referencje zewnętrzne
 
-📄 **[Pełna analiza techniczna](STEAM_INTEGRATION_POC.md)** - szczegóły implementacji, code examples, trade-offs
+- SUSModder 3.0 (porzucony): `D:\Development\Żródła\SUSModder-3.0-main`
+- Backend manifestów: endpoint `GET /api/among-us-steam-manifests` (Faza E backendu)
+- Among Us: AppId `945360`, depot `945361`
 
-## Implementation Plan
+## Następne kroki
 
-- **Phase 1**: PoC (scaffold, manual testing) - 1-2 dni
-- **Phase 2**: MVP z SteamCMD - 3-5 dni
-- **Phase 3**: DepotDownloader integration - 2-3 dni
-- **Phase 4**: Polish & docs - 1-2 dni
-
-**Total**: 7-12 dni roboczych
-
-## Następne Kroki
-
-1. ✅ Review tego dokumentu
-2. ⏳ Decyzja: start implementacji?
-3. ⏳ Phase 1: Scaffold `SteamVersionManager.cs`
-4. ⏳ Manual testing z Among Us
-
----
-
-**TL;DR**: Rekomendacja = **SteamCMD (default) + DepotDownloader (opt-in)**. Legal + flexible + user choice.
+1. Faza 0: weryfikacja API manifestów na produkcji + spike QR z DD
+2. Decyzja: start Fazy 1 (port Core z 3.0)
+3. Implementacja `SteamVanillaProvider` + integracja z `ModManager`

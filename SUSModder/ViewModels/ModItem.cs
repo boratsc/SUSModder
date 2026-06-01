@@ -28,6 +28,8 @@ namespace SUSModder.ViewModels
         private string _installStatusMessage = string.Empty;
         private string? _downloadSpeed;
         private bool _showProgress = false;
+        private bool _isCheckedForBulk;
+        private bool _hasUpdateAvailable;
 
         public int Id
         {
@@ -85,6 +87,8 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(CanUninstall));
                 this.RaisePropertyChanged(nameof(IsPinnedVersionInstall));
                 this.RaisePropertyChanged(nameof(IsAutoUpdateToggleVisible));
+                this.RaisePropertyChanged(nameof(ShowStatusInstalled));
+                this.RaisePropertyChanged(nameof(ShowStatusNotInstalled));
             }
         }
 
@@ -180,8 +184,31 @@ namespace SUSModder.ViewModels
                 this.RaiseAndSetIfChanged(ref _isInstalling, value);
                 this.RaisePropertyChanged(nameof(CanInstall));
                 this.RaisePropertyChanged(nameof(CanUninstall));
+                this.RaisePropertyChanged(nameof(ShowStatusBusy));
             }
         }
+
+        public bool IsCheckedForBulk
+        {
+            get => _isCheckedForBulk;
+            set => this.RaiseAndSetIfChanged(ref _isCheckedForBulk, value);
+        }
+
+        public bool HasUpdateAvailable
+        {
+            get => _hasUpdateAvailable;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _hasUpdateAvailable, value);
+                this.RaisePropertyChanged(nameof(ShowStatusUpdate));
+            }
+        }
+
+        public bool ShowStatusBusy => IsInstalling;
+        public bool ShowStatusUpdate => HasUpdateAvailable && !IsInstalling;
+        public bool ShowStatusInstalled => IsInstalled && !ShowStatusBusy && !ShowStatusUpdate;
+        public bool ShowStatusNotInstalled => !IsInstalled && !ShowStatusBusy;
+        public bool IsBulkEligible => !IsVanilla && IsFullMod;
 
         public int InstallProgress
         {

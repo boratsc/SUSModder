@@ -1,0 +1,90 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:converters="using:SUSModder.Converters"
+             xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:behaviors="using:SUSModder.Behaviors"
+             x:Class="SUSModder.Controls.ModCard"
+             x:DataType="vm:ModItem"
+             ToolTip.ShowDelay="300">
+    <UserControl.Resources>
+        <converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
+        <converters:InstallStatusToOpacityConverter x:Key="InstallStatusToOpacityConverter"/>
+    </UserControl.Resources>
+
+    <Border Classes="mod-card"
+            Classes.bulk-checked="{Binding IsCheckedForBulk}">
+        <i:Interaction.Behaviors>
+            <behaviors:DoubleClickBehavior
+                DoubleClickCommand="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ModDoubleClickCommand}"
+                CommandParameter="{Binding}"
+                DoubleClickInterval="300"/>
+        </i:Interaction.Behaviors>
+
+        <Grid>
+            <Border Width="3"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Stretch"
+                    Background="{DynamicResource SelectionBarBrush}"
+                    CornerRadius="10,0,0,10"
+                    IsVisible="False"
+                    Classes="mod-selection-bar"/>
+
+            <Grid RowDefinitions="Auto,*,Auto" Margin="4,6,6,4">
+                <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+                    <Panel Grid.Column="0" Width="14" Height="14" VerticalAlignment="Top">
+                        <Ellipse Width="8" Height="8"
+                                 Fill="{DynamicResource StatusBusyBrush}"
+                                 IsVisible="{Binding ShowStatusBusy}"/>
+                        <Ellipse Width="8" Height="8"
+                                 Fill="{DynamicResource StatusUpdateBrush}"
+                                 IsVisible="{Binding ShowStatusUpdate}"/>
+                        <Ellipse Width="8" Height="8"
+                                 Fill="{DynamicResource StatusInstalledBrush}"
+                                 IsVisible="{Binding ShowStatusInstalled}"/>
+                        <Ellipse Width="8" Height="8"
+                                 Fill="{DynamicResource StatusNotInstalledBrush}"
+                                 IsVisible="{Binding ShowStatusNotInstalled}"/>
+                    </Panel>
+
+                    <CheckBox Grid.Column="2"
+                              IsChecked="{Binding IsCheckedForBulk}"
+                              IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsBulkSelectionMode}"
+                              IsEnabled="{Binding IsBulkEligible}"
+                              VerticalAlignment="Top"
+                              Margin="0,0,0,0"/>
+                </Grid>
+
+                <StackPanel Grid.Row="1" VerticalAlignment="Center" Spacing="4">
+                    <Border HorizontalAlignment="Center"
+                            CornerRadius="32"
+                            BorderBrush="{DynamicResource AccentMutedBrush}"
+                            BorderThickness="1"
+                            IsVisible="{Binding IsInstalled}">
+                        <Image Classes="mod-icon"
+                               Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
+                               Opacity="{Binding InstallPath, Converter={StaticResource InstallStatusToOpacityConverter}}"/>
+                    </Border>
+                    <Image Classes="mod-icon"
+                           Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
+                           Opacity="{Binding InstallPath, Converter={StaticResource InstallStatusToOpacityConverter}}"
+                           IsVisible="{Binding IsInstalled, Converter={x:Static BoolConverters.Not}}"/>
+                    <TextBlock Classes="mod-name"
+                               Text="{Binding Name}"
+                               Opacity="{Binding InstallPath, Converter={StaticResource InstallStatusToOpacityConverter}}"/>
+                </StackPanel>
+
+                <ProgressBar Grid.Row="2"
+                             Height="3"
+                             Minimum="0"
+                             Maximum="100"
+                             Value="{Binding InstallProgress}"
+                             Margin="0,6,0,0"
+                             CornerRadius="2"
+                             Background="#30FFFFFF"
+                             Foreground="{DynamicResource StatusBusyBrush}"
+                             IsVisible="{Binding IsInstalling}"/>
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

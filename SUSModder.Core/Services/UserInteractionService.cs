@@ -1,4 +1,5 @@
 ﻿using SUSModder.Core.Utilities;
+using SUSModder.Core.Models;
 using System.Threading.Tasks;
 
 namespace SUSModder.Core.Services
@@ -10,19 +11,22 @@ namespace SUSModder.Core.Services
         private readonly Func<string, string, Task> _errorDialog;
         private readonly Func<string, string, Task<string?>> _promptDialog;
         private readonly Func<string, string, Task<string?>> _selectFileDialog;
+        private readonly Func<SteamQrDownloadContext, Task<bool>> _steamQrDownload;
 
         public UserInteractionService(
             Func<string, string, Task<bool>> confirmDialog,
             Func<string, string, Task> infoDialog,
             Func<string, string, Task> errorDialog,
             Func<string, string, Task<string?>> promptDialog,
-            Func<string, string, Task<string?>> selectFileDialog)
+            Func<string, string, Task<string?>> selectFileDialog,
+            Func<SteamQrDownloadContext, Task<bool>>? steamQrDownload = null)
         {
             _confirmDialog = confirmDialog;
             _infoDialog = infoDialog;
             _errorDialog = errorDialog;
             _promptDialog = promptDialog;
             _selectFileDialog = selectFileDialog;
+            _steamQrDownload = steamQrDownload ?? (_ => Task.FromResult(false));
         }
 
         // Synchroniczne metody (zachowane dla kompatybilności)
@@ -76,5 +80,8 @@ namespace SUSModder.Core.Services
         {
             return await _selectFileDialog(filter, initialDirectory);
         }
+
+        public Task<bool> RunSteamQrDownloadAsync(SteamQrDownloadContext context) =>
+            _steamQrDownload(context);
     }
 }

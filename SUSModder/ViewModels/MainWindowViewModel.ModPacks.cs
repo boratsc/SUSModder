@@ -5,6 +5,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using ReactiveUI;
 using SUSModder.Core.Configuration;
+using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Models;
 using SUSModder.Core.Services;
 using SUSModder.Core.Services.Localization;
@@ -162,6 +163,8 @@ public partial class MainWindowViewModel
             progressDialog.Show(mainWindow);
         });
 
+        var modManagerCallbacks = CreateModManagerCallbacks();
+
         try
         {
             installResult = await Task.Run(async () =>
@@ -179,7 +182,7 @@ public partial class MainWindowViewModel
                     progressDialog.UpdateProgress(p.percent, p.message);
                 });
 
-                return await installer.InstallPackAsync(pack, platform, progress);
+                return await installer.InstallPackAsync(pack, platform, progress, modManagerCallbacks);
             });
         }
         finally

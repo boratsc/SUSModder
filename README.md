@@ -1,77 +1,160 @@
-# SUSModder
+<p align="center">
+  <img src="DOC/readme/logo.png" alt="SUSModder" width="128">
+</p>
 
-**SUSModder** to narzędzie do zarządzania modyfikacjami gry *Among Us*, stworzone z myślą o prostocie, przejrzystości i łatwości użycia — nawet dla osób, które nigdy wcześniej nie instalowały modów.
+<h1 align="center">SUSModder</h1>
 
-Projekt powstał, aby ułatwić instalację, konfigurację oraz uruchamianie modów i dodatków do Among Us, bez potrzeby ręcznego kopiowania plików, szukania odpowiednich wersji czy edytowania ustawień gry.
+<p align="center">
+  <strong>Mod manager dla Among Us - prosty, szybki, bez kombinowania.</strong><br>
+  Zainstaluj moda jednym kliknięciem i od razu graj.
+</p>
 
-Projekt aktywnie rozwijany jest we współpracy ze społecznością **[Psychopaci](https://discord.com/invite/psychopaci)**.
-
-## Główne funkcje
-
-- Zarządzanie, instalacja i agregowanie modów do Among Us
-- Instalacja dodatkowych plików DLL rozszerzających funkcjonalność gry
-- Obsługa konfiguracji dla modyfikacji takich jak *Town of Us*
-- Możliwość tworzenia lobby dla więcej niż 15 graczy
-- Intuicyjny i przyjazny dla użytkownika interfejs
-
-## Główne założenia
-
-Głównym celem projektu jest umożliwienie każdemu — niezależnie od poziomu zaawansowania technicznego — szybkiego i bezproblemowego uruchomienia modów do *Among Us*. **SUSModder** automatyzuje wszystkie techniczne aspekty procesu: od instalacji, przez weryfikację wersji gry, po konfigurację środowiska — wszystko odbywa się w jednym miejscu, bez potrzeby grzebania w plikach.
+<p align="center">
+  <a href="https://susmodder.app/">🌐 Strona aplikacji</a> ·
+  <a href="https://susmodder.app/#download">⬇️ Pobierz ze strony</a> ·
+  <a href="https://github.com/boratsc/SUSModder/releases">⬇️ Pobierz z GitHub</a> ·
+  <a href="https://discord.gg/Nf9xpbmQmW">💬 Discord</a>
+</p>
 
 ---
 
-## Wymagania
+## Czym jest SUSModder?
 
-- Windows 10 lub 11
-- .NET Runtime w wersji 8.0 lub nowszej
+Chcesz zagrać w **Town of Us: Mira**, **The Other Roles** albo inne mody - ale nie wiesz, skąd je wziąć i jak to ogarnąć?
 
-## Instalacja
+**SUSModder** robi to za Ciebie. Wybierasz mod z listy, klikasz **Instaluj**, potem **Uruchom**. Tyle.
 
-1. Pobierz najnowszą wersję aplikacji z zakładki „Releases”.
-2. Uruchom plik `.exe` **lub** rozpakuj archiwum `.zip` w dowolne miejsce.
-3. Gotowe — aplikacja nie wymaga instalacji systemowej ani konfiguracji.
+Działa z grą ze **Steama** i **Epic Games**. Nie musisz szukać plików, wersji ani instrukcji na YouTube.
 
 ---
 
-# SUSModder
+## Zobacz, jak to wygląda
 
-**SUSModder** is a mod management tool for *Among Us*, designed to be simple, transparent, and accessible — even for users with no prior modding experience.
+<!-- screenshot-main: główne okno z listą modów (motyw ciemny, kilka modów widocznych, pasek wyszukiwania) -->
+<p align="center">
+  <img src="DOC/readme/screenshot-main.png" alt="Lista modów w SUSModder" width="700"><br>
+  <em>Lista modów - wszystko w jednym miejscu</em>
+</p>
 
-The project was created to streamline the installation, configuration, and launching of *Among Us* mods and add-ons, removing the need for manual file handling, version matching, or game setting tweaks.
-
-Development is actively supported by the **[Psychopaci](https://discord.com/invite/psychopaci)** community.
-
-## Key Features
-
-- Manage, install, and bundle multiple mods for *Among Us*
-- Install additional DLL files to extend the game's functionality
-- Manage configuration files for mods like *Town of Us*
-- Support for lobbies with more than 15 players
-- Clean, user-friendly interface
-
-## Core Principles
-
-The primary goal of this project is to make modding accessible for everyone — from complete beginners to experienced players. **SUSModder** handles the complexity behind the scenes: ensuring correct installation, matching game versions, and setting everything up in a seamless and user-friendly environment.
+<!-- screenshot-install: szczegóły wybranego moda z widocznym przyciskiem Instaluj -->
+<!-- screenshot-launch: ten sam mod po instalacji z widocznym przyciskiem Uruchom -->
+<p align="center">
+  <img src="DOC/readme/screenshot-install.png" alt="Instalacja moda" width="340">
+  &nbsp;
+  <img src="DOC/readme/screenshot-launch.png" alt="Uruchomienie gry" width="340"><br>
+  <em>Instalacja i start gry - kilka kliknięć</em>
+</p>
 
 ---
 
-## Requirements
+## Co potrafi?
 
-- Windows 10 or 11
-- .NET Runtime version 8.0 or newer
+- **📦 Instalacja modów** - popularne mody Among Us dostępne od razu w aplikacji
+- **🚀 Uruchamianie gry** - startuj Among Us z wybranym modem bez ręcznego szukania folderów
+- **🔄 Aktualizacje** - aplikacja przypomni, gdy mod lub sama gra wymaga odświeżenia
+- **🎭 Wyszukiwarka ról** - szybko sprawdzisz, co robi dana rola w modzie
+- **⚙️ Gotowe ustawienia ToU** - zapisuj i wczytuj konfiguracje lobby bez grzebania w opcjach
+- **📋 Tablica Lobby** - znajdź grę albo wrzuć swój kod lobby
+- **🔧 Napraw grę** - pomoc przy czarnym ekranie, problemach z połączeniem i podobnych bugach
+- **🎨 Motywy** - ciemny albo różowy - wybierz, co bardziej pasuje
 
-## Installation
+---
 
-1. Download the latest release from the “Releases” section.
-2. Run the `.exe` file **or** extract the `.zip` archive to any folder.
-3. That’s it — no installer or additional setup is required.
+## Jak zacząć?
+
+1. **Pobierz** SUSModder - ze [strony susmodder.app](https://susmodder.app/) **lub** z [GitHub Releases](https://github.com/boratsc/SUSModder/releases)
+2. **Uruchom** aplikację (Windows 10/11)
+3. **Wybierz mod → Instaluj → Uruchom** i graj!
+
+Masz problem? Na [susmodder.app](https://susmodder.app/) znajdziesz odpowiedzi na najczęstsze pytania i znane problemy.
+
+---
+
+## Społeczność
+
+SUSModder powstaje we współpracy ze społecznością graczy - m.in. **[Elitarni Impostorzy](https://discord.gg/Nf9xpbmQmW)**.
+
+Dołącz na Discorda, jeśli szukasz ekipy do gry albo chcesz pomóc w rozwoju projektu.
+
+---
+
+---
+
+<h1 align="center">SUSModder</h1>
+
+<p align="center">
+  <strong>Among Us mod manager - simple, fast, no hassle.</strong><br>
+  Install a mod with one click and start playing right away.
+</p>
+
+<p align="center">
+  <a href="https://susmodder.app/">🌐 App website</a> ·
+  <a href="https://susmodder.app/#download">⬇️ Download from website</a> ·
+  <a href="https://github.com/boratsc/SUSModder/releases">⬇️ Download from GitHub</a> ·
+  <a href="https://discord.com/invite/psychopaci">💬 Discord</a>
+</p>
+
+---
+
+## What is SUSModder?
+
+Want to play **Town of Us: Mira**, **The Other Roles**, or other mods - but don't know where to get them or how to set them up?
+
+**SUSModder** does it for you. Pick a mod from the list, click **Install**, then **Launch**. That's it.
+
+Works with **Steam** and **Epic Games**. No hunting for files, versions, or YouTube tutorials.
+
+---
+
+## See it in action
+
+<p align="center">
+  <img src="DOC/readme/screenshot-main.png" alt="Mod list in SUSModder" width="700"><br>
+  <em>Mod list - everything in one place</em>
+</p>
+
+<p align="center">
+  <img src="DOC/readme/screenshot-install.png" alt="Installing a mod" width="340">
+  &nbsp;
+  <img src="DOC/readme/screenshot-launch.png" alt="Launching the game" width="340"><br>
+  <em>Install and launch - just a few clicks</em>
+</p>
+
+---
+
+## Features
+
+- **📦 Mod installation** - popular Among Us mods available right in the app
+- **🚀 Game launch** - start Among Us with your chosen mod, no folder digging
+- **🔄 Updates** - the app reminds you when a mod or the game needs refreshing
+- **🎭 Role lookup** - quickly check what a role does in a mod
+- **⚙️ ToU presets** - save and load lobby configs without digging through options
+- **📋 Lobby Board** - find a game or share your lobby code
+- **🔧 Repair game** - help with black screen, connection issues, and similar bugs
+- **🎨 Themes** - dark or pink - pick what suits you
+
+---
+
+## Getting started
+
+1. **Download** SUSModder - from [susmodder.app](https://susmodder.app/) **or** [GitHub Releases](https://github.com/boratsc/SUSModder/releases)
+2. **Run** the app (Windows 10/11)
+3. **Pick a mod → Install → Launch** and play!
+
+Having trouble? Visit [susmodder.app](https://susmodder.app/) for answers to common questions and known issues.
+
+---
+
+## Community
+
+SUSModder is developed with the player community - including **[Elitarni Impostorzy](https://discord.gg/Nf9xpbmQmW)**.
+
+Join Discord to find people to play with or help shape the project.
 
 ---
 
 ## Licencja / License
 
-Ten projekt jest udostępniany na licencji **lGPL v3**.
+Projekt na licencji **LGPL v3** - szczegóły w pliku [LICENSE](./LICENSE).
 
-This project is licensed under the **lGPL v3 License**.
-
-Treść licencji znajduje się w pliku [`LICENSE`](./LICENSE).
+This project is licensed under the **LGPL v3 License** - see [LICENSE](./LICENSE) for details.

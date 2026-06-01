@@ -531,7 +531,8 @@ namespace SUSModder.ViewModels
                             {
                                 ConfirmAsync = silentUserInteraction.ShowConfirmAsync,
                                 ShowErrorAsync = silentUserInteraction.ShowErrorAsync,
-                                ShowInfoAsync = silentUserInteraction.ShowInfoAsync
+                                ShowInfoAsync = silentUserInteraction.ShowInfoAsync,
+                                RunSteamQrDownloadAsync = _userInteractionService.RunSteamQrDownloadAsync
                             };
 
                             await modManager.ModifyAsync(
@@ -778,7 +779,8 @@ namespace SUSModder.ViewModels
                             {
                                 ConfirmAsync = silentUserInteraction.ShowConfirmAsync,
                                 ShowErrorAsync = silentUserInteraction.ShowErrorAsync,
-                                ShowInfoAsync = silentUserInteraction.ShowInfoAsync
+                                ShowInfoAsync = silentUserInteraction.ShowInfoAsync,
+                                RunSteamQrDownloadAsync = _userInteractionService.RunSteamQrDownloadAsync
                             };
 
                             await modManager.ModifyAsync(

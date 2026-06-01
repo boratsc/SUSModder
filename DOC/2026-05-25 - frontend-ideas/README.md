@@ -1,10 +1,10 @@
-# 2026-05-25 – Frontend Ideas
+﻿# 2026-05-25 – Frontend Ideas
 
 Sesja burzy mózgów z `sus-ui` + review `sus-senior-quality-reviewer` (GLM 5.1).
 
 ## Status implementacji (aktualizacja 2026-05-29)
 
-**14 z 19 pomysłów w pełni lub częściowo zaimplementowanych**, 1 zaniechany, 4 pozostałych do realizacji.
+**14 z 20 pomysłów w pełni lub częściowo zaimplementowanych**, 1 zaniechany, 4 pozostałych do realizacji.
 
 Dodatkowo zrealizowano:
 - **[POC] Migracja JSON → SQLite** – cała warstwa danych przepisana z plików JSON na `Microsoft.Data.Sqlite` 10.0.8 (✅ zaimplementowane 2026-05-27)
@@ -33,12 +33,17 @@ Dodatkowo zrealizowano:
 | [`16-mod-pack-sharing.md`](16-mod-pack-sharing.md) | Udostępnianie zestawów modów (kody + linki) | 🟡 P1 | ~8-12 dni | 🔧 **Klient gotowy** — [plan](../PLAN/2026-05-29-mod-pack-sharing-plan.md) |
 | [`17-sha256-verification.md`](17-sha256-verification.md) | SHA256 Verification — integralność wszystkich plików | 🟢 P3 | ~3-5 dni | 📄 **Pomysł** — spec gotowa |
 | [`07-future-features.md`](07-future-features.md) | Dwuetapowy flow, auto-update | ⚪ P3-P4 | 1-5 dni | ✅ **Zrobione** (częściowo: PostInstall + auto-update) |
+| [`18-beanmodmanager-ideas.md`](18-beanmodmanager-ideas.md) | Mechanizmy z BeanModManager do adaptacji (bulk ops, import, ZIP validation) ✨ | 🟡 P1 | ~6-10 dni | 📋 **Burza mózgów** |
+| — | **UI 3.0** — kafelki, drawer, motyw dark, bulk UI | 🟡 P1 | ~10-14 dni | 📄 **[POC](../POC/2026-06-01-ui-refresh-v3-poc.md)** (2026-06-01) |
 
 ## Kolejność implementacji (po review GLM 5.1)
 
 ```
 P0 ── 1. Performance i RAM ──────────────────── ✅ 2-3h (zrobione)
         2. DLL modal + kompatybilność ────────── ✅ ~2.5h (zrobione)
+
+         2b. Bulk operations + kolejkowanie ──────── ⏳ ~4-6 dni (#18 + [UI POC](../POC/2026-06-01-ui-refresh-v3-poc.md))
+         2c. UI refresh 3.0 (drawer, kafelki, dark) ─ ⏳ fazy 1-2 w 3.0.0 ([POC](../POC/2026-06-01-ui-refresh-v3-poc.md))
 P1 ── 3. Toast notifications ────────────────── ✅ 3-4h (zrobione)
         4. Changelog / "Co nowego" ───────────── ✅ 2-3h (zrobione)
         5. Offline / error state ✨ ──────────── ⏳ 1-2h (do zrobienia)
@@ -46,6 +51,8 @@ P1 ── 3. Toast notifications ───────────────�
         7. FAB badge + ikona (ewentualnie) ───── ✅ 2-3h (zrobione)
         ────────────────────────────────────────
         z P0+P1 zostało: ~3-5h
+
+        C. Import modów + ZIP validation ────────── ~2-3 dni (burza mózgów #18)
 P2 ── 8. Mikrointerakcje ────────────────────── ✅ 1 dzień (zrobione)
         9. Lobby code sharing ✨ ─────────────── ✅ MVP + Bridge (auto-fill)
        10. Lobby searcher ✨ ─────────────────── ⏳ 3-5 dni (bazuje na DOC/Lobby-searcher/PoC.md)
@@ -73,6 +80,8 @@ P3 ── 11. Dwuetapowy flow + auto-update ─────── ✅ kilka dni 
 | [`09-offline-error-state.md`](09-offline-error-state.md) | Empty state + tryb offline przy braku neta | ⏳ Do zrobienia |
 | [`10-lobby-code-sharing.md`](10-lobby-code-sharing.md) | Tablica kodów lobby + ogłoszenia per mod | ✅ MVP (susmodder.app) |
 | [`11-lobby-searcher.md`](11-lobby-searcher.md) | Aktywne skanowanie serwerów Among Us w poszukiwaniu lobby | ⏳ Do zrobienia |
+| [`18-beanmodmanager-ideas.md`](18-beanmodmanager-ideas.md) | Import modów, bulk operations, ZIP validation — inspiracje z BeanModManager | 📋 Burza mózgów |
+| [UI refresh 3.0 POC](../POC/2026-06-01-ui-refresh-v3-poc.md) | Drawer, kafelki v3, motyw dark, bulk UI | 📄 POC 2026-06-01 |
 
 ## Kontekst techniczny
 

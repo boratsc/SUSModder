@@ -47,6 +47,7 @@ namespace SUSModder.Core.Services
             ModPack pack,
             string platform,
             IProgress<(int percent, string message)>? progress = null,
+            ModManagerUserCallbacks? modManagerCallbacks = null,
             CancellationToken ct = default)
         {
             var result = new ModPackInstallResult();
@@ -74,7 +75,7 @@ namespace SUSModder.Core.Services
                     var modManager = new ModManager(_configuration);
                     var progressReporter = new SimpleProgressReporter(p => progress?.Report((5 + p / 2, "Pobieranie moda głównego...")));
                     var diag = new SimpleDiagnostics(_log);
-                    var callbacks = new ModManagerUserCallbacks();
+                    var callbacks = modManagerCallbacks ?? new ModManagerUserCallbacks();
 
                     await modManager.ModifyAsync(
                         fullModConfig,

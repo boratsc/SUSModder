@@ -19,16 +19,19 @@ namespace SUSModder.Core.GameIntegration
         public Func<string, string, Task<bool>>? ConfirmAsync { get; set; }
         public Func<string, string, Task>? ShowErrorAsync { get; set; }
         public Func<string, string, Task>? ShowInfoAsync { get; set; }
+        public Func<SteamQrDownloadContext, Task<bool>>? RunSteamQrDownloadAsync { get; set; }
     }
 
     public class ModManager
     {
         private readonly IConfiguration configuration;
+        private readonly SteamVanillaProvider _steamVanillaProvider;
         private IDiagnosticsOutput? log;
 
         public ModManager(IConfiguration configuration)
         {
             this.configuration = configuration;
+            _steamVanillaProvider = new SteamVanillaProvider(configuration);
         }
 
         public async Task ModifyAsync(
@@ -67,215 +70,97 @@ namespace SUSModder.Core.GameIntegration
             string modsInstallPath = PathSettings.ModsInstallPath;
             Directory.CreateDirectory(modsInstallPath);
 
-            string vanillaDir = Path.Combine(modsInstallPath, "Among Us - Vanilla");
-            Directory.CreateDirectory(vanillaDir);
-
-            // Nazwa pliku vanilla
-            string vanilla7zName = $"{modConfig.AmongVersion.Replace("-", "").Replace(".", "")}";
-            string vanilla7zPath = Path.Combine(vanillaDir, vanilla7zName + ".7z");
-
-            string baseUrl = configuration.GetSection("Configuration")["BaseUrl"] ?? "https://susmodder.app/";
-            string fileUrlAmongUs = $"{baseUrl}api/susmodder-download-version?version={vanilla7zName}";
-
-            // Unikalna nazwa katalogu temp dla każdej instalacji, aby uniknąć konfliktów przy równoczesnych instalacjach
             string uniqueTempId = Guid.NewGuid().ToString("N");
             string tempDir = Path.Combine(modsInstallPath, "temp", uniqueTempId);
             string modFolderPath = Path.Combine(modsInstallPath, modConfig.ModName);
             string modFile = Path.Combine(tempDir, "mod.zip");
 
-            // Pobierz vanilla 7z jeśli nie istnieje
-            bool needsDownload = !File.Exists(vanilla7zPath);
+            // Pobierz moda
+            progress.Report(30, "Pobieranie moda...");
+            Directory.CreateDirectory(tempDir);
 
-            while (true) // Pętla dla ponownego pobierania w przypadku błędów
+            string downloadUrl = ModDownloadUrlBuilder.Build(modConfig, "steam");
+            log.Write($"[CDN] URL pobierania moda (Steam): {downloadUrl}");
+
+            bool retryMod;
+            do
             {
-                if (needsDownload)
-                {
-                    progress.Report(10, "Pobieranie gry vanilla...");
-                    log.Write($"Pobieram vanilla: {fileUrlAmongUs}");
-
-                    bool downloaded = false;
-                    do
-                    {
-                        downloaded = await DownloadFileWithMemoryManagementAsync(
-                            fileUrlAmongUs,
-                            vanilla7zPath,
-                            progress,
-                            "vanilla Among Us",
-                            onSpeedUpdate);
-
-                        if (!downloaded)
-                        {
-                            if (userCallbacks.ConfirmAsync == null)
-                                throw new InvalidOperationException("Brak obsługi potwierdzenia (ConfirmAsync) w ModManagerUserCallbacks!");
-
-                            bool retry = await userCallbacks.ConfirmAsync(
-                                "Wystąpił błąd podczas pobierania pliku vanilla. Czy chcesz spróbować ponownie?",
-                                "Błąd pobierania");
-
-                            if (!retry)
-                            {
-                                if (userCallbacks.ShowErrorAsync != null)
-                                    await userCallbacks.ShowErrorAsync("Przerwano instalację.", "Błąd");
-                                return;
-                            }
-                        }
-                    } while (!downloaded);
-                }
-                else
-                {
-                    log.Write($"Plik vanilla już istnieje: {vanilla7zPath}");
-                }
-
-                // Sprawdź rozmiar pliku
-                if (!File.Exists(vanilla7zPath) || new FileInfo(vanilla7zPath).Length < 1000)
-                {
-                    log.Write("Pobrany plik vanilla jest nieprawidłowy lub pusty.");
-                    if (userCallbacks.ShowErrorAsync != null)
-                        await userCallbacks.ShowErrorAsync("Pobrany plik vanilla jest nieprawidłowy lub pusty. Sprawdź token i wersję.", "Błąd");
-                    return;
-                }
-
-                // Pobierz moda
+                retryMod = false;
                 progress.Report(30, "Pobieranie moda...");
-                Directory.CreateDirectory(tempDir);
 
-                string downloadUrl = ModDownloadUrlBuilder.Build(modConfig, "steam");
-                log.Write($"[CDN] URL pobierania moda (Steam): {downloadUrl}");
+                bool modDownloaded = await DownloadFileWithMemoryManagementAsync(
+                    downloadUrl,
+                    modFile,
+                    progress,
+                    $"mod {modConfig.ModName}",
+                    onSpeedUpdate);
 
-                bool retryMod;
-                do
+                if (!modDownloaded)
                 {
-                    retryMod = false;
-                    progress.Report(30, "Pobieranie moda...");
-
-                    bool modDownloaded = await DownloadFileWithMemoryManagementAsync(
-                        downloadUrl,
-                        modFile,
-                        progress,
-                        $"mod {modConfig.ModName}",
-                        onSpeedUpdate);
-
-                    if (!modDownloaded)
-                    {
-                        if (userCallbacks.ConfirmAsync == null)
-                            throw new InvalidOperationException("Brak obsługi potwierdzenia (ConfirmAsync) w ModManagerUserCallbacks!");
-
-                        bool retry = await userCallbacks.ConfirmAsync(
-                            $"Błąd pobierania moda: {modConfig.ModName}\nCzy chcesz spróbować ponownie?",
-                            "Błąd pobierania");
-
-                        if (!retry)
-                        {
-                            if (userCallbacks.ShowErrorAsync != null)
-                                await userCallbacks.ShowErrorAsync("Przerwano instalację moda.", "Błąd");
-                            return;
-                        }
-                        retryMod = retry;
-                    }
-                } while (retryMod);
-
-                // Przygotuj katalog moda
-                progress.Report(50, "Przygotowywanie katalogu...");
-                if (Directory.Exists(modFolderPath))
-                {
-                    log.Write($"Usuwam istniejący katalog moda: {modFolderPath}");
-                    try
-                    {
-                        Directory.Delete(modFolderPath, true);
-                    }
-                    catch (UnauthorizedAccessException ex)
-                    {
-                        log.Write($"[ERROR] Brak dostępu do katalogu: {modFolderPath} - {ex.Message}");
-                        if (userCallbacks.ShowErrorAsync != null)
-                            await userCallbacks.ShowErrorAsync(
-                                $"Nie można usunąć katalogu:\n{modFolderPath}\n\n" +
-                                $"Dostęp został zabroniony. Upewnij się, że:\n" +
-                                $"- Gra Among Us NIE jest uruchomiona\n" +
-                                $"- Żaden plik z tego folderu nie jest otwarty\n" +
-                                $"- Folder nie jest tylko do odczytu\n" +
-                                $"- Masz uprawnienia administratora\n\n" +
-                                $"Szczegóły: {ex.Message}",
-                                "Błąd dostępu");
-                        return;
-                    }
-                }
-                Directory.CreateDirectory(modFolderPath);
-
-                // Rozpakuj vanilla 7z do katalogu moda
-                try
-                {
-                    progress.Report(60, "Rozpakowywanie gry vanilla...");
-                    log.Write($"Rozpakowuję vanilla 7z: {vanilla7zPath} do {modFolderPath}");
-
-                    string zipPassword = SecretProvider.Get7zPassword();
-
-                    var extractionProgress = new Progress<ExtractionProgress>(p =>
-                    {
-                        int pct;
-                        if (p.PercentComplete.HasValue)
-                        {
-                            pct = (int)p.PercentComplete.Value;
-                        }
-                        else if (p.TotalBytes > 0)
-                        {
-                            pct = (int)(p.BytesExtracted * 100 / p.TotalBytes);
-                        }
-                        else
-                        {
-                            // Brak info o postępie – pokaż tylko tekst
-                            progress.Report(58, $"Rozpakowywanie... ({FormatSize(p.BytesExtracted)})");
-                            return;
-                        }
-
-                        int mappedProgress = 50 + (pct * 15 / 100); // 50-65% overall
-                        progress.Report(mappedProgress,
-                            $"Rozpakowywanie: {pct}% ({FormatSize(p.BytesExtracted)}/{FormatSize(p.TotalBytes)})");
-                    });
-
-                    var extractor = new SharpCompressExtractor();
-                    await extractor.ExtractAsync(vanilla7zPath, modFolderPath, zipPassword, extractionProgress);
-
-                    log.Write("Rozpakowano vanilla.");
-                    break; // Jeśli rozpakowywanie się udało, wychodzimy z pętli
-                }
-                catch (Exception ex)
-                {
-                    log.Write($"[ERROR] Błąd podczas rozpakowywania archiwum: {ex}");
-
-                    // Usuń uszkodzony plik
-                    if (File.Exists(vanilla7zPath))
-                    {
-                        try
-                        {
-                            File.Delete(vanilla7zPath);
-                            log.Write($"Usunięto uszkodzony plik: {vanilla7zPath}");
-                        }
-                        catch (Exception deleteEx)
-                        {
-                            log.Write($"[WARNING] Nie udało się usunąć uszkodzonego pliku: {deleteEx.Message}");
-                        }
-                    }
-
                     if (userCallbacks.ConfirmAsync == null)
                         throw new InvalidOperationException("Brak obsługi potwierdzenia (ConfirmAsync) w ModManagerUserCallbacks!");
 
-                    bool retryExtract = await userCallbacks.ConfirmAsync(
-                        $"Błąd podczas rozpakowywania archiwum vanilla:\n{ex.Message}\n\nPlik może być uszkodzony. Czy chcesz pobrać go ponownie?",
-                        "Błąd rozpakowywania");
+                    bool retry = await userCallbacks.ConfirmAsync(
+                        $"Błąd pobierania moda: {modConfig.ModName}\nCzy chcesz spróbować ponownie?",
+                        "Błąd pobierania");
 
-                    if (retryExtract)
-                    {
-                        needsDownload = true; // Oznacz że trzeba pobrać ponownie
-                        continue; // Kontynuuj pętlę - pobierz i spróbuj ponownie
-                    }
-                    else
+                    if (!retry)
                     {
                         if (userCallbacks.ShowErrorAsync != null)
-                            await userCallbacks.ShowErrorAsync("Przerwano instalację.", "Błąd");
+                            await userCallbacks.ShowErrorAsync("Przerwano instalację moda.", "Błąd");
                         return;
                     }
+                    retryMod = retry;
+                }
+            } while (retryMod);
+
+            // Przygotuj katalog moda
+            progress.Report(50, "Przygotowywanie katalogu...");
+            if (Directory.Exists(modFolderPath))
+            {
+                log.Write($"Usuwam istniejący katalog moda: {modFolderPath}");
+                try
+                {
+                    Directory.Delete(modFolderPath, true);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    log.Write($"[ERROR] Brak dostępu do katalogu: {modFolderPath} - {ex.Message}");
+                    if (userCallbacks.ShowErrorAsync != null)
+                        await userCallbacks.ShowErrorAsync(
+                            $"Nie można usunąć katalogu:\n{modFolderPath}\n\n" +
+                            $"Dostęp został zabroniony. Upewnij się, że:\n" +
+                            $"- Gra Among Us NIE jest uruchomiona\n" +
+                            $"- Żaden plik z tego folderu nie jest otwarty\n" +
+                            $"- Folder nie jest tylko do odczytu\n" +
+                            $"- Masz uprawnienia administratora\n\n" +
+                            $"Szczegóły: {ex.Message}",
+                            "Błąd dostępu");
+                    return;
                 }
             }
+            Directory.CreateDirectory(modFolderPath);
+
+            // Vanilla: DepotDownloader (primary) lub fallback 7z, z cache per wersja
+            log.Write($"[Vanilla] Wersja Among Us: {modConfig.AmongVersion}");
+            var vanillaResult = await _steamVanillaProvider.AcquireAsync(
+                modConfig.AmongVersion,
+                modFolderPath,
+                progress,
+                log,
+                userCallbacks);
+
+            if (!vanillaResult.Success)
+            {
+                log.Write($"[Vanilla] Nie udało się przygotować vanilli: {vanillaResult.ErrorMessage}");
+                if (userCallbacks.ShowErrorAsync != null)
+                    await userCallbacks.ShowErrorAsync(
+                        vanillaResult.ErrorMessage ?? "Nie udało się pobrać gry vanilla.",
+                        "Błąd");
+                return;
+            }
+
+            log.Write($"[Vanilla] Źródło: {vanillaResult.Source}");
 
             // Rozpakuj moda do temp
             progress.Report(80, "Rozpakowywanie moda...");

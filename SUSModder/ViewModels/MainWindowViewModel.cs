@@ -582,7 +582,8 @@ namespace SUSModder.ViewModels
                 ShowMessageAsync,
                 ShowErrorDialogAsync,
                 ShowPromptDialogAsync,
-                ShowSelectFileDialogAsync
+                ShowSelectFileDialogAsync,
+                Helpers.SteamQrAuthHelper.ShowDialogAsync
             );
 
             _diagnosticsOutput = new UIDiagnosticsOutput((message) =>

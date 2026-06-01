@@ -39,7 +39,8 @@ namespace SUSModder.Core.GameIntegration
                     {
                         ConfirmAsync = userInteraction.ShowConfirmAsync,
                         ShowErrorAsync = userInteraction.ShowErrorAsync,
-                        ShowInfoAsync = userInteraction.ShowInfoAsync
+                        ShowInfoAsync = userInteraction.ShowInfoAsync,
+                        RunSteamQrDownloadAsync = userInteraction.RunSteamQrDownloadAsync
                     };
 
                     await modManager.ModifyAsync(

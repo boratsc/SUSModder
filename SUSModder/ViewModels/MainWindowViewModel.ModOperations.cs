@@ -26,6 +26,14 @@ namespace SUSModder.ViewModels
     /// </summary>
     public partial class MainWindowViewModel
     {
+        private ModManagerUserCallbacks CreateModManagerCallbacks() => new()
+        {
+            ConfirmAsync = _userInteractionService.ShowConfirmAsync,
+            ShowErrorAsync = _userInteractionService.ShowErrorAsync,
+            ShowInfoAsync = _userInteractionService.ShowInfoAsync,
+            RunSteamQrDownloadAsync = _userInteractionService.RunSteamQrDownloadAsync
+        };
+
         #region Install
 
         private async void Install()
@@ -378,12 +386,7 @@ namespace SUSModder.ViewModels
 
             try
             {
-                var callbacks = new ModManagerUserCallbacks
-                {
-                    ConfirmAsync = _userInteractionService.ShowConfirmAsync,
-                    ShowErrorAsync = _userInteractionService.ShowErrorAsync,
-                    ShowInfoAsync = _userInteractionService.ShowInfoAsync
-                };
+                var callbacks = CreateModManagerCallbacks();
 
                 await modManager.ModifyAsync(
                     modConfig,
@@ -938,7 +941,8 @@ namespace SUSModder.ViewModels
                     {
                         ConfirmAsync = silentUserInteraction.ShowConfirmAsync,
                         ShowErrorAsync = silentUserInteraction.ShowErrorAsync,
-                        ShowInfoAsync = silentUserInteraction.ShowInfoAsync
+                        ShowInfoAsync = silentUserInteraction.ShowInfoAsync,
+                        RunSteamQrDownloadAsync = _userInteractionService.RunSteamQrDownloadAsync
                     };
 
                     await modManager.ModifyAsync(
