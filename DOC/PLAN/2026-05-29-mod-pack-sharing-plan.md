@@ -1,14 +1,65 @@
 # Plan Wdrożenia: Mod Pack Sharing
 
 **Data:** 2026-05-29  
-**Status:** ⏳ Gotowy do implementacji  
+**Status:** 🔄 **Implementacja klienta zakończona (UI + Core) — backend + testy pozostały**  
+**Data aktualizacji statusu:** 2026-06-01  
 **Priorytet:** P1  
 **Effort:** ~8-12 dni (backend + core + UI + testy)  
 **Specyfikacja:** [`DOC/2026-05-25 - frontend-ideas/16-mod-pack-sharing.md`](../2026-05-25%20-%20frontend-ideas/16-mod-pack-sharing.md)
 
 ---
 
-## Cel
+## Execution Status (2026-06-01 audyt)
+
+**Ogółem: ~70% zrobione.** Cały kod klienta (Core + UI) jest zaimplementowany. Backend API (susmodder-backend — osobne repozytorium), testy, telemetria i web fallback pozostają do wykonania.
+
+### Część 1: Backend API (susmodder-backend) — ⚠️ POZA TYM REPOZYTORIUM
+
+| # | Zadanie | Status | Uwagi |
+|---|---------|--------|-------|
+| 1.1 | Migracja PostgreSQL | ❌ Nie w tym repo | Backend w osobnym repozytorium. Klient gotowy do integracji. |
+| 1.2 | POST + GET mod-packs | ❌ Nie w tym repo | j.w. |
+| 1.3 | Limit 10/creatorHash | ❌ Nie w tym repo | j.w. |
+| 1.4 | external-dll upload + CDN | ❌ Nie w tym repo | j.w. |
+| 1.5 | VirusTotal integration | ❌ Nie w tym repo | j.w. |
+| 1.6 | Cron cleanup | ❌ Nie w tym repo | j.w. |
+| 1.7 | Strona web /pack/:id | ❌ Nie w tym repo | j.w. |
+| 1.8 | Testy API + Swagger | ❌ Nie w tym repo | j.w. |
+
+### Część 2: SUSModder.Core — ✅ ZREALIZOWANE (brak testów)
+
+| # | Zadanie | Status | Pliki |
+|---|---------|--------|-------|
+| 2.1 | Modele ModPack | ✅ | `ModPack.cs` — 11 typów (ModPack, ModPackFullMod, ModPackDllMod, ModPackExternalDll, ModPackCreateResult, ModPackListEntry, ModPackCreateRequest, ModPackDllModRequest, ModPackExternalDllDeclaration, ModPackInstallResult, ModPackValidationResult) |
+| 2.2 | ModPackService create/get/validate | ✅ | `ModPackService.cs` / `IModPackService.cs` — CreatePackAsync, GetPackAsync, ListOwnPacksAsync, DeletePackAsync, UploadExternalDllAsync, ValidatePack |
+| 2.3 | ModPackInstaller install | ✅ | `ModPackInstaller.cs` — full mod, DLL katalogowe, external DLL download, ToU config, integration.dll kopiowanie |
+| 2.4 | DeepLinkService + IPC | ✅ | `DeepLinkService.cs` (ParseDeepLink susmodder://) + `DeepLinkIpc.cs` (single-instance mutex + NamedPipe IPC) |
+| 2.5 | SQLite history + settings | ✅ | `mod_pack_history` table, `mod_packs_enabled` + `mod_packs_auto_install` w `user_settings` (DatabaseService migracja v2.9.0+) |
+| 2.6 | Testy jednostkowe | ❌ | Brak plików testowych w repo |
+| — | VirusTotal display service | ⚠️ Uproszczone | Brak dedykowanego `VirusTotalService.cs` — VT status embedowany bezpośrednio w modelach i `ModPackInstaller.cs` |
+
+### Część 3: UI (Avalonia) — ✅ ZREALIZOWANE
+
+| # | Zadanie | Status | Pliki |
+|---|---------|--------|-------|
+| 3.1 | ModPackCreatorDialog | ✅ | `ModPackCreatorDialog.axaml` + `.cs` (wybór moda, wersji, DLL, TTL, Discord invite) |
+| 3.2 | ModPackPreviewDialog + warnings | ✅ | `ModPackPreviewDialog.axaml` + `.cs` (ExternalWarningPanel, VT status display, RiskConsent checkbox) |
+| 3.3 | ModPackCodeEntryDialog | ✅ | `ModPackCodeEntryDialog.axaml` + `.cs` (pole XXXX-XXXX-XXXX z walidacją) |
+| 3.4 | ModPackResultDialog | ✅ | `ModPackResultDialog.axaml` + `.cs` (kod + link + kopiuj do schowka) |
+| 3.5 | FAB / menu + deep link integracja | ✅ | `MainWindow.axaml` (`ShareModPackCommand`, `EnterModPackCodeCommand`) + `MainWindowViewModel.ModPacks.cs` |
+| 3.6 | i18n PL/EN | ✅ | ~35 kluczy w `pl.json` i `en.json` (sekcja `ModPacks.*`). ToU config na razie zablokowany (klucz `TouConfigNotSupportedYet`). |
+| 3.7 | App.axaml.cs / Program.cs deep link | ✅ | `PendingModPackCode` + `PendingModPackAutoInstall`, IPC server start, DI `IModPackService` |
+
+### Część 4: Testy i telemetria — ❌ NIE ROZPOCZĘTE
+
+| # | Zadanie | Status |
+|---|---------|--------|
+| 4.1 | Testy jednostkowe Core | ❌ Brak |
+| 4.2 | Testy E2E (manualne) | ❌ Brak |
+| 4.3 | Telemetria (pack_created, pack_installed, pack_install_failed) | ❌ Odrzucone — decyzja: nie są użyteczną statystyką |
+| 4.4 | AV false positive testing | ❌ Brak |
+
+---## Cel
 
 System dzielenia się **zestawami modów** (full mod + wersja + DLL + opcjonalnie config ToU + Discord + integration.dll) przez krótki kod i link `https://susmodder.app/pack/{code}`.
 
@@ -40,6 +91,8 @@ System dzielenia się **zestawami modów** (full mod + wersja + DLL + opcjonalni
 | D8 | integration.dll | Tylko jeśli istnieje w katalogu / plan V2 bridge |
 | D9 | Auth tworzenia | Bearer `SecretProvider.GetDownloadToken()` + `creatorHash` |
 | D10 | Auth odczytu | Publiczny `GET` (bez tokenu) |
+| D11 | SHA256 przy external DLL | Przeniesione do POC #17 (17-sha256-verification.md) — weryfikacja integralności we wszystkich miejscach pobierania plików. Naprawiono path traversal + size limit w ModPackInstaller.cs. |
+| D12 | Telemetria mod-pack | **Nie robimy** — pack_created/pack_installed/pack_install_failed nie są użyteczną statystyką. Decyzja product 2026-06-01. |
 
 ---
 
@@ -338,11 +391,13 @@ Tydzień 2
 
 ## Definition of Done
 
-- [ ] Twórca tworzy paczkę → dostaje kod + link
-- [ ] Odbiorca instaluje zestaw jednym flow (full + DLL + ToU)
-- [ ] External DLL wymaga świadomej zgody + VT status
-- [ ] Deep link `susmodder://pack/` działa po instalacji app
-- [ ] Web fallback `/pack/` działa bez app
-- [ ] Paczki wygasają i są usuwane z backendu
-- [ ] PL + EN i18n kompletne
-- [ ] `dotnet build` + testy manualne E2E OK
+- [x] Twórca tworzy paczkę → dostaje kod + link (UI + Core gotowe, backend potrzebny)
+- [x] Odbiorca instaluje zestaw jednym flow (ModPackInstaller deleguje do ModManager/DllMod/ToU)
+- [x] External DLL wymaga świadomej zgody + VT status (RiskConsent checkbox, VT status w PreviewDialog)
+- [x] Deep link `susmodder://pack/` działa po instalacji app (DeepLinkService + IPC + App.axaml.cs)
+- [ ] Web fallback `/pack/` działa bez app (❌ backend task)
+- [ ] Paczki wygasają i są usuwane z backendu (❌ backend task)
+- [x] PL + EN i18n kompletne (35 kluczy, ToU config zablokowany przez `TouConfigNotSupportedYet`)
+- [ ] `dotnet build` + testy manualne E2E OK (❌ nie testowane)
+
+**Klient: ✅ 5/8. Backend: ❌ 0/8. Testy: ❌ 0/8.**

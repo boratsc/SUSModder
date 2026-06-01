@@ -1,10 +1,10 @@
-﻿# 2026-05-25 – Frontend Ideas
+# 2026-05-25 – Frontend Ideas
 
 Sesja burzy mózgów z `sus-ui` + review `sus-senior-quality-reviewer` (GLM 5.1).
 
 ## Status implementacji (aktualizacja 2026-05-29)
 
-**13 z 18 pomysłów w pełni lub częściowo zaimplementowanych**, 1 zaniechany, 4 pozostałych do realizacji.
+**14 z 19 pomysłów w pełni lub częściowo zaimplementowanych**, 1 zaniechany, 4 pozostałych do realizacji.
 
 Dodatkowo zrealizowano:
 - **[POC] Migracja JSON → SQLite** – cała warstwa danych przepisana z plików JSON na `Microsoft.Data.Sqlite` 10.0.8 (✅ zaimplementowane 2026-05-27)
@@ -30,7 +30,8 @@ Dodatkowo zrealizowano:
 | [`10-lobby-code-sharing.md`](10-lobby-code-sharing.md) | Udostępnianie kodów lobby + ogłoszenia + bridge | 🟢 P2 | ~6 dni | ✅ **Gotowe** (MVP + bridge auto-fill); backlog P3 ⏸️ |
 | [`11-lobby-searcher.md`](11-lobby-searcher.md) | Wyszukiwarka lobby (skanowanie serwerów AU) ✨ | 🟢 P2 | ~3-5 dni | ⏳ Do zrobienia (zależne od PoC) |
 | [`12-voice-chat-integration.md`](12-voice-chat-integration.md) | Integracja voice chat: Discord / BetterCrewLink ✨ | 🟢 P2 | ~1-5 dni | 🔧 **Częściowo** — OAuth ✅, reszta ⏳ — [plan](../PLAN/2026-05-29-voice-chat-integration-plan.md) |
-| [`16-mod-pack-sharing.md`](16-mod-pack-sharing.md) | Udostępnianie zestawów modów (kody + linki) | 🟡 P1 | ~8-12 dni | ⏳ Spec gotowa — [plan](../PLAN/2026-05-29-mod-pack-sharing-plan.md) |
+| [`16-mod-pack-sharing.md`](16-mod-pack-sharing.md) | Udostępnianie zestawów modów (kody + linki) | 🟡 P1 | ~8-12 dni | 🔧 **Klient gotowy** — [plan](../PLAN/2026-05-29-mod-pack-sharing-plan.md) |
+| [`17-sha256-verification.md`](17-sha256-verification.md) | SHA256 Verification — integralność wszystkich plików | 🟢 P3 | ~3-5 dni | 📄 **Pomysł** — spec gotowa |
 | [`07-future-features.md`](07-future-features.md) | Dwuetapowy flow, auto-update | ⚪ P3-P4 | 1-5 dni | ✅ **Zrobione** (częściowo: PostInstall + auto-update) |
 
 ## Kolejność implementacji (po review GLM 5.1)
@@ -49,7 +50,7 @@ P2 ── 8. Mikrointerakcje ─────────────────
         9. Lobby code sharing ✨ ─────────────── ✅ MVP + Bridge (auto-fill)
        10. Lobby searcher ✨ ─────────────────── ⏳ 3-5 dni (bazuje na DOC/Lobby-searcher/PoC.md)
        11. Voice chat ✨ ─────────────────────── 🔧 OAuth ✅; Discord+BCL ⏳
-       12. Mod pack sharing ─────────────────── ⏳ 8-12 dni (plan gotowy)
+        12. Mod pack sharing ─────────────────── 🔧 Klient gotowy (plan + review)
 P3 ── 11. Dwuetapowy flow + auto-update ─────── ✅ kilka dni (zrobione)
         Splash video ─────────────────────────── 🛑 ZANIECHANE
 ```

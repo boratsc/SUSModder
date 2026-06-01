@@ -1,8 +1,8 @@
-﻿# 16 – Mod Pack Sharing (Kody udostępniania zestawów modów)
+# 16 – Mod Pack Sharing (Kody udostępniania zestawów modów)
 
 **Priorytet:** 🟡 P1 (wysoki — feature społecznościowy)  
 **Effort:** ~8-12 dni (pełna implementacja z backendem)  
-**Status:** ⏳ **Nie rozpoczęte** — specyfikacja gotowa, plan w DOC/PLAN  
+**Status:** 🔄 **Implementacja klienta zakończona (UI + Core)** — backend + testy pozostały. Aktualizacja 2026-06-01.  
 **Plan wdrożenia:** [`DOC/PLAN/2026-05-29-mod-pack-sharing-plan.md`](../PLAN/2026-05-29-mod-pack-sharing-plan.md)  
 **Zależy od:** susmodder-backend (`/api/mod-packs`), SUSModder.Core (`ModPackService`, deep link)
 
@@ -626,6 +626,8 @@ Uwaga: appsettings.json jest read-only w runtime. Nowe endpointy sa dodawane do 
 ---
 
 ## Suggested Implementation Order
+
+> ⚠️ **Aktualizacja 2026-06-01:** Fazy 2 i 3 (Core + UI) są już wdrożone. Faza 1 (backend), Faza 4 (testy/telemetria) i web fallback pozostają.
 
 ### Faza 1: Backend API (3-4 dni) - rownolegle z Faza 2
 
