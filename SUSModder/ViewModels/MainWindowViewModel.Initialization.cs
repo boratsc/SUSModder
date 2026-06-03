@@ -443,7 +443,7 @@ namespace SUSModder.ViewModels
                     // Jeśli config został zaktualizowany, odśwież listę modów
                     if (result.ConfigWasUpdated)
                     {
-                        await RefreshModsListAsync();
+                        await RefreshModsListAsync(deferIfToolModalOpen: true);
                     }
 
                     if (result.Success && result.InstalledModUpdates.Any())
@@ -650,7 +650,7 @@ namespace SUSModder.ViewModels
                         {
                             await Dispatcher.UIThread.InvokeAsync(async () =>
                             {
-                                await RefreshModsListAsync();
+                                await RefreshModsListAsync(deferIfToolModalOpen: true);
                             });
                         }
                         else
@@ -679,7 +679,7 @@ namespace SUSModder.ViewModels
                     {
                         await Dispatcher.UIThread.InvokeAsync(async () =>
                         {
-                            await RefreshModsListAsync();
+                            await RefreshModsListAsync(deferIfToolModalOpen: true);
                         });
                     }
                     else

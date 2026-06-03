@@ -126,6 +126,12 @@ namespace SUSModder.ViewModels
 
         private void CloseToolModal()
         {
+            CloseToolModalCore();
+            _ = FlushPendingModsListRefreshAsync();
+        }
+
+        private void CloseToolModalCore()
+        {
             IsInfoPanelVisible = false;
             IsAdditionalActionsVisible = false;
             IsLobbyBoardVisible = false;

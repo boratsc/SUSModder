@@ -484,7 +484,7 @@ public int AvailableUpdatesCount
                             // Pomiń odświeżenie jeśli trwa instalacja (nie niszcz ModItem w trakcie)
                             if (_activeInstallationsCount == 0)
                             {
-                                await RefreshModsListAsync(checkUpdates: false);
+                                await RefreshModsListAsync(checkUpdates: false, deferIfToolModalOpen: true);
                             }
                         }
                     }
@@ -596,7 +596,7 @@ public int AvailableUpdatesCount
                 // Pomiń jeśli trwa instalacja (nie niszcz ModItem w trakcie).
                 if (result.ConfigWasUpdated && _activeInstallationsCount == 0)
                 {
-                    await RefreshModsListAsync(checkUpdates: false);
+                    await RefreshModsListAsync(checkUpdates: false, deferIfToolModalOpen: true);
                 }
 
                 if (result.Success && result.InstalledModUpdates.Any())
@@ -615,6 +615,9 @@ public int AvailableUpdatesCount
                     }
                     AvailableUpdatesTooltip = tooltipBuilder.ToString().TrimEnd();
 
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                        SyncModUpdateBadges(result.InstalledModUpdates.Select(u => u.ModName)));
+
                     // Auto-aktualizacja w tle dla modów z włączoną auto-aktualizacją
                     // Nie blokujemy - uruchamiamy w tle
                     _ = ProcessAutoUpdatesSilentlyAsync(result.InstalledModUpdates);
@@ -624,6 +627,8 @@ public int AvailableUpdatesCount
                     AvailableUpdatesCount = 0;
                     AvailableUpdatesList.Clear();
                     AvailableUpdatesTooltip = string.Empty;
+
+                    await Dispatcher.UIThread.InvokeAsync(() => SyncModUpdateBadges(Array.Empty<string>()));
                 }
 
                 // Aktualizuj wyświetlanie statusu po sprawdzeniu aktualizacji
@@ -636,7 +641,11 @@ public int AvailableUpdatesCount
                 AvailableUpdatesList.Clear();
                 AvailableUpdatesTooltip = string.Empty;
 
-                await Dispatcher.UIThread.InvokeAsync(() => UpdateModsStatusDisplay());
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    SyncModUpdateBadges(Array.Empty<string>());
+                    UpdateModsStatusDisplay();
+                });
             }
             finally
             {

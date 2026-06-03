@@ -1,0 +1,45 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<Style Selector="Button.bulk-mode-chip">
+		<Setter Property="Width" Value="36"/>
+		<Setter Property="Height" Value="36"/>
+		<Setter Property="Padding" Value="0"/>
+		<Setter Property="CornerRadius" Value="18"/>
+		<Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		<Setter Property="HorizontalContentAlignment" Value="Center"/>
+		<Setter Property="VerticalContentAlignment" Value="Center"/>
+		<Setter Property="Transitions">
+			<Transitions>
+				<BrushTransition Property="Background" Duration="0:0:0.15"/>
+				<BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+				<TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15"/>
+			</Transitions>
+		</Setter>
+	</Style>
+
+	<Style Selector="Button.bulk-mode-chip:pointerover">
+		<Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+		<Setter Property="RenderTransform" Value="scale(1.05)"/>
+	</Style>
+
+	<Style Selector="Button.bulk-mode-chip.active">
+		<Setter Property="BorderBrush" Value="{DynamicResource BulkSelectionBrush}"/>
+		<Setter Property="Background" Value="#208B5CF6"/>
+	</Style>
+
+	<Style Selector="Border.bulk-mode-chip-badge">
+		<Setter Property="MinWidth" Value="16"/>
+		<Setter Property="Height" Value="16"/>
+		<Setter Property="CornerRadius" Value="8"/>
+		<Setter Property="Background" Value="{DynamicResource BulkSelectionBrush}"/>
+		<Setter Property="Padding" Value="4,0"/>
+		<Setter Property="HorizontalAlignment" Value="Right"/>
+		<Setter Property="VerticalAlignment" Value="Top"/>
+		<Setter Property="Margin" Value="0,-4,-4,0"/>
+	</Style>
+
+</Styles>

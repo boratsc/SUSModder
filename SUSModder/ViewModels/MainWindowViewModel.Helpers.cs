@@ -47,33 +47,159 @@ namespace SUSModder.ViewModels
             }
         }
 
-        private void RefreshModsSortingKeepSelection(ModItem selectedMod)
+        private void WireModItemPropertyChanged(ModItem modItem)
         {
-            var currentMods = Mods.ToList();
-
-            var sorted = currentMods
-                .OrderBy(m => !m.IsVanilla ? 1 : 0)
-                .ThenBy(m => string.IsNullOrEmpty(m.InstallPath) ? 1 : 0)
-                .ThenBy(m => m.Name)
-                .ToList();
-
-            Mods.Clear();
-            foreach (var mod in sorted)
+            modItem.PropertyChanged += (_, e) =>
             {
-                Mods.Add(mod);
-            }
-
-            // Przywróć zaznaczenie
-            SelectedMod = Mods.FirstOrDefault(m => m.Name == selectedMod.Name);
+                if (e.PropertyName == nameof(ModItem.IsCheckedForBulk))
+                    RaiseBulkUiProperties();
+            };
         }
 
-        private async Task RefreshModsListAsync(bool checkUpdates = true, List<ModConfiguration>? preloadedConfigs = null)
+        private List<ModConfiguration> PrepareSortedFullModConfigs(List<ModConfiguration> configs)
         {
-            // Nie odświeżaj listy podczas trwającej instalacji — ModItem.IsInstalling
-            // zostałby zresetowany przez Mods.Clear() + nowe ModItem.
+            var fullMods = configs
+                .Where(c => c.ModType.Equals("full", StringComparison.OrdinalIgnoreCase) ||
+                            c.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            var currentPlatform = DeterminePlatform();
+
+            foreach (var config in fullMods)
+            {
+                if (string.IsNullOrEmpty(config.InstallPath))
+                    continue;
+
+                bool isVanilla = config.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ||
+                                 config.Id == 0 ||
+                                 config.ModName.Equals("AmongUs", StringComparison.OrdinalIgnoreCase);
+
+                if (isVanilla && currentPlatform.Equals("epic", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (!Directory.Exists(config.InstallPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[RefreshModsList] Mod '{config.ModName}' InstallPath not found, clearing: {config.InstallPath}");
+                    config.InstallPath = null;
+                }
+            }
+
+            return fullMods
+                .OrderBy(c => !c.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+                .ThenBy(c => string.IsNullOrEmpty(c.InstallPath) ? 1 : 0)
+                .ThenBy(c => c.ModName)
+                .ToList();
+        }
+
+        private void RefreshModsSortingKeepSelection(ModItem selectedMod)
+        {
+            _suppressSelectedModPanelReset = true;
+            try
+            {
+                var currentMods = Mods.ToList();
+
+                var sorted = currentMods
+                    .OrderBy(m => !m.IsVanilla ? 1 : 0)
+                    .ThenBy(m => string.IsNullOrEmpty(m.InstallPath) ? 1 : 0)
+                    .ThenBy(m => m.Name)
+                    .ToList();
+
+                Mods.Clear();
+                foreach (var mod in sorted)
+                    Mods.Add(mod);
+
+                SelectedMod = Mods.FirstOrDefault(m => m.Id == selectedMod.Id)
+                                ?? Mods.FirstOrDefault(m => m.Name == selectedMod.Name);
+            }
+            finally
+            {
+                _suppressSelectedModPanelReset = false;
+            }
+        }
+
+        private void SyncModsListInPlace(IReadOnlyList<ModConfiguration> sortedConfigs)
+        {
+            var selectedId = SelectedMod?.Id;
+            var selectedName = SelectedMod?.Name;
+            var bulkCheckedIds = Mods.Where(m => m.IsCheckedForBulk).Select(m => m.Id).ToHashSet();
+            var updateBadges = Mods.Where(m => m.HasUpdateAvailable).Select(m => m.Id).ToHashSet();
+
+            var configById = sortedConfigs.ToDictionary(c => c.Id);
+            var existingById = Mods.ToDictionary(m => m.Id);
+
+            foreach (var mod in Mods.ToList())
+            {
+                if (!configById.ContainsKey(mod.Id))
+                    Mods.Remove(mod);
+            }
+
+            foreach (var config in sortedConfigs)
+            {
+                if (existingById.TryGetValue(config.Id, out var existing))
+                {
+                    ModItemAdapter.ApplyConfigToModItem(existing, config);
+                    existing.IsCheckedForBulk = bulkCheckedIds.Contains(config.Id);
+                    existing.HasUpdateAvailable = updateBadges.Contains(config.Id);
+                }
+                else
+                {
+                    var modItem = ModItemAdapter.FromConfig(config);
+                    WireModItemPropertyChanged(modItem);
+                    Mods.Add(modItem);
+                }
+            }
+
+            var targetIds = sortedConfigs.Select(c => c.Id).ToList();
+            var currentIds = Mods.Select(m => m.Id).ToList();
+            if (!targetIds.SequenceEqual(currentIds))
+            {
+                var ordered = targetIds
+                    .Select(id => Mods.First(m => m.Id == id))
+                    .ToList();
+
+                Mods.Clear();
+                foreach (var mod in ordered)
+                    Mods.Add(mod);
+            }
+
+            if (selectedId.HasValue)
+            {
+                SelectedMod = Mods.FirstOrDefault(m => m.Id == selectedId.Value)
+                              ?? (string.IsNullOrEmpty(selectedName)
+                                  ? null
+                                  : Mods.FirstOrDefault(m => m.Name == selectedName));
+            }
+        }
+
+        private async Task FlushPendingModsListRefreshAsync()
+        {
+            if (!_pendingModsListRefresh || _activeInstallationsCount > 0)
+                return;
+
+            _pendingModsListRefresh = false;
+            var checkUpdates = _pendingModsListRefreshCheckUpdates;
+            await RefreshModsListAsync(
+                checkUpdates: checkUpdates,
+                deferIfToolModalOpen: false);
+        }
+
+        private async Task RefreshModsListAsync(
+            bool checkUpdates = true,
+            List<ModConfiguration>? preloadedConfigs = null,
+            bool showLoadingSkeleton = false,
+            bool deferIfToolModalOpen = false)
+        {
             if (_activeInstallationsCount > 0)
             {
                 System.Diagnostics.Debug.WriteLine($"[RefreshModsListAsync] Pomijam odświeżenie — {_activeInstallationsCount} aktywnych instalacji");
+                return;
+            }
+
+            if (deferIfToolModalOpen && IsAnyToolModalOpen)
+            {
+                _pendingModsListRefresh = true;
+                _pendingModsListRefreshCheckUpdates = checkUpdates;
+                System.Diagnostics.Debug.WriteLine("[RefreshModsListAsync] Odłożono — otwarty panel narzędziowy");
                 return;
             }
 
@@ -81,75 +207,62 @@ namespace SUSModder.ViewModels
             {
                 List<ModConfiguration> configs;
                 if (preloadedConfigs != null)
-                {
-                    // Użyj przekazanych konfiguracji zamiast ponownego ładowania z dysku/API
                     configs = preloadedConfigs;
-                }
                 else
                 {
                     var configService = new ConfigService();
                     configs = configService.LoadConfig();
                 }
 
-                // Pokaz skeleton loading od razu (UI thread)
-                await Dispatcher.UIThread.InvokeAsync(() => IsModsLoading = true);
+                var sortedConfigs = PrepareSortedFullModConfigs(configs);
+                var useSkeleton = showLoadingSkeleton || Mods.Count == 0;
+                var useInPlaceSync = !useSkeleton && Mods.Count > 0;
+
+                if (useSkeleton)
+                    await Dispatcher.UIThread.InvokeAsync(() => IsModsLoading = true);
 
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    // Zachowaj obecny wybór
-                    var selectedModName = SelectedMod?.Name;
-
-                    Mods.Clear();
-
-                    // Filtruj tylko mody typu "full" i "Vanilla" (bez DLL)
-                    var fullMods = configs
-                        .Where(c => c.ModType.Equals("full", StringComparison.OrdinalIgnoreCase) || 
-                                    c.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase));
-
-                    var currentPlatform = DeterminePlatform();
-
-                    // Weryfikuj InstallPath - jeśli folder nie istnieje, wyczyść path.
-                    // Wyjątek: Epic Vanilla jest wpisem "wirtualnym" (launch przez legendary),
-                    // więc ścieżka może nie istnieć lokalnie i nie wolno jej czyścić.
-                    foreach (var config in fullMods)
+                    _suppressSelectedModPanelReset = true;
+                    try
                     {
-                        if (!string.IsNullOrEmpty(config.InstallPath))
+                        if (useInPlaceSync)
                         {
-                            bool isVanilla = config.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ||
-                                             config.Id == 0 ||
-                                             config.ModName.Equals("AmongUs", StringComparison.OrdinalIgnoreCase);
+                            SyncModsListInPlace(sortedConfigs);
+                        }
+                        else
+                        {
+                            var selectedModId = SelectedMod?.Id;
+                            var selectedModName = SelectedMod?.Name;
+                            var bulkCheckedIds = Mods.Where(m => m.IsCheckedForBulk).Select(m => m.Id).ToHashSet();
+                            var updateBadgeIds = Mods.Where(m => m.HasUpdateAvailable).Select(m => m.Id).ToHashSet();
 
-                            if (isVanilla && currentPlatform.Equals("epic", StringComparison.OrdinalIgnoreCase))
+                            Mods.Clear();
+
+                            foreach (var config in sortedConfigs)
                             {
-                                continue;
+                                var modItem = ModItemAdapter.FromConfig(config);
+                                modItem.IsCheckedForBulk = bulkCheckedIds.Contains(config.Id);
+                                modItem.HasUpdateAvailable = updateBadgeIds.Contains(config.Id);
+                                WireModItemPropertyChanged(modItem);
+                                Mods.Add(modItem);
                             }
 
-                            if (!Directory.Exists(config.InstallPath))
+                            if (selectedModId.HasValue)
                             {
-                                System.Diagnostics.Debug.WriteLine($"[RefreshModsList] Mod '{config.ModName}' InstallPath not found, clearing: {config.InstallPath}");
-                                config.InstallPath = null;
+                                SelectedMod = Mods.FirstOrDefault(m => m.Id == selectedModId.Value)
+                                              ?? (string.IsNullOrEmpty(selectedModName)
+                                                  ? null
+                                                  : Mods.FirstOrDefault(m => m.Name == selectedModName));
                             }
                         }
+
+                        if (useSkeleton)
+                            IsModsLoading = false;
                     }
-
-                    // Sortuj: Vanilla na górze, potem zainstalowane, potem reszta
-                    var sortedConfigs = fullMods
-                        .OrderBy(c => !c.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
-                        .ThenBy(c => string.IsNullOrEmpty(c.InstallPath) ? 1 : 0)
-                        .ThenBy(c => c.ModName);
-
-                    foreach (var config in sortedConfigs)
+                    finally
                     {
-                        var modItem = ModItemAdapter.FromConfig(config);
-                        Mods.Add(modItem);
-                    }
-
-                    IsModsLoading = false;
-
-                    // Przywróć wybór jeśli możliwe
-                    if (!string.IsNullOrEmpty(selectedModName))
-                    {
-                        SelectedMod = Mods.FirstOrDefault(m => m.Name == selectedModName);
+                        _suppressSelectedModPanelReset = false;
                     }
                 });
 

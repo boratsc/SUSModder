@@ -4,16 +4,16 @@
 
     <!-- Styl dla SkeletonCard -->
     <Style Selector="controls|SkeletonCard">
-        <Setter Property="Width" Value="140"/>
-        <Setter Property="Height" Value="140"/>
+        <Setter Property="Width" Value="152"/>
+        <Setter Property="Height" Value="168"/>
         <Setter Property="Template">
             <ControlTemplate>
                 <Grid>
                     <!-- Skeleton placeholder (widoczny podczas ladowania) -->
                     <Border Name="PART_SkeletonOverlay"
-                            Width="140"
-                            Height="140"
-                            CornerRadius="8"
+                            Width="152"
+                            Height="168"
+                            CornerRadius="10"
                             Background="{DynamicResource ModCardBackgroundBrush}"
                             BorderBrush="{DynamicResource ModCardBorderBrush}"
                             BorderThickness="1"

@@ -26,6 +26,28 @@ namespace SUSModder.Core.Configuration
             };
         }
 
+        /// <summary>
+        /// Aktualizuje istniejący ModItem danymi z konfiguracji (bez resetu stanu instalacji / bulk).
+        /// </summary>
+        public static void ApplyConfigToModItem(ModItem item, ModConfiguration config)
+        {
+            item.Id = config.Id;
+            item.Name = config.ModName;
+            item.Description = config.Description;
+            item.PngFileName = config.PngFileName;
+            item.ModVersion = config.ModVersion;
+            item.AmongVersion = config.AmongVersion;
+            item.InstallPath = config.InstallPath;
+            item.GitHubRepoOrLink = config.GitHubRepoOrLink;
+            item.EpicGitHubRepoOrLink = config.EpicGitHubRepoOrLink;
+            item.ModType = config.ModType;
+            item.DllInstallPath = config.DllInstallPath ?? string.Empty;
+            item.LastUpdated = config.LastUpdated;
+            item.HasRoles = config.HasRoles;
+            item.LobbyRegionBaseUrl = config.LobbyRegionBaseUrl;
+            item.SupportsLobbySharing = config.SupportsLobbySharing;
+        }
+
         public static ModConfiguration ToConfig(ModItem item)
         {
             return new ModConfiguration

@@ -47,7 +47,7 @@ namespace SUSModder.ViewModels
                 // Jeśli config został zaktualizowany, odśwież listę modów
                 if (result.ConfigWasUpdated)
                 {
-                    await RefreshModsListAsync();
+                    await RefreshModsListAsync(deferIfToolModalOpen: true);
                 }
 
                 // Pokaż dialogi aktualizacji dla każdego moda z dostępną aktualizacją
@@ -138,8 +138,8 @@ namespace SUSModder.ViewModels
 
                 if (updatedCount > 0)
                 {
-                    // Odśwież listę i status
-                    await RefreshModsListAsync();
+                    // Odśwież listę i status (cicho — bez skeletonu i bez zamykania paneli)
+                    await RefreshModsListAsync(deferIfToolModalOpen: true);
                     AvailableUpdatesCount = 0;
                     await CheckForModUpdatesForStatusBarAsync(force: true);
                 }

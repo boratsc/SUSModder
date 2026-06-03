@@ -44,11 +44,20 @@ namespace SUSModder.ViewModels
             if (SelectedMod == null || SelectedMod.IsInstalling)
                 return;
 
-            var currentSelectedMod = SelectedMod;
+            await InstallModItemAsync(SelectedMod, showPostInstallFlow: true);
+        }
+
+        /// <summary>
+        /// Instalacja pojedynczego moda (używane także przez kolejkę bulk).
+        /// </summary>
+        internal async Task<bool> InstallModItemAsync(ModItem currentSelectedMod, bool showPostInstallFlow = true)
+        {
+            if (currentSelectedMod.IsInstalling)
+                return false;
+
             bool success = false;
             ModConfiguration? modConfig = null;
 
-            // Zwiększ licznik aktywnych instalacji
             lock (_installationLock)
             {
                 _activeInstallationsCount++;
@@ -58,14 +67,12 @@ namespace SUSModder.ViewModels
 
             try
             {
-                // Ustaw flagę instalacji
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     currentSelectedMod.IsInstalling = true;
                     currentSelectedMod.ShowProgress = true;
                 });
 
-                // Pobierz konfigurację moda
                 var configService = new ConfigService();
                 var allConfigs = configService.LoadConfig();
                 modConfig = allConfigs.FirstOrDefault(c => c.ModName == currentSelectedMod.Name);
@@ -75,19 +82,15 @@ namespace SUSModder.ViewModels
                     await _userInteractionService.ShowErrorAsync(
                         _localizationService.Get("ModOperations.ConfigNotFound"),
                         _localizationService.Get("MainWindow.ErrorTitle"));
-                    return;
+                    return false;
                 }
 
                 string platform = DeterminePlatform();
 
                 if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
-                {
                     success = await InstallEpicModAsync(currentSelectedMod, modConfig);
-                }
                 else
-                {
                     success = await InstallSteamModAsync(currentSelectedMod, modConfig, allConfigs);
-                }
 
                 if (success)
                 {
@@ -104,7 +107,6 @@ namespace SUSModder.ViewModels
             }
             finally
             {
-                // Ukryj progress bar
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     currentSelectedMod.ShowProgress = false;
@@ -114,7 +116,6 @@ namespace SUSModder.ViewModels
                     currentSelectedMod.IsInstalling = false;
                 });
 
-                // Zmniejsz licznik aktywnych instalacji
                 lock (_installationLock)
                 {
                     _activeInstallationsCount--;
@@ -122,19 +123,14 @@ namespace SUSModder.ViewModels
                 }
                 SyncIsAnyModInstalling();
 
-                // Jeśli to była ostatnia instalacja, pokaż wszystkie oczekujące dialogi DLL
                 await ShowPendingDllDialogsIfNeeded();
-
-                // Odśwież statystyki status bara
                 await RefreshStatusBarAsync();
             }
 
-            // Odświeżenie listy modów PO dekrementacji licznika — wtedy guard
-            // _activeInstallationsCount == 0 w RefreshModsListAsync nie zablokuje go.
-            if (success)
-            {
+            if (success && showPostInstallFlow && modConfig != null)
                 await ShowPostInstallFlowAsync(currentSelectedMod, modConfig);
-            }
+
+            return success;
         }
 
         /// <summary>

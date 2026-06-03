@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using SUSModder.Core.Services;
 using SUSModder.Core.Services.Localization;
@@ -8,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using WinFormsApp = System.Windows.Forms.Application;
@@ -21,6 +23,7 @@ namespace SUSModder.Services
     public sealed class SystemTrayService : IDisposable
     {
         private NotifyIcon? _notifyIcon;
+        private Icon? _trayIcon;
         private ContextMenuStrip? _contextMenu;
         private Window? _mainWindow;
         private bool _isVisible;
@@ -56,21 +59,7 @@ namespace SUSModder.Services
             if (_notifyIcon != null)
                 return;
 
-            // Pobierz ikonkę z pliku wykonywalnego aplikacji
-            // (Assets/icon.ico jest ustawione jako ApplicationIcon w csproj i osadzone w .exe)
-            Icon? icon = null;
-            try
-            {
-                var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
-                if (!string.IsNullOrEmpty(exePath))
-                    icon = Icon.ExtractAssociatedIcon(exePath);
-                else
-                    icon = SystemIcons.Application;
-            }
-            catch
-            {
-                icon = SystemIcons.Application;
-            }
+            _trayIcon = LoadTrayIcon();
 
             _contextMenu = new ContextMenuStrip();
             _contextMenu.Font = new Font("Segoe UI", 9F);
@@ -79,7 +68,7 @@ namespace SUSModder.Services
 
             _notifyIcon = new NotifyIcon
             {
-                Icon = icon,
+                Icon = _trayIcon,
                 Text = "SUSModder",
                 ContextMenuStrip = _contextMenu,
                 Visible = false
@@ -95,6 +84,52 @@ namespace SUSModder.Services
             };
 
             Debug.WriteLine("[SystemTrayService] Zainicjalizowano");
+        }
+
+        /// <summary>
+        /// Ładuje ikonę tray z zasobów Avalonia (nie z ikony procesu hosta — dotnet.exe przy F5).
+        /// </summary>
+        private static Icon LoadTrayIcon()
+        {
+            try
+            {
+                using var stream = AssetLoader.Open(new Uri("avares://SUSModder/Assets/icon.ico"));
+                return new Icon(stream);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[SystemTrayService] avares icon.ico: {ex.Message}");
+            }
+
+            try
+            {
+                var path = Path.Combine(AppContext.BaseDirectory, "Assets", "icon.ico");
+                if (File.Exists(path))
+                    return new Icon(path);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[SystemTrayService] Assets/icon.ico: {ex.Message}");
+            }
+
+            try
+            {
+                var exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                if (!string.IsNullOrEmpty(exePath) &&
+                    exePath.Contains("SUSModder", StringComparison.OrdinalIgnoreCase))
+                {
+                    var extracted = Icon.ExtractAssociatedIcon(exePath);
+                    if (extracted != null)
+                        return extracted;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[SystemTrayService] ExtractAssociatedIcon: {ex.Message}");
+            }
+
+            Debug.WriteLine("[SystemTrayService] Fallback: SystemIcons.Application");
+            return SystemIcons.Application;
         }
 
         /// <summary>
@@ -282,9 +317,10 @@ namespace SUSModder.Services
                 return;
 
             _disposed = true;
-            _notifyIcon?.Dispose();
+            _notifyIcon?.Dispose(); // dispose też przypisanej Icon
             _contextMenu?.Dispose();
             _notifyIcon = null;
+            _trayIcon = null;
             _contextMenu = null;
             _recentMods.Clear();
             Debug.WriteLine("[SystemTrayService] Zniszczono");

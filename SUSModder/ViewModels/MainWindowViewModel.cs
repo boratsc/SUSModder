@@ -98,6 +98,15 @@ namespace SUSModder.ViewModels
         // Flaga blokująca interakcję podczas inicjalizacji aplikacji
         private bool _isInitializing = true;
 
+        /// <summary>
+        /// Podczas odświeżania listy modów ignoruj chwilowe null z ListBox.SelectedItem
+        /// oraz nie zamykaj paneli narzędziowych / modala.
+        /// </summary>
+        private bool _suppressSelectedModPanelReset;
+
+        private bool _pendingModsListRefresh;
+        private bool _pendingModsListRefreshCheckUpdates = true;
+
         // Zarządzanie wielokrotnymi instalacjami i dialogami DLL
         private int _activeInstallationsCount = 0;
         private readonly object _installationLock = new object();
@@ -445,41 +454,36 @@ namespace SUSModder.ViewModels
             get => _selectedMod;
             set
             {
+                if (_suppressSelectedModPanelReset)
+                {
+                    if (value == null)
+                        return;
+
+                    this.RaiseAndSetIfChanged(ref _selectedMod, value);
+                    this.RaisePropertyChanged(nameof(IsModSelected));
+                    this.RaisePropertyChanged(nameof(IsModPanelVisible));
+                    return;
+                }
+
                 var previousMod = _selectedMod;
                 
-                // Jeśli zmieniamy mod (nie ten sam), najpierw ukryj zawartość (fade out)
-                if (value != null && previousMod != null && previousMod.Name != value.Name)
+                // Przełączenie moda A → B: animacja treści, bez zamykania tool modali
+                if (value != null && previousMod != null && previousMod.Id != value.Id)
                 {
                     IsModContentVisible = false;
                     
-                    // Poczekaj na połowę fade out (400ms na fade out, czekamy 225ms aby była pewność że się ukryje)
                     Task.Delay(225).ContinueWith(_ =>
                     {
                         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                         {
-                            // Teraz zmień mod
                             this.RaiseAndSetIfChanged(ref _selectedMod, value);
                             this.RaisePropertyChanged(nameof(IsModSelected));
                             this.RaisePropertyChanged(nameof(IsModPanelVisible));
-                            
-                            IsInfoPanelVisible = false;
-                            IsAdditionalActionsVisible = false;
-                            IsDllModificationsVisible = false;
-                            IsSUStatsConfigVisible = false;
-                            IsAppSettingsVisible = false;
-                            IsRecommendedDiscordsVisible = false;
-                            IsRepairOptionsVisible = false;
-                            IsDllInstallDialogVisible = false;
-                            IsVersionSelectionModalVisible = false;
-                            VersionSelectionModalViewModel = null;
-                            CloseDllSelectionModal();
-                            
-                            // Pokaż nową zawartość (fade in)
                             IsModContentVisible = true;
                         });
                     });
                     
-                    return; // Nie kontynuuj dalej
+                    return;
                 }
                 
                 // Dla pierwszego wyboru lub tego samego moda - bez animacji fade out
@@ -634,6 +638,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             ShowSUStatsConfigCommand = ReactiveCommand.Create(ShowSUStatsConfig);
             ExecuteRepairOptionCommand = ReactiveCommand.CreateFromTask<string>(ExecuteRepairOptionFromModalAsync);
             InitializeFrontendLayout();
+            InitializeBulkOperations();
             
             // Subscribe to language changes to update theme button text
             if (_localizationService is INotifyPropertyChanged localizationNotify)

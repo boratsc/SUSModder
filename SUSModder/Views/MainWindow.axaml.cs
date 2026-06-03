@@ -106,6 +106,10 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         _fabDiscordPromoContent = this.FindControl<Grid>("FabDiscordPromoContent");
 
+        var modsList = this.FindControl<ListBox>("ModsListBox");
+        if (modsList != null)
+            modsList.SelectionChanged += ModsListBox_SelectionChanged;
+
         // Inicjalizuj komendy
         RemoveSingleInstanceCommand = ReactiveCommand.CreateFromTask(RemoveSingleInstanceAsync);
         LaunchMultipleInstancesCommand = ReactiveCommand.CreateFromTask(LaunchMultipleInstancesAsync);
@@ -137,6 +141,14 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                       UpdateFabIcon(vm);
                   })
                   .DisposeWith(disposables);
+
+                vm.WhenAnyValue(x => x.IsBulkSelectionMode)
+                  .Subscribe(active =>
+                  {
+                      if (active)
+                          _bulkListSelectionAnchor = vm.SelectedMod;
+                  })
+                  .DisposeWith(disposables);
             }
         });
     }
@@ -161,27 +173,66 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         });
     }
 
-    private void ModDeveloperMenuButton_Click(object sender, RoutedEventArgs e)
-    {
-        // Menu flyout otworzy si� automatycznie
-        // Tutaj mamy dost�p do wybranego moda przez DataContext
-        if (DataContext is MainWindowViewModel vm && vm.SelectedMod != null)
-        {
-            Debug.WriteLine($"Developer menu opened for mod: {vm.SelectedMod.Name}");
-        }
-    }
+    private ModItem? _bulkListSelectionAnchor;
+    private bool _revertingBulkListSelection;
 
-    /// <summary>
-    /// Obsługa przełącznika auto-aktualizacji dla moda.
-    /// Zapisuje ustawienie do installation-map.json.
-    /// </summary>
-    private async void AutoUpdateToggle_Click(object? sender, RoutedEventArgs e)
+    private void ModsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel vm || vm.SelectedMod == null)
+        if (_revertingBulkListSelection || sender is not ListBox listBox)
+            return;
+        if (DataContext is not MainWindowViewModel vm)
             return;
 
-        var modItem = vm.SelectedMod;
-        await vm.ToggleAutoUpdateAsync(modItem, modItem.AutoUpdateEnabled);
+        if (!vm.IsBulkSelectionMode)
+        {
+            _bulkListSelectionAnchor = vm.SelectedMod;
+            return;
+        }
+
+        if (listBox.SelectedItem is not ModItem clicked)
+            return;
+
+        _revertingBulkListSelection = true;
+        try
+        {
+            listBox.SelectedItem = _bulkListSelectionAnchor;
+        }
+        finally
+        {
+            _revertingBulkListSelection = false;
+        }
+
+        vm.ToggleBulkModCheckCommand.Execute(clicked).Subscribe();
+    }
+
+    private void ModGridBackground_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm || !vm.IsModPanelVisible)
+            return;
+
+        for (Control? c = e.Source as Control; c != null; c = c.Parent as Control)
+        {
+            if (c is ListBoxItem or Controls.ModCard or CheckBox or BulkModeChip)
+                return;
+            if (c is Button btn && btn.Classes.Contains("bulk-mode-chip"))
+                return;
+        }
+
+        vm.CloseModDetailCommand.Execute().Subscribe();
+        e.Handled = true;
+    }
+
+    private void MainWindow_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape)
+            return;
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+        if (!vm.IsModPanelVisible || vm.IsAnyToolModalOpen)
+            return;
+
+        vm.CloseModDetailCommand.Execute().Subscribe();
+        e.Handled = true;
     }
 
     private async Task RemoveSingleInstanceAsync()
@@ -508,7 +559,9 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     /// </summary>
     public void SetDescriptionWithLinks(string description)
     {
-        if (this.FindControl<StackPanel>("DescriptionPanel") is not StackPanel panel)
+        var panel = this.FindControl<ModDetailDrawer>("ModDetailDrawerControl")?.FindControl<StackPanel>("DescriptionPanel")
+                    ?? this.FindControl<StackPanel>("DescriptionPanel");
+        if (panel is null)
             return;
 
         panel.Children.Clear();

@@ -14,6 +14,7 @@
 	<Color x:Key="StatusNotInstalledColor">#64748B</Color>
 	<Color x:Key="SelectionBarColor">#3B9EFF</Color>
 	<Color x:Key="BulkSelectionColor">#8B5CF6</Color>
+	<Color x:Key="SurfaceGlassFillColor">#D11E2433</Color>
 
 	<!-- Legacy aliases (2.x keys → v3 palette) -->
 	<Color x:Key="PrimaryBackgroundColor">#12141C</Color>
@@ -52,6 +53,23 @@
 	<SolidColorBrush x:Key="StatusNotInstalledBrush" Color="{StaticResource StatusNotInstalledColor}"/>
 	<SolidColorBrush x:Key="SelectionBarBrush" Color="{StaticResource SelectionBarColor}"/>
 	<SolidColorBrush x:Key="BulkSelectionBrush" Color="{StaticResource BulkSelectionColor}"/>
+	<SolidColorBrush x:Key="SurfaceGlassFillBrush" Color="{StaticResource SurfaceGlassFillColor}"/>
+
+	<LinearGradientBrush x:Key="WindowBackgroundGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+		<GradientStop Color="#12141C" Offset="0"/>
+		<GradientStop Color="#161C2A" Offset="0.45"/>
+		<GradientStop Color="#1A2236" Offset="1"/>
+	</LinearGradientBrush>
+
+	<RadialGradientBrush x:Key="WindowAccentGlowBrush" Center="0%,0%" GradientOrigin="0%,0%" RadiusX="1.1" RadiusY="1.1">
+		<GradientStop Color="#263B9EFF" Offset="0"/>
+		<GradientStop Color="#0012141C" Offset="1"/>
+	</RadialGradientBrush>
+
+	<RadialGradientBrush x:Key="WindowBulkGlowBrush" Center="100%,100%" GradientOrigin="100%,100%" RadiusX="1" RadiusY="1">
+		<GradientStop Color="#208B5CF6" Offset="0"/>
+		<GradientStop Color="#0012141C" Offset="1"/>
+	</RadialGradientBrush>
 
 	<SolidColorBrush x:Key="PrimaryBackgroundBrush" Color="{StaticResource PrimaryBackgroundColor}"/>
 	<SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="{StaticResource SecondaryBackgroundColor}"/>

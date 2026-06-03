@@ -24,6 +24,19 @@
       "AddDll": "Dodaj DLL",
       "Roles": "Role"
     },
+    "Bulk": {
+      "SelectMode": "Zaznacz",
+      "SelectModeHint": "Zaznacz wiele modów do instalacji, aktualizacji lub odinstalowania",
+      "Done": "Gotowe",
+      "CancelSelection": "Anuluj",
+      "SelectedCount": "Zaznaczono: {0}",
+      "InstallSelected": "Zainstaluj ({0})",
+      "UpdateSelected": "Aktualizuj ({0})",
+      "UninstallSelected": "Odinstaluj ({0})",
+      "QueueProgress": "Kolejka: {0}/{1} — {2}",
+      "UninstallTitle": "Odinstaluj zaznaczone",
+      "UninstallConfirm": "Odinstalować {0} zaznaczonych modów?"
+    },
     "Labels": {
       "InstalledMods": "Zainstalowanych modów",
       "InstalledIn": "Zainstalowano w",

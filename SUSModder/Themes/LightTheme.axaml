@@ -45,6 +45,14 @@
 	<SolidColorBrush x:Key="ListBoxSelectionBrush" Color="{StaticResource ListBoxSelectionColor}"/>
 	<SolidColorBrush x:Key="InstallPathBorderBrush" Color="{StaticResource InstallPathBorderColor}"/>
 	<SolidColorBrush x:Key="HeartsBackgroundBrush" Color="{StaticResource WindowBackgroundColor}"/>
+
+	<LinearGradientBrush x:Key="WindowBackgroundGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+		<GradientStop Color="#F5F5F5" Offset="0"/>
+		<GradientStop Color="#FAFAFA" Offset="1"/>
+	</LinearGradientBrush>
+	<SolidColorBrush x:Key="WindowAccentGlowBrush" Color="Transparent"/>
+	<SolidColorBrush x:Key="WindowBulkGlowBrush" Color="Transparent"/>
+	<SolidColorBrush x:Key="SurfaceGlassFillBrush" Color="#F2FFFFFF"/>
 	<SolidColorBrush x:Key="DllButtonBrush" Color="{StaticResource DllButtonColor}"/>
 	<SolidColorBrush x:Key="StatusBarBackgroundBrush" Color="{StaticResource StatusBarBackgroundColor}"/>
 	<SolidColorBrush x:Key="StatusBarBorderBrush" Color="{StaticResource StatusBarBorderColor}"/>

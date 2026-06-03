@@ -24,6 +24,19 @@
       "AddDll": "Add DLL",
       "Roles": "Roles"
     },
+    "Bulk": {
+      "SelectMode": "Select",
+      "SelectModeHint": "Select multiple mods to install, update, or uninstall",
+      "Done": "Done",
+      "CancelSelection": "Cancel",
+      "SelectedCount": "Selected: {0}",
+      "InstallSelected": "Install ({0})",
+      "UpdateSelected": "Update ({0})",
+      "UninstallSelected": "Uninstall ({0})",
+      "QueueProgress": "Queue: {0}/{1} — {2}",
+      "UninstallTitle": "Uninstall selected",
+      "UninstallConfirm": "Uninstall {0} selected mods?"
+    },
     "Labels": {
       "InstalledMods": "Installed mods",
       "InstalledIn": "Installed in",

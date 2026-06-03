@@ -1,0 +1,349 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:local="using:SUSModder.Views"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             xmlns:converters="using:SUSModder.Converters"
+             x:Class="SUSModder.Views.ModDetailDrawer"
+             x:DataType="vm:MainWindowViewModel">
+	<UserControl.Resources>
+		<converters:StringNotNullOrEmptyToBoolConverter x:Key="StringNotNullOrEmptyToBoolConverter"/>
+		<converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
+	</UserControl.Resources>
+	<Border Classes="mod-detail-panel">
+						<!-- Panel szczegółów moda (po kliknięciu kafelka) -->
+						<Panel Classes="fade-in-panel">
+							<Panel.IsVisible>
+								<Binding Path="IsModSelected"/>
+							</Panel.IsVisible>
+
+							<Grid DataContext="{Binding SelectedMod}"
+									  x:DataType="vm:ModItem"
+									  Classes="mod-content-slide"
+									  Classes.visible="{Binding $parent[local:ModDetailDrawer].DataContext.IsModContentVisible}">
+								<Grid.RowDefinitions>
+									<RowDefinition Height="*"/>
+									<RowDefinition Height="Auto"/>
+								</Grid.RowDefinitions>
+
+								<!-- Row 0: zawartość przewijalna -->
+								<StackPanel Grid.Row="0">
+
+								<Border Classes="mod-detail-glass-shine"/>
+
+								<!-- Header panelu szczegółów -->
+								<Border Classes="mod-detail-header">
+									<Grid>
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="Auto"/>
+											<ColumnDefinition Width="*"/>
+											<ColumnDefinition Width="Auto"/>
+										</Grid.ColumnDefinitions>
+
+										<Button Grid.Column="0"
+												Content="✕"
+												Classes="close-button"
+												Margin="0,0,8,0"
+												Command="{Binding $parent[local:ModDetailDrawer].DataContext.CloseModDetailCommand}"/>
+
+										<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="15">
+											<Panel Width="72" Height="72" VerticalAlignment="Center">
+												<Ellipse Width="72" Height="72" Classes="mod-detail-icon-glow"/>
+												<Image Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
+													   Width="64" Height="64"
+													   HorizontalAlignment="Center"
+													   VerticalAlignment="Center"/>
+											</Panel>
+											<StackPanel VerticalAlignment="Center">
+												<TextBlock Text="{Binding Name}"
+														   FontSize="20" FontWeight="Bold"
+														   Foreground="{DynamicResource TextPrimaryBrush}"
+														   TextWrapping="Wrap"/>
+												<TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}">
+													<Run Text="{loc:Localize UI.Labels.ModVersion}"/>
+													<Run Text=":"/>
+													<Run Text="{Binding ModVersion}"/>
+												</TextBlock>
+												<TextBlock FontSize="10"
+														   Foreground="#FFF8D18B"
+														   IsVisible="{Binding IsPinnedVersionInstall}"
+														   Text="{loc:Localize UI.Labels.PinnedVersionInfo}"/>
+												<TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}">
+													<Run Text="{loc:Localize UI.Labels.GameVersion}"/>
+													<Run Text=":"/>
+													<Run Text="{Binding AmongVersion}"/>
+												</TextBlock>
+											</StackPanel>
+										</StackPanel>
+
+										<Button Grid.Column="2"
+												x:Name="ModDeveloperMenuButton"
+												Content="⋯"
+												FontSize="18"
+												FontWeight="Bold"
+												Width="32"
+												Height="32"
+												Background="Transparent"
+												BorderThickness="0"
+												HorizontalContentAlignment="Center"
+												VerticalContentAlignment="Center"
+												Foreground="{DynamicResource TextPrimaryBrush}"
+												VerticalAlignment="Top"
+												HorizontalAlignment="Right"
+												IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.IsDeveloperMode}"
+												Click="ModDeveloperMenuButton_Click">
+											<Button.Styles>
+												<Style Selector="Button:pointerover">
+													<Setter Property="Background" Value="#40FFFFFF"/>
+													<Setter Property="CornerRadius" Value="4"/>
+												</Style>
+												<Style Selector="Button:pressed">
+													<Setter Property="Background" Value="#60FFFFFF"/>
+													<Setter Property="CornerRadius" Value="4"/>
+												</Style>
+											</Button.Styles>
+
+											<!-- Flyout menu -->
+											<Button.Flyout>
+												<MenuFlyout>
+													<MenuItem Header="{loc:Localize MainWindow.DeveloperMenu.RemoveSingleInstance}">
+														<MenuItem.Command>
+															<Binding Path="$parent[local:MainWindow].RemoveSingleInstanceCommand"/>
+														</MenuItem.Command>
+													</MenuItem>
+													<MenuItem Header="{loc:Localize MainWindow.DeveloperMenu.LaunchMultipleInstances}">
+														<MenuItem.Command>
+															<Binding Path="$parent[local:MainWindow].LaunchMultipleInstancesCommand"/>
+														</MenuItem.Command>
+													</MenuItem>
+												</MenuFlyout>
+											</Button.Flyout>
+										</Button>
+										</Grid>
+								</Border>
+
+								<ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto" Margin="0,0,0,20">
+									<StackPanel x:Name="DescriptionPanel" Orientation="Vertical"/>
+								</ScrollViewer>
+
+							<!-- PROGRESS BAR -->
+							<Border IsVisible="{Binding ShowProgress}"
+									Classes="mod-detail-section">
+								<StackPanel>
+									<TextBlock Text="{Binding InstallStatusMessage}"
+											   FontSize="12"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   TextAlignment="Center"
+											   Margin="0,0,0,8"/>
+									<ProgressBar Value="{Binding InstallProgress}"
+												 Minimum="0"
+												 Maximum="100"
+												 Height="24"
+												 CornerRadius="12"
+												 Background="{DynamicResource WindowBackgroundBrush}"
+												 Foreground="{DynamicResource AccentBrush}"/>
+									<TextBlock Text="{Binding InstallProgress, StringFormat='{}{0}%'}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"
+											   TextAlignment="Center"
+											   Margin="0,5,0,0"/>
+									<TextBlock Text="{Binding DownloadSpeed}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"
+											   TextAlignment="Center"
+											   IsVisible="{Binding DownloadSpeed, Converter={StaticResource StringNotNullOrEmptyToBoolConverter}}"/>
+								</StackPanel>
+							</Border>								<!-- Przyciski dla Vanilla - tylko Uruchom -->
+								<StackPanel IsVisible="{Binding IsVanilla}" Spacing="10">
+									<Button Content="{loc:Localize UI.Buttons.Launch}"
+											Classes="mod-detail-btn"
+											Background="{DynamicResource SuccessBrush}"
+											Foreground="White"
+											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+											Command="{Binding $parent[local:ModDetailDrawer].DataContext.LaunchCommand}"/>
+								</StackPanel>
+
+								<!-- Przyciski dla niezainstalowanego moda (NIE Vanilla) -->
+								<StackPanel Spacing="10">
+									<StackPanel.IsVisible>
+										<MultiBinding Converter="{x:Static BoolConverters.And}">
+											<Binding Path="InstallPath" Converter="{StaticResource StringNotNullOrEmptyToBoolConverter}" ConverterParameter="Invert"/>
+											<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+										</MultiBinding>
+									</StackPanel.IsVisible>
+
+									<Button Content="{loc:Localize UI.Buttons.InstallLatest}"
+											Classes="mod-detail-btn"
+											Background="{DynamicResource AccentBrush}"
+											Foreground="White"
+											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+											Command="{Binding $parent[local:ModDetailDrawer].DataContext.InstallCommand}"/>
+
+									<Button Content="{loc:Localize UI.Buttons.SelectVersion}"
+											Classes="mod-detail-btn"
+											Background="Transparent"
+											BorderBrush="{DynamicResource AccentBrush}"
+											BorderThickness="2"
+											Foreground="{DynamicResource AccentBrush}"
+											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+											Command="{Binding $parent[local:ModDetailDrawer].DataContext.InstallWithVersionSelectionCommand}"/>
+								</StackPanel>
+
+								<!-- Przyciski dla zainstalowanego moda (NIE Vanilla) -->
+								<StackPanel Spacing="10">
+									<StackPanel.IsVisible>
+										<MultiBinding Converter="{x:Static BoolConverters.And}">
+											<Binding Path="InstallPath" Converter="{StaticResource StringNotNullOrEmptyToBoolConverter}"/>
+											<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+										</MultiBinding>
+									</StackPanel.IsVisible>
+
+									<Button Content="{loc:Localize UI.Buttons.Launch}"
+											Classes="mod-detail-btn"
+											Background="{DynamicResource SuccessBrush}"
+											Foreground="White"
+											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+											Command="{Binding $parent[local:ModDetailDrawer].DataContext.LaunchCommand}"/>
+
+									<Button Content="{loc:Localize UI.Buttons.Delete}"
+											Classes="mod-detail-btn"
+											Background="{DynamicResource DangerBrush}"
+											Foreground="White"
+											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+											Command="{Binding $parent[local:ModDetailDrawer].DataContext.UninstallCommand}"/>
+
+									<Button Content="{loc:Localize UI.Buttons.AddDll}"
+											Classes="mod-detail-btn"
+											Background="{DynamicResource DllButtonBrush}"
+											Foreground="White"
+											IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+											Command="{Binding $parent[local:ModDetailDrawer].DataContext.ShowDllSelectionCommand}"/>
+								</StackPanel>
+
+								<!-- Przycisk Role - widoczny dla modów z opisami ról (NIE dla Vanilla) -->
+								<Button Content="{loc:Localize UI.Buttons.Roles}"
+										Classes="mod-detail-btn"
+										Margin="0,10,0,0"
+										Background="#1976D2"
+										Foreground="White"
+										Command="{Binding $parent[local:ModDetailDrawer].DataContext.ShowRolesCommand}">
+									<Button.IsVisible>
+										<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+									</Button.IsVisible>
+									<Button.IsEnabled>
+										<MultiBinding Converter="{x:Static BoolConverters.And}">
+											<Binding Path="IsInstalling" Converter="{x:Static BoolConverters.Not}"/>
+											<Binding Path="HasRoles" FallbackValue="False"/>
+										</MultiBinding>
+									</Button.IsEnabled>
+								</Button>
+
+								<!-- Przycisk Lobby Board - otwiera tablicę kodów dla tego moda -->
+								<Button Content="{loc:Localize UI.Menu.LobbyBoard}"
+										Classes="mod-detail-btn"
+										Margin="0,8,0,0"
+										Background="#7B1FA2"
+										Foreground="White"
+										Command="{Binding $parent[local:ModDetailDrawer].DataContext.ShowLobbyBoardCommand}">
+									<Button.IsVisible>
+										<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+									</Button.IsVisible>
+								</Button>
+								</StackPanel> <!-- koniec Row 0 -->
+
+								<!-- Row 1: sekcja przypięta do dołu -->
+								<StackPanel Grid.Row="1">
+
+								<!-- Auto-update toggle -->
+								<Border Classes="mod-detail-section"
+										Padding="10,6"
+										Margin="0,10,0,0"
+										IsVisible="{Binding IsAutoUpdateToggleVisible}">
+									<Grid ColumnDefinitions="*,Auto">
+										<TextBlock Text="{loc:Localize UI.Labels.AutoUpdate}"
+												   VerticalAlignment="Center"
+												   FontSize="12"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+										<ToggleSwitch Grid.Column="1"
+													  IsChecked="{Binding AutoUpdateEnabled}"
+													  OffContent=""
+													  OnContent=""
+													  Click="AutoUpdateToggle_Click"/>
+									</Grid>
+								</Border>
+
+								<!-- Ticker kodów Lobby Board (przewijane ostatnie 3 kody) -->
+								<Border Classes="mod-detail-section"
+										BorderBrush="{DynamicResource AccentBrush}"
+										Padding="10,6"
+										Margin="0,10,0,0"
+										IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.HasLobbyCodesTicker}">
+									<ScrollViewer HorizontalScrollBarVisibility="Hidden"
+												  VerticalScrollBarVisibility="Disabled">
+										<TextBlock Text="{Binding $parent[local:ModDetailDrawer].DataContext.LobbyCodesTickerText}"
+												   FontSize="12"
+												   Foreground="{DynamicResource TextSecondaryBrush}"
+												   TextTrimming="None"/>
+									</ScrollViewer>
+								</Border>
+
+								<!-- Sekcja "Zainstalowano w:" - ukrywana podczas operacji -->
+								<StackPanel Margin="0,25,0,0">
+									<StackPanel.IsVisible>
+										<MultiBinding Converter="{x:Static BoolConverters.And}">
+											<Binding Path="InstallPath" Converter="{StaticResource StringNotNullOrEmptyToBoolConverter}"/>
+											<Binding Path="ShowProgress" Converter="{x:Static BoolConverters.Not}"/>
+										</MultiBinding>
+									</StackPanel.IsVisible>
+									
+									<TextBlock Text="{loc:Localize UI.Labels.InstalledIn}:"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"
+											   Margin="0,0,0,8"/>
+									<Border BorderBrush="{DynamicResource AccentBrush}"
+											BorderThickness="1"
+											Background="{DynamicResource TertiaryBackgroundBrush}"
+											CornerRadius="6"
+											Margin="0,0,0,4">
+										<SelectableTextBlock Text="{Binding InstallPath, Converter={x:Static converters:PathShorteningConverter.Instance}, ConverterParameter=30}"
+															 Background="Transparent"
+															 Foreground="{DynamicResource TextPrimaryBrush}"
+															 Padding="10"
+															 FontFamily="Consolas"
+															 FontSize="10"
+															 ToolTip.Tip="{Binding InstallPath}"/>
+									</Border>
+									<Grid ColumnDefinitions="*,5,*">
+										<Button Grid.Column="0"
+												Content="{loc:Localize UI.Buttons.OpenFolder}"
+												HorizontalAlignment="Stretch"
+												Padding="8"
+												CornerRadius="6"
+												FontSize="12"
+												FontWeight="SemiBold"
+												Background="{DynamicResource ModCardBackgroundBrush}"
+												Foreground="{DynamicResource TextPrimaryBrush}"
+												BorderBrush="{DynamicResource ModCardBorderBrush}"
+												BorderThickness="1"
+												Command="{Binding $parent[local:ModDetailDrawer].DataContext.OpenFolderCommand}"/>
+
+										<Button Grid.Column="2"
+												Content="{loc:Localize UI.Buttons.CreateShortcut}"
+												HorizontalAlignment="Stretch"
+												Padding="8"
+												CornerRadius="6"
+												FontSize="12"
+												FontWeight="SemiBold"
+												Background="{DynamicResource ModCardBackgroundBrush}"
+												Foreground="{DynamicResource TextPrimaryBrush}"
+												BorderBrush="{DynamicResource ModCardBorderBrush}"
+												BorderThickness="1"
+												Command="{Binding $parent[local:ModDetailDrawer].DataContext.CreateShortcutCommand}"/>
+									</Grid>
+
+								</StackPanel>
+							</StackPanel> <!-- koniec Row 1 -->
+							</Grid> <!-- koniec mod-content grid -->
+						</Panel>
+					</Border>
+</UserControl>

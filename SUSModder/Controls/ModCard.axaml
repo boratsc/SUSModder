@@ -6,6 +6,7 @@
              xmlns:behaviors="using:SUSModder.Behaviors"
              x:Class="SUSModder.Controls.ModCard"
              x:DataType="vm:ModItem"
+             x:CompileBindings="False"
              ToolTip.ShowDelay="300">
     <UserControl.Resources>
         <converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
@@ -16,7 +17,7 @@
             Classes.bulk-checked="{Binding IsCheckedForBulk}">
         <i:Interaction.Behaviors>
             <behaviors:DoubleClickBehavior
-                DoubleClickCommand="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ModDoubleClickCommand}"
+                DoubleClickCommand="{Binding $parent[Window].DataContext.ModDoubleClickCommand}"
                 CommandParameter="{Binding}"
                 DoubleClickInterval="300"/>
         </i:Interaction.Behaviors>
@@ -49,10 +50,9 @@
 
                     <CheckBox Grid.Column="2"
                               IsChecked="{Binding IsCheckedForBulk}"
-                              IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsBulkSelectionMode}"
+                              IsVisible="{Binding $parent[Window].DataContext.IsBulkSelectionMode}"
                               IsEnabled="{Binding IsBulkEligible}"
-                              VerticalAlignment="Top"
-                              Margin="0,0,0,0"/>
+                              VerticalAlignment="Top"/>
                 </Grid>
 
                 <StackPanel Grid.Row="1" VerticalAlignment="Center" Spacing="4">

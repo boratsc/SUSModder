@@ -36,48 +36,44 @@ Baseline screenshotów: `DOC/readme/screenshot-main.png`, `screenshot-install.pn
 
 ---
 
-## Kierunek layoutu: siatka + drawer
+## Kierunek layoutu: adaptive split (master-detail)
+
+**Aktualizacja 2026-06-01 (ergonomia):** zamiast overlay + scrim — dwie kolumny w jednym wierszu; siatka zawsze klikalna.
 
 ```mermaid
 flowchart LR
-  subgraph main [Glowny obszar]
-    Grid[Siatka modow pelna szerokosc]
+  subgraph split [Gdy SelectedMod != null]
+    Col0[Siatka kafelkow - kolumna *]
+    Col1[ModDetailDrawer 400px]
   end
-  subgraph overlay [Warstwa nad siatka]
-    Drawer[ModDetailDrawer z prawej]
-    BulkBar[Pasek bulk nad status barem]
-    Scrim[SurfaceOverlay opcjonalnie]
+  subgraph full [Gdy brak wyboru]
+    GridOnly[Siatka na pelnej szerokosci]
   end
-  Grid --> Drawer
-  Grid --> BulkBar
-  Drawer --> Scrim
 ```
 
 ### Zachowanie
 
-1. **Start:** siatka na pełnej szerokości (brak stałej kolumny 350px).
-2. **Klik kafelka:** `ModDetailDrawer` wjeżdża z prawej (~400px, `MaxWidth` ~45% okna).
-3. **Scrim:** `SurfaceOverlayBrush` 45% — klik poza drawer zamyka panel (`CloseModDetailCommand`).
-4. **Double-click:** bez zmiany semantyki (istniejący `ModDoubleClickCommand`).
-5. **MinWidth 890:** drawer nie zasłania całej siatki; min. ~2 kolumny kafelków widoczne.
+1. **Start:** siatka na pełnej szerokości (kolumna panelu = 0px).
+2. **Klik kafelka:** kolumna prawa ~400px, treść w `ModDetailDrawer.axaml`; można przełączać mod bez zamykania panelu.
+3. **Zamknięcie:** przycisk ✕, **Escape** (gdy panel widoczny, bez otwartego tool modala), **klik w puste tło siatki** (nie w kafelek).
+4. **Brak scrimu** — lewa część nie jest przyciemniona ani zablokowana.
+5. **Double-click:** bez zmiany semantyki (`ModDoubleClickCommand`).
+6. **Przełączenie moda A→B:** tool modale (ustawienia, FAB overlay) **nie** zamykają się; animacja `mod-content-slide` w panelu.
 
 ### Wireframe — okno główne
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  [Zaznacz]  Zaznaczono: 0          (ModGridToolbar)          │
+│  [chip]  siatka modów              │  panel (opcjonalnie)    │
+├──────────────────────────────┬───────────────────────────────┤
+│  [kafel] [kafel] [kafel]     │  [X]  Nagłówek moda          │
+│  [kafel] [kafel]             │  opis, progress, CTA         │
+│  ^klik = zmiana moda         │  ^panel tylko w kolumnie 1   │
+│  ^klik tło = zamknij panel   │                               │
+├──────────────────────────────┴───────────────────────────────┤
+│  [Zainstaluj (0)] [Aktualizuj] [Odinstaluj]  (bulk bar)      │
 ├──────────────────────────────────────────────────────────────┤
-│  ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐                   │
-│  │mod │ │mod │ │mod │ │mod │ │mod │ │mod │   siatka        │
-│  └────┘ └────┘ └────┘ └────┘ └────┘ └────┘                   │
-│                                    ┌─────────────────────┐ │
-│                                    │ [X]  Panel drawer   │ │
-│                                    │  ... szczegóły ...  │ │
-│                                    └─────────────────────┘ │
-├──────────────────────────────────────────────────────────────┤
-│  [Zainstaluj (0)] [Aktualizuj] [Odinstaluj]  (bulk bar)    │
-├──────────────────────────────────────────────────────────────┤
-│  Status bar (bez zmian w tym POC)                            │
+│  Status bar                                                   │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -85,34 +81,33 @@ flowchart LR
 
 ## Kafelki modów (v3)
 
-| Aspekt | 2.x | 3.0 |
-|--------|-----|-----|
-| Rozmiar | 140×140 | **152×168** |
-| Tło | `ModCardBackgroundBrush` | `SurfaceElevatedBrush` (+ alias na stary klucz) |
-| Status | tooltip | **Badge** 8px: zielony / szary / pomarańczowy / niebieski |
-| Zainstalowany | opacity ikony | opacity + opcjonalny pierścień 1px `AccentMutedBrush` |
-| Nawigacja (selected) | gruba obwódka + różowy glow | **lewa krawędź 3px** `SelectionBarBrush` |
-| Bulk | — | checkbox w rogu, tylko gdy `IsBulkSelectionMode` |
-| Instalacja | panel | **pasek 3px** u dołu kafelka (`IsInstalling`) |
+| Aspekt | 2.x | 3.0 (glass) |
+|--------|-----|-------------|
+| Rozmiar | 140×140 | **152×168** (bez zmian) |
+| Tło | `ModCardBackgroundBrush` | **`SurfaceGlassFillBrush`** (~82% opacity) + obwódka gradient |
+| Status | tooltip | **Pill 18px** w prawym górnym rogu (kolor statusu) |
+| Ikona | 64px | 60px + **elipsa glow** (`AccentPrimary` ~10% alpha) |
+| Selekcja | obwódka + glow | **Gradient border 2px** + `BoxShadow` accent (bez lewego paska) |
+| Bulk | — | checkbox **lewy** górny; obwódka `#8B5CF6` |
+| Hover | scale 1.03 | scale **1.02** + jaśniejsza obwódka |
+| Instalacja | panel | pasek 3px u dołu kafelka |
 
-### Wireframe kafelka
+### Wireframe kafelka (glass)
 
 ```
-┌──────────────────┐
-│ ○ badge    [☐]   │  ← bulk checkbox tylko w trybie Zaznacz
-│                  │
+┌──────────────────┐  ← gradient border, zaokrąglenie 12px
+│☐        (pill)│  ← bulk lewo, status prawo
+│    ( glow )      │
 │     [ ikona ]    │
-│                  │
 │   Nazwa moda     │
-│▓▓▓░░░░░░░░░░░░░│  ← progress (opcjonalnie)
+│▓▓▓░░░░░░░░░░░░░│
 └──────────────────┘
-█ ← selection bar (3px lewa)
 ```
 
 ### Komponent
 
 - `SUSModder/Controls/ModCard.axaml` — `UserControl`, `x:DataType="ModItem"`
-- Style: `ModCardStyle.axaml` — klasy `mod-card`, `mod-card--bulk-checked`
+- Style: `ModCardStyle.axaml` — `mod-card`, `bulk-checked`, `ModCardBorderGradientBrush`
 
 ### Nowe właściwości VM
 
@@ -152,7 +147,7 @@ Wyciągnięty z `MainWindow.axaml` do `SUSModder/Views/ModDetailDrawer.axaml`.
 - **Reszta:** istniejące przyciski zachowane; w kolejnych iteracjach można zwijać do `MenuFlyout` „Więcej akcji”.
 - Header: `SurfaceCardBrush` zamiast pełnego `AccentBrush` na całym bloku.
 
-Animacja: rozszerzenie `PanelStyles.axaml` — `drawer-panel`, `drawer-enter`.
+Animacja: `mod-content-slide` przy zmianie `SelectedMod`; styl `drawer-panel` (slide X) — **nieużywany** po przejściu na split.
 
 ---
 
@@ -173,7 +168,7 @@ stateDiagram-v2
 
 | Element | Zachowanie |
 |---------|------------|
-| `ModGridToolbar` | Przycisk „Zaznacz” / „Anuluj”, licznik |
+| `BulkModeChip` | Pływający chip w rogu siatki (wejście/wyjście trybu); licznik + „Gotowe” w `BulkActionBar` |
 | Kafelki | `bulk-checked` — odcień `#8B5CF6` (nie mylić z selection bar) |
 | `BulkActionBar` | Sticky nad status barem: Instaluj / Aktualizuj / Odinstaluj (N) |
 | Kolejka | `ModInstallQueue` w Core — sekwencyjnie, błąd jednego nie przerywa reszty |
@@ -210,9 +205,11 @@ Nowe tokeny semantyczne w `DarkTheme.axaml` — **stare klucze jako aliasy** (br
 | `SelectionBarColor` | `#3B9EFF` | Lewa krawędź selected |
 | `BulkSelectionColor` | `#8B5CF6` | Obramowanie bulk |
 
-Gradient okna (dark only): `WindowBackgroundGradient` — opcjonalny `LinearGradientBrush` w `App.axaml` / `MainWindow` tło — faza 5.
+**Tło MainWindow (dark):** warstwy w [`MainWindow.axaml`](SUSModder/Views/MainWindow.axaml) — `WindowBackgroundGradientBrush` (diagonal `#12141C`→`#1A2236`), `WindowAccentGlowBrush` (radial accent lewy-górny), `WindowBulkGlowBrush` (radial fiolet prawy-dolny). `HeartsBackgroundBrush` zostaje flat pod spodem (dialogi).
 
-Pink / Light: mapowanie tokenów w osobnej fazie (non-goal pierwszego release UI 3.0).
+**Pink:** serca z `ImageBrush`; gradienty/glow = transparent (bez regresji).
+
+**Light:** płaski gradient fallback; glow transparent.
 
 ---
 
@@ -222,8 +219,8 @@ Pink / Light: mapowanie tokenów w osobnej fazie (non-goal pierwszego release UI
 |-------|------|
 | Nowy | `DOC/POC/2026-06-01-ui-refresh-v3-poc.md` |
 | Nowy | `SUSModder/Controls/ModCard.axaml` (+ `.cs`) |
-| Nowy | `SUSModder/Views/ModDetailDrawer.axaml` (+ `.cs`) |
-| Nowy | `SUSModder/Views/ModGridToolbar.axaml` (+ `.cs`) |
+| Nowy | `SUSModder/Views/ModDetailDrawer.axaml` (+ `.cs`) — stub; treść w `MainWindow` (`ModDetailDrawerHost`) |
+| Nowy | `SUSModder/Views/BulkModeChip.axaml` (+ `BulkModeChipStyle.axaml`) |
 | Nowy | `SUSModder/Views/BulkActionBar.axaml` (+ `.cs`) |
 | Nowy | `SUSModder/ViewModels/MainWindowViewModel.BulkOperations.cs` |
 | Nowy | `SUSModder.Core/Services/ModInstallQueue.cs` |
@@ -251,21 +248,35 @@ Pink / Light: mapowanie tokenów w osobnej fazie (non-goal pierwszego release UI
 
 ---
 
+## Ciche odświeżanie listy modów (2026-06-01)
+
+Problem: `RefreshModsListAsync` przy sync config z API ustawiał `IsModsLoading` (skeleton) i robił `Mods.Clear()`, co przez `ListBox.SelectedItem` chwilowo zerowało `SelectedMod` i **zamykało panele narzędziowe**.
+
+Rozwiązanie w kodzie:
+
+| Mechanizm | Opis |
+|-----------|------|
+| `_suppressSelectedModPanelReset` | Ignoruj `SelectedMod = null` podczas refresh; nie zamykaj ustawień / DLL / itd. |
+| `SyncModsListInPlace` | Gdy lista już załadowana — aktualizacja `ModItem` z config bez pełnego rebuildu |
+| Skeleton tylko przy `Mods.Count == 0` | Pierwsze ładowanie; tło API — bez migotania |
+| `deferIfToolModalOpen` | Sync config / auto-update odkładają refresh do zamknięcia modala |
+| `FlushPendingModsListRefreshAsync` | Wywołanie po `CloseToolModal` |
+
 ## Ryzyka
 
 | Ryzyko | Mitigacja |
 |--------|-----------|
-| Konflikt klik: drawer vs bulk checkbox | W `IsBulkSelectionMode` klik kafelka toggluje checkbox; poza trybem — selection + drawer |
+| Konflikt klik: panel vs bulk checkbox | W `IsBulkSelectionMode` `SelectionChanged` cofa `SelectedMod` i toggluje checkbox; poza trybem — selection + panel |
 | `Mods.Clear()` resetuje bulk | Przy refresh zachować `HashSet<int>` zaznaczonych Id |
 | Wydajność cieni/gradientu | Profilować; fallback flat brush |
 | Pink + gradient + serca | Osobna faza; test kontrastu badge |
-| Drawer a11y | ESC zamyka drawer; focus trap — backlog |
+| Panel a11y | ESC zamyka panel (gdy `IsModPanelVisible`); focus trap — backlog |
 
 ---
 
 ## Decyzje do podjęcia przed release
 
-1. Czy klik w scrim **zawsze** zamyka drawer, czy zostawia otwarty podczas instalacji? → POC: zamyka, chyba że `IsInstalling` na wybranym modzie.
+1. Zamknięcie panelu podczas instalacji? → `CloseModDetail` ignoruje gdy `IsInstalling`; klik tło / ESC / ✕.
 2. Czy „Więcej akcji” w jednym flyout w 3.0.0 czy dopiero 3.0.1? → POC: zachować wszystkie przyciski w drawer (bez regresji).
 3. Bulk „Aktualizuj zaznaczone” — tylko mody z `HasUpdateAvailable`? → tak.
 
@@ -284,7 +295,7 @@ Pink / Light: mapowanie tokenów w osobnej fazie (non-goal pierwszego release UI
 ## Kryteria akceptacji
 
 1. Przy starcie widać **pełnoszeroką siatkę** (bez stałej kolumny 350px).
-2. Panel moda = **drawer** ze scrimem.
+2. Panel moda = **adaptive split** (~400px), bez scrimu; siatka zawsze aktywna.
 3. Status moda widoczny na kafelku **bez tooltipa** (badge + opcjonalny progress bar).
 4. Tryb bulk: checkboxy **tylko** po „Zaznacz”; wizualnie odróżnione od selection bar.
 5. Motyw dark: nowe tokeny; dialogi ze starymi kluczami działają (aliasy).
