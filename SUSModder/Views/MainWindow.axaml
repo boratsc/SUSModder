@@ -325,8 +325,6 @@
 				<Border x:Name="PackInstanceDetailDrawerHost"
 						Grid.Column="1"
 						Classes="mod-detail-host"
-						Margin="0,10,10,10"
-						Width="440"
 						MaxWidth="460"
 						IsVisible="{Binding IsPackInstancePanelVisible}">
 					<local:PackInstanceDetailDrawer DataContext="{Binding}"/>
@@ -335,8 +333,6 @@
 				<Border x:Name="ModDetailDrawerHost"
 						Grid.Column="1"
 						Classes="mod-detail-host"
-						Margin="0,10,10,10"
-						Width="440"
 						MaxWidth="460"
 						IsVisible="{Binding IsModPanelVisible}">
 					<local:ModDetailDrawer x:Name="ModDetailDrawerControl" DataContext="{Binding}"/>
@@ -345,8 +341,6 @@
 				<Border x:Name="DllAddonInspectorHost"
 						Grid.Column="1"
 						Classes="mod-detail-host"
-						Margin="0,10,10,10"
-						Width="440"
 						MaxWidth="460"
 						IsVisible="{Binding IsDllPanelVisible}">
 					<local:DllAddonInspector DataContext="{Binding}"/>

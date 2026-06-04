@@ -10,6 +10,7 @@
     </Styles.Resources>
 
     <Style Selector="Border.mod-detail-host">
+        <Setter Property="Margin" Value="0,10,10,10"/>
         <Setter Property="Background" Value="{DynamicResource SurfaceGlassFillBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource ModDetailBorderGradientBrush}"/>
         <Setter Property="BorderThickness" Value="1,0,1,1"/>

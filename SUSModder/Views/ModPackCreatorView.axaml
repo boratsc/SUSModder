@@ -28,10 +28,10 @@
 
 				<StackPanel x:Name="ShareOnlyPanel" Spacing="10">
 					<TextBlock Text="{loc:Localize ModPacks.CreatorNameLabel}" FontWeight="SemiBold"/>
-					<TextBox x:Name="CreatorNameBox" Watermark="{loc:Localize ModPacks.CreatorNameOptional}"/>
+					<TextBox x:Name="CreatorNameBox" PlaceholderText="{loc:Localize ModPacks.CreatorNameOptional}"/>
 
 					<TextBlock Text="{loc:Localize ModPacks.DiscordLabel}" FontWeight="SemiBold"/>
-					<TextBox x:Name="DiscordInviteBox" Watermark="discord.gg/..."/>
+					<TextBox x:Name="DiscordInviteBox" PlaceholderText="discord.gg/..."/>
 
 					<TextBlock Text="{loc:Localize ModPacks.TtlLabel}" FontWeight="SemiBold"/>
 					<ComboBox x:Name="TtlCombo" HorizontalAlignment="Stretch" SelectedIndex="1">

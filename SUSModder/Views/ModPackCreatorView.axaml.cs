@@ -40,6 +40,21 @@ public partial class ModPackCreatorView : UserControl
     public string ModalTitle { get; private set; } = string.Empty;
     public event Action<ModPackCreatorDialogResult?>? Completed;
 
+    /// <summary>Konstruktor wymagany przez loader XAML (design-time / AVLN3001).</summary>
+    public ModPackCreatorView()
+    {
+        _mode = ModPackCreatorMode.ShareOnline;
+        _modPackService = null!;
+        _dllService = null!;
+        _instanceInstaller = null;
+        _instances = null!;
+        _mapper = null!;
+        _versionService = null!;
+        _loc = null!;
+        _platform = string.Empty;
+        InitializeComponent();
+    }
+
     public ModPackCreatorView(
         ModPackCreatorMode mode,
         IModPackService modPackService,

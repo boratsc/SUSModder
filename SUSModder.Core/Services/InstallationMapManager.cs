@@ -182,19 +182,33 @@ namespace SUSModder.Core.Services
             {
                 try
                 {
+                    if (!IsImportableFullModMap(map))
+                    {
+                        log.Write($"[Import] Pomijam niepełną mapę instalacji: {map.DisplayName ?? map.FullMod?.InstallPath ?? "unknown"}");
+                        continue;
+                    }
+
+                    var fullMod = map.FullMod!;
+
                     // Sprawdź czy mod już istnieje w config
-                    var existing = existingConfigs.FirstOrDefault(c => c.Id == map.FullMod.ModId);
+                    var existing = existingConfigs.FirstOrDefault(c => c.Id == fullMod.ModId);
 
                     if (existing != null)
                     {
+                        if (!MatchesDiscoveredFullMod(existing, map))
+                        {
+                            log.Write($"[Import] Pomijam niespójną mapę instalacji dla ID {fullMod.ModId}: katalog='{existing.ModName}' ({existing.ModType}), mapa='{fullMod.ModName}'.");
+                            continue;
+                        }
+
                         // Aktualizuj InstallPath jeśli jest inny
-                        if (existing.InstallPath != map.FullMod.InstallPath)
+                        if (existing.InstallPath != fullMod.InstallPath)
                         {
                             log.Write($"[Import] Aktualizuję InstallPath dla {existing.ModName}");
-                            existing.InstallPath = map.FullMod.InstallPath;
-                            existing.ModVersion = map.FullMod.ModVersion;
-                            existing.AmongVersion = map.FullMod.AmongVersion;
-                            existing.LastUpdated = map.FullMod.LastUpdated;
+                            existing.InstallPath = fullMod.InstallPath;
+                            existing.ModVersion = fullMod.ModVersion;
+                            existing.AmongVersion = fullMod.AmongVersion;
+                            existing.LastUpdated = fullMod.LastUpdated;
                             imported.Add(existing);
                         }
                     }
@@ -203,14 +217,14 @@ namespace SUSModder.Core.Services
                         // Dodaj nowy mod do config
                         var newConfig = new ModConfiguration
                         {
-                            Id = map.FullMod.ModId,
-                            ModName = map.FullMod.ModName,
+                            Id = fullMod.ModId,
+                            ModName = fullMod.ModName,
                             ModType = "full",
-                            ModVersion = map.FullMod.ModVersion,
-                            AmongVersion = map.FullMod.AmongVersion,
-                            InstallPath = map.FullMod.InstallPath,
-                            LastUpdated = map.FullMod.LastUpdated,
-                            GitHubRepoOrLink = map.FullMod.InstalledFrom
+                            ModVersion = fullMod.ModVersion,
+                            AmongVersion = fullMod.AmongVersion,
+                            InstallPath = fullMod.InstallPath,
+                            LastUpdated = fullMod.LastUpdated,
+                            GitHubRepoOrLink = fullMod.InstalledFrom
                         };
 
                         log.Write($"[Import] Dodaję nowy mod: {newConfig.ModName}");
@@ -220,11 +234,30 @@ namespace SUSModder.Core.Services
                 }
                 catch (Exception ex)
                 {
-                    log.Write($"[ERROR] Błąd importu moda {map.FullMod.ModName}: {ex.Message}");
+                    log.Write($"[ERROR] Błąd importu moda {map.FullMod?.ModName ?? map.DisplayName ?? "unknown"}: {ex.Message}");
                 }
             }
 
             return imported;
+        }
+
+        private static bool IsImportableFullModMap(InstallationMap map)
+        {
+            return map.FullMod != null &&
+                   map.FullMod.ModId > 0 &&
+                   !string.IsNullOrWhiteSpace(map.FullMod.ModName) &&
+                   !string.IsNullOrWhiteSpace(map.FullMod.InstallPath);
+        }
+
+        private static bool MatchesDiscoveredFullMod(ModConfiguration existing, InstallationMap map)
+        {
+            if (!string.Equals(existing.ModType, "full", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            return string.Equals(
+                existing.ModName?.Trim(),
+                map.FullMod.ModName?.Trim(),
+                StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

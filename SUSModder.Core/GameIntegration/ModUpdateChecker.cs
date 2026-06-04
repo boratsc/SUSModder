@@ -169,8 +169,9 @@ namespace SUSModder.Core.GameIntegration
 
             foreach (var localMod in localConfigs)
             {
-                // Sprawdź tylko zainstalowane mody typu "full" i "dll"
-                if ((localMod.ModType != "full" && localMod.ModType != "dll") ||
+                // Sprawdź tylko zainstalowane mody typu "full".
+                // DLL mają osobną logikę aktualizacji per pełny mod (InstallationMap/InstalledDlls).
+                if (!string.Equals(localMod.ModType, "full", StringComparison.OrdinalIgnoreCase) ||
                     string.IsNullOrEmpty(localMod.InstallPath) ||
                     !Directory.Exists(localMod.InstallPath))
                     continue;
@@ -189,6 +190,9 @@ namespace SUSModder.Core.GameIntegration
                     var installMap = InstallationMapManager.LoadInstallationMapAsync(localMod.InstallPath).GetAwaiter().GetResult();
                     if (installMap?.FullMod != null && !string.IsNullOrEmpty(installMap.FullMod.ModVersion))
                     {
+                        if (!InstallationMapMatchesMod(installMap.FullMod, localMod))
+                            continue;
+
                         installedVersion = installMap.FullMod.ModVersion;
                         disableAutoUpdatePrompt = installMap.FullMod.DisableAutoUpdatePrompt;
                         pinnedInstallVersion = installMap.FullMod.PinnedInstallVersion;
@@ -255,6 +259,21 @@ namespace SUSModder.Core.GameIntegration
                 return true;
             }
             return false;
+        }
+
+        private static bool InstallationMapMatchesMod(FullModInstallation fullMod, ModConfiguration localMod)
+        {
+            if (fullMod.ModId > 0 && localMod.Id > 0 && fullMod.ModId != localMod.Id)
+                return false;
+
+            if (!string.IsNullOrWhiteSpace(fullMod.ModName) &&
+                !string.IsNullOrWhiteSpace(localMod.ModName) &&
+                !string.Equals(fullMod.ModName.Trim(), localMod.ModName.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private static void ProposeUpdatesToUser(

@@ -459,7 +459,7 @@ namespace SUSModder.Core.Data
             foreach (var apiMod in apiMods)
             {
                 var prev = previousMods.FirstOrDefault(p => p.Id == apiMod.Id);
-                if (prev != null)
+                if (prev != null && CanPreserveInstallData(apiMod, prev))
                 {
                     if (!string.IsNullOrEmpty(prev.InstallPath) && string.IsNullOrEmpty(apiMod.InstallPath))
                         apiMod.InstallPath = prev.InstallPath;
@@ -469,6 +469,26 @@ namespace SUSModder.Core.Data
                         apiMod.LastUpdated = prev.LastUpdated;
                 }
             }
+        }
+
+        private static bool CanPreserveInstallData(ModConfiguration apiMod, ModConfiguration previousMod)
+        {
+            // DLL installations are tracked per full-mod instance in InstallationMap/instance tables.
+            // A single mods.InstallPath on a DLL catalog row is ambiguous and can be stale after API ID reuse.
+            if (!string.Equals(apiMod.ModType, "full", StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(previousMod.ModType, "full", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(apiMod.ModName) &&
+                !string.IsNullOrWhiteSpace(previousMod.ModName) &&
+                !string.Equals(apiMod.ModName.Trim(), previousMod.ModName.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private static bool AreConfigsEquivalent(List<ModConfiguration> a, List<ModConfiguration> b)

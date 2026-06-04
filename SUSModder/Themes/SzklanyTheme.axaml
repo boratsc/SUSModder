@@ -5,6 +5,9 @@
 	<Color x:Key="GlassBackdropTintColor">#9910141F</Color>
 	<Color x:Key="GlassPanelFillColor">#B01B2433</Color>
 	<Color x:Key="GlassPanelStrongFillColor">#D0202738</Color>
+	<Color x:Key="GlassInspectorFillColor">#E0202738</Color>
+	<Color x:Key="GlassModalFillColor">#F0202738</Color>
+	<Color x:Key="GlassModalOverlayColor">#B0000000</Color>
 	<Color x:Key="GlassCardFillColor">#48182433</Color>
 	<Color x:Key="GlassCardFillHighlightColor">#8CFFFFFF</Color>
 	<Color x:Key="GlassStrokeColor">#55FFFFFF</Color>
@@ -40,7 +43,7 @@
 	<Color x:Key="AccentColor">#5BB5FF</Color>
 	<Color x:Key="DangerColor">#F87171</Color>
 	<Color x:Key="SuccessColor">#4ADE80</Color>
-	<Color x:Key="WindowBackgroundColor">#0010141F</Color>
+	<Color x:Key="WindowBackgroundColor">#F0202738</Color>
 	<Color x:Key="PaneBackgroundColor">#D0202738</Color>
 	<Color x:Key="ModCardBackgroundColor">#48182433</Color>
 	<Color x:Key="ModCardBorderColor">#55FFFFFF</Color>
@@ -69,6 +72,9 @@
 	<SolidColorBrush x:Key="GlassBackdropTintBrush" Color="{StaticResource GlassBackdropTintColor}"/>
 	<SolidColorBrush x:Key="GlassPanelFillBrush" Color="{StaticResource GlassPanelFillColor}"/>
 	<SolidColorBrush x:Key="GlassPanelStrongFillBrush" Color="{StaticResource GlassPanelStrongFillColor}"/>
+	<SolidColorBrush x:Key="GlassInspectorFillBrush" Color="{StaticResource GlassInspectorFillColor}"/>
+	<SolidColorBrush x:Key="GlassModalFillBrush" Color="{StaticResource GlassModalFillColor}"/>
+	<SolidColorBrush x:Key="GlassModalOverlayBrush" Color="{StaticResource GlassModalOverlayColor}"/>
 	<SolidColorBrush x:Key="GlassCardFillBrush" Color="{StaticResource GlassCardFillColor}"/>
 	<SolidColorBrush x:Key="GlassStrokeBrush" Color="{StaticResource GlassStrokeColor}"/>
 	<SolidColorBrush x:Key="GlassStrokeSubtleBrush" Color="{StaticResource GlassStrokeSubtleColor}"/>
@@ -96,9 +102,9 @@
 
 	<!-- Window backdrop: lekki tint — tapeta/Mica ma przeświecać między kafelkami -->
 	<LinearGradientBrush x:Key="WindowBackgroundGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
-		<GradientStop Color="#5010141F" Offset="0"/>
-		<GradientStop Color="#38101824" Offset="0.5"/>
-		<GradientStop Color="#28142030" Offset="1"/>
+		<GradientStop Color="#4210141F" Offset="0"/>
+		<GradientStop Color="#2C101824" Offset="0.5"/>
+		<GradientStop Color="#22142030" Offset="1"/>
 	</LinearGradientBrush>
 
 	<LinearGradientBrush x:Key="GlassCardTopHighlightBrush" StartPoint="0%,0%" EndPoint="0%,100%">

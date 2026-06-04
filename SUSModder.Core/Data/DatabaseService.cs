@@ -281,6 +281,10 @@ namespace SUSModder.Core.Data
             var currentVersion = GetUserVersion(conn);
             System.Diagnostics.Debug.WriteLine($"[DatabaseService] Aktualna wersja schematu: {currentVersion}");
 
+            // Defensive bootstrap for partial/corrupt legacy databases used by older builds or tests.
+            // Versioned migrations below assume core tables exist; CREATE IF NOT EXISTS preserves data.
+            CreateAllTables(conn);
+
             if (currentVersion < 1)
             {
                 // Pierwsza migracja: utwórz tabele jeśli nie istnieją

@@ -69,7 +69,9 @@ namespace SUSModder.Core.Services
                 return availableUpdates;
             }
 
-            foreach (var config in currentConfigs.Where(c => !string.IsNullOrEmpty(c.InstallPath)))
+            foreach (var config in currentConfigs.Where(c =>
+                         string.Equals(c.ModType, "full", StringComparison.OrdinalIgnoreCase) &&
+                         !string.IsNullOrEmpty(c.InstallPath)))
             {
                 ModConfiguration? updatedConfig = remoteConfigs.FirstOrDefault(r => r.Id == config.Id);
                 if (updatedConfig != null)
@@ -105,6 +107,12 @@ namespace SUSModder.Core.Services
                         var installMap = await InstallationMapManager.LoadInstallationMapAsync(config.InstallPath);
                         if (installMap?.FullMod != null && !string.IsNullOrEmpty(installMap.FullMod.ModVersion))
                         {
+                            if (!InstallationMapMatchesMod(installMap.FullMod, config))
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[ModUpdateManager] Pomijam niespójny wpis instalacji dla {config.ModName}: mapa wskazuje {installMap.FullMod.ModName} (ID: {installMap.FullMod.ModId})");
+                                continue;
+                            }
+
                             installedVersion = installMap.FullMod.ModVersion;
                             disableAutoUpdatePrompt = installMap.FullMod.DisableAutoUpdatePrompt;
                             pinnedInstallVersion = installMap.FullMod.PinnedInstallVersion;
@@ -165,6 +173,21 @@ namespace SUSModder.Core.Services
 
             System.Diagnostics.Debug.WriteLine($"Found {availableUpdates.Count} updates for installed mods");
             return availableUpdates;
+        }
+
+        private static bool InstallationMapMatchesMod(FullModInstallation fullMod, ModConfiguration config)
+        {
+            if (fullMod.ModId > 0 && config.Id > 0 && fullMod.ModId != config.Id)
+                return false;
+
+            if (!string.IsNullOrWhiteSpace(fullMod.ModName) &&
+                !string.IsNullOrWhiteSpace(config.ModName) &&
+                !string.Equals(fullMod.ModName.Trim(), config.ModName.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private async Task<bool> UpdateUninstalledModsConfigAsync(List<ModConfiguration> uninstalledConfigs)

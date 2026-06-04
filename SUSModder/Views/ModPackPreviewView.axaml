@@ -35,7 +35,7 @@
 				           FontWeight="SemiBold"
 				           Foreground="{DynamicResource TextPrimaryBrush}"/>
 				<TextBox Text="{Binding LocalDisplayName, Mode=TwoWay}"
-				         Watermark="{Binding LocalNamePlaceholder}"/>
+				         PlaceholderText="{Binding LocalNamePlaceholder}"/>
 
 				<TextBlock Text="{Binding DetailsText}"
 				           TextWrapping="Wrap"

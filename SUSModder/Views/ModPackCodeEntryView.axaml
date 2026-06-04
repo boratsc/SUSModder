@@ -30,7 +30,7 @@
 
 		<TextBox Grid.Row="1"
 		         Text="{Binding CodeText, Mode=TwoWay}"
-		         Watermark="{Binding Placeholder}"
+		         PlaceholderText="{Binding Placeholder}"
 		         FontSize="16"
 		         HorizontalAlignment="Stretch"/>
 

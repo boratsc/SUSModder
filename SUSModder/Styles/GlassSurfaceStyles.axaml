@@ -145,10 +145,12 @@
 
 	<!-- === Inspectory (mocniejszy tint) === -->
 	<Style Selector="Window.glass-theme Border.mod-detail-host">
-		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
+		<Setter Property="Margin" Value="0,72,10,10"/>
+		<Setter Property="Background" Value="{DynamicResource GlassInspectorFillBrush}"/>
 		<Setter Property="BorderBrush" Value="{DynamicResource GlassInspectorBorderBrush}"/>
-		<Setter Property="BorderThickness" Value="1,0,1,1"/>
-		<Setter Property="BoxShadow" Value="-6 4 28 0 #77000000"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="CornerRadius" Value="18"/>
+		<Setter Property="BoxShadow" Value="-8 8 32 0 #77000000"/>
 	</Style>
 
 	<Style Selector="Window.glass-theme Border.mod-detail-header">
@@ -220,13 +222,16 @@
 
 	<!-- === Modale / flyouty (mocniejszy frost) === -->
 	<Style Selector="Window.glass-theme Border.tool-modal-overlay">
-		<Setter Property="Background" Value="#99000000"/>
+		<Setter Property="Background" Value="{DynamicResource GlassModalOverlayBrush}"/>
 	</Style>
 
 	<Style Selector="Window.glass-theme Border.tool-modal-card">
-		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
+		<Setter Property="Background" Value="{DynamicResource GlassModalFillBrush}"/>
 		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeBrush}"/>
-		<Setter Property="BoxShadow" Value="0 16 40 0 #88000000"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="CornerRadius" Value="18"/>
+		<Setter Property="ClipToBounds" Value="True"/>
+		<Setter Property="BoxShadow" Value="0 18 46 0 #99000000"/>
 	</Style>
 
 	<!-- === Dostępność: focus ring + danger solid === -->
