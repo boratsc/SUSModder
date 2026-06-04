@@ -12,6 +12,7 @@ using SUSModder.Core.Models;
 using Microsoft.Extensions.Configuration;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.Services.Localization;
+using SUSModder.Services;
 
 namespace SUSModder.ViewModels
 {
@@ -171,21 +172,9 @@ namespace SUSModder.ViewModels
                 // Automatycznie zaznacz zainstalowane ORAZ polecane (Favorite)
                 mod.IsSelected = mod.IsInstalled || compat?.Status == CompatibilityStatus.Favorite;
 
-                // Ustaw informacje o kompatybilności
-                mod.CompatibilityEmoji = compat?.Emoji ?? "❓";
-                mod.CompatibilityDescription = compat?.Description ?? "Kompatybilność nieznana";
-                mod.CompatibilityWarning = (compat != null && CompatibilityService.ShouldShowWarning(compat)) 
-                    ? compat.Warning ?? "Ten mod może nie działać poprawnie." 
-                    : null;
-
-                // Przypisz priorytet sortowania
-                int priority = compat?.Status switch
-                {
-                    CompatibilityStatus.Favorite => 1,
-                    CompatibilityStatus.Works => 2,
-                    CompatibilityStatus.NotTested => 3,
-                    _ => 4
-                };
+                mod.CompatibilityEmoji = CompatibilityDisplayHelper.GetEmoji(compat);
+                mod.CompatibilityDescription = CompatibilityDisplayHelper.GetStatusLabel(compat, _localizationService);
+                mod.CompatibilityWarning = CompatibilityDisplayHelper.GetWarning(compat, _localizationService);
 
                 // Dodaj do listy z priorytetem
                 filteredAndSorted.Add(mod);
@@ -200,13 +189,8 @@ namespace SUSModder.ViewModels
                     var compat = _compatibilityCache.ContainsKey(m.Id) 
                         ? _compatibilityCache[m.Id] 
                         : null;
-                    return compat?.Status switch
-                    {
-                        CompatibilityStatus.Favorite => 1,
-                        CompatibilityStatus.Works => 2,
-                        CompatibilityStatus.NotTested => 3,
-                        _ => 4
-                    };
+                    return CompatibilityDisplayHelper.GetSortPriority(
+                        compat?.Status ?? CompatibilityStatus.NotTested);
                 })
                 .ThenBy(m => m.ModName)
                 .ToList();
@@ -331,8 +315,8 @@ namespace SUSModder.ViewModels
         public string GetCompatibilityEmoji(ModConfiguration dllMod)
         {
             if (dllMod?.Id == null || !_compatibilityCache.TryGetValue(dllMod.Id, out var compat))
-                return "❓";
-            return compat?.Emoji ?? "❓";
+                return CompatibilityStatus.NotTested.GetEmoji();
+            return CompatibilityDisplayHelper.GetEmoji(compat);
         }
 
         /// <summary>
@@ -341,8 +325,8 @@ namespace SUSModder.ViewModels
         public string GetCompatibilityDescription(ModConfiguration dllMod)
         {
             if (dllMod?.Id == null || !_compatibilityCache.TryGetValue(dllMod.Id, out var compat))
-                return "Kompatybilność nieznana";
-            return compat?.Description ?? "Kompatybilność nieznana";
+                return _localizationService.Get("DllModSelection.UnknownCompatibility");
+            return CompatibilityDisplayHelper.GetStatusLabel(compat, _localizationService);
         }
 
         /// <summary>
@@ -352,9 +336,7 @@ namespace SUSModder.ViewModels
         {
             if (dllMod?.Id == null || !_compatibilityCache.TryGetValue(dllMod.Id, out var compat))
                 return null;
-            if (CompatibilityService.ShouldShowWarning(compat))
-                return compat?.Warning ?? "Ten mod może nie działać poprawnie.";
-            return null;
+            return CompatibilityDisplayHelper.GetWarning(compat, _localizationService);
         }
 
         /// <summary>

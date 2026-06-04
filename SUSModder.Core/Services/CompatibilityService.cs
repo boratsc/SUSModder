@@ -83,27 +83,23 @@ namespace SUSModder.Core.Services
                     PropertyNameCaseInsensitive = true
                 });
 
-                if (apiResponse?.FirstCompatibility == null)
+                if (apiResponse?.Compatibilities == null || apiResponse.Compatibilities.Count == 0)
                 {
                     return null;
                 }
 
-                // Konwertuj CompatibilityEntry na CompatibilityInfo
-                var entry = apiResponse.FirstCompatibility;
-                var compatInfo = new CompatibilityInfo
-                {
-                    Id = entry.Id,
-                    StatusCode = entry.Status,
-                    TestedDate = DateTime.TryParse(entry.TestedDate, out var date) ? date : null,
-                    TestedBy = entry.TestedBy,
-                    AmongUsVersion = entry.AmongUsVersion,
-                    Notes = entry.Notes,
-                    IssuesUrl = entry.IssuesUrl,
-                    IsCurrentVersion = entry.IsCurrentVersion,
-                    Warning = entry.Warning
-                };
+                var relevant = apiResponse.Compatibilities
+                    .Where(e => EntryMatchesPair(e, dllModId, fullModId))
+                    .ToList();
 
-                // Cache'uj wynik
+                var compatInfo = CompatibilityMerger.PickBestFromEntries(
+                    relevant.Count > 0 ? relevant : apiResponse.Compatibilities);
+
+                if (compatInfo == null)
+                {
+                    return null;
+                }
+
                 _cache.Set(cacheKey, compatInfo, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
                 return compatInfo;
@@ -182,63 +178,8 @@ namespace SUSModder.Core.Services
                     return new Dictionary<int, CompatibilityInfo>();
                 }
 
-                // Konwertuj z CompatibilityEntry na Dictionary<fullModId, CompatibilityInfo>
-                // UWAGA: API może zwrócić wiele wpisów dla tego samego FULL moda (różne wersje FULL moda lub różne testy)
-                // PRIORYTET WYBORU:
-                // 1. Wpis dla aktualnej wersji FULL moda (IsCurrentVersion = true)
-                // 2. Jeśli brak wpisu dla aktualnej wersji - wpis z najlepszym statusem (F > W > NT > NW)
-                var result = new Dictionary<int, CompatibilityInfo>();
-                
-                foreach (var entry in apiResponse.Compatibilities)
-                {
-                    if (entry.FullMod == null) continue; // Pomijamy wpisy bez FullMod
-                    
-                    var newCompatInfo = new CompatibilityInfo
-                    {
-                        Id = entry.Id,
-                        StatusCode = entry.Status,
-                        TestedDate = string.IsNullOrEmpty(entry.TestedDate) ? null : DateTime.TryParse(entry.TestedDate, out var date) ? date : null,
-                        TestedBy = entry.TestedBy,
-                        AmongUsVersion = entry.AmongUsVersion,
-                        Notes = entry.Notes,
-                        IssuesUrl = entry.IssuesUrl,
-                        IsCurrentVersion = entry.IsCurrentVersion,
-                        Warning = entry.Warning
-                    };
+                var result = CompatibilityMerger.BuildMatrixByFullModId(apiResponse.Compatibilities);
 
-                    // Jeśli ten FULL mod już istnieje w słowniku, wybierz lepszy wpis
-                    if (result.ContainsKey(entry.FullMod.Id))
-                    {
-                        var existingInfo = result[entry.FullMod.Id];
-                        
-                        // PRIORYTET 1: Wpis dla aktualnej wersji
-                        if (newCompatInfo.IsCurrentVersion && !existingInfo.IsCurrentVersion)
-                        {
-                            result[entry.FullMod.Id] = newCompatInfo;
-                        }
-                        else if (!newCompatInfo.IsCurrentVersion && existingInfo.IsCurrentVersion)
-                        {
-                            // Pomijamy wpis dla starej wersji
-                        }
-                        // Oba wpisy dla tej samej wersji (aktualne lub oba nieaktualne) - wybierz lepszy status
-                        else
-                        {
-                            var existingPriority = GetStatusPriority(existingInfo.Status);
-                            var newPriority = GetStatusPriority(newCompatInfo.Status);
-                            
-                            if (newPriority < existingPriority) // Niższy = lepszy (F=1, W=2, NT=3, NW=4)
-                            {
-                                result[entry.FullMod.Id] = newCompatInfo;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        result[entry.FullMod.Id] = newCompatInfo;
-                    }
-                }
-
-                // Cache'uj wynik
                 _cache.Set(cacheKey, result, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
                 return result;
@@ -320,77 +261,10 @@ namespace SUSModder.Core.Services
 
                 System.Diagnostics.Debug.WriteLine($"[CompatibilityService] Deserializowano {apiResponse.Compatibilities.Count} wpisów");
 
-                // Konwertuj z CompatibilityEntry na Dictionary<dllModId, CompatibilityInfo>
-                // UWAGA: API może zwrócić wiele wpisów dla tego samego DLL (różne wersje DLL lub różne testy)
-                // PRIORYTET WYBORU:
-                // 1. Wpis dla aktualnej wersji DLL (IsCurrentVersion = true)
-                // 2. Jeśli brak wpisu dla aktualnej wersji - wpis z najlepszym statusem (F > W > NT > NW)
-                var result = new Dictionary<int, CompatibilityInfo>();
-                
-                foreach (var entry in apiResponse.Compatibilities)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[CompatibilityService] Entry ID={entry.Id}: Status={entry.Status}, IsCurrentVersion={entry.IsCurrentVersion}, DllMod={(entry.DllMod != null ? $"ID={entry.DllMod.Id}, Name={entry.DllMod.Name}, Ver={entry.DllMod.Version}" : "NULL")}");
-                    
-                    if (entry.DllMod == null)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[CompatibilityService] ⚠️ Pomijam wpis ID={entry.Id} - DllMod jest NULL");
-                        continue; // Pomijamy wpisy bez DllMod
-                    }
-                    
-                    var newCompatInfo = new CompatibilityInfo
-                    {
-                        Id = entry.Id,
-                        StatusCode = entry.Status,
-                        TestedDate = string.IsNullOrEmpty(entry.TestedDate) ? null : DateTime.TryParse(entry.TestedDate, out var date) ? date : null,
-                        TestedBy = entry.TestedBy,
-                        AmongUsVersion = entry.AmongUsVersion,
-                        Notes = entry.Notes,
-                        IssuesUrl = entry.IssuesUrl,
-                        IsCurrentVersion = entry.IsCurrentVersion,
-                        Warning = entry.Warning
-                    };
+                var result = CompatibilityMerger.BuildMatrixByDllModId(apiResponse.Compatibilities);
 
-                    // Jeśli ten DLL już istnieje w słowniku, wybierz lepszy wpis
-                    if (result.ContainsKey(entry.DllMod.Id))
-                    {
-                        var existingInfo = result[entry.DllMod.Id];
-                        
-                        // PRIORYTET 1: Wpis dla aktualnej wersji
-                        if (newCompatInfo.IsCurrentVersion && !existingInfo.IsCurrentVersion)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[CompatibilityService] ✓ Nadpisuję DLL ID={entry.DllMod.Id}: używam wpisu dla aktualnej wersji (Status={newCompatInfo.StatusCode})");
-                            result[entry.DllMod.Id] = newCompatInfo;
-                        }
-                        else if (!newCompatInfo.IsCurrentVersion && existingInfo.IsCurrentVersion)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[CompatibilityService] ⊘ Pomijam wpis dla starej wersji DLL ID={entry.DllMod.Id}");
-                        }
-                        // Oba wpisy dla tej samej wersji (aktualne lub oba nieaktualne) - wybierz lepszy status
-                        else
-                        {
-                            var existingPriority = GetStatusPriority(existingInfo.Status);
-                            var newPriority = GetStatusPriority(newCompatInfo.Status);
-                            
-                            if (newPriority < existingPriority) // Niższy = lepszy (F=1, W=2, NT=3, NW=4)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"[CompatibilityService] ✓ Nadpisuję DLL ID={entry.DllMod.Id}: lepszy status {existingInfo.StatusCode} -> {newCompatInfo.StatusCode}");
-                                result[entry.DllMod.Id] = newCompatInfo;
-                            }
-                            else
-                            {
-                                System.Diagnostics.Debug.WriteLine($"[CompatibilityService] ⊘ Pomijam gorszy wpis dla DLL ID={entry.DllMod.Id}: {newCompatInfo.StatusCode} vs {existingInfo.StatusCode}");
-                            }
-                        }
-                    }
-                    else
-                    {
-                        result[entry.DllMod.Id] = newCompatInfo;
-                    }
-                }
+                System.Diagnostics.Debug.WriteLine($"[CompatibilityService] ✅ Zwracam {result.Count} wpisów kompatybilności (tylko IsCurrentVersion)");
 
-                System.Diagnostics.Debug.WriteLine($"[CompatibilityService] ✅ Zwracam {result.Count} wpisów kompatybilności");
-
-                // Cache'uj wynik
                 _cache.Set(cacheKey, result, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
                 return result;
@@ -417,21 +291,11 @@ namespace SUSModder.Core.Services
             }
         }
 
-        /// <summary>
-        /// Zwraca priorytet statusu kompatybilności (niższy = lepszy).
-        /// F (Favorite) = 1, W (Works) = 2, NT (NotTested) = 3, NW (NotWork) = 4
-        /// Używane jako fallback gdy mamy wiele wpisów dla tej samej wersji modów.
-        /// </summary>
-        private static int GetStatusPriority(CompatibilityStatus status)
+        private static bool EntryMatchesPair(CompatibilityEntry entry, int dllModId, int fullModId)
         {
-            return status switch
-            {
-                CompatibilityStatus.Favorite => 1,
-                CompatibilityStatus.Works => 2,
-                CompatibilityStatus.NotTested => 3,
-                CompatibilityStatus.NotWork => 4,
-                _ => 5
-            };
+            var dllOk = entry.DllMod == null || entry.DllMod.Id == dllModId;
+            var fullOk = entry.FullMod == null || entry.FullMod.Id == fullModId;
+            return dllOk && fullOk;
         }
 
         /// <summary>

@@ -42,6 +42,8 @@ namespace SUSModder.ViewModels
         // Ustawienia system tray (domyślnie włączone od v2.4.0)
         private bool _minimizeToTray = true;
         private bool _originalMinimizeToTray = true;
+        private bool _glassReduceTransparency;
+        private bool _originalGlassReduceTransparency;
         private bool _showQuickLaunchInTray = true;
         private bool _originalShowQuickLaunchInTray = true;
 
@@ -264,6 +266,20 @@ namespace SUSModder.ViewModels
             }
         }
 
+        public bool GlassReduceTransparency
+        {
+            get => _glassReduceTransparency;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _glassReduceTransparency, value);
+                CheckForChanges();
+            }
+        }
+
+        public bool IsGlassAppearanceSectionVisible => _currentTheme == "glass";
+
+        private string _currentTheme = "dark";
+
         public LanguageOption? SelectedLanguage
         {
             get
@@ -334,6 +350,12 @@ namespace SUSModder.ViewModels
                 _showQuickLaunchInTray = userSettings.ShowQuickLaunchInTray;
                 _originalShowQuickLaunchInTray = _showQuickLaunchInTray;
 
+                _currentTheme = userSettings.Theme ?? "dark";
+                _glassReduceTransparency = userSettings.GlassReduceTransparency;
+                _originalGlassReduceTransparency = _glassReduceTransparency;
+                this.RaisePropertyChanged(nameof(IsGlassAppearanceSectionVisible));
+                this.RaisePropertyChanged(nameof(GlassReduceTransparency));
+
                 // Załaduj GameMode z user settings
                 _gameMode = userSettings.Mode;
                 _originalGameMode = _gameMode;
@@ -388,7 +410,8 @@ namespace SUSModder.ViewModels
                                (_selectedLanguage?.Code ?? "pl") != _originalLanguage ||
                                _telemetryEnabled != _originalTelemetryEnabled ||
                                _minimizeToTray != _originalMinimizeToTray ||
-                               _showQuickLaunchInTray != _originalShowQuickLaunchInTray;
+                               _showQuickLaunchInTray != _originalShowQuickLaunchInTray ||
+                               _glassReduceTransparency != _originalGlassReduceTransparency;
             this.RaisePropertyChanged(nameof(WindowTitle));
         }
 
@@ -544,6 +567,7 @@ namespace SUSModder.ViewModels
                     settings.UpdateChannel = UpdateChannel;
                     settings.MinimizeToTray = MinimizeToTray;
                     settings.ShowQuickLaunchInTray = ShowQuickLaunchInTray;
+                    settings.GlassReduceTransparency = GlassReduceTransparency;
                     if (_selectedLanguage != null)
                     {
                         settings.Language = _selectedLanguage.Code;
@@ -560,6 +584,7 @@ namespace SUSModder.ViewModels
                 _originalTelemetryEnabled = TelemetryEnabled;
                 _originalMinimizeToTray = MinimizeToTray;
                 _originalShowQuickLaunchInTray = ShowQuickLaunchInTray;
+                _originalGlassReduceTransparency = GlassReduceTransparency;
                 HasUnsavedChanges = false;
 
                 // Powiadom o zapisaniu ustawień
@@ -768,29 +793,12 @@ namespace SUSModder.ViewModels
         {
             try
             {
-                // Pobierz ścieżki z appsettings.json
-                string exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                string appSettingsPath = Path.Combine(exeDir, "appsettings.json");
-                string configPath = Path.Combine(exeDir, "config.json");
-
-                string modsInstallPath = string.Empty;
-                string defaultModsPath = string.Empty;
-
-                if (File.Exists(appSettingsPath))
-                {
-                    var json = await File.ReadAllTextAsync(appSettingsPath);
-                    using var doc = JsonDocument.Parse(json);
-                    if (doc.RootElement.TryGetProperty("AppSettings", out var appSettings))
-                    {
-                        if (appSettings.TryGetProperty("ModsInstallPath", out var modsPathElem))
-                            modsInstallPath = modsPathElem.GetString() ?? string.Empty;
-                        if (appSettings.TryGetProperty("DefaultModsPath", out var defPathElem))
-                            defaultModsPath = defPathElem.GetString() ?? string.Empty;
-                    }
-                }
+                string appSettingsPath = ApplicationPaths.AppSettingsPath;
+                var factoryResetService = new ApplicationFactoryResetService();
+                var directoriesToDelete = factoryResetService.CollectDataPathsToDelete();
 
                 // Pokaż dedykowany dialog potwierdzenia
-                var dialog = new FactoryResetConfirmDialog(modsInstallPath, defaultModsPath);
+                var dialog = new FactoryResetConfirmDialog(directoriesToDelete);
                 var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
 
                 if (mainWindow != null)
@@ -805,77 +813,9 @@ namespace SUSModder.ViewModels
                     return;
                 }
 
-                void ForceDeleteDirectory(string path)
-                {
-                    if (!Directory.Exists(path))
-                        return;
-
-                    foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
-                    {
-                        try
-                        {
-                            var attr = File.GetAttributes(file);
-                            if ((attr & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
-                                File.SetAttributes(file, attr & ~FileAttributes.ReadOnly);
-                        }
-                        catch { /* ignoruj pojedyncze błędy */ }
-                    }
-                    Directory.Delete(path, true);
-                }
-
-                // Usuń katalogi modów
-                if (!string.IsNullOrWhiteSpace(modsInstallPath) && Directory.Exists(modsInstallPath))
-                {
-                    ForceDeleteDirectory(modsInstallPath);
-                }
-                if (!string.IsNullOrWhiteSpace(defaultModsPath))
-                {
-                    string expandedDefault = Environment.ExpandEnvironmentVariables(defaultModsPath);
-                    if (Directory.Exists(expandedDefault))
-                    {
-                        ForceDeleteDirectory(expandedDefault);
-                    }
-                }
-
-                // Usuń config.json
-                if (File.Exists(configPath))
-                {
-                    File.Delete(configPath);
-                }
-
-                // Nadpisz user-settings.json z pustym Mode i Language,
-                // aby przy kolejnym starcie WYMUSIĆ dialogi wyboru.
-                // Samo usuwanie pliku bywało niewystarczające (race z innymi zapisami).
-                var resetUserSettings = new UserSettings
-                {
-                    Mode = string.Empty,
-                    Language = string.Empty,
-                    TelemetryEnabled = true,
-                    Theme = "dark",
-                    ModsInstallPath = string.Empty,
-                    UpdateChannel = "release",
-                    LastLaunchId = 0,
-                    LicenseAccepted = false,
-                    FirstRunDate = string.Empty,
-                    VanillaInstallPath = string.Empty,
-                    AntivirusWarningAcknowledgedSignature = string.Empty,
-                    SettingsVersion = 1 // Oznacz jako już zmigrowane, aby uniknąć redundantnej migracji
-                };
-                _userSettingsService.SaveUserSettings(resetUserSettings);
-
-                // Ustaw flagę wymuszającą ponowny onboarding (język + platforma)
-                // przy następnym uruchomieniu, nawet jeśli inne procesy chwilowo nadpiszą settings.
-                try
-                {
-                    var appDataFolder = UserSettingsService.GetAppDataFolder();
-                    Directory.CreateDirectory(appDataFolder);
-                    var forceOnboardingFlagPath = Path.Combine(appDataFolder, "force-onboarding.flag");
-                    await File.WriteAllTextAsync(forceOnboardingFlagPath, "factory-reset");
-                }
-                catch
-                {
-                    // Nie blokuj resetu jeśli nie udało się zapisać flagi.
-                }
+                await factoryResetService.DeleteModsDirectoriesAsync(directoriesToDelete);
+                factoryResetService.DeleteRuntimeConfigFile();
+                factoryResetService.ScheduleApplicationDataResetOnNextStartup();
 
                 // Wyczyść Configuration:Mode z appsettings.json - dzięki temu migracja
                 // przy starcie nie odczyta starego trybu i wymusi dialog wyboru platformy

@@ -1,0 +1,100 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             x:Class="SUSModder.Views.ModPackPreviewView"
+             x:DataType="vm:ModPackPreviewViewModel"
+             Background="{DynamicResource CardBackgroundBrush}">
+
+	<UserControl.Styles>
+		<Style Selector="UserControl">
+			<Style.Animations>
+				<Animation Duration="0:0:0.3" FillMode="Forward">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+	</UserControl.Styles>
+
+	<Grid Margin="20" RowDefinitions="Auto,*,Auto,Auto">
+		<TextBlock Grid.Row="0"
+		           Text="{Binding HeaderText}"
+		           FontSize="18"
+		           FontWeight="Bold"
+		           Foreground="{DynamicResource TextPrimaryBrush}"
+		           TextWrapping="Wrap"
+		           Margin="0,0,0,8"/>
+
+		<ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+			<StackPanel Spacing="8">
+				<TextBlock Text="{Binding InstallAsNewLabel}"
+				           FontWeight="SemiBold"
+				           Foreground="{DynamicResource TextPrimaryBrush}"/>
+				<TextBox Text="{Binding LocalDisplayName, Mode=TwoWay}"
+				         Watermark="{Binding LocalNamePlaceholder}"/>
+
+				<TextBlock Text="{Binding DetailsText}"
+				           TextWrapping="Wrap"
+				           Foreground="{DynamicResource TextSecondaryBrush}"
+				           FontSize="13"/>
+
+				<Border IsVisible="{Binding IsExternalWarningVisible}"
+				        Background="#33FF5722"
+				        BorderBrush="#FFFF5722"
+				        BorderThickness="1"
+				        CornerRadius="6"
+				        Padding="10"
+				        Margin="0,8,0,0">
+					<StackPanel Spacing="6">
+						<TextBlock Text="{Binding ExternalDllWarning}"
+						           Foreground="#FFFF8A65"
+						           FontWeight="SemiBold"
+						           TextWrapping="Wrap"/>
+						<TextBlock Text="{Binding ExternalDllCaution}"
+						           Foreground="{DynamicResource TextSecondaryBrush}"
+						           TextWrapping="Wrap"
+						           FontSize="12"/>
+						<TextBlock Text="{Binding VtStatusText}"
+						           TextWrapping="Wrap"
+						           FontSize="12"/>
+						<CheckBox Content="{Binding RiskConsentLabel}"
+						          IsVisible="{Binding IsRiskConsentVisible}"
+						          IsChecked="{Binding RiskConsent, Mode=TwoWay}"/>
+					</StackPanel>
+				</Border>
+			</StackPanel>
+		</ScrollViewer>
+
+		<TextBlock Grid.Row="2"
+		           Text="{Binding BlockedText}"
+		           IsVisible="{Binding IsBlockedVisible}"
+		           Foreground="{DynamicResource DangerBrush}"
+		           TextWrapping="Wrap"
+		           Margin="0,8,0,0"/>
+
+		<StackPanel Grid.Row="3"
+		            Orientation="Horizontal"
+		            HorizontalAlignment="Center"
+		            Spacing="12"
+		            Margin="0,16,0,0">
+			<Button Content="{Binding CancelButton}"
+			        MinWidth="120"
+			        Padding="16,10"
+			        CornerRadius="8"
+			        Command="{Binding CancelCommand}"/>
+			<Button Content="{Binding InstallButton}"
+			        MinWidth="180"
+			        Padding="16,10"
+			        CornerRadius="8"
+			        Background="{DynamicResource AccentBrush}"
+			        Foreground="White"
+			        BorderThickness="0"
+			        IsEnabled="{Binding IsInstallEnabled}"
+			        Command="{Binding InstallCommand}"/>
+		</StackPanel>
+	</Grid>
+</UserControl>

@@ -1,63 +1,13 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:converters="using:SUSModder.Converters"
-        xmlns:controls="using:SUSModder.Controls">
+        xmlns:converters="using:SUSModder.Converters">
 
     <Styles.Resources>
         <converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
         <converters:InstallStatusToOpacityConverter x:Key="InstallStatusToOpacityConverter"/>
     </Styles.Resources>
 
-    <Style Selector="controls|ModCard">
-        <Setter Property="Width" Value="152"/>
-        <Setter Property="Height" Value="168"/>
-        <Setter Property="Margin" Value="8"/>
-    </Style>
-
-    <Style Selector="Border.mod-card">
-        <Setter Property="Width" Value="152"/>
-        <Setter Property="Height" Value="168"/>
-        <Setter Property="Margin" Value="0"/>
-        <Setter Property="Padding" Value="8"/>
-        <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
-        <Setter Property="CornerRadius" Value="10"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="RenderTransform" Value="scale(1.0)"/>
-        <Setter Property="BoxShadow" Value="0 2 8 0 #20000000"/>
-        <Setter Property="Transitions">
-            <Transitions>
-                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2">
-                    <TransformOperationsTransition.Easing>
-                        <CubicEaseOut/>
-                    </TransformOperationsTransition.Easing>
-                </TransformOperationsTransition>
-            </Transitions>
-        </Setter>
-    </Style>
-
-    <Style Selector="Border.mod-card.bulk-checked">
-        <Setter Property="BorderBrush" Value="{DynamicResource BulkSelectionBrush}"/>
-        <Setter Property="BorderThickness" Value="2"/>
-        <Setter Property="BoxShadow" Value="0 0 12 1 #608B5CF6"/>
-    </Style>
-
-    <Style Selector="Image.mod-icon">
-        <Setter Property="Width" Value="64"/>
-        <Setter Property="Height" Value="64"/>
-        <Setter Property="HorizontalAlignment" Value="Center"/>
-    </Style>
-
-    <Style Selector="TextBlock.mod-name">
-        <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-        <Setter Property="TextAlignment" Value="Center"/>
-        <Setter Property="TextWrapping" Value="Wrap"/>
-        <Setter Property="HorizontalAlignment" Value="Center"/>
-        <Setter Property="MaxHeight" Value="36"/>
-        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-    </Style>
+    <StyleInclude Source="/Styles/BrowserCardStyle.axaml"/>
 
     <Style Selector="ListBoxItem">
         <Setter Property="Padding" Value="0"/>
@@ -67,23 +17,6 @@
 
     <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
         <Setter Property="Background" Value="Transparent"/>
-    </Style>
-
-    <Style Selector="ListBoxItem:selected Border.mod-card">
-        <Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="BoxShadow" Value="0 4 16 0 #30000000"/>
-    </Style>
-
-    <Style Selector="ListBoxItem:selected Border.mod-card Border.mod-selection-bar">
-        <Setter Property="IsVisible" Value="True"/>
-    </Style>
-
-    <Style Selector="ListBoxItem:pointerover Border.mod-card">
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentMutedBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="RenderTransform" Value="scale(1.03)"/>
-        <Setter Property="BoxShadow" Value="0 8 24 0 #40000000"/>
     </Style>
 
 </Styles>

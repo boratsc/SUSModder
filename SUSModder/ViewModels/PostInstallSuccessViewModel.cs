@@ -25,6 +25,7 @@ namespace SUSModder.ViewModels
     public class PostInstallSuccessViewModel : ViewModelBase
     {
         private bool _dontShowAgain;
+        private bool _autoUpdateEnabled;
         private PostInstallAction _result = PostInstallAction.Dismiss;
 
         /// <summary>Event wołany gdy użytkownik zamyka modal (przycisk lub zewnętrzne zamknięcie).</summary>
@@ -43,6 +44,16 @@ namespace SUSModder.ViewModels
             set => this.RaiseAndSetIfChanged(ref _dontShowAgain, value);
         }
 
+        /// <summary>Czy włączyć automatyczne aktualizacje moda.</summary>
+        public bool AutoUpdateEnabled
+        {
+            get => _autoUpdateEnabled;
+            set => this.RaiseAndSetIfChanged(ref _autoUpdateEnabled, value);
+        }
+
+        /// <summary>Czy pokazać checkbox auto-aktualizacji (ukryty przy przypiętej wersji).</summary>
+        public bool IsAutoUpdateCheckboxVisible { get; }
+
         /// <summary>Wybrana akcja — ustawiana przed wywołaniem CloseRequested.</summary>
         public PostInstallAction Result
         {
@@ -57,6 +68,7 @@ namespace SUSModder.ViewModels
         public string LaunchButton { get; }
         public string AddDllButton { get; }
         public string DontShowAgainCheckbox { get; }
+        public string AutoUpdateCheckbox { get; }
 
         // Komendy
         public ReactiveCommand<Unit, Unit> LaunchCommand { get; }
@@ -66,10 +78,14 @@ namespace SUSModder.ViewModels
         public PostInstallSuccessViewModel(
             string modName,
             bool supportsDll,
-            ILocalizationService localizationService)
+            ILocalizationService localizationService,
+            bool defaultAutoUpdateEnabled = true,
+            bool showAutoUpdateCheckbox = true)
         {
             ModName = modName;
             SupportsDll = supportsDll;
+            IsAutoUpdateCheckboxVisible = showAutoUpdateCheckbox;
+            _autoUpdateEnabled = defaultAutoUpdateEnabled;
 
             Title = localizationService.Get("Dialogs.PostInstallSuccess.Title");
             TitleWithName = localizationService.GetFormatted("Dialogs.PostInstallSuccess.TitleWithName", modName);
@@ -79,6 +95,7 @@ namespace SUSModder.ViewModels
             LaunchButton = localizationService.Get("Dialogs.PostInstallSuccess.LaunchButton");
             AddDllButton = localizationService.Get("Dialogs.PostInstallSuccess.AddDllButton");
             DontShowAgainCheckbox = localizationService.Get("Dialogs.PostInstallSuccess.DontShowAgain");
+            AutoUpdateCheckbox = localizationService.Get("Dialogs.PostInstallSuccess.AutoUpdate");
 
             LaunchCommand = ReactiveCommand.Create(() =>
             {

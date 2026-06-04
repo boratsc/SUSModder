@@ -615,8 +615,11 @@ public int AvailableUpdatesCount
                     }
                     AvailableUpdatesTooltip = tooltipBuilder.ToString().TrimEnd();
 
-                    await Dispatcher.UIThread.InvokeAsync(() =>
-                        SyncModUpdateBadges(result.InstalledModUpdates.Select(u => u.ModName)));
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        SyncModUpdateBadges(result.InstalledModUpdates.Select(u => u.ModName));
+                        await RefreshPackInstancesAsync();
+                    });
 
                     // Auto-aktualizacja w tle dla modów z włączoną auto-aktualizacją
                     // Nie blokujemy - uruchamiamy w tle
@@ -628,7 +631,11 @@ public int AvailableUpdatesCount
                     AvailableUpdatesList.Clear();
                     AvailableUpdatesTooltip = string.Empty;
 
-                    await Dispatcher.UIThread.InvokeAsync(() => SyncModUpdateBadges(Array.Empty<string>()));
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        SyncModUpdateBadges(Array.Empty<string>());
+                        await RefreshPackInstancesAsync();
+                    });
                 }
 
                 // Aktualizuj wyświetlanie statusu po sprawdzeniu aktualizacji

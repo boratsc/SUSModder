@@ -86,6 +86,14 @@
 				        Content="{Binding AddDllButton}"/>
 			</StackPanel>
 
+		<!-- Checkbox auto-aktualizacji -->
+		<CheckBox IsChecked="{Binding AutoUpdateEnabled}"
+		          IsVisible="{Binding IsAutoUpdateCheckboxVisible}"
+		          HorizontalAlignment="Center"
+		          FontSize="12"
+		          Foreground="{DynamicResource TextSecondaryBrush}"
+		          Content="{Binding AutoUpdateCheckbox}"/>
+
 		<!-- Checkbox "Nie pokazuj więcej" -->
 		<CheckBox IsChecked="{Binding DontShowAgain}"
 		          HorizontalAlignment="Center"

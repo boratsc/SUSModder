@@ -1,0 +1,24 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             x:Class="SUSModder.Views.BrowserTabBar"
+             x:DataType="vm:MainWindowViewModel">
+    <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,10,12,0">
+        <Button Classes="browser-tab"
+                Classes.active="{Binding IsCatalogTab}"
+                Command="{Binding SelectBrowserTabCommand}"
+                CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.Catalog}"
+                Content="{loc:Localize UI.Tabs.Catalog}"/>
+        <Button Classes="browser-tab"
+                Classes.active="{Binding IsMyPacksTab}"
+                Command="{Binding SelectBrowserTabCommand}"
+                CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.MyPacks}"
+                Content="{loc:Localize UI.Tabs.MyPacks}"/>
+        <Button Classes="browser-tab"
+                Classes.active="{Binding IsDllAddonsTab}"
+                Command="{Binding SelectBrowserTabCommand}"
+                CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.DllAddons}"
+                Content="{loc:Localize UI.Tabs.DllAddons}"/>
+    </StackPanel>
+</UserControl>

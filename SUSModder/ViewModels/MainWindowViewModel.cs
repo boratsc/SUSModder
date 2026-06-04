@@ -57,9 +57,11 @@ namespace SUSModder.ViewModels
         private ModItem? _selectedMod;
         private ThemeType _currentTheme = ThemeType.Dark;
         private ResourceDictionary? _currentThemeDictionary;
+        private Styles? _glassFlyoutStyles;
         private readonly Uri _darkThemeUri = new Uri("avares://SUSModder/Themes/DarkTheme.axaml");
         private readonly Uri _lightThemeUri = new Uri("avares://SUSModder/Themes/LightTheme.axaml");
         private readonly Uri _pinkThemeUri = new Uri("avares://SUSModder/Themes/PinkTheme.axaml");
+        private readonly Uri _glassThemeUri = new Uri("avares://SUSModder/Themes/SzklanyTheme.axaml");
 
         private bool _isInfoPanelVisible = false;
         private string _appVersion = string.Empty;
@@ -91,6 +93,9 @@ namespace SUSModder.ViewModels
         private VersionSelectionViewModel? _versionSelectionModalViewModel;
         private bool _isPostInstallSuccessVisible = false;
         private PostInstallSuccessViewModel? _postInstallSuccessViewModel;
+        private bool _isAmongUsNotFoundVisible = false;
+        private AmongUsNotFoundViewModel? _amongUsNotFoundViewModel;
+        private TaskCompletionSource<AmongUsNotFoundResult>? _amongUsNotFoundCompletionSource;
         private bool _isLobbyBoardVisible = false;
         private LobbyBoardPanelViewModel? _lobbyBoardViewModel;
         private string _lobbyCodesTickerText = "";
@@ -128,7 +133,11 @@ namespace SUSModder.ViewModels
 
         #region Public Properties
 
-        public bool IsModPanelVisible => IsModSelected && !IsAnyToolModalOpen;
+        public bool IsModPanelVisible =>
+            IsModSelected && !IsPackInstanceSelected && !IsDllPanelVisible && !IsAnyToolModalOpen;
+
+        public bool IsBrowserDetailPanelVisible =>
+            IsModPanelVisible || IsPackInstancePanelVisible || IsDllPanelVisible;
         public bool IsDeveloperMode => DeveloperModeSettings.IsEnabled;
 
         /// <summary>
@@ -235,7 +244,9 @@ namespace SUSModder.ViewModels
             }
         }
 
-        public bool HasLobbyCodesTicker => !string.IsNullOrEmpty(LobbyCodesTickerText) && LobbyBoardViewModel != null;
+        public bool HasLobbyCodesTicker =>
+            !string.IsNullOrEmpty(LobbyCodesTickerText) &&
+            (LobbyBoardViewModel != null || InspectorLobbyEmbedViewModel != null);
 
         public bool IsRecommendedDiscordsVisible
         {
@@ -317,6 +328,22 @@ namespace SUSModder.ViewModels
             set => this.RaiseAndSetIfChanged(ref _postInstallSuccessViewModel, value);
         }
 
+        public bool IsAmongUsNotFoundVisible
+        {
+            get => _isAmongUsNotFoundVisible;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isAmongUsNotFoundVisible, value);
+                NotifyToolModalStateChanged();
+            }
+        }
+
+        public AmongUsNotFoundViewModel? AmongUsNotFoundViewModel
+        {
+            get => _amongUsNotFoundViewModel;
+            set => this.RaiseAndSetIfChanged(ref _amongUsNotFoundViewModel, value);
+        }
+
         public ObservableCollection<ModItem> DllMods
         {
             get => _dllMods;
@@ -328,9 +355,26 @@ namespace SUSModder.ViewModels
             get => _selectedDllMod;
             set
             {
+                if (ReferenceEquals(_selectedDllMod, value))
+                    return;
+
+                if (value != null)
+                {
+                    _selectedMod = null;
+                    _selectedPackInstance = null;
+                    this.RaisePropertyChanged(nameof(SelectedMod));
+                    this.RaisePropertyChanged(nameof(IsModSelected));
+                    this.RaisePropertyChanged(nameof(IsPackInstanceSelected));
+                    this.RaisePropertyChanged(nameof(IsPackInstancePanelVisible));
+                }
+
                 this.RaiseAndSetIfChanged(ref _selectedDllMod, value);
-                this.RaisePropertyChanged(nameof(SelectedDllModName));
-                this.RaisePropertyChanged(nameof(SelectedDllModPngFileName));
+                if (value != null)
+                    LoadDllInstallTargets();
+                else
+                    DllInstallTargets.Clear();
+
+                NotifyDllInspectorProperties();
             }
         }
 
@@ -369,7 +413,8 @@ namespace SUSModder.ViewModels
         {
             Dark,
             Light,
-            Pink
+            Pink,
+            Glass
         }
 
         public ThemeType CurrentTheme
@@ -380,6 +425,7 @@ namespace SUSModder.ViewModels
                 this.RaiseAndSetIfChanged(ref _currentTheme, value);
                 this.RaisePropertyChanged(nameof(ThemeButtonText));
                 this.RaisePropertyChanged(nameof(ThemeButtonIcon));
+                this.RaisePropertyChanged(nameof(IsGlassTheme));
                 ApplyTheme(_currentTheme);
             }
         }
@@ -435,7 +481,8 @@ namespace SUSModder.ViewModels
         {
             ThemeType.Dark => _localizationService.Get("UI.Theme.SwitchToLight"),
             ThemeType.Light => _localizationService.Get("UI.Theme.SwitchToPink"),
-            ThemeType.Pink => _localizationService.Get("UI.Theme.SwitchToDark"),
+            ThemeType.Pink => _localizationService.Get("UI.Theme.SwitchToGlass"),
+            ThemeType.Glass => _localizationService.Get("UI.Theme.SwitchToDark"),
             _ => _localizationService.Get("UI.Theme.SwitchToDark")
         };
 
@@ -443,11 +490,22 @@ namespace SUSModder.ViewModels
         {
             ThemeType.Dark => "☀️",
             ThemeType.Light => "💖",
-            ThemeType.Pink => "🌙",
+            ThemeType.Pink => "🪟",
+            ThemeType.Glass => "🌙",
             _ => "🌙"
         };
 
-        public bool IsDarkTheme => CurrentTheme == ThemeType.Dark;
+        public bool IsGlassTheme => CurrentTheme == ThemeType.Glass;
+
+        private bool _glassReduceTransparency;
+
+        public bool GlassReduceTransparency
+        {
+            get => _glassReduceTransparency;
+            private set => this.RaiseAndSetIfChanged(ref _glassReduceTransparency, value);
+        }
+
+        public bool IsDarkTheme => CurrentTheme == ThemeType.Dark || CurrentTheme == ThemeType.Glass;
 
         public ModItem? SelectedMod
         {
@@ -462,34 +520,76 @@ namespace SUSModder.ViewModels
                     this.RaiseAndSetIfChanged(ref _selectedMod, value);
                     this.RaisePropertyChanged(nameof(IsModSelected));
                     this.RaisePropertyChanged(nameof(IsModPanelVisible));
+                    this.RaisePropertyChanged(nameof(IsBrowserDetailPanelVisible));
+                    OnCatalogModInspectorChanged();
+
+                    // Odświeżenie listy nie resetuje animacji — treść musi zostać widoczna.
+                    if (!IsModContentVisible)
+                        IsModContentVisible = true;
+
                     return;
                 }
 
                 var previousMod = _selectedMod;
                 
-                // Przełączenie moda A → B: animacja treści, bez zamykania tool modali
+                // Przełączenie moda A → B: animacja treści, bez zamykania tool modali.
+                // Wybór aktualizujemy natychmiast — opóźnienie dotyczy tylko fade-in panelu.
+                // Inaczej Install/Launch tuż po SelectedMod = mod trafia na poprzedni mod.
                 if (value != null && previousMod != null && previousMod.Id != value.Id)
                 {
                     IsModContentVisible = false;
-                    
+
+                    if (_selectedPackInstance != null)
+                    {
+                        _selectedPackInstance = null;
+                        this.RaisePropertyChanged(nameof(SelectedPackInstance));
+                        this.RaisePropertyChanged(nameof(IsPackInstanceSelected));
+                        this.RaisePropertyChanged(nameof(IsPackInstancePanelVisible));
+                    }
+
+                    if (_selectedDllMod != null)
+                    {
+                        _selectedDllMod = null;
+                        DllInstallTargets.Clear();
+                        this.RaisePropertyChanged(nameof(SelectedDllMod));
+                        NotifyDllInspectorProperties();
+                    }
+
+                    this.RaiseAndSetIfChanged(ref _selectedMod, value);
+                    this.RaisePropertyChanged(nameof(IsModSelected));
+                    this.RaisePropertyChanged(nameof(IsModPanelVisible));
+                    this.RaisePropertyChanged(nameof(IsBrowserDetailPanelVisible));
+                    OnCatalogModInspectorChanged();
+
                     Task.Delay(225).ContinueWith(_ =>
                     {
-                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                        {
-                            this.RaiseAndSetIfChanged(ref _selectedMod, value);
-                            this.RaisePropertyChanged(nameof(IsModSelected));
-                            this.RaisePropertyChanged(nameof(IsModPanelVisible));
-                            IsModContentVisible = true;
-                        });
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() => IsModContentVisible = true);
                     });
-                    
+
                     return;
                 }
                 
                 // Dla pierwszego wyboru lub tego samego moda - bez animacji fade out
+                if (value != null && _selectedPackInstance != null)
+                {
+                    _selectedPackInstance = null;
+                    this.RaisePropertyChanged(nameof(SelectedPackInstance));
+                    this.RaisePropertyChanged(nameof(IsPackInstanceSelected));
+                    this.RaisePropertyChanged(nameof(IsPackInstancePanelVisible));
+                }
+
+                if (value != null && _selectedDllMod != null)
+                {
+                    _selectedDllMod = null;
+                    DllInstallTargets.Clear();
+                    this.RaisePropertyChanged(nameof(SelectedDllMod));
+                    NotifyDllInspectorProperties();
+                }
+
                 this.RaiseAndSetIfChanged(ref _selectedMod, value);
                 this.RaisePropertyChanged(nameof(IsModSelected));
                 this.RaisePropertyChanged(nameof(IsModPanelVisible));
+                this.RaisePropertyChanged(nameof(IsBrowserDetailPanelVisible));
 
                 if (value != null && previousMod == null)
                 {
@@ -526,7 +626,11 @@ namespace SUSModder.ViewModels
                     IsLobbyBoardVisible = false;
                     LobbyBoardViewModel?.Dispose();
                     LobbyBoardViewModel = null;
+                    ResetInspectorSections();
+                    ClearCatalogCompatibleDlls();
                 }
+
+                OnCatalogModInspectorChanged();
             }
         }
 
@@ -560,6 +664,7 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowLobbyBoardCommand { get; }
         public ReactiveCommand<Unit, Unit> ShareModPackCommand { get; }
+        public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; }
         public ReactiveCommand<Unit, Unit> EnterModPackCodeCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowDllSelectionCommand { get; }
     public ReactiveCommand<Unit, Unit> CheckForAppUpdatesCommand { get; }
@@ -634,10 +739,17 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             ShowRecommendedDiscordsCommand = ReactiveCommand.Create(ShowRecommendedDiscords);
             ShowLobbyBoardCommand = ReactiveCommand.Create(ShowLobbyBoardFromMenu);
             ShareModPackCommand = ReactiveCommand.CreateFromTask(ShowModPackCreatorAsync);
+            CreateLocalPackCommand = ReactiveCommand.CreateFromTask(ShowCreateLocalPackAsync);
             EnterModPackCodeCommand = ReactiveCommand.CreateFromTask(ShowModPackCodeEntryAsync);
             ShowSUStatsConfigCommand = ReactiveCommand.Create(ShowSUStatsConfig);
             ExecuteRepairOptionCommand = ReactiveCommand.CreateFromTask<string>(ExecuteRepairOptionFromModalAsync);
             InitializeFrontendLayout();
+            InitializeModInstances();
+            InitializeDllBrowser();
+            InitializeBrowserFilter();
+            InitializeCatalogInspector();
+            InitializeInspectorCompatExpand();
+            InitializeInspectorLayout();
             InitializeBulkOperations();
             
             // Subscribe to language changes to update theme button text
@@ -666,6 +778,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
 
             // ClearEpicLogsOnStartup przeniesione do InitializeServicesAsync (tworzy ciężki EpicVersionManager)
             LoadSavedTheme();
+            LoadGlassAccessibilitySettings();
             // LoadAppVersion() jest teraz wywoływane wewnątrz InitializeApplicationAsync() (KROK 0)
             // ApplyTheme jest wywoływane po LoadSavedTheme
             ApplyTheme(CurrentTheme);
@@ -684,19 +797,12 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
                 if (mod == null || mod.IsInstalling)
                     return;
 
-                // Sprawdź czy mod jest zainstalowany
+                SelectedMod = mod;
+
                 if (!string.IsNullOrEmpty(mod.InstallPath))
-                {
-                    // Mod zainstalowany - uruchom grę
-                    SelectedMod = mod;
-                    await LaunchAsync();
-                }
+                    await LaunchModItemAsync(mod);
                 else
-                {
-                    // Mod niezainstalowany - zainstaluj
-                    SelectedMod = mod;
-                    Install();
-                }
+                    await InstallModItemAsync(mod, showPostInstallFlow: true);
             });
         }
 
@@ -754,25 +860,10 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
 
         public void ShowLobbyBoard()
         {
-            var mod = SelectedMod;
-            if (mod == null) return;
+            if (SelectedMod == null)
+                return;
 
-            LobbyBoardViewModel?.Dispose();
-
-            var lobbyService = App.GetService<ILobbyBoardService>();
-            var locService = App.GetService<ILocalizationService>();
-            var bridgeReader = App.GetService<LobbyBridgeFileReader>();
-            var vm = new LobbyBoardPanelViewModel(lobbyService, locService, SUSModder.Core.Configuration.ModItemAdapter.ToConfig(mod), bridgeReader);
-            LobbyBoardViewModel = vm;
-
-            // Nasłuchuj zmian tickera
-            vm.WhenAnyValue(x => x.TickerText)
-                .Subscribe(ticker =>
-                {
-                    LobbyCodesTickerText = ticker ?? "";
-                })
-                .DisposeWith(vm.Disposables);
-
+            EnsureLobbyBoardViewModel();
             IsLobbyBoardVisible = true;
         }
 

@@ -7,10 +7,14 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using ReactiveUI;
 using SUSModder.Core.Configuration;
+using SUSModder.Core.Data;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.GameIntegration;
+using SUSModder.Core.Models;
 using SUSModder.Core.Services;
 using SUSModder.Core.Utilities;
+using SUSModder.Services;
+using SUSModder.ViewModels.Helpers;
 
 namespace SUSModder.ViewModels
 {
@@ -51,32 +55,48 @@ namespace SUSModder.ViewModels
 
         public bool IsBulkActionBarVisible => IsBulkSelectionMode || IsBulkQueueRunning;
 
-        public int BulkSelectedCount => Mods.Count(m => m.IsCheckedForBulk && m.IsBulkEligible);
+        private bool IsBulkPacksContext => IsMyPacksTab;
+        private bool IsBulkDllContext => IsDllAddonsTab;
 
-        public int BulkInstallEligibleCount =>
-            GetBulkSelectedMods().Count(m => !m.IsInstalled);
+        public int BulkSelectedCount => IsBulkPacksContext
+            ? GetBulkSelectedPacks().Count
+            : IsBulkDllContext
+                ? GetBulkSelectedDlls().Count
+                : GetBulkSelectedMods().Count;
 
-        public int BulkUpdateEligibleCount =>
-            GetBulkSelectedMods().Count(m => m.IsInstalled && m.HasUpdateAvailable);
+        public int BulkInstallEligibleCount => IsBulkPacksContext
+            ? 0
+            : GetBulkSelectedMods().Count(m => !m.IsInstalled);
 
-        public int BulkUninstallEligibleCount =>
-            GetBulkSelectedMods().Count(m => m.IsInstalled);
+        public int BulkUpdateEligibleCount => IsBulkPacksContext
+            ? GetBulkSelectedPacks().Count(p => p.HasUpdateAvailable)
+            : GetBulkSelectedMods().Count(m => m.IsInstalled && m.HasUpdateAvailable);
 
-        public bool ShowBulkInstallButton => BulkInstallEligibleCount > 0;
-        public bool ShowBulkUpdateButton => BulkUpdateEligibleCount > 0;
-        public bool ShowBulkUninstallButton => BulkUninstallEligibleCount > 0;
+        public int BulkUninstallEligibleCount => IsBulkPacksContext
+            ? GetBulkSelectedPacks().Count
+            : GetBulkSelectedMods().Count(m => m.IsInstalled);
 
-        public string BulkSelectedCountText =>
-            _localizationService.GetFormatted("UI.Bulk.SelectedCount", BulkSelectedCount);
+        public bool ShowBulkInstallButton => !IsBulkPacksContext && !IsBulkDllContext && BulkInstallEligibleCount > 0;
+        public bool ShowBulkUpdateButton => !IsBulkDllContext && BulkUpdateEligibleCount > 0;
+        public bool ShowBulkUninstallButton => !IsBulkDllContext && BulkUninstallEligibleCount > 0;
+        public bool ShowBulkDllInspectButton => IsBulkDllContext && BulkSelectedCount > 0;
+
+        public string BulkSelectedCountText => IsBulkPacksContext
+            ? _localizationService.GetFormatted("UI.Bulk.Packs.SelectedCount", BulkSelectedCount)
+            : IsBulkDllContext
+                ? _localizationService.GetFormatted("UI.Bulk.SelectedDlls", BulkSelectedCount)
+                : _localizationService.GetFormatted("UI.Bulk.SelectedCount", BulkSelectedCount);
 
         public string BulkInstallButtonLabel =>
             _localizationService.GetFormatted("UI.Bulk.InstallSelected", BulkInstallEligibleCount);
 
-        public string BulkUpdateButtonLabel =>
-            _localizationService.GetFormatted("UI.Bulk.UpdateSelected", BulkUpdateEligibleCount);
+        public string BulkUpdateButtonLabel => IsBulkPacksContext
+            ? _localizationService.GetFormatted("UI.Bulk.Packs.UpdateSelected", BulkUpdateEligibleCount)
+            : _localizationService.GetFormatted("UI.Bulk.UpdateSelected", BulkUpdateEligibleCount);
 
-        public string BulkUninstallButtonLabel =>
-            _localizationService.GetFormatted("UI.Bulk.UninstallSelected", BulkUninstallEligibleCount);
+        public string BulkUninstallButtonLabel => IsBulkPacksContext
+            ? _localizationService.GetFormatted("UI.Bulk.Packs.DeleteSelected", BulkUninstallEligibleCount)
+            : _localizationService.GetFormatted("UI.Bulk.UninstallSelected", BulkUninstallEligibleCount);
 
         private void RaiseBulkUiProperties()
         {
@@ -87,6 +107,7 @@ namespace SUSModder.ViewModels
             this.RaisePropertyChanged(nameof(ShowBulkInstallButton));
             this.RaisePropertyChanged(nameof(ShowBulkUpdateButton));
             this.RaisePropertyChanged(nameof(ShowBulkUninstallButton));
+            this.RaisePropertyChanged(nameof(ShowBulkDllInspectButton));
             this.RaisePropertyChanged(nameof(BulkSelectedCountText));
             this.RaisePropertyChanged(nameof(BulkInstallButtonLabel));
             this.RaisePropertyChanged(nameof(BulkUpdateButtonLabel));
@@ -117,12 +138,16 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> BulkUpdateSelectedCommand { get; private set; } = null!;
         public ReactiveCommand<Unit, Unit> BulkUninstallSelectedCommand { get; private set; } = null!;
         public ReactiveCommand<ModItem, Unit> ToggleBulkModCheckCommand { get; private set; } = null!;
+        public ReactiveCommand<ModInstanceItem, Unit> ToggleBulkPackCheckCommand { get; private set; } = null!;
+        public ReactiveCommand<Unit, Unit> BulkOpenSelectedDllInspectorCommand { get; private set; } = null!;
 
         private void InitializeBulkOperations()
         {
             ToggleBulkSelectionModeCommand = ReactiveCommand.Create(ToggleBulkSelectionMode);
             CloseModDetailCommand = ReactiveCommand.Create(CloseModDetail);
             ToggleBulkModCheckCommand = ReactiveCommand.Create<ModItem>(ToggleBulkModCheck);
+            ToggleBulkPackCheckCommand = ReactiveCommand.Create<ModInstanceItem>(ToggleBulkPackCheck);
+            BulkOpenSelectedDllInspectorCommand = ReactiveCommand.Create(OpenFirstBulkSelectedDllInInspector);
             BulkInstallSelectedCommand = ReactiveCommand.CreateFromTask(BulkInstallSelectedAsync);
             BulkUpdateSelectedCommand = ReactiveCommand.CreateFromTask(BulkUpdateSelectedAsync);
             BulkUninstallSelectedCommand = ReactiveCommand.CreateFromTask(BulkUninstallSelectedAsync);
@@ -131,6 +156,7 @@ namespace SUSModder.ViewModels
         private void ToggleBulkSelectionMode()
         {
             IsBulkSelectionMode = !IsBulkSelectionMode;
+            RaiseBulkUiProperties();
         }
 
         private void CloseModDetail()
@@ -146,15 +172,50 @@ namespace SUSModder.ViewModels
             foreach (var mod in Mods)
                 mod.IsCheckedForBulk = false;
 
+            foreach (var pack in PackInstances)
+                pack.IsCheckedForBulk = false;
+
+            foreach (var dll in DllMods)
+                dll.IsCheckedForBulk = false;
+
             RaiseBulkUiProperties();
         }
 
         private void ToggleBulkModCheck(ModItem mod)
         {
-            if (mod == null || !IsBulkSelectionMode || !mod.IsBulkEligible)
+            if (mod == null || !IsBulkSelectionMode || IsBulkPacksContext)
                 return;
 
+            if (IsBulkDllContext)
+            {
+                if (!mod.IsDllBulkEligible)
+                    return;
+            }
+            else if (!mod.IsBulkEligible)
+            {
+                return;
+            }
+
             mod.IsCheckedForBulk = !mod.IsCheckedForBulk;
+            RaiseBulkUiProperties();
+        }
+
+        private void OpenFirstBulkSelectedDllInInspector()
+        {
+            var first = GetBulkSelectedDlls().FirstOrDefault();
+            if (first == null)
+                return;
+
+            IsBulkSelectionMode = false;
+            SelectDllMod(first);
+        }
+
+        private void ToggleBulkPackCheck(ModInstanceItem? pack)
+        {
+            if (pack == null || !IsBulkSelectionMode || !pack.IsBulkEligible || !IsBulkPacksContext)
+                return;
+
+            pack.IsCheckedForBulk = !pack.IsCheckedForBulk;
             RaiseBulkUiProperties();
         }
 
@@ -175,8 +236,17 @@ namespace SUSModder.ViewModels
         private List<ModItem> GetBulkSelectedMods() =>
             Mods.Where(m => m.IsCheckedForBulk && m.IsBulkEligible).ToList();
 
+        private List<ModInstanceItem> GetBulkSelectedPacks() =>
+            PackInstances.Where(p => p.IsCheckedForBulk && p.IsBulkEligible).ToList();
+
+        private List<ModItem> GetBulkSelectedDlls() =>
+            DllMods.Where(d => d.IsCheckedForBulk && d.IsDllBulkEligible).ToList();
+
         private async Task BulkInstallSelectedAsync()
         {
+            if (IsBulkPacksContext)
+                return;
+
             var selected = GetBulkSelectedMods()
                 .Where(m => !m.IsInstalled)
                 .ToList();
@@ -215,6 +285,12 @@ namespace SUSModder.ViewModels
 
         private async Task BulkUpdateSelectedAsync()
         {
+            if (IsBulkPacksContext)
+            {
+                await BulkUpdateSelectedPacksAsync();
+                return;
+            }
+
             var selected = GetBulkSelectedMods()
                 .Where(m => m.HasUpdateAvailable && m.IsInstalled)
                 .ToList();
@@ -263,6 +339,12 @@ namespace SUSModder.ViewModels
 
         private async Task BulkUninstallSelectedAsync()
         {
+            if (IsBulkPacksContext)
+            {
+                await BulkDeleteSelectedPacksAsync();
+                return;
+            }
+
             var selected = GetBulkSelectedMods()
                 .Where(m => m.IsInstalled)
                 .ToList();
@@ -307,6 +389,136 @@ namespace SUSModder.ViewModels
                 });
 
             await RefreshModsListAsync();
+        }
+
+        private async Task BulkUpdateSelectedPacksAsync()
+        {
+            var selected = GetBulkSelectedPacks()
+                .Where(p => p.HasUpdateAvailable)
+                .ToList();
+
+            if (selected.Count == 0)
+                return;
+
+            var configService = new ConfigService();
+            var catalog = configService.LoadConfig();
+            var installer = App.GetService<ModInstanceInstaller>();
+            var silentInteraction = new InstallationSilentUserInteraction();
+            var callbacks = new ModManagerUserCallbacks
+            {
+                ConfirmAsync = silentInteraction.ShowConfirmAsync,
+                ShowErrorAsync = silentInteraction.ShowErrorAsync,
+                ShowInfoAsync = silentInteraction.ShowInfoAsync,
+                RunSteamQrDownloadAsync = _userInteractionService.RunSteamQrDownloadAsync
+            };
+            var repo = App.GetService<IModInstanceRepository>();
+
+            await RunPackBulkQueueAsync(selected, async (pack, _) =>
+            {
+                var instance = repo.GetInstance(pack.InstanceId);
+                if (instance == null)
+                    return false;
+
+                var updatedMod = await configService.CheckInstanceUpdateAsync(instance);
+                if (updatedMod == null)
+                    return false;
+
+                var progressReporter = new UIProgressReporter((percent, _) =>
+                {
+                    pack.Progress = percent;
+                });
+
+                await installer.UpdateInstanceAsync(
+                    pack.InstanceId,
+                    updatedMod,
+                    catalog,
+                    DeterminePlatform(),
+                    progressReporter,
+                    _diagnosticsOutput,
+                    callbacks);
+
+                return true;
+            });
+        }
+
+        private async Task BulkDeleteSelectedPacksAsync()
+        {
+            var selected = GetBulkSelectedPacks();
+            if (selected.Count == 0)
+                return;
+
+            if (!await ShowConfirmDialogAsync(
+                    _localizationService.GetFormatted("UI.Bulk.Packs.DeleteConfirm", selected.Count),
+                    _localizationService.Get("UI.Packs.DeleteTitle")))
+                return;
+
+            var deleteFiles = await ShowConfirmDialogAsync(
+                _localizationService.Get("UI.Packs.DeleteFilesConfirmation"),
+                _localizationService.Get("UI.Packs.DeleteTitle"));
+
+            var installer = App.GetService<ModInstanceInstaller>();
+
+            await RunPackBulkQueueAsync(selected, async (pack, _) =>
+            {
+                try
+                {
+                    await installer.DeleteInstanceAsync(pack.InstanceId, deleteFiles, _diagnosticsOutput);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            });
+
+            SelectedPackInstance = null;
+        }
+
+        private async Task RunPackBulkQueueAsync(
+            IReadOnlyList<ModInstanceItem> packs,
+            Func<ModInstanceItem, CancellationToken, Task<bool>> processAsync)
+        {
+            if (packs.Count == 0)
+                return;
+
+            IsBulkSelectionMode = false;
+            IsBulkQueueRunning = true;
+            BulkQueueTotal = packs.Count;
+            BulkQueueCurrent = 0;
+
+            try
+            {
+                for (var i = 0; i < packs.Count; i++)
+                {
+                    var pack = packs[i];
+                    BulkQueueCurrent = i + 1;
+                    BulkQueueStatusText = _localizationService.GetFormatted(
+                        "UI.Bulk.QueueProgress",
+                        i + 1,
+                        packs.Count,
+                        pack.DisplayName);
+
+                    pack.IsBusy = true;
+                    try
+                    {
+                        await processAsync(pack, CancellationToken.None);
+                    }
+                    finally
+                    {
+                        pack.IsBusy = false;
+                        pack.Progress = 0;
+                    }
+                }
+            }
+            finally
+            {
+                IsBulkQueueRunning = false;
+                BulkQueueStatusText = string.Empty;
+                ClearBulkSelection();
+                await RefreshPackInstancesAsync();
+                await CheckForModUpdatesForStatusBarAsync(force: true);
+                RefreshTrayQuickLaunchList();
+            }
         }
 
         private async Task RunBulkQueueAsync(

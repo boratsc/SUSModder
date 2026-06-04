@@ -81,6 +81,35 @@
 					</StackPanel>
 				</Border>
 
+				<!-- Motyw Szklany — dostępność -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15"
+						IsVisible="{Binding IsGlassAppearanceSectionVisible}">
+					<StackPanel Spacing="12">
+						<TextBlock Text="{local:Localize Settings.General.Appearance.Label}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.General.Appearance.Description}"
+								   FontSize="12"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.General.Appearance.TransparencyWarning}"
+								   FontSize="11"
+								   TextWrapping="Wrap"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   FontStyle="Italic"/>
+						<CheckBox Content="{local:Localize Settings.General.Appearance.ReduceTransparency}"
+								  IsChecked="{Binding GlassReduceTransparency}"
+								  Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.General.Appearance.ReduceTransparencyDescription}"
+								   FontSize="11"
+								   TextWrapping="Wrap"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+					</StackPanel>
+				</Border>
+
 				<!-- Sekcja ścieżek -->
 				<Border Background="{DynamicResource ModCardBackgroundBrush}"
 						BorderBrush="{DynamicResource ModCardBorderBrush}"

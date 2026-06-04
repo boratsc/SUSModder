@@ -82,15 +82,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         if (_systemTrayService == null || DataContext is not MainWindowViewModel vm)
             return;
 
-        // Pobierz 3 ostatnio zainstalowane mody (full mods tylko)
-        var recentMods = vm.Mods?
-            .Where(m => m.IsInstalled && m.IsFullMod)
-            .OrderByDescending(m => m.LastUpdated)
-            .Take(3)
-            .Select(m => new TrayModInfo { Id = m.Id, Name = m.Name })
-            .ToList() ?? new List<TrayModInfo>();
-
-        _systemTrayService.UpdateRecentMods(recentMods);
+        _systemTrayService.UpdateRecentMods(vm.GetTrayQuickLaunchMods());
     }
 
     private void OnTrayRestoreRequested()
@@ -106,9 +98,23 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         _fabDiscordPromoContent = this.FindControl<Grid>("FabDiscordPromoContent");
 
+        var statusBar = this.FindControl<Border>("StatusBar");
+        if (statusBar != null)
+            statusBar.LayoutUpdated += (_, _) => UpdateFabMenuLayout();
+
+        LayoutUpdated += (_, _) => UpdateFabMenuLayout();
+
         var modsList = this.FindControl<ListBox>("ModsListBox");
         if (modsList != null)
             modsList.SelectionChanged += ModsListBox_SelectionChanged;
+
+        var packsList = this.FindControl<ListBox>("PackInstancesListBox");
+        if (packsList != null)
+            packsList.SelectionChanged += PackInstancesListBox_SelectionChanged;
+
+        var dllList = this.FindControl<ListBox>("DllModsListBox");
+        if (dllList != null)
+            dllList.SelectionChanged += DllModsListBox_SelectionChanged;
 
         // Inicjalizuj komendy
         RemoveSingleInstanceCommand = ReactiveCommand.CreateFromTask(RemoveSingleInstanceAsync);
@@ -146,11 +152,60 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                   .Subscribe(active =>
                   {
                       if (active)
+                      {
                           _bulkListSelectionAnchor = vm.SelectedMod;
+                          _bulkPackSelectionAnchor = vm.SelectedPackInstance;
+                      }
                   })
                   .DisposeWith(disposables);
+
+                vm.WhenAnyValue(x => x.IsPaneOpen)
+                  .Subscribe(_ => UpdateFabMenuLayout())
+                  .DisposeWith(disposables);
+
+                vm.WhenAnyValue(x => x.IsDiscordPromoStatusBarMode, x => x.IsSystemStatusBarMode)
+                  .Subscribe(_ => UpdateFabMenuLayout())
+                  .DisposeWith(disposables);
+
+                SubscribeGlassThemeChanges(vm, disposables);
             }
         });
+
+        InitializeGlassThemeHooks();
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == ActualTransparencyLevelProperty)
+            OnGlassTransparencyLevelChanged();
+    }
+
+    /// <summary>
+    /// Kotwiczy menu FAB tuż nad przyciskiem (wysokość paska statusu + przewijanie przy długiej liście).
+    /// </summary>
+    private void UpdateFabMenuLayout()
+    {
+        var panel = this.FindControl<Border>("FabMenuPanel");
+        var scroll = this.FindControl<ScrollViewer>("FabMenuScroll");
+        var statusBar = this.FindControl<Border>("StatusBar");
+        if (panel == null)
+            return;
+
+        const double gapAboveStatusBar = 10;
+        var statusHeight = statusBar?.Bounds.Height ?? 0;
+        if (statusHeight < 1)
+            statusHeight = 76;
+
+        panel.Margin = new Thickness(16, 0, 0, statusHeight + gapAboveStatusBar);
+
+        if (scroll == null || Bounds.Height < 1)
+            return;
+
+        var topReserve = 24;
+        var maxMenuHeight = Math.Max(200, Bounds.Height - statusHeight - gapAboveStatusBar - topReserve);
+        scroll.MaxHeight = maxMenuHeight;
     }
 
     /// <summary>
@@ -174,7 +229,11 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     }
 
     private ModItem? _bulkListSelectionAnchor;
+    private ModInstanceItem? _bulkPackSelectionAnchor;
     private bool _revertingBulkListSelection;
+    private bool _revertingBulkPackSelection;
+    private bool _revertingBulkDllSelection;
+    private ModItem? _bulkDllSelectionAnchor;
 
     private void ModsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
@@ -205,20 +264,84 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         vm.ToggleBulkModCheckCommand.Execute(clicked).Subscribe();
     }
 
+    private void PackInstancesListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_revertingBulkPackSelection || sender is not ListBox listBox)
+            return;
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        if (!vm.IsBulkSelectionMode)
+        {
+            _bulkPackSelectionAnchor = vm.SelectedPackInstance;
+            return;
+        }
+
+        if (listBox.SelectedItem is not ModInstanceItem clicked)
+            return;
+
+        _revertingBulkPackSelection = true;
+        try
+        {
+            listBox.SelectedItem = _bulkPackSelectionAnchor;
+        }
+        finally
+        {
+            _revertingBulkPackSelection = false;
+        }
+
+        vm.ToggleBulkPackCheckCommand.Execute(clicked).Subscribe();
+    }
+
+    private void DllModsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_revertingBulkDllSelection || sender is not ListBox listBox)
+            return;
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        if (!vm.IsBulkSelectionMode)
+        {
+            _bulkDllSelectionAnchor = vm.SelectedDllMod;
+            return;
+        }
+
+        if (listBox.SelectedItem is not ModItem clicked)
+            return;
+
+        _revertingBulkDllSelection = true;
+        try
+        {
+            listBox.SelectedItem = _bulkDllSelectionAnchor;
+        }
+        finally
+        {
+            _revertingBulkDllSelection = false;
+        }
+
+        vm.ToggleBulkModCheckCommand.Execute(clicked).Subscribe();
+    }
+
     private void ModGridBackground_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel vm || !vm.IsModPanelVisible)
+        if (DataContext is not MainWindowViewModel vm ||
+            (!vm.IsModPanelVisible && !vm.IsPackInstancePanelVisible && !vm.IsDllPanelVisible))
             return;
 
         for (Control? c = e.Source as Control; c != null; c = c.Parent as Control)
         {
-            if (c is ListBoxItem or Controls.ModCard or CheckBox or BulkModeChip)
+            if (c is ListBoxItem or Controls.ModCard or Controls.PackInstanceCard or Controls.DllAddonCard or CheckBox or BulkModeChip or BrowserTabBar or BrowserToolbar)
                 return;
             if (c is Button btn && btn.Classes.Contains("bulk-mode-chip"))
                 return;
         }
 
-        vm.CloseModDetailCommand.Execute().Subscribe();
+        if (vm.IsDllPanelVisible)
+            vm.CloseDllDetailCommand.Execute().Subscribe();
+        else if (vm.IsPackInstancePanelVisible)
+            vm.ClosePackInstanceDetailCommand.Execute().Subscribe();
+        else
+            vm.CloseModDetailCommand.Execute().Subscribe();
         e.Handled = true;
     }
 
@@ -228,7 +351,24 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             return;
         if (DataContext is not MainWindowViewModel vm)
             return;
-        if (!vm.IsModPanelVisible || vm.IsAnyToolModalOpen)
+        if (vm.IsAnyToolModalOpen)
+            return;
+
+        if (vm.IsDllPanelVisible)
+        {
+            vm.CloseDllDetailCommand.Execute().Subscribe();
+            e.Handled = true;
+            return;
+        }
+
+        if (vm.IsPackInstancePanelVisible)
+        {
+            vm.ClosePackInstanceDetailCommand.Execute().Subscribe();
+            e.Handled = true;
+            return;
+        }
+
+        if (!vm.IsModPanelVisible)
             return;
 
         vm.CloseModDetailCommand.Execute().Subscribe();

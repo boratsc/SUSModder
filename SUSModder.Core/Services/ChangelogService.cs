@@ -20,7 +20,10 @@ namespace SUSModder.Core.Services
         public ChangelogService()
         {
             _httpClient = new HttpClient();
-            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("SUSModder/2.9.0");
+            var appVersion = new UserSettingsService().LoadAppVersion().CurrentVersion;
+            if (string.IsNullOrWhiteSpace(appVersion))
+                appVersion = "0.0.0";
+            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd($"SUSModder/{appVersion}");
             _httpClient.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
         }
 
@@ -240,8 +243,14 @@ namespace SUSModder.Core.Services
         /// </summary>
         public bool IsNewerVersion(string currentVersion, string lastSeenVersion)
         {
-            if (string.IsNullOrWhiteSpace(lastSeenVersion))
-                return true;
+            if (string.IsNullOrWhiteSpace(lastSeenVersion) || string.IsNullOrWhiteSpace(currentVersion))
+                return false;
+
+            if (string.Equals(
+                    currentVersion.Trim(),
+                    lastSeenVersion.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
+                return false;
 
             try
             {

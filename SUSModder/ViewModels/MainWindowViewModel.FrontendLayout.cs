@@ -37,6 +37,11 @@ namespace SUSModder.ViewModels
             IsDllSelectionModalVisible ||
             IsVersionSelectionModalVisible ||
             IsPostInstallSuccessVisible ||
+            IsAmongUsNotFoundVisible ||
+            IsModPackCodeEntryVisible ||
+            IsModPackCreatorVisible ||
+            IsModPackResultVisible ||
+            IsModPackPreviewVisible ||
             IsSUStatsConfigVisible ||
             IsAppSettingsVisible ||
             IsRecommendedDiscordsVisible ||
@@ -48,7 +53,7 @@ namespace SUSModder.ViewModels
             {
                 if (IsLobbyBoardVisible)
                 {
-                    return "🎮 Lobby";
+                    return _localizationService.Get("UI.Menu.LobbyBoard");
                 }
 
                 if (IsDllModalVisible)
@@ -101,6 +106,33 @@ namespace SUSModder.ViewModels
                     return PostInstallSuccessViewModel.Title;
                 }
 
+                if (IsAmongUsNotFoundVisible && AmongUsNotFoundViewModel != null)
+                {
+                    return AmongUsNotFoundViewModel.Title;
+                }
+
+                if (IsModPackCodeEntryVisible)
+                {
+                    return _localizationService.Get("ModPacks.CodeEntryTitle");
+                }
+
+                if (IsModPackCreatorVisible)
+                {
+                    return string.IsNullOrEmpty(ModPackCreatorTitle)
+                        ? _localizationService.Get("ModPacks.CreatorTitle")
+                        : ModPackCreatorTitle;
+                }
+
+                if (IsModPackResultVisible)
+                {
+                    return _localizationService.Get("ModPacks.CreatedTitle");
+                }
+
+                if (IsModPackPreviewVisible)
+                {
+                    return _localizationService.Get("ModPacks.PreviewTitle");
+                }
+
                 return _localizationService.Get("UI.Menu.Info");
             }
         }
@@ -137,6 +169,7 @@ namespace SUSModder.ViewModels
             IsLobbyBoardVisible = false;
             LobbyBoardViewModel?.Dispose();
             LobbyBoardViewModel = null;
+            SetLobbyTickerSource(InspectorLobbyEmbedViewModel);
             IsDllModificationsVisible = false;
             IsSUStatsConfigVisible = false;
             IsAppSettingsVisible = false;
@@ -144,6 +177,8 @@ namespace SUSModder.ViewModels
             IsRepairOptionsVisible = false;
             IsPostInstallSuccessVisible = false;
             PostInstallSuccessViewModel = null;
+            DismissAmongUsNotFoundModal(AmongUsNotFoundResult.Close);
+            DismissActiveModPackModal();
             if (IsVersionSelectionModalVisible)
             {
                 VersionSelectionModalViewModel?.CancelSelection();
@@ -153,7 +188,25 @@ namespace SUSModder.ViewModels
             CloseDllDialog();
             CloseDllSelectionModal();
             ShowNextQueuedDllSelectionIfNeeded();
+            RestoreModDetailPanelAfterToolModal();
+        }
+
+        /// <summary>
+        /// Przywraca widoczność treści i layout panelu szczegółów moda po zamknięciu modala narzędziowego.
+        /// </summary>
+        private void RestoreModDetailPanelAfterToolModal()
+        {
+            if (SelectedMod != null)
+                IsModContentVisible = true;
+
+            NotifyModDetailPanelLayoutChanged();
+        }
+
+        private void NotifyModDetailPanelLayoutChanged()
+        {
             this.RaisePropertyChanged(nameof(IsModPanelVisible));
+            this.RaisePropertyChanged(nameof(IsBrowserDetailPanelVisible));
+            this.RaisePropertyChanged(nameof(IsDllPanelVisible));
         }
 
         private void NotifyToolModalStateChanged()
@@ -161,6 +214,7 @@ namespace SUSModder.ViewModels
             this.RaisePropertyChanged(nameof(IsDllModalVisible));
             this.RaisePropertyChanged(nameof(IsAnyToolModalOpen));
             this.RaisePropertyChanged(nameof(ToolModalTitle));
+            NotifyModDetailPanelLayoutChanged();
         }
     }
 }

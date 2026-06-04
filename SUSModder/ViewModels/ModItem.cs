@@ -30,6 +30,18 @@ namespace SUSModder.ViewModels
         private bool _showProgress = false;
         private bool _isCheckedForBulk;
         private bool _hasUpdateAvailable;
+        private string? _targetInstanceId;
+        private string _installedInSummary = string.Empty;
+        private int _installedInCount;
+
+        /// <summary>
+        /// Gdy ustawione — instalacja DLL dotyczy lokalnej instancji modpacka (Moje zestawy).
+        /// </summary>
+        public string? TargetInstanceId
+        {
+            get => _targetInstanceId;
+            set => this.RaiseAndSetIfChanged(ref _targetInstanceId, value);
+        }
 
         public int Id
         {
@@ -209,6 +221,33 @@ namespace SUSModder.ViewModels
         public bool ShowStatusInstalled => IsInstalled && !ShowStatusBusy && !ShowStatusUpdate;
         public bool ShowStatusNotInstalled => !IsInstalled && !ShowStatusBusy;
         public bool IsBulkEligible => !IsVanilla && IsFullMod;
+
+        public bool IsDllBulkEligible => IsDllMod;
+
+        public int InstalledInCount
+        {
+            get => _installedInCount;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _installedInCount, value);
+                this.RaisePropertyChanged(nameof(InstalledInSummary));
+            }
+        }
+
+        public string InstalledInSummary
+        {
+            get => _installedInSummary;
+            set => this.RaiseAndSetIfChanged(ref _installedInSummary, value);
+        }
+
+        public string BrowserSubtitle =>
+            string.IsNullOrWhiteSpace(ModVersion)
+                ? (string.IsNullOrWhiteSpace(AmongVersion) ? string.Empty : AmongVersion)
+                : string.IsNullOrWhiteSpace(AmongVersion)
+                    ? $"v{ModVersion}"
+                    : $"v{ModVersion} · {AmongVersion}";
+
+        public string TypeBadge => IsDllMod ? "DLL" : IsFullMod ? "FULL" : ModType;
 
         public int InstallProgress
         {

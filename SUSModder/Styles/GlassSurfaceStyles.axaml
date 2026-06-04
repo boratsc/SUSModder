@@ -1,0 +1,252 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<!-- === Karty przeglądarki — frosted glass nad backdropiem okna -->
+	<Style Selector="Window.glass-theme Border.browser-card">
+		<Setter Property="Background" Value="{DynamicResource GlassCardFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeBrush}"/>
+		<Setter Property="BoxShadow" Value="0 4 16 0 #66000000"/>
+		<Setter Property="Transitions">
+			<Transitions>
+				<BrushTransition Property="Background" Duration="0:0:0.2"/>
+				<BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
+				<BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2"/>
+			</Transitions>
+		</Setter>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.browser-card-shine">
+		<Setter Property="Height" Value="2"/>
+		<Setter Property="HorizontalAlignment" Value="Stretch"/>
+		<Setter Property="VerticalAlignment" Value="Top"/>
+		<Setter Property="CornerRadius" Value="12,12,0,0"/>
+		<Setter Property="Background" Value="{DynamicResource GlassCardTopHighlightBrush}"/>
+		<Setter Property="Opacity" Value="0.85"/>
+		<Setter Property="IsHitTestVisible" Value="False"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme ListBoxItem:selected Border.browser-card">
+		<Setter Property="BorderBrush" Value="{DynamicResource SelectionBarBrush}"/>
+		<Setter Property="BorderThickness" Value="2"/>
+		<Setter Property="BoxShadow" Value="0 0 0 1 #605BB5FF, 0 6 20 0 #66000000"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme ListBoxItem:selected Border.browser-card Border.browser-selection-bar">
+		<Setter Property="IsVisible" Value="True"/>
+		<Setter Property="Background" Value="{DynamicResource SelectionBarBrush}"/>
+		<Setter Property="BoxShadow" Value="0 0 8 0 #805BB5FF"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.browser-card.bulk-checked">
+		<Setter Property="BorderBrush" Value="{DynamicResource BulkSelectionBrush}"/>
+		<Setter Property="BorderThickness" Value="2"/>
+		<Setter Property="BoxShadow" Value="0 0 0 1 #60A78BFA, 0 4 16 0 #55000000"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.browser-type-badge">
+		<Setter Property="Background" Value="{DynamicResource GlassBadgeNeutralFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeSubtleBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.browser-status-badge-update">
+		<Setter Property="Background" Value="{DynamicResource GlassBadgeUpdateFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource StatusUpdateBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.browser-status-badge-update TextBlock.browser-type-badge-text">
+		<Setter Property="Foreground" Value="#1A1400"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.browser-status-badge-installed">
+		<Setter Property="Background" Value="{DynamicResource GlassBadgeInstalledFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource StatusInstalledBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.browser-status-badge-installed TextBlock.browser-type-badge-text">
+		<Setter Property="Foreground" Value="#052E16"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Button.browser-card-primary">
+		<Setter Property="Background" Value="{DynamicResource AccentPrimaryBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassHighlightBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="Opacity" Value="1"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.browser-card ProgressBar">
+		<Setter Property="Background" Value="#441E2433"/>
+		<Setter Property="Foreground" Value="{DynamicResource StatusBusyBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.browser-card:pointerover">
+		<Setter Property="Background" Value="#58182433"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassHighlightBrush}"/>
+		<Setter Property="BoxShadow" Value="0 6 20 0 #77000000"/>
+	</Style>
+
+	<!-- === Top bar / zakładki === -->
+	<Style Selector="Window.glass-theme Border.glass-top-bar">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeSubtleBrush}"/>
+		<Setter Property="BorderThickness" Value="0,0,0,1"/>
+		<Setter Property="Padding" Value="0,0,0,10"/>
+		<Setter Property="Margin" Value="0"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Button.browser-tab">
+		<Setter Property="Background" Value="Transparent"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeSubtleBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Button.browser-tab.active">
+		<Setter Property="Background" Value="{DynamicResource GlassTabActiveBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassHighlightBrush}"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Button.browser-tab:pointerover:not(.active)">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.browser-search-box">
+		<Setter Property="Background" Value="{DynamicResource GlassCardFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeSubtleBrush}"/>
+		<Setter Property="BoxShadow" Value="0 0 0 0 #00000000"/>
+	</Style>
+
+	<!-- === Panel przeglądarki (siatka modów) — bez fill, kafelki leżą bezpośrednio na backdropie -->
+	<Style Selector="Window.glass-theme Panel.glass-browser-panel">
+		<Setter Property="Background" Value="Transparent"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme ListBox">
+		<Setter Property="Background" Value="Transparent"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme ListBoxItem">
+		<Setter Property="Background" Value="Transparent"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme ListBoxItem /template/ ContentPresenter">
+		<Setter Property="Background" Value="Transparent"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.glass-empty-state">
+		<Setter Property="Background" Value="{DynamicResource GlassCardFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeSubtleBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="CornerRadius" Value="14"/>
+		<Setter Property="Padding" Value="24,20"/>
+		<Setter Property="BoxShadow" Value="0 8 24 0 #55000000"/>
+	</Style>
+
+	<!-- === Inspectory (mocniejszy tint) === -->
+	<Style Selector="Window.glass-theme Border.mod-detail-host">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassInspectorBorderBrush}"/>
+		<Setter Property="BorderThickness" Value="1,0,1,1"/>
+		<Setter Property="BoxShadow" Value="-6 4 28 0 #77000000"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.mod-detail-header">
+		<Setter Property="Background" Value="{DynamicResource GlassCardFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeBrush}"/>
+		<Setter Property="BoxShadow" Value="0 2 12 0 #44000000"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.mod-detail-section">
+		<Setter Property="Background" Value="{DynamicResource GlassCardFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeSubtleBrush}"/>
+		<Setter Property="BoxShadow" Value="0 0 0 0 #00000000"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.mod-detail-sticky-cta">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeSubtleBrush}"/>
+		<Setter Property="BorderThickness" Value="0,1,0,0"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.mod-detail-glass-shine">
+		<Setter Property="Background" Value="{DynamicResource GlassHighlightBrush}"/>
+		<Setter Property="Opacity" Value="0.45"/>
+	</Style>
+
+	<!-- === Bulk action bar === -->
+	<Style Selector="Window.glass-theme Border.glass-bulk-bar">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource BulkSelectionBrush}"/>
+		<Setter Property="BorderThickness" Value="0,1,0,0"/>
+		<Setter Property="BoxShadow" Value="0 -4 16 0 #55000000"/>
+	</Style>
+	<Style Selector="Window.glass-theme Border.status-bar">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeSubtleBrush}"/>
+		<Setter Property="BorderThickness" Value="1,1,0,0"/>
+		<Setter Property="BoxShadow" Value="0 -4 20 0 #66000000"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.statusbar-discord-promo">
+		<Setter Property="Background" Value="{DynamicResource GlassCardFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeBrush}"/>
+		<Setter Property="BoxShadow" Value="0 2 10 0 #44000000"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Button.statusbar-toggle-button">
+		<Setter Property="Background" Value="{DynamicResource GlassCardFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeSubtleBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.status-section:pointerover">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelFillBrush}"/>
+	</Style>
+
+	<!-- === Wspólne panele glass === -->
+	<Style Selector="Window.glass-theme Border.glass-panel">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeSubtleBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="CornerRadius" Value="12"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.glass-panel-strong">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="CornerRadius" Value="12"/>
+	</Style>
+
+	<!-- === Modale / flyouty (mocniejszy frost) === -->
+	<Style Selector="Window.glass-theme Border.tool-modal-overlay">
+		<Setter Property="Background" Value="#99000000"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.tool-modal-card">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeBrush}"/>
+		<Setter Property="BoxShadow" Value="0 16 40 0 #88000000"/>
+	</Style>
+
+	<!-- === Dostępność: focus ring + danger solid === -->
+	<Style Selector="Window.glass-theme Button:focus-visible">
+		<Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}"/>
+		<Setter Property="BorderThickness" Value="2"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Border.browser-card:focus-visible">
+		<Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}"/>
+		<Setter Property="BorderThickness" Value="2"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme ListBoxItem:focus-visible Border.browser-card">
+		<Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}"/>
+		<Setter Property="BorderThickness" Value="2"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme Button.mod-detail-btn">
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeSubtleBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+	</Style>
+</Styles>

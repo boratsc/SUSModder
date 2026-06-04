@@ -55,8 +55,15 @@
 			<!-- ══════════ Nagłówek ══════════ -->
 			<Grid ColumnDefinitions="*,Auto">
 				<TextBlock Grid.Column="0"
+						   IsVisible="{Binding IsFullMode}"
 						   Text="{loc:Localize Lobby.Panel.Title}"
 						   FontSize="18" FontWeight="Bold"
+						   VerticalAlignment="Center"
+						   Foreground="{DynamicResource TextPrimaryBrush}"/>
+				<TextBlock Grid.Column="0"
+						   IsVisible="{Binding IsInspectorEmbedMode}"
+						   Text="{loc:Localize UI.Inspector.LobbyChat}"
+						   FontSize="14" FontWeight="SemiBold"
 						   VerticalAlignment="Center"
 						   Foreground="{DynamicResource TextPrimaryBrush}"/>
 				<Button Grid.Column="1"
@@ -69,8 +76,9 @@
 						CornerRadius="6"/>
 			</Grid>
 
-			<!-- ══════════ Zakładki ══════════ -->
-			<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+			<!-- ══════════ Zakładki (tylko pełny modal) ══════════ -->
+			<Border IsVisible="{Binding ShowLobbyTabs}"
+					Background="{DynamicResource TertiaryBackgroundBrush}"
 					BorderBrush="{DynamicResource BorderBrush}"
 					BorderThickness="1"
 					CornerRadius="8"
@@ -107,7 +115,7 @@
 					   Foreground="{DynamicResource TextSecondaryBrush}"
 					   HorizontalAlignment="Center"/>
 
-			<!-- ══════════ SEKCJA KODÓW ══════════ -->
+			<!-- ══════════ SEKCJA KODÓW (tylko pełny modal) ══════════ -->
 			<StackPanel IsVisible="{Binding IsCodesTabVisible}" Spacing="8">
 
 				<!-- Pusta lista -->
@@ -178,7 +186,8 @@
 				</ItemsControl>
 
 				<!-- Formularz publikacji kodu -->
-				<Border Background="{DynamicResource SecondaryBackgroundBrush}"
+				<Border IsVisible="{Binding ShowCodePublishForm}"
+						Background="{DynamicResource SecondaryBackgroundBrush}"
 						BorderBrush="{DynamicResource BorderBrush}"
 						BorderThickness="1"
 						CornerRadius="8"

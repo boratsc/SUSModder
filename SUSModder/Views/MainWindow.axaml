@@ -14,8 +14,8 @@
         Title="{Binding WindowTitle}"
         x:Class="SUSModder.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Width="960" Height="835"
-        MinWidth="960" MinHeight="820"
+        Width="1180" Height="960"
+        MinWidth="1180" MinHeight="720"
         KeyDown="MainWindow_KeyDown">
 	<Window.Resources>
 		<converters:StringNotNullOrEmptyToBoolConverter x:Key="StringNotNullOrEmptyToBoolConverter"/>
@@ -25,7 +25,7 @@
 		<converters:UpdatesColorConverter x:Key="UpdatesColorConverter"/>
 		<converters:StringTruncateConverter x:Key="StringTruncateConverter"/>
 		<converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
-		<converters:BoolToGridLengthConverter x:Key="ModDetailColumnWidthConverter" TrueWidth="400" FalseWidth="0"/>
+		<converters:BoolToGridLengthConverter x:Key="ModDetailColumnWidthConverter" TrueWidth="440" FalseWidth="0"/>
 	</Window.Resources>
 
 	<Design.DataContext>
@@ -40,6 +40,9 @@
 		<StyleInclude Source="/Styles/PanelStyles.axaml"/>
 		<StyleInclude Source="/Styles/StatusBarStyle.axaml"/>
 		<StyleInclude Source="/Styles/BulkModeChipStyle.axaml"/>
+		<StyleInclude Source="/Styles/BrowserTabStyle.axaml"/>
+		<StyleInclude Source="/Styles/GlassSurfaceStyles.axaml"/>
+		<StyleInclude Source="/Styles/GlassOpaqueFallbackStyles.axaml"/>
 
 		<!-- Przezroczysty tooltip bez domyślnej obwoluty -->
 		<Style Selector="ToolTip">
@@ -68,9 +71,9 @@
 
 		<!-- Skeleton card loading placeholder -->
 		<Style Selector="Border.skeleton-card">
-			<Setter Property="Width" Value="152"/>
-			<Setter Property="Height" Value="168"/>
-			<Setter Property="CornerRadius" Value="10"/>
+			<Setter Property="Width" Value="340"/>
+			<Setter Property="Height" Value="160"/>
+			<Setter Property="CornerRadius" Value="12"/>
 			<Setter Property="Background" Value="{DynamicResource ModCardBackgroundBrush}"/>
 			<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
 			<Setter Property="BorderThickness" Value="1"/>
@@ -108,10 +111,15 @@
 			<Grid Grid.Row="0">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="*"/>
-					<ColumnDefinition Width="{Binding IsModPanelVisible, Converter={StaticResource ModDetailColumnWidthConverter}}"/>
+					<ColumnDefinition Width="{Binding IsBrowserDetailPanelVisible, Converter={StaticResource ModDetailColumnWidthConverter}}"/>
 				</Grid.ColumnDefinitions>
 
-			<Panel Grid.Column="0"
+			<Panel Grid.Column="0">
+				<Grid RowDefinitions="Auto,*">
+				<local:BrowserToolbar Grid.Row="0" DataContext="{Binding}"/>
+
+			<Panel Grid.Row="1"
+				   Classes="glass-browser-panel"
 				   PointerPressed="ModGridBackground_PointerPressed">
 
 			<!-- Skeleton loading placeholders (widoczne podczas inicjalizacji) -->
@@ -122,22 +130,105 @@
 								JustifyContent="FlexStart"
 								AlignItems="FlexStart"
 								AlignContent="FlexStart">
-					<Border Width="152" Height="168" CornerRadius="10" Classes="skeleton-card"/>
-					<Border Width="152" Height="168" CornerRadius="10" Classes="skeleton-card"/>
-					<Border Width="152" Height="168" CornerRadius="10" Classes="skeleton-card"/>
-					<Border Width="152" Height="168" CornerRadius="10" Classes="skeleton-card"/>
-					<Border Width="152" Height="168" CornerRadius="10" Classes="skeleton-card"/>
-					<Border Width="152" Height="168" CornerRadius="10" Classes="skeleton-card"/>
-					<Border Width="152" Height="168" CornerRadius="10" Classes="skeleton-card"/>
-					<Border Width="152" Height="168" CornerRadius="10" Classes="skeleton-card"/>
-					<Border Width="152" Height="168" CornerRadius="10" Classes="skeleton-card"/>
-					<Border Width="152" Height="168" CornerRadius="10" Classes="skeleton-card"/>
+					<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
+					<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
+					<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
+					<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
+					<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
+					<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
 				</labs:FlexPanel>
 			</ScrollViewer>
 
+				<Border Margin="10"
+						Classes="glass-empty-state"
+						IsVisible="{Binding ShowBrowserNoResults}"
+						VerticalAlignment="Center"
+						HorizontalAlignment="Center"
+						MaxWidth="420">
+					<StackPanel Spacing="8" HorizontalAlignment="Center">
+						<TextBlock Text="{loc:Localize UI.Browser.NoResults}"
+								   FontSize="16" FontWeight="SemiBold"
+								   TextAlignment="Center"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+					</StackPanel>
+				</Border>
+
+				<controls:PackInstancesHintPanel DataContext="{Binding}"
+											   Margin="10"
+											   IsVisible="{Binding ShowPackInstancesEmptyState}"
+											   VerticalAlignment="Center"
+											   HorizontalAlignment="Center"/>
+
+				<ScrollViewer Margin="10"
+							  VerticalScrollBarVisibility="Auto"
+							  IsVisible="{Binding IsPackInstancesGridVisible}"
+							  Background="Transparent">
+					<StackPanel Spacing="16">
+						<ListBox x:Name="PackInstancesListBox"
+								 ItemsSource="{Binding PackInstances}"
+								 SelectedItem="{Binding SelectedPackInstance}"
+								 Background="Transparent"
+								 BorderThickness="0">
+							<ListBox.ItemsPanel>
+								<ItemsPanelTemplate>
+									<labs:FlexPanel Direction="Row"
+													Wrap="Wrap"
+													JustifyContent="FlexStart"
+													AlignItems="FlexStart"
+													AlignContent="FlexStart"
+													RowSpacing="0"
+													ColumnSpacing="0">
+										<i:Interaction.Behaviors>
+											<behaviors:LayoutAnimationBehavior/>
+										</i:Interaction.Behaviors>
+									</labs:FlexPanel>
+								</ItemsPanelTemplate>
+							</ListBox.ItemsPanel>
+							<ListBox.ItemTemplate>
+								<DataTemplate>
+									<controls:PackInstanceCard/>
+								</DataTemplate>
+							</ListBox.ItemTemplate>
+						</ListBox>
+
+						<controls:PackInstancesHintPanel DataContext="{Binding}"
+														 HorizontalAlignment="Center"
+														 ShowEmptyStateMessage="False"/>
+					</StackPanel>
+				</ScrollViewer>
+
+				<ListBox x:Name="DllModsListBox"
+						 Margin="10"
+						 IsVisible="{Binding IsDllAddonsGridVisible}"
+						 ItemsSource="{Binding DllMods}"
+						 SelectedItem="{Binding SelectedDllMod}"
+						 Background="Transparent"
+						 BorderThickness="0">
+					<ListBox.ItemsPanel>
+						<ItemsPanelTemplate>
+							<labs:FlexPanel Direction="Row"
+											Wrap="Wrap"
+											JustifyContent="FlexStart"
+											AlignItems="FlexStart"
+											AlignContent="FlexStart"
+											RowSpacing="0"
+											ColumnSpacing="0">
+								<i:Interaction.Behaviors>
+									<behaviors:LayoutAnimationBehavior/>
+								</i:Interaction.Behaviors>
+							</labs:FlexPanel>
+						</ItemsPanelTemplate>
+					</ListBox.ItemsPanel>
+					<ListBox.ItemTemplate>
+						<DataTemplate>
+							<controls:DllAddonCard/>
+						</DataTemplate>
+					</ListBox.ItemTemplate>
+				</ListBox>
+
 				<ListBox x:Name="ModsListBox"
 						 Margin="10"
-						 IsVisible="{Binding IsModsLoading, Converter={StaticResource InverseBoolConverter}}"
+						 IsVisible="{Binding IsBrowserGridVisible}"
 						 ItemsSource="{Binding Mods}"
 						 SelectedItem="{Binding SelectedMod}"
 						 Background="Transparent"
@@ -167,12 +258,7 @@
 										DoubleClickInterval="300"/>
 								</i:Interaction.Behaviors>
 								<ToolTip.Tip>
-									<Border Padding="12"
-											CornerRadius="8"
-											Background="{DynamicResource PaneBackgroundBrush}"
-											BorderBrush="{DynamicResource AccentBrush}"
-											BorderThickness="1"
-											BoxShadow="0 4 16 0 #40000000">
+									<Border Classes="glass-flyout-tip">
 										<StackPanel Spacing="4" MaxWidth="260">
 											<TextBlock Text="{Binding Name}"
 													   FontWeight="Bold"
@@ -230,17 +316,40 @@
 									VerticalAlignment="Top"
 									Margin="12,10,12,0"
 									ZIndex="2"
+									IsVisible="{Binding IsBulkChipVisible}"
 									DataContext="{Binding}"/>
 			</Panel>
+				</Grid>
+			</Panel>
+
+				<Border x:Name="PackInstanceDetailDrawerHost"
+						Grid.Column="1"
+						Classes="mod-detail-host"
+						Margin="0,10,10,10"
+						Width="440"
+						MaxWidth="460"
+						IsVisible="{Binding IsPackInstancePanelVisible}">
+					<local:PackInstanceDetailDrawer DataContext="{Binding}"/>
+				</Border>
 
 				<Border x:Name="ModDetailDrawerHost"
 						Grid.Column="1"
 						Classes="mod-detail-host"
 						Margin="0,10,10,10"
-						Width="400"
-						MaxWidth="420"
+						Width="440"
+						MaxWidth="460"
 						IsVisible="{Binding IsModPanelVisible}">
 					<local:ModDetailDrawer x:Name="ModDetailDrawerControl" DataContext="{Binding}"/>
+				</Border>
+
+				<Border x:Name="DllAddonInspectorHost"
+						Grid.Column="1"
+						Classes="mod-detail-host"
+						Margin="0,10,10,10"
+						Width="440"
+						MaxWidth="460"
+						IsVisible="{Binding IsDllPanelVisible}">
+					<local:DllAddonInspector DataContext="{Binding}"/>
 				</Border>
 			</Grid>
 		</Grid>
@@ -543,6 +652,50 @@
 							</ContentControl.DataTemplates>
 						</ContentControl>
 
+						<ContentControl Content="{Binding AmongUsNotFoundViewModel}"
+										IsVisible="{Binding IsAmongUsNotFoundVisible}"
+										Classes="fade-in-panel">
+							<ContentControl.DataTemplates>
+								<DataTemplate DataType="vm:AmongUsNotFoundViewModel">
+									<local:AmongUsNotFoundView/>
+								</DataTemplate>
+							</ContentControl.DataTemplates>
+						</ContentControl>
+
+						<ContentControl Content="{Binding ModPackCodeEntryViewModel}"
+										IsVisible="{Binding IsModPackCodeEntryVisible}"
+										Classes="fade-in-panel">
+							<ContentControl.DataTemplates>
+								<DataTemplate DataType="vm:ModPackCodeEntryViewModel">
+									<local:ModPackCodeEntryView/>
+								</DataTemplate>
+							</ContentControl.DataTemplates>
+						</ContentControl>
+
+						<ContentControl Content="{Binding ModPackCreatorContent}"
+										IsVisible="{Binding IsModPackCreatorVisible}"
+										Classes="fade-in-panel"/>
+
+						<ContentControl Content="{Binding ModPackResultViewModel}"
+										IsVisible="{Binding IsModPackResultVisible}"
+										Classes="fade-in-panel">
+							<ContentControl.DataTemplates>
+								<DataTemplate DataType="vm:ModPackResultViewModel">
+									<local:ModPackResultView/>
+								</DataTemplate>
+							</ContentControl.DataTemplates>
+						</ContentControl>
+
+						<ContentControl Content="{Binding ModPackPreviewViewModel}"
+										IsVisible="{Binding IsModPackPreviewVisible}"
+										Classes="fade-in-panel">
+							<ContentControl.DataTemplates>
+								<DataTemplate DataType="vm:ModPackPreviewViewModel">
+									<local:ModPackPreviewView/>
+								</DataTemplate>
+							</ContentControl.DataTemplates>
+						</ContentControl>
+
 						<ContentControl Content="{Binding VersionSelectionModalViewModel}"
 										IsVisible="{Binding IsVersionSelectionModalVisible}"
 										Classes="fade-in-panel">
@@ -713,22 +866,26 @@
 			</Border>
 
 			<!-- FAB Menu Overlay (backdrop) -->
-			<Border Grid.Row="0" Grid.RowSpan="2"
+			<Border Grid.Row="0" Grid.RowSpan="3"
 					Classes="fab-overlay"
 					Classes.visible="{Binding IsPaneOpen}"
 					PointerPressed="OnOverlayPressed"/>
 
-			<!-- FAB Menu Panel -->
+			<!-- FAB Menu Panel — kotwica przy FAB (pozycja w code-behind) -->
 			<Border x:Name="FabMenuPanel"
 					Grid.Row="0"
-					Grid.RowSpan="2"
+					Grid.RowSpan="3"
 					Classes="fab-menu-panel"
 					Classes.visible="{Binding IsPaneOpen}"
 					HorizontalAlignment="Left"
 					VerticalAlignment="Bottom"
-					Margin="20,0,0,96"
+					Margin="16,0,0,76"
+					ZIndex="150"
 					PointerPressed="OnMenuPanelPressed">
 
+				<ScrollViewer x:Name="FabMenuScroll"
+							  VerticalScrollBarVisibility="Auto"
+							  HorizontalScrollBarVisibility="Disabled">
 				<StackPanel Spacing="4">
 					<!-- Menu Header -->
 					<TextBlock Text="{loc:Localize UI.Menu.Title}"
@@ -872,10 +1029,11 @@
 						</StackPanel>
 					</Button>
 				</StackPanel>
+				</ScrollViewer>
 			</Border>
 
 			<!-- Toast notification overlay – na samej górze z-order, nad modalami -->
-			<local:ToastHost Grid.Row="0" Grid.RowSpan="2"/>
+			<local:ToastHost Grid.Row="0" Grid.RowSpan="3"/>
 
 	</Grid>
 </Window>

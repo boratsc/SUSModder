@@ -344,6 +344,9 @@ namespace SUSModder.Core.GameIntegration
             string tempDirectory = Path.Combine(baseDirectory, "temp", uniqueTempId);
             Directory.CreateDirectory(tempDirectory);
             string modFile = Path.Combine(tempDirectory, "mod.zip");
+
+            try
+            {
             ProgressChanged?.Invoke(10, "Rozpoczynam pobieranie moda...");
 
             Write($"Rozpoczynam pobieranie moda '{modConfig.ModName}' z: {downloadUrl}");
@@ -480,20 +483,6 @@ namespace SUSModder.Core.GameIntegration
             }
             // === KONIEC NOWEGO KODU ===
 
-            // Usuń unikalny katalog temp dla tej instalacji
-            try
-            {
-                if (Directory.Exists(tempDirectory))
-                {
-                    Directory.Delete(tempDirectory, true);
-                    Write($"Usunięto katalog tymczasowy: {tempDirectory}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Write($"[WARNING] Nie udało się usunąć katalogu tymczasowego: {ex.Message}");
-            }
-
             ProgressChanged?.Invoke(100, "Instalacja zakończona!");
 
             // DODAJ DEBUGOWANIE
@@ -505,6 +494,11 @@ namespace SUSModder.Core.GameIntegration
 
             System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync FULLY COMPLETED for mod: {modConfig.ModName}");
             InstallationCompleted?.Invoke(modConfig);
+            }
+            finally
+            {
+                ModsStorageCleanupService.TryDeleteInstallTempDirectory(tempDirectory, Write);
+            }
         }
 
         /// <summary>

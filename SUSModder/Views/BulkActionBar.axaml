@@ -4,10 +4,7 @@
              xmlns:loc="using:SUSModder.Services.Localization"
              x:Class="SUSModder.Views.BulkActionBar"
              x:DataType="vm:MainWindowViewModel">
-    <Border Background="{DynamicResource SecondaryBackgroundBrush}"
-            BorderBrush="{DynamicResource AccentMutedBrush}"
-            BorderThickness="0,1,0,0"
-            Padding="12,8"
+    <Border Classes="glass-bulk-bar"
             IsVisible="{Binding IsBulkActionBarVisible}">
         <StackPanel Spacing="8">
             <TextBlock Text="{Binding BulkQueueStatusText}"
@@ -65,6 +62,13 @@
                             Padding="12,8"
                             CornerRadius="8"
                             Background="{DynamicResource DangerBrush}"
+                            Foreground="White"/>
+                    <Button Content="{loc:Localize UI.Actions.AddTo}"
+                            Command="{Binding BulkOpenSelectedDllInspectorCommand}"
+                            IsVisible="{Binding ShowBulkDllInspectButton}"
+                            Padding="12,8"
+                            CornerRadius="8"
+                            Background="{DynamicResource AccentBrush}"
                             Foreground="White"/>
                 </StackPanel>
             </Grid>

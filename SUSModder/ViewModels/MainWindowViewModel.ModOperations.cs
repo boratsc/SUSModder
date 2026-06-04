@@ -573,6 +573,8 @@ namespace SUSModder.ViewModels
         {
             await RefreshModsListAsync(checkUpdates: false);
             SelectedMod = Mods.FirstOrDefault(m => m.Id == modItem.Id);
+            if (SelectedMod != null)
+                IsModContentVisible = true;
 
             string platform = DeterminePlatform();
             bool supportsDll = !string.IsNullOrEmpty(modConfig?.DllInstallPath);
@@ -588,7 +590,13 @@ namespace SUSModder.ViewModels
             }
 
             // Pokaż modal inline (jak DLL selection, a nie osobne okienko)
-            var vm = new PostInstallSuccessViewModel(modItem.Name, supportsDll, _localizationService);
+            bool isPinnedVersion = SelectedMod?.IsPinnedVersionInstall == true;
+            var vm = new PostInstallSuccessViewModel(
+                modItem.Name,
+                supportsDll,
+                _localizationService,
+                defaultAutoUpdateEnabled: !isPinnedVersion,
+                showAutoUpdateCheckbox: !isPinnedVersion);
             vm.CloseRequested += OnPostInstallSuccessCloseRequested;
             PostInstallSuccessViewModel = vm;
             IsPostInstallSuccessVisible = true;
@@ -606,6 +614,11 @@ namespace SUSModder.ViewModels
                     _ = SaveDontShowPostInstallDialogAsync(SelectedMod.InstallPath);
                 }
 
+                if (vm.IsAutoUpdateCheckboxVisible && SelectedMod != null)
+                {
+                    _ = ToggleAutoUpdateAsync(SelectedMod, vm.AutoUpdateEnabled);
+                }
+
                 // Ukryj modal
                 IsPostInstallSuccessVisible = false;
                 PostInstallSuccessViewModel = null;
@@ -619,6 +632,10 @@ namespace SUSModder.ViewModels
                 {
                     string platform = DeterminePlatform();
                     ShowDllSelectionWindowInternal(SelectedMod!, platform);
+                }
+                else if (SelectedMod != null)
+                {
+                    IsModContentVisible = true;
                 }
             }
         }
@@ -674,6 +691,7 @@ namespace SUSModder.ViewModels
 
                 installMap.FullMod.DisableAutoUpdatePrompt = disableAutoUpdatePrompt;
                 installMap.FullMod.PinnedInstallVersion = disableAutoUpdatePrompt ? pinnedInstallVersion : null;
+                installMap.FullMod.AutoUpdateEnabled = !disableAutoUpdatePrompt;
                 installMap.FullMod.LastUpdated = DateTime.Now;
 
                 await InstallationMapManager.SaveInstallationMapAsync(targetConfig.InstallPath, installMap);
@@ -699,6 +717,7 @@ namespace SUSModder.ViewModels
             }
 
             IsDllSelectionModalVisible = false;
+            RestoreModDetailPanelAfterToolModal();
         }
 
         private void ShowNextQueuedDllSelectionIfNeeded()

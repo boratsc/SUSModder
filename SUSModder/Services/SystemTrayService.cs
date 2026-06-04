@@ -282,14 +282,17 @@ namespace SUSModder.Services
                         ToolTipText = $"Uruchom {mod.Name}"
                     };
                     var capturedId = mod.Id;
+                    var capturedInstanceId = mod.InstanceId;
                     modItem.Click += (s, args) =>
                     {
-                        Dispatcher.UIThread.Post(() =>
+                        Dispatcher.UIThread.Post(async () =>
                         {
-                            // Wywołaj launch moda przez ViewModel
                             if (_mainWindow?.DataContext is ViewModels.MainWindowViewModel vm)
                             {
-                                vm.LaunchModById(capturedId);
+                                if (!string.IsNullOrEmpty(capturedInstanceId))
+                                    await vm.LaunchPackInstanceByIdAsync(capturedInstanceId);
+                                else
+                                    vm.LaunchModById(capturedId);
                             }
                         });
                     };
@@ -334,5 +337,10 @@ namespace SUSModder.Services
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gdy ustawione — szybkie uruchomienie z lokalnej instancji (Moje zestawy).
+        /// </summary>
+        public string? InstanceId { get; set; }
     }
 }

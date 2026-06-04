@@ -84,6 +84,35 @@ public sealed class VanillaCacheService
         CopyDirectory(extractedPath, targetDirectory);
     }
 
+    /// <summary>
+    /// Usuwa archiwum 7z, gdy poprawny cache w <c>extracted/</c> już istnieje — nie trzymamy obu kopii.
+    /// </summary>
+    public bool TryDeleteArchiveWhenExtractedCacheValid(
+        string vanillaRoot,
+        string storageVersion,
+        Action<string>? log = null)
+    {
+        var extractedPath = GetExtractedPath(vanillaRoot, storageVersion);
+        if (!IsValidExtractedCache(extractedPath))
+            return false;
+
+        var archivePath = GetArchivePath(vanillaRoot, storageVersion);
+        if (!File.Exists(archivePath))
+            return false;
+
+        try
+        {
+            File.Delete(archivePath);
+            log?.Invoke($"[Vanilla] Usunięto archiwum 7z (używany cache extracted): {archivePath}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"[Vanilla] Nie udało się usunąć archiwum 7z: {ex.Message}");
+            return false;
+        }
+    }
+
     public static void CopyDirectory(string sourceDir, string destDir)
     {
         Directory.CreateDirectory(destDir);

@@ -84,6 +84,11 @@ public partial class App : Application
             var db = sp.GetRequiredService<DatabaseService>();
             return new TouConfigRepository(db);
         });
+        services.AddSingleton<IModInstanceRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new ModInstanceRepository(db);
+        });
 
         // Rejestracja serwisu lokalizacji
         services.AddSingleton<ILocalizationService>(sp =>
@@ -107,6 +112,15 @@ public partial class App : Application
 
         // Rejestracja diagnostyki
         services.AddSingleton<IDiagnosticsOutput>(_ => DebugDiagnosticsOutput.Instance);
+
+        services.AddSingleton<ConfigService>();
+        services.AddSingleton<DllModificationService>();
+        services.AddSingleton<IDllModInstanceInstaller, DllModificationServiceInstanceInstaller>();
+        services.AddSingleton<IFullModInstanceInstaller, ModManagerFullModInstanceInstaller>();
+        services.AddSingleton<ModInstanceInstaller>(sp => new ModInstanceInstaller(
+            sp.GetRequiredService<IModInstanceRepository>(),
+            sp.GetRequiredService<IFullModInstanceInstaller>(),
+            sp.GetRequiredService<IDllModInstanceInstaller>()));
 
         // Rejestracja IHardwareIdProvider
         services.AddSingleton<IHardwareIdProvider, WindowsHardwareIdProvider>();
@@ -194,9 +208,13 @@ public partial class App : Application
 
     private async Task InitializeApplicationAsync(IClassicDesktopStyleApplicationLifetime desktop)
     {
+        _ = Task.Run(() => ModsStorageCleanupService.RunCleanup(DebugDiagnosticsOutput.Instance.Write));
+
         try
         {
-            var forceOnboardingFlagPath = Path.Combine(UserSettingsService.GetAppDataFolder(), "force-onboarding.flag");
+            ApplicationFactoryResetService.CompletePendingApplicationDataResetIfNeeded();
+
+            var forceOnboardingFlagPath = ApplicationFactoryResetService.ForceOnboardingFlagPath;
             var forceOnboarding = File.Exists(forceOnboardingFlagPath);
 
             // KROK 0: Inicjalizacja bazy danych SQLite (przed ustawieniami)
@@ -459,6 +477,15 @@ public partial class App : Application
     {
         try
         {
+            await viewModel.PromptAmongUsPathOnStartupIfNeededAsync();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[App] Błąd podczas monitu Among Us: {ex.Message}");
+        }
+
+        try
+        {
             await ShowAntivirusWarningIfNeededAsync(mainWindow, userSettingsService);
         }
         catch (Exception ex)
@@ -512,6 +539,8 @@ public partial class App : Application
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private async void OnShutdownRequested(object? sender, ShutdownRequestedEventArgs e)
     {
+        _ = Task.Run(() => ModsStorageCleanupService.RunCleanup(DebugDiagnosticsOutput.Instance.Write));
+
         // Wyślij końcowy heartbeat przed zamknięciem
         if (_telemetryService != null)
         {

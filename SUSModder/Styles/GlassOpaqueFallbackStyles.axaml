@@ -1,0 +1,49 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<!-- Nieprzezroczysty fallback — aktywny gdy okno ma glass-opaque (HC, wyłączone transparency, brak Mica) -->
+	<Style Selector="Window.glass-theme.glass-opaque Border.browser-card">
+		<Setter Property="Background" Value="{DynamicResource GlassBlurFallbackBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme.glass-opaque Border.glass-top-bar">
+		<Setter Property="Background" Value="{DynamicResource GlassBlurFallbackBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme.glass-opaque Panel.glass-browser-panel">
+		<Setter Property="Background" Value="{DynamicResource GlassBlurFallbackBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme.glass-opaque Border.mod-detail-host">
+		<Setter Property="Background" Value="{DynamicResource GlassBlurFallbackBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme.glass-opaque Border.mod-detail-header">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme.glass-opaque Border.mod-detail-section">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme.glass-opaque Border.status-bar">
+		<Setter Property="Background" Value="{DynamicResource GlassBlurFallbackBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme.glass-opaque Border.glass-bulk-bar">
+		<Setter Property="Background" Value="{DynamicResource GlassBlurFallbackBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme.glass-opaque Border.glass-empty-state">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme.glass-opaque Border.browser-search-box">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
+	</Style>
+
+	<Style Selector="Window.glass-theme.glass-opaque Border.tool-modal-card">
+		<Setter Property="Background" Value="{DynamicResource GlassBlurFallbackBrush}"/>
+	</Style>
+</Styles>

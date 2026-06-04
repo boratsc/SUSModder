@@ -2,9 +2,10 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
-using System.Text.Json;
 using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.Views
@@ -20,15 +21,15 @@ namespace SUSModder.Views
             InitializeComponent();
         }
 
-        public FactoryResetConfirmDialog(string modsInstallPath, string defaultModsPath) : this()
+        public FactoryResetConfirmDialog(IReadOnlyList<string> directoriesToDelete) : this()
         {
             Title = _localizationService.Get("Tools.FactoryReset.WindowTitle");
 
             // Asynchronicznie sprawdź rozmiar katalogów do usunięcia
-            _ = LoadDirectoriesSizeAsync(modsInstallPath, defaultModsPath);
+            _ = LoadDirectoriesSizeAsync(directoriesToDelete);
         }
 
-        private async Task LoadDirectoriesSizeAsync(string modsInstallPath, string defaultModsPath)
+        private async Task LoadDirectoriesSizeAsync(IReadOnlyList<string> directoriesToDelete)
         {
             try
             {
@@ -37,22 +38,15 @@ namespace SUSModder.Views
                     long totalSize = 0;
                     int directoriesCount = 0;
 
-                    // Oblicz rozmiar ModsInstallPath
-                    if (!string.IsNullOrWhiteSpace(modsInstallPath) && Directory.Exists(modsInstallPath))
+                    foreach (var path in directoriesToDelete
+                                 .Where(p => !string.IsNullOrWhiteSpace(p))
+                                 .Distinct(StringComparer.OrdinalIgnoreCase))
                     {
-                        totalSize += GetDirectorySize(modsInstallPath);
-                        directoriesCount++;
-                    }
+                        if (!Directory.Exists(path))
+                            continue;
 
-                    // Oblicz rozmiar DefaultModsPath (po rozwinięciu zmiennych środowiskowych)
-                    if (!string.IsNullOrWhiteSpace(defaultModsPath))
-                    {
-                        string expandedDefault = Environment.ExpandEnvironmentVariables(defaultModsPath);
-                        if (Directory.Exists(expandedDefault) && expandedDefault != modsInstallPath)
-                        {
-                            totalSize += GetDirectorySize(expandedDefault);
-                            directoriesCount++;
-                        }
+                        totalSize += GetDirectorySize(path);
+                        directoriesCount++;
                     }
 
                     if (totalSize > 0)

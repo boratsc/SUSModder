@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:loc="using:SUSModder.Services.Localization"
              xmlns:converters="using:SUSModder.Converters"
              xmlns:i="using:Avalonia.Xaml.Interactivity"
              xmlns:behaviors="using:SUSModder.Behaviors"
@@ -13,7 +14,7 @@
         <converters:InstallStatusToOpacityConverter x:Key="InstallStatusToOpacityConverter"/>
     </UserControl.Resources>
 
-    <Border Classes="mod-card"
+    <Border Classes="browser-card mod-card"
             Classes.bulk-checked="{Binding IsCheckedForBulk}">
         <i:Interaction.Behaviors>
             <behaviors:DoubleClickBehavior
@@ -22,18 +23,59 @@
                 DoubleClickInterval="300"/>
         </i:Interaction.Behaviors>
 
-        <Grid>
+        <Panel>
+            <Border Classes="browser-card-shine"/>
+            <Grid RowDefinitions="*,3">
             <Border Width="3"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Stretch"
                     Background="{DynamicResource SelectionBarBrush}"
-                    CornerRadius="10,0,0,10"
+                    CornerRadius="12,0,0,12"
                     IsVisible="False"
-                    Classes="mod-selection-bar"/>
+                    Classes="browser-selection-bar"
+                    Grid.RowSpan="2"/>
 
-            <Grid RowDefinitions="Auto,*,Auto" Margin="4,6,6,4">
-                <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
-                    <Panel Grid.Column="0" Width="14" Height="14" VerticalAlignment="Top">
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <Panel Grid.Column="0" Width="52" Height="52">
+                    <Image Classes="browser-card-icon"
+                           Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
+                           Opacity="{Binding InstallPath, Converter={StaticResource InstallStatusToOpacityConverter}}"/>
+                </Panel>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                    <TextBlock Classes="browser-card-title"
+                               Text="{Binding Name}"
+                               Opacity="{Binding InstallPath, Converter={StaticResource InstallStatusToOpacityConverter}}"/>
+                    <Button Classes="browser-card-primary"
+                            HorizontalAlignment="Left"
+                            Background="{DynamicResource SuccessBrush}"
+                            Content="{loc:Localize UI.Buttons.Launch}"
+                            IsVisible="{Binding IsInstalled}"
+                            Command="{Binding $parent[Window].DataContext.ModDoubleClickCommand}"
+                            CommandParameter="{Binding}"/>
+                    <Button Classes="browser-card-primary"
+                            HorizontalAlignment="Left"
+                            Content="{loc:Localize UI.Buttons.Install}"
+                            IsVisible="{Binding CanInstall}"
+                            Command="{Binding $parent[Window].DataContext.ModDoubleClickCommand}"
+                            CommandParameter="{Binding}"/>
+                    <TextBlock Classes="browser-card-subtitle"
+                               Text="{Binding BrowserSubtitle}"/>
+                    <TextBlock Classes="browser-card-meta"
+                               Text="{Binding Description}"
+                               IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" VerticalAlignment="Top" Spacing="6" HorizontalAlignment="Right">
+                    <CheckBox IsChecked="{Binding IsCheckedForBulk}"
+                              IsVisible="{Binding $parent[Window].DataContext.IsBulkSelectionMode}"
+                              IsEnabled="{Binding IsBulkEligible}"
+                              VerticalAlignment="Top"/>
+                    <Border Classes="browser-type-badge">
+                        <TextBlock Classes="browser-type-badge-text"
+                                   Text="{Binding TypeBadge}"/>
+                    </Border>
+                    <Panel Width="10" Height="10">
                         <Ellipse Width="8" Height="8"
                                  Fill="{DynamicResource StatusBusyBrush}"
                                  IsVisible="{Binding ShowStatusBusy}"/>
@@ -47,44 +89,20 @@
                                  Fill="{DynamicResource StatusNotInstalledBrush}"
                                  IsVisible="{Binding ShowStatusNotInstalled}"/>
                     </Panel>
-
-                    <CheckBox Grid.Column="2"
-                              IsChecked="{Binding IsCheckedForBulk}"
-                              IsVisible="{Binding $parent[Window].DataContext.IsBulkSelectionMode}"
-                              IsEnabled="{Binding IsBulkEligible}"
-                              VerticalAlignment="Top"/>
-                </Grid>
-
-                <StackPanel Grid.Row="1" VerticalAlignment="Center" Spacing="4">
-                    <Border HorizontalAlignment="Center"
-                            CornerRadius="32"
-                            BorderBrush="{DynamicResource AccentMutedBrush}"
-                            BorderThickness="1"
-                            IsVisible="{Binding IsInstalled}">
-                        <Image Classes="mod-icon"
-                               Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
-                               Opacity="{Binding InstallPath, Converter={StaticResource InstallStatusToOpacityConverter}}"/>
-                    </Border>
-                    <Image Classes="mod-icon"
-                           Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
-                           Opacity="{Binding InstallPath, Converter={StaticResource InstallStatusToOpacityConverter}}"
-                           IsVisible="{Binding IsInstalled, Converter={x:Static BoolConverters.Not}}"/>
-                    <TextBlock Classes="mod-name"
-                               Text="{Binding Name}"
-                               Opacity="{Binding InstallPath, Converter={StaticResource InstallStatusToOpacityConverter}}"/>
                 </StackPanel>
-
-                <ProgressBar Grid.Row="2"
-                             Height="3"
-                             Minimum="0"
-                             Maximum="100"
-                             Value="{Binding InstallProgress}"
-                             Margin="0,6,0,0"
-                             CornerRadius="2"
-                             Background="#30FFFFFF"
-                             Foreground="{DynamicResource StatusBusyBrush}"
-                             IsVisible="{Binding IsInstalling}"/>
             </Grid>
-        </Grid>
+
+            <ProgressBar Grid.Row="1"
+                         Height="3"
+                         Minimum="0"
+                         Maximum="100"
+                         Value="{Binding InstallProgress}"
+                         Margin="0,6,0,0"
+                         CornerRadius="2"
+                         Background="#30FFFFFF"
+                         Foreground="{DynamicResource StatusBusyBrush}"
+                         IsVisible="{Binding IsInstalling}"/>
+            </Grid>
+        </Panel>
     </Border>
 </UserControl>

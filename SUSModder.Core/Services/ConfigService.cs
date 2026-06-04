@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 using SUSModder.Core.Configuration;
+using SUSModder.Core.Models;
 using SUSModder.Core.Repositories;
 
 namespace SUSModder.Core.Services
@@ -65,6 +67,52 @@ namespace SUSModder.Core.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading app version: {ex.Message}");
                 return "Nieznana";
+            }
+        }
+
+        public async Task<ModConfiguration?> CheckInstanceUpdateAsync(ModInstance instance)
+        {
+            if (instance == null)
+                throw new ArgumentNullException(nameof(instance));
+
+            try
+            {
+                var latestConfigs = await LoadConfigFromApiAsync();
+                if (latestConfigs == null || latestConfigs.Count == 0)
+                    latestConfigs = LoadConfig();
+
+                var latestMod = latestConfigs.FirstOrDefault(c => c.Id == instance.BaseModId);
+                if (latestMod == null)
+                    return null;
+
+                var installedVersion = instance.FullModVersion ?? "unknown";
+                if (!string.IsNullOrEmpty(instance.InstallPath) && Directory.Exists(instance.InstallPath))
+                {
+                    try
+                    {
+                        var installMap = await InstallationMapManager.LoadInstallationMapAsync(instance.InstallPath);
+                        if (installMap?.FullMod != null && !string.IsNullOrEmpty(installMap.FullMod.ModVersion))
+                            installedVersion = installMap.FullMod.ModVersion;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[ConfigService] Nie udało się odczytać InstallationMap dla instancji {instance.InstanceId}: {ex.Message}");
+                    }
+                }
+
+                if (!IsNewerVersion(latestMod.ModVersion, installedVersion))
+                    return null;
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[ConfigService] ✓ Aktualizacja instancji {instance.DisplayName}: {installedVersion} → {latestMod.ModVersion}");
+                return latestMod;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[ConfigService] Błąd sprawdzania aktualizacji instancji {instance.InstanceId}: {ex.Message}");
+                return null;
             }
         }
 

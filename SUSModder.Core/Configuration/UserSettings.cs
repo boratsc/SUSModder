@@ -21,10 +21,16 @@ namespace SUSModder.Core.Configuration
         public int LastLaunchId { get; set; } = 0;
 
         /// <summary>
-        /// Motyw aplikacji: "dark", "light", "pink"
+        /// Motyw aplikacji: "dark", "light", "pink", "glass"
         /// </summary>
         [JsonPropertyName("theme")]
         public string Theme { get; set; } = "dark";
+
+        /// <summary>
+        /// Wymusza nieprzezroczysty fallback w motywie Szklany (lepsza czytelność / dostępność).
+        /// </summary>
+        [JsonPropertyName("glassReduceTransparency")]
+        public bool GlassReduceTransparency { get; set; } = false;
 
         /// <summary>
         /// Język aplikacji (jeśli pusty - automatyczna detekcja)

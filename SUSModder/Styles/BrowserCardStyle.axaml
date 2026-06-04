@@ -1,0 +1,118 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:SUSModder.Controls">
+
+    <Style Selector="controls|ModCard">
+        <Setter Property="Width" Value="340"/>
+        <Setter Property="Height" Value="160"/>
+        <Setter Property="Margin" Value="8"/>
+    </Style>
+
+    <Style Selector="controls|PackInstanceCard">
+        <Setter Property="Width" Value="340"/>
+        <Setter Property="Height" Value="160"/>
+        <Setter Property="Margin" Value="8"/>
+    </Style>
+
+    <Style Selector="controls|DllAddonCard">
+        <Setter Property="Width" Value="340"/>
+        <Setter Property="Height" Value="160"/>
+        <Setter Property="Margin" Value="8"/>
+    </Style>
+
+    <Style Selector="Border.browser-card">
+        <Setter Property="Width" Value="340"/>
+        <Setter Property="Height" Value="160"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="Padding" Value="12"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BoxShadow" Value="0 2 8 0 #20000000"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
+                <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Border.browser-card-shine">
+        <Setter Property="Height" Value="0"/>
+        <Setter Property="Opacity" Value="0"/>
+        <Setter Property="IsHitTestVisible" Value="False"/>
+    </Style>
+
+    <Style Selector="Border.browser-card.bulk-checked">
+        <Setter Property="BorderBrush" Value="{DynamicResource BulkSelectionBrush}"/>
+        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="BoxShadow" Value="0 0 12 1 #608B5CF6"/>
+    </Style>
+
+    <Style Selector="Border.browser-card:pointerover">
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentMutedBrush}"/>
+        <Setter Property="BoxShadow" Value="0 4 14 0 #30000000"/>
+    </Style>
+
+    <Style Selector="ListBoxItem:selected Border.browser-card">
+        <Setter Property="BorderBrush" Value="{DynamicResource SelectionBarBrush}"/>
+        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="BoxShadow" Value="0 0 0 1 #403B82F6, 0 4 16 0 #30000000"/>
+    </Style>
+
+    <Style Selector="ListBoxItem:selected Border.browser-card Border.browser-selection-bar">
+        <Setter Property="IsVisible" Value="True"/>
+    </Style>
+
+    <Style Selector="Image.browser-card-icon">
+        <Setter Property="Width" Value="52"/>
+        <Setter Property="Height" Value="52"/>
+    </Style>
+
+    <Style Selector="TextBlock.browser-card-title">
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="15"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        <Setter Property="MaxLines" Value="1"/>
+    </Style>
+
+    <Style Selector="TextBlock.browser-card-subtitle">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        <Setter Property="MaxLines" Value="1"/>
+    </Style>
+
+    <Style Selector="TextBlock.browser-card-meta">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="Opacity" Value="0.85"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        <Setter Property="MaxLines" Value="2"/>
+    </Style>
+
+    <Style Selector="Border.browser-type-badge">
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Padding" Value="6,3"/>
+        <Setter Property="Background" Value="#30FFFFFF"/>
+    </Style>
+
+    <Style Selector="TextBlock.browser-type-badge-text">
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    </Style>
+
+    <Style Selector="Button.browser-card-primary">
+        <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+</Styles>

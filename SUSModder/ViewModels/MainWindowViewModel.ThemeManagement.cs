@@ -21,6 +21,7 @@ namespace SUSModder.ViewModels
                 {
                     "light" => ThemeType.Light,
                     "pink" => ThemeType.Pink,
+                    "glass" => ThemeType.Glass,
                     _ => ThemeType.Dark
                 };
                 System.Diagnostics.Debug.WriteLine($"Wczytano motyw: {userSettings.Theme} -> {_currentTheme}");
@@ -39,7 +40,8 @@ namespace SUSModder.ViewModels
             {
                 ThemeType.Dark => ThemeType.Light,
                 ThemeType.Light => ThemeType.Pink,
-                ThemeType.Pink => ThemeType.Dark,
+                ThemeType.Pink => ThemeType.Glass,
+                ThemeType.Glass => ThemeType.Dark,
                 _ => ThemeType.Dark
             };
 
@@ -50,6 +52,7 @@ namespace SUSModder.ViewModels
                 {
                     ThemeType.Light => "light",
                     ThemeType.Pink => "pink",
+                    ThemeType.Glass => "glass",
                     _ => "dark"
                 };
                 _userSettingsService.UpdateUserSetting(settings => settings.Theme = themeValue);
@@ -58,6 +61,20 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Błąd zapisywania motywu: {ex.Message}");
+            }
+        }
+
+        private void LoadGlassAccessibilitySettings()
+        {
+            try
+            {
+                var settings = _userSettingsService.LoadUserSettings();
+                GlassReduceTransparency = settings.GlassReduceTransparency;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Błąd wczytywania ustawień glass: {ex.Message}");
+                GlassReduceTransparency = false;
             }
         }
 
@@ -76,6 +93,7 @@ namespace SUSModder.ViewModels
                 {
                     ThemeType.Light => _lightThemeUri,
                     ThemeType.Pink => _pinkThemeUri,
+                    ThemeType.Glass => _glassThemeUri,
                     _ => _darkThemeUri
                 };
 
@@ -92,10 +110,13 @@ namespace SUSModder.ViewModels
                 {
                     ThemeType.Light => ThemeVariant.Light,
                     ThemeType.Pink => ThemeVariant.Light, // Różowy bazuje na jasnym
+                    ThemeType.Glass => ThemeVariant.Dark,
                     _ => ThemeVariant.Dark
                 };
 
                 Application.Current.RequestedThemeVariant = systemTheme;
+
+                ApplyGlassFlyoutStyles(theme == ThemeType.Glass);
 
                 System.Diagnostics.Debug.WriteLine($"Applied theme: {theme}");
             }
@@ -106,7 +127,30 @@ namespace SUSModder.ViewModels
                 if (Application.Current != null)
                 {
                     Application.Current.RequestedThemeVariant = ThemeVariant.Dark;
+                    ApplyGlassFlyoutStyles(false);
                 }
+            }
+        }
+
+        private void ApplyGlassFlyoutStyles(bool enable)
+        {
+            if (Application.Current == null)
+                return;
+
+            if (_glassFlyoutStyles != null)
+            {
+                Application.Current.Styles.Remove(_glassFlyoutStyles);
+                _glassFlyoutStyles = null;
+            }
+
+            if (!enable)
+                return;
+
+            var loaded = AvaloniaXamlLoader.Load(new Uri("avares://SUSModder/Styles/GlassFlyoutStyles.axaml"));
+            if (loaded is Styles flyoutStyles)
+            {
+                Application.Current.Styles.Add(flyoutStyles);
+                _glassFlyoutStyles = flyoutStyles;
             }
         }
     }

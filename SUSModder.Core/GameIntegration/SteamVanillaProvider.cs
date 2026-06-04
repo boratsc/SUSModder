@@ -49,6 +49,7 @@ public sealed class SteamVanillaProvider
         if (_cacheService.IsValidExtractedCache(extractedPath, manifest?.ManifestId))
         {
             log.Write($"[Vanilla] Cache hit: {extractedPath}");
+            _cacheService.TryDeleteArchiveWhenExtractedCacheValid(vanillaRoot, storageVersion, log.Write);
             progress.Report(55, "Kopiowanie gry vanilla z cache...");
             _cacheService.CopyExtractedToTarget(extractedPath, targetDirectory);
             return VanillaAcquireResult.Ok(VanillaAcquireSource.CacheHit);
@@ -240,6 +241,15 @@ public sealed class SteamVanillaProvider
         if (!File.Exists(archivePath) || new FileInfo(archivePath).Length < 1000)
             return VanillaAcquireResult.Fail("Paczka vanilla 7z jest nieprawidłowa lub pusta.");
 
+        if (_cacheService.IsValidExtractedCache(extractedPath, manifest?.ManifestId))
+        {
+            log.Write($"[Vanilla] Używam rozpakowanego cache: {extractedPath}");
+            _cacheService.TryDeleteArchiveWhenExtractedCacheValid(vanillaRoot, storageVersion, log.Write);
+            progress.Report(55, "Kopiowanie gry vanilla z cache...");
+            _cacheService.CopyExtractedToTarget(extractedPath, targetDirectory);
+            return VanillaAcquireResult.Ok(VanillaAcquireSource.Fallback7zCache);
+        }
+
         try
         {
             if (Directory.Exists(extractedPath))
@@ -268,15 +278,16 @@ public sealed class SteamVanillaProvider
                 extractedPath,
                 amongVersion,
                 storageVersion,
-                File.Exists(archivePath) ? VanillaAcquireSource.Fallback7z : VanillaAcquireSource.Fallback7zCache,
+                VanillaAcquireSource.Fallback7z,
                 manifest?.ManifestId,
                 manifest?.BuildId);
+
+            _cacheService.TryDeleteArchiveWhenExtractedCacheValid(vanillaRoot, storageVersion, log.Write);
 
             progress.Report(55, "Kopiowanie gry vanilla...");
             _cacheService.CopyExtractedToTarget(extractedPath, targetDirectory);
 
-            return VanillaAcquireResult.Ok(
-                File.Exists(archivePath) ? VanillaAcquireSource.Fallback7z : VanillaAcquireSource.Fallback7zCache);
+            return VanillaAcquireResult.Ok(VanillaAcquireSource.Fallback7z);
         }
         catch (Exception ex)
         {

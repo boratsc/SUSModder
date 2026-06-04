@@ -175,18 +175,31 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<LobbyBoardItemViewModel, Unit> DeleteOwnCommand { get; }
         public ReactiveCommand<LobbyBoardItemViewModel, Unit> CopyCodeCommand { get; }
 
+        public LobbyBoardPanelMode DisplayMode { get; }
+
+        public bool IsFullMode => DisplayMode == LobbyBoardPanelMode.Full;
+
+        public bool IsInspectorEmbedMode => DisplayMode == LobbyBoardPanelMode.InspectorEmbed;
+
+        public bool ShowLobbyTabs => IsFullMode;
+
+        public bool ShowCodePublishForm => IsFullMode;
+
         public LobbyBoardPanelViewModel(
             ILobbyBoardService lobbyService,
             ILocalizationService loc,
             ModConfiguration mod,
-            LobbyBridgeFileReader? bridgeReader = null)
+            LobbyBridgeFileReader? bridgeReader = null,
+            LobbyBoardPanelMode mode = LobbyBoardPanelMode.Full)
         {
             _lobbyService = lobbyService ?? throw new ArgumentNullException(nameof(lobbyService));
             _loc = loc ?? throw new ArgumentNullException(nameof(loc));
             _mod = mod ?? throw new ArgumentNullException(nameof(mod));
+            DisplayMode = mode;
+            SelectedTab = mode == LobbyBoardPanelMode.InspectorEmbed ? 1 : 0;
 
-            // Subskrypcja na auto-detekcję kodu z DLL bridge
-            if (bridgeReader != null)
+            // Subskrypcja na auto-detekcję kodu z DLL bridge (tylko pełny modal)
+            if (bridgeReader != null && IsFullMode)
             {
                 bridgeReader.LobbyCodeDetected += OnLobbyCodeDetected;
                 Disposable.Create(() => bridgeReader.LobbyCodeDetected -= OnLobbyCodeDetected)

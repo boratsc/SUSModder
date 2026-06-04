@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
+using SUSModder.Core.Models;
 
 namespace SUSModder.Core.Data
 {
@@ -18,7 +20,7 @@ namespace SUSModder.Core.Data
 
         // Aktualna wersja schematu bazy danych.
         // Zwiększaj przy każdej zmianie schematu (CREATE TABLE, ALTER TABLE, etc.).
-        private const int LatestSchemaVersion = 4;
+        private const int LatestSchemaVersion = 7;
 
         public DatabaseService()
         {
@@ -28,6 +30,18 @@ namespace SUSModder.Core.Data
             );
             Directory.CreateDirectory(appData);
             _dbPath = Path.Combine(appData, "susmodder.db");
+        }
+
+        internal DatabaseService(string databasePath)
+        {
+            if (string.IsNullOrWhiteSpace(databasePath))
+                throw new ArgumentException("Database path cannot be empty.", nameof(databasePath));
+
+            var directory = Path.GetDirectoryName(databasePath);
+            if (!string.IsNullOrWhiteSpace(directory))
+                Directory.CreateDirectory(directory);
+
+            _dbPath = databasePath;
         }
 
         public string DatabasePath => _dbPath;
@@ -189,7 +203,8 @@ namespace SUSModder.Core.Data
                     settings_version    INTEGER NOT NULL DEFAULT 0,
                     active_sustats_guild_id TEXT DEFAULT NULL,
                     mod_packs_enabled     INTEGER NOT NULL DEFAULT 1,
-                    mod_packs_auto_install INTEGER NOT NULL DEFAULT 0
+                    mod_packs_auto_install INTEGER NOT NULL DEFAULT 0,
+                    glass_reduce_transparency INTEGER NOT NULL DEFAULT 0
                 );";
             cmd.ExecuteNonQuery();
 
@@ -253,7 +268,9 @@ namespace SUSModder.Core.Data
                 );";
             cmd.ExecuteNonQuery();
 
-            System.Diagnostics.Debug.WriteLine("[DatabaseService] Wszystkie tabele utworzone (v2 – discord_auth, sustats_credentials).");
+            CreateModInstanceTables(conn);
+
+            System.Diagnostics.Debug.WriteLine("[DatabaseService] Wszystkie tabele utworzone (v5 – local modpack instances).");
         }
 
         /// <summary>
@@ -435,6 +452,149 @@ namespace SUSModder.Core.Data
                     throw;
                 }
             }
+
+            if (currentVersion < 5)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v5 – local modpack instances...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    CreateModInstanceTables(conn, tx);
+
+                    tx.Commit();
+                    SetUserVersion(conn, 5);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v5 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v5: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 6)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v6 – usuwanie legacy mod_instances (katalog ≠ zestawy)...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    RemoveLegacyCatalogInstances(conn, tx);
+                    tx.Commit();
+                    SetUserVersion(conn, 6);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v6 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v6: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 7)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v7 – glass_reduce_transparency...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+                    EnsureColumn(cmd, "user_settings", "glass_reduce_transparency",
+                        "ALTER TABLE user_settings ADD COLUMN glass_reduce_transparency INTEGER NOT NULL DEFAULT 0;");
+
+                    tx.Commit();
+                    SetUserVersion(conn, 7);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v7 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v7: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+        }
+
+        private static void RemoveLegacyCatalogInstances(SqliteConnection conn, SqliteTransaction? tx)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "DELETE FROM mod_instances WHERE origin = 'legacy';";
+            var deleted = cmd.ExecuteNonQuery();
+            if (deleted > 0)
+                System.Diagnostics.Debug.WriteLine($"[DatabaseService] Usunięto {deleted} wpisów legacy z mod_instances.");
+        }
+
+        private static void CreateModInstanceTables(SqliteConnection conn, SqliteTransaction? tx = null)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+
+            cmd.CommandText = @"
+                CREATE TABLE IF NOT EXISTS mod_instances (
+                    instance_id TEXT PRIMARY KEY,
+                    display_name TEXT NOT NULL,
+                    base_mod_id INTEGER NOT NULL,
+                    base_mod_name TEXT NOT NULL,
+                    full_mod_version TEXT NOT NULL DEFAULT '',
+                    among_version TEXT NOT NULL DEFAULT '',
+                    platform TEXT NOT NULL DEFAULT '',
+                    install_path TEXT NOT NULL,
+                    origin TEXT NOT NULL DEFAULT 'manual',
+                    source_pack_code TEXT,
+                    pinned_version TEXT,
+                    auto_update_enabled INTEGER NOT NULL DEFAULT 0,
+                    notes TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    last_launched_at TEXT
+                );";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
+                CREATE TABLE IF NOT EXISTS mod_instance_dlls (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    instance_id TEXT NOT NULL,
+                    dll_mod_id INTEGER,
+                    dll_name TEXT NOT NULL,
+                    dll_version TEXT NOT NULL DEFAULT '',
+                    source TEXT NOT NULL DEFAULT 'catalog',
+                    sha256 TEXT,
+                    vt_status TEXT NOT NULL DEFAULT 'unknown',
+                    installed_path TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    FOREIGN KEY(instance_id) REFERENCES mod_instances(instance_id) ON DELETE CASCADE
+                );";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
+                CREATE TABLE IF NOT EXISTS mod_instance_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    instance_id TEXT NOT NULL,
+                    config_type TEXT NOT NULL,
+                    config_name TEXT NOT NULL DEFAULT '',
+                    config_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    FOREIGN KEY(instance_id) REFERENCES mod_instances(instance_id) ON DELETE CASCADE
+                );";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_mod_instances_base_mod_id ON mod_instances(base_mod_id);";
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_mod_instances_install_path ON mod_instances(install_path);";
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_mod_instance_dlls_instance ON mod_instance_dlls(instance_id);";
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_mod_instance_configs_instance ON mod_instance_configs(instance_id);";
+            cmd.ExecuteNonQuery();
         }
 
         private static void EnsureColumn(SqliteCommand cmd, string table, string column, string alterSql)
@@ -645,6 +805,167 @@ namespace SUSModder.Core.Data
 
             System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja JSON → SQLite zakończona.");
         }
+
+        private void MigrateLegacyModInstances(SqliteConnection conn, SqliteTransaction? tx = null)
+        {
+            try
+            {
+                var legacyMods = new List<LegacyModInstall>();
+                using (var selectCmd = conn.CreateCommand())
+                {
+                    selectCmd.Transaction = tx;
+                    selectCmd.CommandText = @"
+                        SELECT Id, ModName, InstallPath, ModVersion, AmongVersion
+                        FROM mods
+                        WHERE ModType = 'full'
+                          AND InstallPath IS NOT NULL
+                          AND TRIM(InstallPath) <> '';";
+
+                    using var reader = selectCmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        legacyMods.Add(new LegacyModInstall(
+                            reader.GetInt32(0),
+                            reader.GetString(1),
+                            reader.GetString(2),
+                            reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
+                            reader.IsDBNull(4) ? string.Empty : reader.GetString(4)));
+                    }
+                }
+
+                if (legacyMods.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Brak legacy InstallPath do migracji mod_instances.");
+                    return;
+                }
+
+                var fallbackPlatform = GetUserSettingsMode(conn, tx);
+                foreach (var legacy in legacyMods)
+                {
+                    if (LegacyInstanceExists(conn, tx, legacy.InstallPath))
+                        continue;
+
+                    var instanceId = Guid.NewGuid().ToString("D");
+                    var map = LoadLegacyInstallationMap(legacy.InstallPath);
+                    var now = DateTime.UtcNow.ToString("O");
+                    var createdAt = map?.InstalledAt != default ? map!.InstalledAt.ToUniversalTime().ToString("O") : now;
+                    var platform = !string.IsNullOrWhiteSpace(map?.Platform) ? map!.Platform : fallbackPlatform;
+                    var fullMod = map?.FullMod;
+
+                    using (var insertCmd = conn.CreateCommand())
+                    {
+                        insertCmd.Transaction = tx;
+                        insertCmd.CommandText = @"
+                            INSERT INTO mod_instances (
+                                instance_id, display_name, base_mod_id, base_mod_name, full_mod_version,
+                                among_version, platform, install_path, origin, pinned_version,
+                                auto_update_enabled, notes, created_at, updated_at
+                            ) VALUES (
+                                @instance_id, @display_name, @base_mod_id, @base_mod_name, @full_mod_version,
+                                @among_version, @platform, @install_path, 'legacy', @pinned_version,
+                                @auto_update_enabled, @notes, @created_at, @updated_at
+                            );";
+                        insertCmd.Parameters.AddWithValue("@instance_id", instanceId);
+                        insertCmd.Parameters.AddWithValue("@display_name", legacy.ModName);
+                        insertCmd.Parameters.AddWithValue("@base_mod_id", legacy.Id);
+                        insertCmd.Parameters.AddWithValue("@base_mod_name", legacy.ModName);
+                        insertCmd.Parameters.AddWithValue("@full_mod_version", !string.IsNullOrWhiteSpace(fullMod?.ModVersion) ? fullMod!.ModVersion : legacy.ModVersion);
+                        insertCmd.Parameters.AddWithValue("@among_version", !string.IsNullOrWhiteSpace(fullMod?.AmongVersion) ? fullMod!.AmongVersion : legacy.AmongVersion);
+                        insertCmd.Parameters.AddWithValue("@platform", platform ?? string.Empty);
+                        insertCmd.Parameters.AddWithValue("@install_path", legacy.InstallPath);
+                        insertCmd.Parameters.AddWithValue("@pinned_version", (object?)fullMod?.PinnedInstallVersion ?? DBNull.Value);
+                        insertCmd.Parameters.AddWithValue("@auto_update_enabled", fullMod?.AutoUpdateEnabled == true ? 1 : 0);
+                        insertCmd.Parameters.AddWithValue("@notes", map?.Metadata?.Notes ?? string.Empty);
+                        insertCmd.Parameters.AddWithValue("@created_at", createdAt);
+                        insertCmd.Parameters.AddWithValue("@updated_at", now);
+                        insertCmd.ExecuteNonQuery();
+                    }
+
+                    if (map?.InstalledDlls != null)
+                    {
+                        foreach (var dll in map.InstalledDlls)
+                        {
+                            using var dllCmd = conn.CreateCommand();
+                            dllCmd.Transaction = tx;
+                            dllCmd.CommandText = @"
+                                INSERT INTO mod_instance_dlls (
+                                    instance_id, dll_mod_id, dll_name, dll_version, source,
+                                    installed_path, created_at
+                                ) VALUES (
+                                    @instance_id, @dll_mod_id, @dll_name, @dll_version, 'catalog',
+                                    @installed_path, @created_at
+                                );";
+                            dllCmd.Parameters.AddWithValue("@instance_id", instanceId);
+                            dllCmd.Parameters.AddWithValue("@dll_mod_id", dll.ModId == 0 ? DBNull.Value : (object)dll.ModId);
+                            dllCmd.Parameters.AddWithValue("@dll_name", dll.ModName ?? string.Empty);
+                            dllCmd.Parameters.AddWithValue("@dll_version", dll.ModVersion ?? string.Empty);
+                            dllCmd.Parameters.AddWithValue("@installed_path", dll.InstallPath ?? string.Empty);
+                            dllCmd.Parameters.AddWithValue("@created_at", dll.InstalledAt != default ? dll.InstalledAt.ToUniversalTime().ToString("O") : now);
+                            dllCmd.ExecuteNonQuery();
+                        }
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[DatabaseService] Migracja legacy mod_instances zakończona (kandydaci={legacyMods.Count}).");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DatabaseService] MigrateLegacyModInstances error: {ex.Message}");
+                throw;
+            }
+        }
+
+        private static bool LegacyInstanceExists(SqliteConnection conn, SqliteTransaction? tx, string installPath)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "SELECT COUNT(*) FROM mod_instances WHERE install_path = @install_path;";
+            cmd.Parameters.AddWithValue("@install_path", installPath);
+            return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+        }
+
+        private static string GetUserSettingsMode(SqliteConnection conn, SqliteTransaction? tx)
+        {
+            try
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.Transaction = tx;
+                cmd.CommandText = "SELECT mode FROM user_settings WHERE id = 1;";
+                return cmd.ExecuteScalar()?.ToString() ?? string.Empty;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static InstallationMap? LoadLegacyInstallationMap(string installPath)
+        {
+            try
+            {
+                var mapPath = Path.Combine(installPath, ".susmodder-install.json");
+                if (!File.Exists(mapPath))
+                    return null;
+
+                var json = File.ReadAllText(mapPath);
+                return JsonSerializer.Deserialize<InstallationMap>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DatabaseService] Nie udało się odczytać legacy InstallationMap: {ex.Message}");
+                return null;
+            }
+        }
+
+        private sealed record LegacyModInstall(
+            int Id,
+            string ModName,
+            string InstallPath,
+            string ModVersion,
+            string AmongVersion);
 
         /// <summary>
         /// Importuje user-settings.json → tabela user_settings.

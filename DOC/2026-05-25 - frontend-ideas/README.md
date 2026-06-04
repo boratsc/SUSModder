@@ -4,7 +4,7 @@ Sesja burzy mózgów z `sus-ui` + review `sus-senior-quality-reviewer` (GLM 5.1)
 
 ## Status implementacji (aktualizacja 2026-05-29)
 
-**14 z 21 pomysłów w pełni lub częściowo zaimplementowanych**, 1 zaniechany, 6 pozostałych do realizacji.
+**14 z 23 pomysłów w pełni lub częściowo zaimplementowanych**, 1 zaniechany, 8 pozostałych do realizacji.
 
 Dodatkowo zrealizowano:
 - **[POC] Migracja JSON → SQLite** – cała warstwa danych przepisana z plików JSON na `Microsoft.Data.Sqlite` 10.0.8 (✅ zaimplementowane 2026-05-27)
@@ -35,6 +35,8 @@ Dodatkowo zrealizowano:
 | [`07-future-features.md`](07-future-features.md) | Dwuetapowy flow, auto-update | ⚪ P3-P4 | 1-5 dni | ✅ **Zrobione** (częściowo: PostInstall + auto-update) |
 | [`18-beanmodmanager-ideas.md`](18-beanmodmanager-ideas.md) | Mechanizmy z BeanModManager do adaptacji (bulk ops, import, ZIP validation) ✨ | 🟡 P1 | ~6-10 dni | 📋 **Burza mózgów** |
 | [`19-local-modpack-instances.md`](19-local-modpack-instances.md) | Lokalne instancje modpacków / Moje zestawy | 🔴 P0/P1 | ~10-16 dni | 📄 **POC** |
+| [`20-consistent-browser-inspector-ui.md`](20-consistent-browser-inspector-ui.md) | Spójny Browser + Inspector dla katalogu, zestawów i DLL | 🔴 P0/P1 | ~6-10 dni | 📄 **POC** |
+| [`21-aero-liquid-glass-theme.md`](21-aero-liquid-glass-theme.md) | Aero Liquid Glass Theme — półprzezroczysty styl OS backdrop | 🟡 P1 | ~5-9 dni | 📄 **POC** |
 | — | **UI 3.0** — kafelki, drawer, motyw dark, bulk UI | 🟡 P1 | ~10-14 dni | 📄 **[POC](../POC/2026-06-01-ui-refresh-v3-poc.md)** (2026-06-01) |
 
 ## Kolejność implementacji (po review GLM 5.1)
@@ -46,6 +48,8 @@ P0 ── 1. Performance i RAM ────────────────�
          2b. Bulk operations + kolejkowanie ──────── ⏳ ~4-6 dni (#18 + [UI POC](../POC/2026-06-01-ui-refresh-v3-poc.md))
          2c. UI refresh 3.0 (drawer, kafelki, dark) ─ ⏳ fazy 1-2 w 3.0.0 ([POC](../POC/2026-06-01-ui-refresh-v3-poc.md))
          2d. Lokalne modpacki / Moje zestawy ───── ⏳ fundament 3.0 ([#19](19-local-modpack-instances.md))
+         2e. Spójny Browser + Inspector ────────── ⏳ korekta UI 3.0 ([#20](20-consistent-browser-inspector-ui.md))
+         2f. Aero Liquid Glass Theme ────────────── ⏳ visual identity 3.0 ([#21](21-aero-liquid-glass-theme.md))
 P1 ── 3. Toast notifications ────────────────── ✅ 3-4h (zrobione)
         4. Changelog / "Co nowego" ───────────── ✅ 2-3h (zrobione)
         5. Offline / error state ✨ ──────────── ⏳ 1-2h (do zrobienia)

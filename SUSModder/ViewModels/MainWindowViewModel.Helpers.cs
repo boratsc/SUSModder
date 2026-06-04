@@ -110,6 +110,8 @@ namespace SUSModder.ViewModels
 
                 SelectedMod = Mods.FirstOrDefault(m => m.Id == selectedMod.Id)
                                 ?? Mods.FirstOrDefault(m => m.Name == selectedMod.Name);
+
+                CaptureCatalogModsSnapshot();
             }
             finally
             {
@@ -169,6 +171,8 @@ namespace SUSModder.ViewModels
                                   ? null
                                   : Mods.FirstOrDefault(m => m.Name == selectedName));
             }
+
+            CaptureCatalogModsSnapshot();
         }
 
         private async Task FlushPendingModsListRefreshAsync()

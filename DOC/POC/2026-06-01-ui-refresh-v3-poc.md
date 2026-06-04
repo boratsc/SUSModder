@@ -1,9 +1,9 @@
 # POC: Odświeżenie UI SUSModder 3.0
 
 **Data:** 2026-06-01  
-**Status:** Analiza / POC (wdrożenie fazowe na branchu `susmodder-3.0`)  
+**Status:** 🟡 Wdrożenie w toku — master-detail + **Browser + Inspector** (#20, 2026-06-04)  
 **Priorytet:** P1 (tożsamość wizualna 3.0 + fundament pod bulk)  
-**Powiązane:** [`18-beanmodmanager-ideas.md`](../2026-05-25%20-%20frontend-ideas/18-beanmodmanager-ideas.md), [`06-microinteractions-polish.md`](../2026-05-25%20-%20frontend-ideas/06-microinteractions-polish.md)
+**Powiązane:** [`20-consistent-browser-inspector-ui.md`](../2026-05-25%20-%20frontend-ideas/20-consistent-browser-inspector-ui.md), [`19-local-modpack-instances.md`](../2026-05-25%20-%20frontend-ideas/19-local-modpack-instances.md), [`18-beanmodmanager-ideas.md`](../2026-05-25%20-%20frontend-ideas/18-beanmodmanager-ideas.md), [`06-microinteractions-polish.md`](../2026-05-25%20-%20frontend-ideas/06-microinteractions-polish.md)
 
 ---
 
@@ -23,6 +23,8 @@ SUSModder 2.x ma sprawdzony układ: siatka kafelków + stały panel 350px po pra
 
 ## Stan obecny (2.x)
 
+
+
 | Element | Plik | Opis |
 |---------|------|------|
 | Siatka modów | `SUSModder/Views/MainWindow.axaml` | `ListBox` + `FlexPanel`, karta 140×140 |
@@ -33,6 +35,8 @@ SUSModder 2.x ma sprawdzony układ: siatka kafelków + stały panel 350px po pra
 | Mikrointerakcje | #06 ✅ | Skeleton, tooltipy, hover — zostają, dostosować do `ModCard` |
 
 Baseline screenshotów: `DOC/readme/screenshot-main.png`, `screenshot-install.png`, `screenshot-launch.png`.
+
+**Postęp UI 3.0 (2026-06-04):** szczegóły w [`20-consistent-browser-inspector-ui.md`](../2026-05-25%20-%20frontend-ideas/20-consistent-browser-inspector-ui.md#stan-implementacji-2026-06-04). Nowe karty 340×160, trzy zakładki, inspektory, DLL bez głównego modala. Instrukcja screenshotów: [`readme/SCREENSHOTS.md`](../readme/SCREENSHOTS.md).
 
 ---
 

@@ -35,7 +35,106 @@
       "UninstallSelected": "Uninstall ({0})",
       "QueueProgress": "Queue: {0}/{1} — {2}",
       "UninstallTitle": "Uninstall selected",
-      "UninstallConfirm": "Uninstall {0} selected mods?"
+      "UninstallConfirm": "Uninstall {0} selected mods?",
+      "Packs": {
+        "SelectedCount": "Selected packs: {0}",
+        "UpdateSelected": "Update packs ({0})",
+        "DeleteSelected": "Delete packs ({0})",
+        "DeleteConfirm": "Remove {0} selected packs from your library?"
+      },
+      "SelectedDlls": "Selected DLLs: {0}"
+    },
+    "Tabs": {
+      "MyPacks": "My packs",
+      "Catalog": "Mod catalog",
+      "DllAddons": "DLL add-ons"
+    },
+    "Browser": {
+      "SearchPlaceholder": "Search…",
+      "SelectMode": "Select",
+      "ExitSelectMode": "Done",
+      "NoResults": "No results for the current filter"
+    },
+    "Inspector": {
+      "Details": "Details",
+      "Contents": "Contents",
+      "Compatibility": "Compatibility",
+      "InstalledIn": "Installed in",
+      "CompatibleDlls": "Compatible DLL add-ons",
+      "AddToTargets": "Add / remove from",
+      "QuickActions": "Quick actions",
+      "Configuration": "Configuration",
+      "Sharing": "Sharing",
+      "DangerZone": "Danger zone",
+      "Tools": "Tools",
+      "ShowMore": "Show more ({0})",
+      "ShowLess": "Show less",
+      "MoreActions": "More actions",
+      "LobbyChat": "Lobby chat",
+      "Compat": {
+        "Loading": "Loading compatibility…"
+      }
+    },
+    "Actions": {
+      "CreatePack": "Create pack",
+      "InstallClassic": "Install classic",
+      "AddTo": "Add to…",
+      "ApplyChanges": "Apply changes"
+    },
+    "Packs": {
+      "CreateLocal": "Create new pack",
+      "CreateLocalTitle": "New local pack",
+      "CreateLocalButton": "Create and install",
+      "CreateLocalSuccess": "Pack created — see My packs.",
+      "LocalDisplayNameLabel": "Local pack name",
+      "DisplayNameRequired": "Enter a local pack name.",
+      "ShareSourceLabel": "Pack source (My packs)",
+      "SelectShareSource": "Select a pack to share.",
+      "NoShareSources": "No installed packs available to share.",
+      "InstallerUnavailable": "Instance installer is unavailable.",
+      "Clone": "Clone pack",
+      "CloneTitle": "Clone pack",
+      "CloneDescription": "A separate folder and a new entry in My packs will be created. Choose what to copy from the original.",
+      "CloneOptionsLabel": "Copy",
+      "CloneCopyDlls": "DLL mods",
+      "CloneCopyTouConfig": "Town of Us config (from instance store)",
+      "CloneCopyIntegration": "susmodder-integration.dll",
+      "CloneCopyPinnedVersion": "Pinned version and auto-update settings",
+      "CloneSuggestedName": "{0} (copy)",
+      "CloneSuccess": "Pack cloned successfully.",
+      "EditTouConfig": "Town of Us config",
+      "ApplyTouConfig": "Load pack ToU config into game",
+      "SaveTouConfig": "Save current ToU config to pack",
+      "TouConfigApplied": "Pack ToU config written to game file (settings.amogus_TOU).",
+      "TouConfigCaptured": "Current ToU config saved to this pack.",
+      "TouConfigMissing": "This pack has no saved ToU config.",
+      "TouConfigGlobalMissing": "settings.amogus_TOU not found — launch ToU in-game or save a local config first.",
+      "Update": "Update pack",
+      "UpdateProgress": "Updating pack…",
+      "UpdateSuccess": "Pack \"{0}\" updated to version {1}.",
+      "NoUpdateAvailable": "This pack is already on the latest version.",
+      "Rename": "Rename",
+      "RenamePrompt": "New pack name:",
+      "Share": "Share pack",
+      "InstallAsNew": "Install as new pack",
+      "InstallAsNewButton": "Install as new pack",
+      "LocalNamePlaceholder": "Local name, e.g. ToU - friends",
+      "Contents": "Contents",
+      "ContentsEmpty": "No DLL add-ons in this pack.",
+      "NoPacksTitle": "No local packs yet",
+      "NoPacksDescription": "Import a mod pack code or install a mod from the catalog as a new pack.",
+      "MorePacksTitle": "Add another pack",
+      "MorePacksDescription": "Import a mod pack code or create a new local pack from a catalog mod.",
+      "DeleteTitle": "Uninstall pack",
+      "DeleteConfirmation": "Remove pack \"{0}\"?\n\nFolder:\n{1}",
+      "DeleteFilesConfirmation": "Also delete the installation folder from disk? This cannot be undone.",
+      "LaunchCatalogMissing": "Mod not found in catalog — cannot launch this pack.",
+      "Origin": {
+        "Manual": "Created manually",
+        "SharedPack": "From mod pack code",
+        "Clone": "Cloned",
+        "Legacy": "Legacy migration"
+      }
     },
     "Labels": {
       "InstalledMods": "Installed mods",
@@ -139,7 +238,10 @@
     "Theme": {
       "SwitchToLight": "Light theme",
       "SwitchToPink": "Pink theme",
-      "SwitchToDark": "Dark theme"
+      "SwitchToGlass": "Glass theme",
+      "SwitchToDark": "Dark theme",
+      "Glass": "Glass",
+      "GlassDescription": "Semi-transparent theme with system backdrop blur (Windows Mica/Acrylic)"
     },
     "DeveloperMenu": {
       "RemoveSingleInstance": "Remove SingleInstance",
@@ -158,7 +260,16 @@
       "ViewTitle": "DLL Modifications",
       "ViewSubtitle": "Select DLL modifications (checked = installed)",
       "StatusInstalled": "[INSTALLED]",
-      "VersionLabel": "Version: {0}"
+      "VersionLabel": "Version: {0}",
+      "NotInstalledAnywhere": "Not installed in any pack",
+      "InstalledInCount": "Installed in {0} packs",
+      "InstallTitle": "DLL installation",
+      "InstallFailed": "Failed to install the DLL add-on.",
+      "InstallError": "Installation error: {0}",
+      "UninstallTitle": "Remove DLL",
+      "UninstallConfirm": "Remove \"{0}\" from \"{1}\"?",
+      "UninstallFailed": "Failed to remove the DLL add-on.",
+      "UninstallError": "Removal error: {0}"
     },
     "Repair": {
       "DialogTitle": "Repair Game",
@@ -266,6 +377,9 @@
     "LegendFavorite": "⭐ Recommended",
     "LegendWorks": "✅ Works",
     "LegendNotTested": "❓ Not tested",
+    "CompatFavorite": "Recommended",
+    "CompatWorks": "Works",
+    "CompatNotTested": "Not tested",
     "SkipAll": "Skip all",
     "HiddenIncompatible": "modifications hidden (incompatible)"
   },
@@ -364,7 +478,16 @@
       "MessageNoDll": "The mod has been installed successfully. Would you like to launch the game?",
       "LaunchButton": "🚀 Launch",
       "AddDllButton": "🔧 Add DLL...",
+      "AutoUpdate": "Automatic updates",
       "DontShowAgain": "Don't show this again"
+    },
+    "AmongUsNotFound": {
+      "Title": "Among Us not detected",
+      "Message": "SUSModder could not find an Among Us installation on your system.\n\nTo point to the game manually, click Browse and select the Among Us.exe file from your Steam game folder (usually: …\\steamapps\\common\\Among Us\\Among Us.exe).\n\nMake sure Among Us is installed in your Steam library.",
+      "BrowseButton": "Browse",
+      "CloseButton": "Close",
+      "InvalidFileTitle": "Invalid file",
+      "InvalidFileMessage": "The selected file must be named Among Us.exe and come from the Among Us Steam installation folder."
     }
   },
   "Toast": {
@@ -399,7 +522,15 @@
         "Label": "Theme",
         "Description": "Choose application color theme",
         "Dark": "Dark",
-        "Pink": "Pink"
+        "Pink": "Pink",
+        "Glass": "Glass"
+      },
+      "Appearance": {
+        "Label": "Glass theme",
+        "Description": "Glass theme appearance settings",
+        "ReduceTransparency": "Reduce transparency",
+        "ReduceTransparencyDescription": "Uses an opaque background instead of Mica/Acrylic — better readability and accessibility.",
+        "TransparencyWarning": "The glass effect may be automatically limited when Windows transparency effects are off or high contrast is enabled."
       },
       "GameMode": {
         "Label": "Game mode",

@@ -35,7 +35,106 @@
       "UninstallSelected": "Odinstaluj ({0})",
       "QueueProgress": "Kolejka: {0}/{1} — {2}",
       "UninstallTitle": "Odinstaluj zaznaczone",
-      "UninstallConfirm": "Odinstalować {0} zaznaczonych modów?"
+      "UninstallConfirm": "Odinstalować {0} zaznaczonych modów?",
+      "Packs": {
+        "SelectedCount": "Zaznaczono zestawów: {0}",
+        "UpdateSelected": "Aktualizuj zestawy ({0})",
+        "DeleteSelected": "Usuń zestawy ({0})",
+        "DeleteConfirm": "Usunąć {0} zaznaczonych zestawów z listy?"
+      },
+      "SelectedDlls": "Zaznaczono DLL: {0}"
+    },
+    "Tabs": {
+      "MyPacks": "Moje zestawy",
+      "Catalog": "Katalog modów",
+      "DllAddons": "Dodatki DLL"
+    },
+    "Browser": {
+      "SearchPlaceholder": "Szukaj…",
+      "SelectMode": "Zaznacz",
+      "ExitSelectMode": "Gotowe",
+      "NoResults": "Brak wyników dla podanego filtra"
+    },
+    "Inspector": {
+      "Details": "Szczegóły",
+      "Contents": "Zawartość",
+      "Compatibility": "Kompatybilność",
+      "InstalledIn": "Zainstalowany w",
+      "CompatibleDlls": "Kompatybilne DLL",
+      "AddToTargets": "Dodaj / usuń z",
+      "QuickActions": "Szybkie akcje",
+      "Configuration": "Konfiguracja",
+      "Sharing": "Udostępnianie",
+      "DangerZone": "Niebezpieczne",
+      "Tools": "Narzędzia",
+      "ShowMore": "Pokaż więcej ({0})",
+      "ShowLess": "Pokaż mniej",
+      "MoreActions": "Dodatkowe akcje",
+      "LobbyChat": "Chat lobby",
+      "Compat": {
+        "Loading": "Ładowanie kompatybilności…"
+      }
+    },
+    "Actions": {
+      "CreatePack": "Utwórz zestaw",
+      "InstallClassic": "Instaluj klasycznie",
+      "AddTo": "Dodaj do…",
+      "ApplyChanges": "Zastosuj zmiany"
+    },
+    "Packs": {
+      "CreateLocal": "Utwórz nowy zestaw",
+      "CreateLocalTitle": "Nowy lokalny zestaw",
+      "CreateLocalButton": "Utwórz i zainstaluj",
+      "CreateLocalSuccess": "Zestaw został utworzony w „Moje zestawy”.",
+      "LocalDisplayNameLabel": "Nazwa lokalnego zestawu",
+      "DisplayNameRequired": "Podaj nazwę lokalnego zestawu.",
+      "ShareSourceLabel": "Źródło zestawu (Moje zestawy)",
+      "SelectShareSource": "Wybierz zestaw do udostępnienia.",
+      "NoShareSources": "Brak zainstalowanych zestawów do udostępnienia.",
+      "InstallerUnavailable": "Instalator instancji jest niedostępny.",
+      "Clone": "Klonuj zestaw",
+      "CloneTitle": "Klonuj zestaw",
+      "CloneDescription": "Utworzy się osobny folder i nowy wpis w Moje zestawy. Wybierz, co skopiować z oryginału.",
+      "CloneOptionsLabel": "Kopiuj",
+      "CloneCopyDlls": "Mody DLL",
+      "CloneCopyTouConfig": "Config Town of Us (z bazy instancji)",
+      "CloneCopyIntegration": "susmodder-integration.dll",
+      "CloneCopyPinnedVersion": "Przypiętą wersję i ustawienia auto-aktualizacji",
+      "CloneSuggestedName": "{0} (kopia)",
+      "CloneSuccess": "Zestaw został sklonowany.",
+      "EditTouConfig": "Config Town of Us",
+      "ApplyTouConfig": "Wczytaj config ToU zestawu do gry",
+      "SaveTouConfig": "Zapisz bieżący config ToU do zestawu",
+      "TouConfigApplied": "Config ToU zestawu zapisano w pliku gry (settings.amogus_TOU).",
+      "TouConfigCaptured": "Bieżący config ToU zapisano w tym zestawie.",
+      "TouConfigMissing": "Ten zestaw nie ma zapisanego configu ToU.",
+      "TouConfigGlobalMissing": "Nie znaleziono pliku settings.amogus_TOU — uruchom grę z modem ToU lub zapisz config lokalnie.",
+      "Update": "Aktualizuj zestaw",
+      "UpdateProgress": "Aktualizuję zestaw…",
+      "UpdateSuccess": "Zestaw „{0}” zaktualizowany do wersji {1}.",
+      "NoUpdateAvailable": "Ten zestaw jest już w najnowszej wersji.",
+      "Rename": "Zmień nazwę",
+      "RenamePrompt": "Nowa nazwa zestawu:",
+      "Share": "Udostępnij zestaw",
+      "InstallAsNew": "Zainstaluj jako nowy zestaw",
+      "InstallAsNewButton": "Zainstaluj jako nowy zestaw",
+      "LocalNamePlaceholder": "Nazwa lokalna, np. ToU - znajomi",
+      "Contents": "Zawartość",
+      "ContentsEmpty": "Brak dodatków DLL w tym zestawie.",
+      "NoPacksTitle": "Brak lokalnych zestawów",
+      "NoPacksDescription": "Zaimportuj kod modpacka lub zainstaluj mod z katalogu jako nowy zestaw.",
+      "MorePacksTitle": "Dodaj kolejny zestaw",
+      "MorePacksDescription": "Zaimportuj kod modpacka albo utwórz nowy lokalny zestaw z modu w katalogu.",
+      "DeleteTitle": "Odinstaluj zestaw",
+      "DeleteConfirmation": "Usunąć zestaw „{0}”?\n\nFolder:\n{1}",
+      "DeleteFilesConfirmation": "Usunąć także folder instalacji z dysku? Tej operacji nie można cofnąć.",
+      "LaunchCatalogMissing": "Nie znaleziono moda w katalogu — nie można uruchomić zestawu.",
+      "Origin": {
+        "Manual": "Utworzony ręcznie",
+        "SharedPack": "Z kodu modpacka",
+        "Clone": "Sklonowany",
+        "Legacy": "Migracja legacy"
+      }
     },
     "Labels": {
       "InstalledMods": "Zainstalowanych modów",
@@ -139,7 +238,10 @@
     "Theme": {
       "SwitchToLight": "Motyw jasny",
       "SwitchToPink": "Motyw różowy",
-      "SwitchToDark": "Motyw ciemny"
+      "SwitchToGlass": "Motyw szklany",
+      "SwitchToDark": "Motyw ciemny",
+      "Glass": "Szklany",
+      "GlassDescription": "Półprzezroczysty motyw z rozmyciem tła systemowego (Windows Mica/Acrylic)"
     },
     "DeveloperMenu": {
       "RemoveSingleInstance": "Usuń SingleInstance",
@@ -158,7 +260,16 @@
       "ViewTitle": "Modyfikacje DLL",
       "ViewSubtitle": "Wybierz modyfikacje DLL (zaznaczone = zainstalowane)",
       "StatusInstalled": "[ZAINSTALOWANY]",
-      "VersionLabel": "Wersja: {0}"
+      "VersionLabel": "Wersja: {0}",
+      "NotInstalledAnywhere": "Nie zainstalowany w żadnym zestawie",
+      "InstalledInCount": "Zainstalowany w {0} zestawach",
+      "InstallTitle": "Instalacja DLL",
+      "InstallFailed": "Nie udało się zainstalować modyfikacji DLL.",
+      "InstallError": "Błąd podczas instalacji: {0}",
+      "UninstallTitle": "Usuwanie DLL",
+      "UninstallConfirm": "Czy na pewno chcesz usunąć „{0}” z „{1}”?",
+      "UninstallFailed": "Nie udało się usunąć modyfikacji DLL.",
+      "UninstallError": "Błąd podczas usuwania: {0}"
     },
     "Repair": {
       "DialogTitle": "Napraw grę",
@@ -266,6 +377,9 @@
     "LegendFavorite": "⭐ Polecane",
     "LegendWorks": "✅ Działa",
     "LegendNotTested": "❓ Nieprzetestowane",
+    "CompatFavorite": "Polecane",
+    "CompatWorks": "Działa",
+    "CompatNotTested": "Nieprzetestowane",
     "SkipAll": "Pomiń wszystko",
     "HiddenIncompatible": "modyfikacji ukryto (niekompatybilne)"
   },
@@ -364,7 +478,16 @@
       "MessageNoDll": "Mod został zainstalowany pomyślnie. Czy chcesz uruchomić grę?",
       "LaunchButton": "🚀 Uruchom",
       "AddDllButton": "🔧 Dodaj DLL...",
+      "AutoUpdate": "Automatyczne aktualizacje",
       "DontShowAgain": "Nie pokazuj więcej"
+    },
+    "AmongUsNotFound": {
+      "Title": "Nie wykryto Among Us",
+      "Message": "SUSModder nie znalazł instalacji gry Among Us w systemie.\n\nAby wskazać grę ręcznie, kliknij „Przeglądaj” i wybierz plik Among Us.exe z folderu gry Steam (zwykle: …\\steamapps\\common\\Among Us\\Among Us.exe).\n\nUpewnij się, że Among Us jest zainstalowany w bibliotece Steam.",
+      "BrowseButton": "Przeglądaj",
+      "CloseButton": "Zamknij",
+      "InvalidFileTitle": "Nieprawidłowy plik",
+      "InvalidFileMessage": "Wybrany plik musi nazywać się „Among Us.exe” i pochodzić z folderu instalacji gry Among Us w Steam."
     }
   },
   "Toast": {
@@ -399,7 +522,15 @@
         "Label": "Motyw",
         "Description": "Wybierz motyw kolorystyczny aplikacji",
         "Dark": "Ciemny",
-        "Pink": "Różowy"
+        "Pink": "Różowy",
+        "Glass": "Szklany"
+      },
+      "Appearance": {
+        "Label": "Motyw Szklany",
+        "Description": "Ustawienia wyglądu motywu Szklany",
+        "ReduceTransparency": "Wyłącz przezroczystość",
+        "ReduceTransparencyDescription": "Używa nieprzezroczystego tła zamiast efektu Mica/Acrylic — lepsza czytelność i dostępność.",
+        "TransparencyWarning": "Efekt szkła może być automatycznie ograniczony, gdy Windows ma wyłączone efekty przezroczystości lub włączony wysoki kontrast."
       },
       "GameMode": {
         "Label": "Tryb gry",

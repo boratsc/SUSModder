@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             xmlns:converters="using:SUSModder.Converters"
+             xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:behaviors="using:SUSModder.Behaviors"
+             x:Class="SUSModder.Controls.DllAddonCard"
+             x:DataType="vm:ModItem"
+             x:CompileBindings="False"
+             ToolTip.ShowDelay="300">
+    <UserControl.Resources>
+        <converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
+    </UserControl.Resources>
+
+    <Border Classes="browser-card mod-card"
+            Classes.bulk-checked="{Binding IsCheckedForBulk}">
+        <i:Interaction.Behaviors>
+            <behaviors:DoubleClickBehavior
+                DoubleClickCommand="{Binding $parent[Window].DataContext.SelectDllModCommand}"
+                CommandParameter="{Binding}"
+                DoubleClickInterval="300"/>
+        </i:Interaction.Behaviors>
+
+        <Panel>
+            <Border Classes="browser-card-shine"/>
+            <Grid RowDefinitions="*">
+            <Border Width="3"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Stretch"
+                    Background="{DynamicResource SelectionBarBrush}"
+                    CornerRadius="12,0,0,12"
+                    IsVisible="False"
+                    Classes="browser-selection-bar"
+                    Grid.RowSpan="2"/>
+
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <Image Grid.Column="0"
+                       Classes="browser-card-icon"
+                       Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"/>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                    <TextBlock Classes="browser-card-title" Text="{Binding Name}"/>
+                    <Button Classes="browser-card-primary"
+                            HorizontalAlignment="Left"
+                            Content="{loc:Localize UI.Actions.AddTo}"
+                            Command="{Binding $parent[Window].DataContext.SelectDllModCommand}"
+                            CommandParameter="{Binding}"/>
+                    <TextBlock Classes="browser-card-subtitle" Text="{Binding BrowserSubtitle}"/>
+                    <TextBlock Classes="browser-card-meta" Text="{Binding InstalledInSummary}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" VerticalAlignment="Top" Spacing="6" HorizontalAlignment="Right">
+                    <CheckBox IsChecked="{Binding IsCheckedForBulk}"
+                              IsVisible="{Binding $parent[Window].DataContext.IsBulkSelectionMode}"
+                              IsEnabled="{Binding IsDllBulkEligible}"
+                              VerticalAlignment="Top"/>
+                    <Border Classes="browser-type-badge">
+                        <TextBlock Classes="browser-type-badge-text" Text="DLL"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
+            </Grid>
+        </Panel>
+    </Border>
+</UserControl>

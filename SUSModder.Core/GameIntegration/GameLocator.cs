@@ -15,116 +15,57 @@ namespace SUSModder.Core.GameIntegration
 {
     public static class GameLocator
     {
-        private static readonly string[] CommonSteamPaths =
-        {
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Steam"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Steam"),
-            @"D:\SteamLibrary",
-            @"D:\Steam",
-            @"D:\",
-            @"D:\Gry\Steam"
-        };
+        /// <summary>
+        /// Wyszukuje ścieżkę do Among Us w bibliotekach Steam, rejestrze i typowych lokalizacjach dysków.
+        /// </summary>
+        public static string? TryFindSteamPath() => AmongUsPathDiscovery.TryFindInstallDirectory();
 
         /// <summary>
-        /// Wyszukuje ścieżkę do Among Us wyłącznie w bibliotekach Steam.
-        /// Dla Epic Games ścieżka nie jest wymagana - gra zarządzana jest przez legendary.exe.
+        /// Sprawdza, czy katalog zawiera plik Among Us.exe.
         /// </summary>
-        public static string? TryFindSteamPath()
+        public static bool IsValidAmongUsInstallDirectory(string? path) =>
+            AmongUsPathDiscovery.IsValidInstallDirectory(path);
+
+        /// <summary>
+        /// Rejestruje lub aktualizuje wpis Vanilla na podstawie wskazanej ścieżki katalogu gry.
+        /// </summary>
+        public static ModConfiguration? TryRegisterSteamVanillaPath(
+            System.Collections.Generic.List<ModConfiguration> modConfigs,
+            IConfiguration configuration,
+            string installDirectory)
         {
-            Console.WriteLine("Wyszukiwanie Among Us w bibliotekach Steam.");
+            if (!AmongUsPathDiscovery.IsValidInstallDirectory(installDirectory))
+                return null;
 
-            foreach (var basePath in GetSteamLibraryPaths())
+            var userSettingsService = new UserSettingsService();
+            var userMode = userSettingsService.LoadUserSettings().Mode;
+            if (string.IsNullOrWhiteSpace(userMode))
+                userMode = "steam";
+
+            var normalizedPath = Path.GetFullPath(installDirectory.TrimEnd('\\', '/'));
+            var existing = modConfigs.FirstOrDefault(x =>
+                x.ModName == "AmongUs" &&
+                x.Id == 0 &&
+                !string.IsNullOrEmpty(x.InstallPath));
+
+            if (existing != null)
             {
-                var path = NormalizePath(Path.Combine(basePath, "steamapps", "common", "Among Us"));
-                Console.WriteLine($"Sprawdzam ścieżkę Steam: {path}");
-                if (Directory.Exists(path) && File.Exists(Path.Combine(path, "Among Us.exe")))
-                {
-                    Console.WriteLine($"Znaleziono grę Steam: {path}");
-                    return path;
-                }
+                existing.InstallPath = normalizedPath;
+                existing.AmongVersion = GetGameVersion(normalizedPath);
+                existing.LastUpdated = DateTime.Now;
+                ConfigManager.SaveConfig(modConfigs);
+                userSettingsService.UpdateUserSetting(settings => settings.VanillaInstallPath = normalizedPath);
+                return existing;
             }
 
-            Console.WriteLine("Nie znaleziono Among Us w bibliotekach Steam.");
-            return null;
-        }
-
-        private static IEnumerable<string> GetSteamLibraryPaths()
-        {
-            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var basePath in CommonSteamPaths)
-            {
-                if (string.IsNullOrWhiteSpace(basePath))
-                    continue;
-
-                var normalizedBase = NormalizePath(basePath);
-                if (Directory.Exists(normalizedBase))
-                {
-                    result.Add(normalizedBase);
-                }
-
-                var libraryFoldersPath = Path.Combine(normalizedBase, "steamapps", "libraryfolders.vdf");
-                if (!File.Exists(libraryFoldersPath))
-                    continue;
-
-                try
-                {
-                    var content = File.ReadAllText(libraryFoldersPath);
-                    foreach (var libraryPath in ParseSteamLibraryFolders(content))
-                    {
-                        var normalizedLibrary = NormalizePath(libraryPath);
-                        if (Directory.Exists(normalizedLibrary))
-                        {
-                            result.Add(normalizedLibrary);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Nie udało się odczytać libraryfolders.vdf: {ex.Message}");
-                }
-            }
-
-            return result;
-        }
-
-        private static IEnumerable<string> ParseSteamLibraryFolders(string content)
-        {
-            // Obsługa formatu VDF: "path" "D:\\SteamLibrary"
-            var matches = Regex.Matches(content, "\"path\"\\s*\"([^\"]+)\"", RegexOptions.IgnoreCase);
-            foreach (Match match in matches)
-            {
-                if (match.Groups.Count < 2)
-                    continue;
-
-                var raw = match.Groups[1].Value;
-                if (string.IsNullOrWhiteSpace(raw))
-                    continue;
-
-                yield return raw.Replace("\\\\", "\\");
-            }
-        }
-
-        private static string NormalizePath(string path)
-        {
-            try
-            {
-                return Path.GetFullPath(path)
-                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            }
-            catch
-            {
-                return path.Replace('/', Path.DirectorySeparatorChar)
-                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            }
+            return SaveVanillaMod(modConfigs, configuration, userSettingsService, userMode, normalizedPath);
         }
 
         /// <summary>
         /// Sprawdza i konfiguruje Vanilla mod (podstawowa gra Among Us).
         /// 
-        /// Dla Steam: automatycznie szuka ścieżki w bibliotekach Steam przez libraryfolders.vdf.
-        ///            Jeśli nie znajdzie - prosi użytkownika o wskazanie Among Us.exe.
+        /// Dla Steam: automatycznie szuka ścieżki (Steam, rejestr, manifesty, dyski).
+        ///            Jeśli nie znajdzie — setup zostaje odłożony do pierwszego uruchomienia gry.
         /// 
         /// Dla Epic: NIE szuka ścieżki - gra jest zarządzana przez legendary.exe.
         ///           Sprawdza przez "legendary list-games" czy użytkownik posiada Among Us na koncie.
@@ -163,63 +104,28 @@ namespace SUSModder.Core.GameIntegration
             }
             else
             {
-                return await SetupSteamVanillaAsync(modConfigs, configuration, userSettingsService, userMode, userInteraction);
+                return SetupSteamVanilla(modConfigs, configuration, userSettingsService, userMode);
             }
         }
 
         /// <summary>
-        /// Konfiguruje Vanilla mod dla Steam: szuka ścieżki przez libraryfolders.vdf,
-        /// fallback do dialogu wyboru pliku.
+        /// Konfiguruje Vanilla mod dla Steam wyłącznie przez auto-wykrywanie.
         /// </summary>
-        private static async Task<ModConfiguration?> SetupSteamVanillaAsync(
+        private static ModConfiguration? SetupSteamVanilla(
             System.Collections.Generic.List<ModConfiguration> modConfigs,
             IConfiguration configuration,
             UserSettingsService userSettingsService,
-            string userMode,
-            IUserInteraction? userInteraction)
+            string userMode)
         {
             string? foundPath = TryFindSteamPath();
 
             if (foundPath == null)
             {
-                // Jeśli nie znaleziono automatycznie, poproś użytkownika o wskazanie
-                if (userInteraction != null)
-                {
-                    var userSelectedPath = await userInteraction.ShowSelectFileDialogAsync(
-                        "Among Us executable|*.exe",
-                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)
-                    );
-
-                    if (string.IsNullOrWhiteSpace(userSelectedPath))
-                    {
-                        Console.WriteLine("Użytkownik anulował wybór pliku Among Us.exe.");
-                        return null;
-                    }
-
-                    if (!File.Exists(userSelectedPath))
-                    {
-                        Console.WriteLine($"Wybrany plik nie istnieje: {userSelectedPath}");
-                        return null;
-                    }
-
-                    if (!string.Equals(Path.GetFileName(userSelectedPath), "Among Us.exe", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Console.WriteLine($"Wybrany plik nie jest Among Us.exe: {userSelectedPath}");
-                        return null;
-                    }
-
-                    foundPath = Path.GetDirectoryName(userSelectedPath);
-                }
-                else
-                {
-                    Console.WriteLine("Nie znaleziono gry Steam i brak interfejsu użytkownika do wyboru ścieżki.");
-                    return null;
-                }
+                Console.WriteLine("[Steam Vanilla] Nie wykryto Among Us automatycznie — monit po wystartowaniu aplikacji.");
+                return null;
             }
 
-            if (foundPath == null)
-                return null;
-
+            Console.WriteLine($"[Steam Vanilla] Wykryto Among Us: {foundPath}");
             return SaveVanillaMod(modConfigs, configuration, userSettingsService, userMode, foundPath);
         }
 

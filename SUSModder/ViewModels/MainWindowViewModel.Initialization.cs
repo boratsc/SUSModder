@@ -71,6 +71,7 @@ namespace SUSModder.ViewModels
                 // KROK 4: Odświeżenie interfejsu (70%)
                 progressCallback?.Invoke(0.4, "Odświeżanie listy modów...");
                 await RefreshModsListAsync(preloadedConfigs: _loadedConfigs);
+                await RefreshPackInstancesAsync();
 
                 // Odblokuj interakcję — po kroku 4 lista modów jest w pełni załadowana
                 _isInitializing = false;
@@ -139,82 +140,24 @@ namespace SUSModder.ViewModels
 
         private async Task<bool> SetupVanillaGameAsync()
         {
-            while (true)
+            try
             {
-                try
-                {
-                    System.Diagnostics.Debug.WriteLine("Starting Vanilla game setup...");
+                System.Diagnostics.Debug.WriteLine("Starting Vanilla game setup...");
 
-                    // Użyj cache'owanej konfiguracji z DI zamiast budowania nowej
-                    var configuration = _configuration!;
+                var vanillaMod = await GameLocator.CheckAndSetupVanillaModAsync(
+                    _loadedConfigs,
+                    _configuration!,
+                    userInteraction: null);
 
-                    // Wywołaj asynchroniczną wersję z interfejsem użytkownika
-                    var vanillaMod = await GameLocator.CheckAndSetupVanillaModAsync(
-                        _loadedConfigs,
-                        configuration,
-                        _userInteractionService
-                    );
+                if (vanillaMod != null)
+                    _loadedConfigs.Add(vanillaMod);
 
-                    System.Diagnostics.Debug.WriteLine($"Vanilla game setup completed with result: {(vanillaMod != null ? "success" : "already exists or cancelled")}");
-
-                    // Jeśli zwrócono nowy mod, dodaj go do listy
-                    if (vanillaMod != null)
-                    {
-                        _loadedConfigs.Add(vanillaMod);
-                        return true;
-                    }
-
-                    // Jeśli null - już istniał lub user anulował
-                    var existingVanilla = _loadedConfigs.FirstOrDefault(x => x.ModName == "AmongUs" && x.ModType == "Vanilla");
-                    if (existingVanilla != null)
-                        return true;
-
-                    // Dla Epic brak Vanilla na starcie jest dopuszczalny (np. brak sesji legendary).
-                    // Nie pokazuj wtedy dialogu wyboru Among Us.exe (to flow Steam) i nie blokuj startu.
-                    var currentMode = _userSettingsService.LoadUserSettings().Mode;
-                    if (string.Equals(currentMode, "epic", StringComparison.OrdinalIgnoreCase))
-                    {
-                        System.Diagnostics.Debug.WriteLine("[Vanilla Setup] Epic mode without local vanilla config - skipping Steam retry dialog.");
-                        return true;
-                    }
-
-                    // Jeśli niepowodzenie, przejdź do obsługi poniżej
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error during Vanilla setup: {ex.Message}");
-                }
-
-                // Dialog z wyborem: Spróbuj ponownie / Zamknij
-                var shouldRetry = await ShowInlineConfirmAsync(
-                    "Nie wybrano pliku Among Us.exe",
-                    "Nie wybrałeś pliku Among Us.exe. Spróbuj ponownie albo zamknij aplikację.",
-                    "Spróbuj ponownie",
-                    "Zamknij");
-
-                if (shouldRetry)
-                {
-                    // Spróbuj ponownie
-                    continue;
-                }
-                else
-                {
-                    // Usuń config.json i zamknij aplikację
-                    try
-                    {
-                        string configPath = Path.Combine(
-                            SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory(),
-                            "config.json");
-                        if (File.Exists(configPath))
-                            File.Delete(configPath);
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Błąd podczas kasowania config.json: {ex.Message}");
-                    }
-                    Environment.Exit(0);
-                    return false;
-                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error during Vanilla setup: {ex.Message}");
+                return true;
             }
         }
 
@@ -497,7 +440,15 @@ namespace SUSModder.ViewModels
 
                 using var changelogService = new SUSModder.Core.Services.ChangelogService();
 
-                // Sprawdź czy to nowa wersja
+                // Pierwszy start / reset fabryczny — zapisz wersję bez toasta „Zaktualizowano do…”
+                if (string.IsNullOrWhiteSpace(lastSeenVersion))
+                {
+                    _userSettingsService.SaveLastSeenVersion(AppVersion);
+                    System.Diagnostics.Debug.WriteLine($"[Changelog] Pierwszy start — zapisano lastSeenVersion = {AppVersion} (bez toasta)");
+                    return;
+                }
+
+                // Toast tylko po rzeczywistej aktualizacji (np. 2.9.0 → 3.0.0)
                 bool isNewVersion = changelogService.IsNewerVersion(AppVersion, lastSeenVersion);
 
                 if (!isNewVersion)
@@ -507,6 +458,9 @@ namespace SUSModder.ViewModels
                 }
 
                 System.Diagnostics.Debug.WriteLine($"[Changelog] Nowa wersja {AppVersion} (lastSeen: {lastSeenVersion})");
+
+                // Zapisz od razu — żeby toast nie wracał po restarcie nawet gdy UI się wywali
+                _userSettingsService.SaveLastSeenVersion(AppVersion);
 
                 // KROK 1: Spróbuj pobrać z GitHub API (na potrzeby toasta)
                 var changelogData = await TryFetchFromGitHubAsync(changelogService);
@@ -562,9 +516,6 @@ namespace SUSModder.ViewModels
                     }
                 });
 
-                // KROK 4: Zapisz wersję
-                _userSettingsService.SaveLastSeenVersion(AppVersion);
-                System.Diagnostics.Debug.WriteLine($"[Changelog] Zapisano lastSeenVersion = {AppVersion}");
             }
             catch (Exception ex)
             {

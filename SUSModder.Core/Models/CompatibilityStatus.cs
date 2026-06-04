@@ -36,12 +36,15 @@ namespace SUSModder.Core.Models
         /// </summary>
         public static CompatibilityStatus FromApiCode(string? code)
         {
-            return code?.ToUpperInvariant() switch
+            if (string.IsNullOrWhiteSpace(code))
+                return CompatibilityStatus.NotTested;
+
+            return code.Trim().ToUpperInvariant() switch
             {
-                "F" => CompatibilityStatus.Favorite,
-                "W" => CompatibilityStatus.Works,
-                "NW" => CompatibilityStatus.NotWork,
-                "NT" => CompatibilityStatus.NotTested,
+                "F" or "FAVORITE" => CompatibilityStatus.Favorite,
+                "W" or "WORKS" => CompatibilityStatus.Works,
+                "NW" or "NOTWORK" or "NOT_WORK" => CompatibilityStatus.NotWork,
+                "NT" or "NOTTESTED" or "NOT_TESTED" => CompatibilityStatus.NotTested,
                 _ => CompatibilityStatus.NotTested
             };
         }

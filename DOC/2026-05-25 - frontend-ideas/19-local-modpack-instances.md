@@ -2,8 +2,121 @@
 
 **Priorytet:** 🔴 P0/P1 dla SUSModder 3.0  
 **Effort:** ~10-16 dni (Core + SQLite + UI + migracje + testy)  
-**Status:** 📄 **POC / koncepcja produktu** — rozszerzenie modpacków poza sharing przez kod  
-**Powiązane:** [`16-mod-pack-sharing.md`](16-mod-pack-sharing.md), [`18-beanmodmanager-ideas.md`](18-beanmodmanager-ideas.md), [`../POC/2026-06-01-ui-refresh-v3-poc.md`](../POC/2026-06-01-ui-refresh-v3-poc.md), [`../PLAN/MODPACK_API.md`](../PLAN/MODPACK_API.md)
+**Status:** 🟡 **W trakcie wdrożenia** — Core + UI zestawów; Browser + Inspector (#20) zintegrowany z zakładką Moje zestawy  
+**Powiązane:** [`20-consistent-browser-inspector-ui.md`](20-consistent-browser-inspector-ui.md), [`16-mod-pack-sharing.md`](16-mod-pack-sharing.md), [`18-beanmodmanager-ideas.md`](18-beanmodmanager-ideas.md), [`../POC/2026-06-01-ui-refresh-v3-poc.md`](../POC/2026-06-01-ui-refresh-v3-poc.md), [`../PLAN/MODPACK_API.md`](../PLAN/MODPACK_API.md)
+
+---
+
+## Status wdrożenia
+
+**Ostatnia aktualizacja:** 2026-06-04  
+**Aktualny etap:** Faza 3 UI + spójny Browser (#20); domyślna zakładka aplikacji = **Katalog modów** (decyzja #20)
+
+### ✅ Wdrożone
+
+- Dodano modele Core:
+  - `ModInstance`
+  - `ModInstanceDll`
+  - `ModInstanceConfig`
+- Dodano repozytorium lokalnych instancji:
+  - `IModInstanceRepository`
+  - `ModInstanceRepository`
+- Rozszerzono SQLite do `PRAGMA user_version = 5`:
+  - `mod_instances`
+  - `mod_instance_dlls`
+  - `mod_instance_configs`
+  - indeksy dla `base_mod_id`, `install_path`, `instance_id`
+- Migracja legacy (v5, **cofnięte w v6**): katalogowe `mods.InstallPath` **nie** trafiają do `mod_instances`. Zestawy tylko: kreator, import kodu, klon (`manual` / `shared_pack` / `clone`). Wpis `legacy` usuwany przy migracji do v6.
+  - `mods.InstallPath` pozostaje w katalogu (fallback) zgodnie z non-goals.
+- Zarejestrowano `IModInstanceRepository` w DI aplikacji.
+- Dodano Core slice Fazy 2:
+  - `ModInstanceInstaller` tworzy nową lokalną instancję full moda w konkretnej ścieżce bez nadpisywania katalogowego `mods.InstallPath`;
+  - `ModManager.InstallFullModToPathAsync` obsługuje instalację full moda do wskazanego folderu dla instancji;
+  - `.susmodder-install.json` obsługuje format v2: `instanceId`, `displayName`, `origin`, `sourcePackCode`;
+  - instalacja DLL działa na konkretnym `instanceId` i zapisuje wpis w `mod_instance_dlls`;
+  - rename/delete/mark-launched są dostępne na poziomie Core dla konkretnej instancji.
+- Dodano testy Core dla:
+  - dwóch instancji tego samego `base_mod_id`;
+  - usunięcia jednej instancji bez naruszania drugiej;
+  - migracji legacy `mods.InstallPath` + `.susmodder-install.json` do `mod_instances` i `mod_instance_dlls`;
+  - tworzenia instancji z mapą instalacji v2;
+  - odrzucenia niepustej ścieżki docelowej;
+  - instalacji DLL do wskazanej instancji;
+  - rename instancji z aktualizacją `.susmodder-install.json`.
+
+### ✅ Weryfikacja wykonana
+
+```powershell
+dotnet build SUSModder.Core\SUSModder.Core.csproj
+dotnet build SUSModder\SUSModder.csproj
+dotnet build SUSModder.sln
+dotnet test SUSModder.Core.Tests\SUSModder.Core.Tests.csproj
+```
+
+Wynik testów Core: **73/73 PASS**.
+
+### 🧪 Review
+
+- `sus-quality-reviewer`: **PASS**, brak blockerów; drobny alignment w `ModManager.cs` poprawiony po review.
+- `sus-security-auditor`: **PASS / brak blockerów**; obecny Core slice odrzuca niepuste ścieżki docelowe i przy `deleteFiles: true` wymaga zgodnego `instanceId` w `.susmodder-install.json`.
+- Pełny 5-agent `/review-work` został uruchomiony, ale nie zwrócił wyników w rozsądnym czasie; zadania tła anulowano po fallback review jakości + bezpieczeństwa.
+
+### ✅ Wdrożone (Faza 3 — początek)
+
+- Zakładki przeglądarki: **Katalog modów** (domyślna, #20), **Moje zestawy**, **Dodatki DLL** — `BrowserToolbar`.
+- Lista lokalnych instancji z `IModInstanceRepository`, karty `PackInstanceCard` (BrowserCard 340×160), panel `PackInstanceDetailDrawer` (sekcje inspektora).
+- Wyszukiwarka browser, bulk dla zestawów — patrz [#20](20-consistent-browser-inspector-ui.md#stan-implementacji-2026-06-04).
+- Uruchamianie zestawu z `InstallPath` instancji + `MarkInstanceLaunched`.
+- Usuwanie zestawu z podwójnym potwierdzeniem (rekord + opcjonalnie folder).
+- Rename i udostępnianie zestawu (`InstanceToModPackMapper` → `ModPackCreateRequest`).
+- `ModPackInstaller` z `ModInstanceInstaller`: import kodu jako **nowa instancja** (`origin=shared_pack`).
+- Podgląd importu: pole lokalnej nazwy przed instalacją.
+- i18n PL/EN: `UI.Tabs.*`, `UI.Packs.*`.
+- Test: `InstanceToModPackMapperTests`.
+
+### ✅ Wdrożone (integracja kreatora)
+
+- `ModPackCreatorDialog` — dwa tryby: **ShareOnline** (API) i **InstallLocal** (nowa instancja).
+- Udostępnianie: źródło = **Moje zestawy** (`mod_instances`) + fallback legacy `InstallPath`; mapowanie przez `InstanceToModPackMapper`.
+- Lokalna instalacja: ten sam kreator — mod z katalogu, wersja, DLL, nazwa → `ModInstanceInstaller`.
+- Wejścia: menu „Udostępnij”, panel instancji, katalog („Utwórz nowy zestaw”), pusty stan „Moje zestawy”.
+
+### ✅ Wdrożone (Faza 4 — klonowanie)
+
+- `ModInstanceInstaller.CloneInstanceAsync` — kopia folderu, nowy `mod_instances` (`origin=clone`).
+- Opcje: DLL, config ToU (`mod_instance_configs`), `integration.dll`, przypięta wersja.
+- UI: `PackInstanceCloneDialog` + przycisk w panelu instancji.
+- Test: `CloneInstance_CreatesSeparateFolderAndHonorsCopyOptions`.
+
+### ✅ Wdrożone (ToU per instancja — MVP)
+
+- `ModInstanceTouConfigService` — snapshot JSON w `mod_instance_configs`, apply/capture `settings.amogus_TOU`.
+- Import modpacka zapisuje ToU do instancji + pliku gry.
+- Uruchomienie zestawu automatycznie wczytuje config ToU instancji.
+- UI: Wczytaj / Zapisz config ToU w panelu instancji.
+- Test: `ModInstanceTouConfigServiceTests`.
+
+### ✅ Wdrożone (kontynuacja 2026-06-03)
+
+- Test Core: `ModPackInstaller` → `InstallPackAsNewInstance`.
+- Badge UPDATE na `PackInstanceCard` (`ModInstanceUpdateChecker` + odświeżenie po sprawdzeniu aktualizacji).
+- Zakładka **Dodatki DLL** — cele instalacji z `mod_instances` (`TargetInstanceId`, `InstallDllToInstanceAsync`).
+- **Aktualizacja zestawu** — `UpdateInstanceAsync`, `CheckInstanceUpdateAsync`, przycisk w panelu instancji.
+- **System tray** — szybkie uruchamianie ostatnich zestawów (`GetTrayQuickLaunchMods`, `LaunchPackInstanceByIdAsync`).
+
+### ✅ Wdrożone (UI / bulk)
+
+- Domyślna zakładka: **Katalog modów** (kolejność tabów: Katalog → Moje zestawy → DLL).
+- Kafelki zestawów wyrównane do katalogu (`PackInstanceCard` = `ModCard`).
+- Katalog: **Instaluj / Wybierz wersję** (jak wcześniej, `mods.InstallPath`) + dodatkowo **Utwórz nowy zestaw** (osobna instancja).
+- **Rozdzielenie katalog ↔ zestawy (v6):** instalacja z katalogu nie pojawia się w „Moje zestawy”; `GetPackInstances()` = tylko `manual` / `shared_pack` / `clone`.
+- **Bulk** na zakładce Moje zestawy: zaznaczanie, masowa aktualizacja, masowe usuwanie.
+
+### ⏭️ Następny krok
+
+1. Screenshoty README (`screenshot-my-packs.png`).
+2. Smoke ręczny Steam + Epic.
+3. Historia packów ↔ instancja (Faza 5, opcjonalnie).
 
 ---
 
@@ -564,7 +677,7 @@ Wymagania:
 5. Usunięcie jednego zestawu nie rusza drugiego.
 6. Import kodu modpacka tworzy nowy lokalny zestaw.
 7. Udostępnienie lokalnego zestawu tworzy kod zgodny z obecnym API.
-8. Legacy instalacje są widoczne jako zestawy `Origin = legacy`.
+8. Legacy instalacje katalogowe **nie** są widoczne w „Moje zestawy” (tylko w katalogu modów).
 9. PL/EN mają pełne copy, bez hardcoded user-facing strings.
 10. Steam i Epic przechodzą smoke test uruchamiania konkretnej instancji.
 

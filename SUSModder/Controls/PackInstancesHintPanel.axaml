@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             xmlns:vm="using:SUSModder.ViewModels"
+             x:Class="SUSModder.Controls.PackInstancesHintPanel"
+             x:DataType="vm:MainWindowViewModel"
+             x:Name="Root">
+	<Border Classes="glass-empty-state"
+			MaxWidth="420">
+		<StackPanel Spacing="8" HorizontalAlignment="Center">
+			<TextBlock Text="{loc:Localize UI.Packs.NoPacksTitle}"
+					   FontSize="18" FontWeight="Bold"
+					   HorizontalAlignment="Center"
+					   Foreground="{DynamicResource TextPrimaryBrush}"
+					   IsVisible="{Binding ShowEmptyStateMessage, ElementName=Root}"/>
+			<TextBlock Text="{loc:Localize UI.Packs.NoPacksDescription}"
+					   TextWrapping="Wrap"
+					   TextAlignment="Center"
+					   Foreground="{DynamicResource TextSecondaryBrush}"
+					   IsVisible="{Binding ShowEmptyStateMessage, ElementName=Root}"/>
+			<TextBlock Text="{loc:Localize UI.Packs.MorePacksTitle}"
+					   FontSize="18" FontWeight="Bold"
+					   HorizontalAlignment="Center"
+					   Foreground="{DynamicResource TextPrimaryBrush}"
+					   IsVisible="{Binding ShowEmptyStateMessage, ElementName=Root, Converter={x:Static BoolConverters.Not}}"/>
+			<TextBlock Text="{loc:Localize UI.Packs.MorePacksDescription}"
+					   TextWrapping="Wrap"
+					   TextAlignment="Center"
+					   Foreground="{DynamicResource TextSecondaryBrush}"
+					   IsVisible="{Binding ShowEmptyStateMessage, ElementName=Root, Converter={x:Static BoolConverters.Not}}"/>
+			<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Margin="0,8,0,0">
+				<Button Content="{loc:Localize UI.Packs.CreateLocal}"
+						Command="{Binding CreateLocalPackCommand}"/>
+				<Button Content="{loc:Localize ModPacks.EnterCodeMenu}"
+						Command="{Binding EnterModPackCodeCommand}"/>
+			</StackPanel>
+		</StackPanel>
+	</Border>
+</UserControl>

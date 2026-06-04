@@ -1,0 +1,50 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SUSModder.Services.Localization"
+        x:Class="SUSModder.Views.PackInstanceCloneDialog"
+        Title="{loc:Localize UI.Packs.CloneTitle}"
+        Width="480" Height="420"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="True">
+
+	<Border Margin="0,30,0,0">
+		<Grid Margin="20,10,20,20" RowDefinitions="Auto,*,Auto">
+			<TextBlock Grid.Row="0"
+                       Text="{loc:Localize UI.Packs.CloneDescription}"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Margin="0,0,0,12"/>
+
+			<StackPanel Grid.Row="1" Spacing="10">
+				<TextBlock Text="{loc:Localize UI.Packs.LocalDisplayNameLabel}" FontWeight="SemiBold"/>
+				<TextBox x:Name="DisplayNameBox"/>
+
+				<TextBlock Text="{loc:Localize UI.Packs.CloneOptionsLabel}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+				<CheckBox x:Name="CopyDllsCheck" IsChecked="True"
+                          Content="{loc:Localize UI.Packs.CloneCopyDlls}"/>
+				<CheckBox x:Name="CopyTouConfigCheck" IsChecked="True"
+                          Content="{loc:Localize UI.Packs.CloneCopyTouConfig}"/>
+				<CheckBox x:Name="CopyIntegrationCheck" IsChecked="True"
+                          Content="{loc:Localize UI.Packs.CloneCopyIntegration}"/>
+				<CheckBox x:Name="CopyPinnedVersionCheck" IsChecked="True"
+                          Content="{loc:Localize UI.Packs.CloneCopyPinnedVersion}"/>
+
+				<TextBlock x:Name="ErrorText"
+                           Foreground="{DynamicResource DangerBrush}"
+                           TextWrapping="Wrap"
+                           IsVisible="False"/>
+			</StackPanel>
+
+			<StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,16,0,0">
+				<Button Content="{loc:Localize UI.Buttons.Cancel}" Width="110" Click="CancelButton_Click"/>
+				<Button x:Name="CloneButton" Content="{loc:Localize UI.Packs.Clone}" Width="140"
+                        Background="{DynamicResource AccentBrush}" Foreground="White"
+                        Click="CloneButton_Click"/>
+			</StackPanel>
+		</Grid>
+	</Border>
+</Window>

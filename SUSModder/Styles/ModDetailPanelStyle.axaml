@@ -40,6 +40,13 @@
         <Setter Property="BoxShadow" Value="0 2 12 0 #28000000"/>
     </Style>
 
+    <Style Selector="TextBlock.inspector-section-title">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="Margin" Value="0,4,0,6"/>
+    </Style>
+
     <Style Selector="Border.mod-detail-section">
         <Setter Property="Background" Value="{DynamicResource SurfaceGlassFillBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
@@ -52,6 +59,25 @@
     <Style Selector="Ellipse.mod-detail-icon-glow">
         <Setter Property="Fill" Value="#1A3B9EFF"/>
         <Setter Property="Opacity" Value="0.9"/>
+    </Style>
+
+    <Style Selector="Border.mod-detail-sticky-cta">
+        <Setter Property="Background" Value="{DynamicResource SurfaceGlassFillBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="0,1,0,0"/>
+    </Style>
+
+    <Style Selector="Button.inspector-expander-header">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+    <Style Selector="Button.inspector-expander-header:pointerover">
+        <Setter Property="Opacity" Value="0.85"/>
     </Style>
 
 </Styles>

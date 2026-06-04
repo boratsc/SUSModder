@@ -49,7 +49,16 @@ namespace SUSModder.Core.GameIntegration
             {
                 if (mode == "steam")
                 {
-                    await InstallSteamAsync(modConfig, modConfigs, progress, log, userCallbacks, onSpeedUpdate);
+                    await InstallSteamAsync(
+                        modConfig,
+                        modConfigs,
+                        progress,
+                        log,
+                        userCallbacks,
+                        onSpeedUpdate,
+                        targetInstallPath: null,
+                        updateCatalogInstallPath: true,
+                        allowReplaceExistingTarget: true);
                 }
                 else
                 {
@@ -59,26 +68,72 @@ namespace SUSModder.Core.GameIntegration
             }
         }
 
+        /// <summary>
+        /// Instaluje moda FULL do konkretnego folderu bez aktualizowania katalogowego InstallPath.
+        /// Używane przez lokalne instancje modpacków, gdzie jedna pozycja katalogowa może mieć wiele instalacji.
+        /// </summary>
+        public async Task InstallFullModToPathAsync(
+            ModConfiguration modConfig,
+            string targetInstallPath,
+            IProgressReporter progress,
+            IDiagnosticsOutput log,
+            ModManagerUserCallbacks userCallbacks,
+            string mode,
+            Action<string>? onSpeedUpdate = null)
+        {
+            if (string.IsNullOrWhiteSpace(targetInstallPath))
+                throw new ArgumentException("Target install path cannot be empty.", nameof(targetInstallPath));
+
+            this.log = log;
+
+            if (modConfig.ModType != "full")
+                throw new InvalidOperationException("Only full mods can be installed as local instances.");
+
+            if (mode == "steam")
+            {
+                await InstallSteamAsync(
+                    modConfig,
+                    new List<ModConfiguration> { modConfig },
+                    progress,
+                    log,
+                    userCallbacks,
+                    onSpeedUpdate,
+                    targetInstallPath,
+                    updateCatalogInstallPath: false,
+                    allowReplaceExistingTarget: false);
+                return;
+            }
+
+            throw new NotSupportedException("Local instance installation currently supports Steam full mods only.");
+        }
+
         private async Task InstallSteamAsync(
             ModConfiguration modConfig,
             List<ModConfiguration> modConfigs,
             IProgressReporter progress,
             IDiagnosticsOutput log,
             ModManagerUserCallbacks userCallbacks,
-            Action<string>? onSpeedUpdate = null)
+            Action<string>? onSpeedUpdate = null,
+            string? targetInstallPath = null,
+            bool updateCatalogInstallPath = true,
+            bool allowReplaceExistingTarget = true)
         {
             string modsInstallPath = PathSettings.ModsInstallPath;
             Directory.CreateDirectory(modsInstallPath);
 
             string uniqueTempId = Guid.NewGuid().ToString("N");
             string tempDir = Path.Combine(modsInstallPath, "temp", uniqueTempId);
-            string modFolderPath = Path.Combine(modsInstallPath, modConfig.ModName);
+            string modFolderPath = string.IsNullOrWhiteSpace(targetInstallPath)
+                ? Path.Combine(modsInstallPath, modConfig.ModName)
+                : targetInstallPath;
             string modFile = Path.Combine(tempDir, "mod.zip");
 
             // Pobierz moda
             progress.Report(30, "Pobieranie moda...");
             Directory.CreateDirectory(tempDir);
 
+            try
+            {
             string downloadUrl = ModDownloadUrlBuilder.Build(modConfig, "steam");
             log.Write($"[CDN] URL pobierania moda (Steam): {downloadUrl}");
 
@@ -118,25 +173,35 @@ namespace SUSModder.Core.GameIntegration
             progress.Report(50, "Przygotowywanie katalogu...");
             if (Directory.Exists(modFolderPath))
             {
-                log.Write($"Usuwam istniejący katalog moda: {modFolderPath}");
-                try
+                if (!allowReplaceExistingTarget)
                 {
-                    Directory.Delete(modFolderPath, true);
+                    if (Directory.EnumerateFileSystemEntries(modFolderPath).Any())
+                    {
+                        throw new IOException($"Target instance directory already exists and is not empty: {modFolderPath}");
+                    }
                 }
-                catch (UnauthorizedAccessException ex)
+                else
                 {
-                    log.Write($"[ERROR] Brak dostępu do katalogu: {modFolderPath} - {ex.Message}");
-                    if (userCallbacks.ShowErrorAsync != null)
-                        await userCallbacks.ShowErrorAsync(
-                            $"Nie można usunąć katalogu:\n{modFolderPath}\n\n" +
-                            $"Dostęp został zabroniony. Upewnij się, że:\n" +
-                            $"- Gra Among Us NIE jest uruchomiona\n" +
-                            $"- Żaden plik z tego folderu nie jest otwarty\n" +
-                            $"- Folder nie jest tylko do odczytu\n" +
-                            $"- Masz uprawnienia administratora\n\n" +
-                            $"Szczegóły: {ex.Message}",
-                            "Błąd dostępu");
-                    return;
+                    log.Write($"Usuwam istniejący katalog moda: {modFolderPath}");
+                    try
+                    {
+                        Directory.Delete(modFolderPath, true);
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        log.Write($"[ERROR] Brak dostępu do katalogu: {modFolderPath} - {ex.Message}");
+                        if (userCallbacks.ShowErrorAsync != null)
+                            await userCallbacks.ShowErrorAsync(
+                                $"Nie można usunąć katalogu:\n{modFolderPath}\n\n" +
+                                $"Dostęp został zabroniony. Upewnij się, że:\n" +
+                                $"- Gra Among Us NIE jest uruchomiona\n" +
+                                $"- Żaden plik z tego folderu nie jest otwarty\n" +
+                                $"- Folder nie jest tylko do odczytu\n" +
+                                $"- Masz uprawnienia administratora\n\n" +
+                                $"Szczegóły: {ex.Message}",
+                                "Błąd dostępu");
+                        return;
+                    }
                 }
             }
             Directory.CreateDirectory(modFolderPath);
@@ -226,21 +291,24 @@ namespace SUSModder.Core.GameIntegration
             CopyContent(sourcePath, modFolderPath);
 
             // Zapisz konfigurację i posprzątaj temp
-            var existingConfig = modConfigs.FirstOrDefault(c => c.Id == modConfig.Id);
-            if (existingConfig != null)
+            if (updateCatalogInstallPath)
             {
-                existingConfig.InstallPath = modFolderPath;
-                existingConfig.LastUpdated = DateTime.Now;
-                log.Write($"Zaktualizowano konfigurację dla istniejącego moda: {modConfig.ModName}");
-            }
-            else
-            {
-                modConfig.InstallPath = modFolderPath;
-                modConfigs.Add(modConfig);
-                log.Write($"Dodano nową konfigurację dla moda: {modConfig.ModName}");
-            }
+                var existingConfig = modConfigs.FirstOrDefault(c => c.Id == modConfig.Id);
+                if (existingConfig != null)
+                {
+                    existingConfig.InstallPath = modFolderPath;
+                    existingConfig.LastUpdated = DateTime.Now;
+                    log.Write($"Zaktualizowano konfigurację dla istniejącego moda: {modConfig.ModName}");
+                }
+                else
+                {
+                    modConfig.InstallPath = modFolderPath;
+                    modConfigs.Add(modConfig);
+                    log.Write($"Dodano nową konfigurację dla moda: {modConfig.ModName}");
+                }
 
-            ConfigManager.SaveConfig(modConfigs);
+                ConfigManager.SaveConfig(modConfigs);
+            }
 
             // === NOWY KOD: Stwórz Installation Map ===
             try
@@ -273,20 +341,6 @@ namespace SUSModder.Core.GameIntegration
             }
             // === KONIEC NOWEGO KODU ===
 
-            // Usuń unikalny katalog temp dla tej instalacji
-            try
-            {
-                if (Directory.Exists(tempDir))
-                {
-                    Directory.Delete(tempDir, true);
-                    log.Write($"Usunięto katalog tymczasowy: {tempDir}");
-                }
-            }
-            catch (Exception ex)
-            {
-                log.Write($"[WARNING] Nie udało się usunąć katalogu tymczasowego: {ex.Message}");
-            }
-
             ForceMemoryCleanup();
 
             progress.Report(100, "Zakończono instalację moda.");
@@ -294,6 +348,11 @@ namespace SUSModder.Core.GameIntegration
 
             GC.Collect();
             GC.WaitForPendingFinalizers();
+            }
+            finally
+            {
+                ModsStorageCleanupService.TryDeleteInstallTempDirectory(tempDir, log.Write);
+            }
         }
 
         public async Task ModifyDllAsync(
@@ -315,6 +374,8 @@ namespace SUSModder.Core.GameIntegration
             string downloadUrl = ModDownloadUrlBuilder.Build(modConfig, mode);
             log.Write($"[CDN] URL pobierania DLL moda ({mode}): {downloadUrl}");
 
+            try
+            {
             bool retry;
             do
             {
@@ -373,22 +434,14 @@ namespace SUSModder.Core.GameIntegration
 
             if (userCallbacks.ShowInfoAsync != null)
                 await userCallbacks.ShowInfoAsync($"Instalacja DLL moda {modConfig.ModName} zakończona pomyślnie.", "Sukces");
-            
-            // Usuń unikalny katalog temp dla tej instalacji
-            try
-            {
-                if (Directory.Exists(tempDir))
-                {
-                    Directory.Delete(tempDir, true);
-                }
-            }
-            catch (Exception ex)
-            {
-                log.Write($"[WARNING] Nie udało się usunąć katalogu tymczasowego: {ex.Message}");
-            }
-            
+
             GC.Collect();
             GC.WaitForPendingFinalizers();
+            }
+            finally
+            {
+                ModsStorageCleanupService.TryDeleteInstallTempDirectory(tempDir, log.Write);
+            }
         }
 
         private static string FormatSize(long bytes)

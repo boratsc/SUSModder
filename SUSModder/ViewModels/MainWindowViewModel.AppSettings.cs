@@ -52,6 +52,8 @@ namespace SUSModder.ViewModels
                     // Wymuś przeładowanie ustawień deweloperskich
                     DeveloperModeSettings.RefreshSettings();
 
+                    LoadGlassAccessibilitySettings();
+
                     // Przeładuj listę modów
                     await RefreshModsListAsync();
                     this.RaisePropertyChanged(nameof(IsDeveloperMode));
