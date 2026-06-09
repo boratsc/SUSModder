@@ -535,7 +535,7 @@ namespace SUSModder.ViewModels
                                 RunSteamQrDownloadAsync = _userInteractionService.RunSteamQrDownloadAsync
                             };
 
-                            await modManager.ModifyAsync(
+                            var installResult = await modManager.ModifyAsync(
                                 updatedConfig,
                                 updatedConfigs,
                                 progressReporter,
@@ -550,6 +550,9 @@ namespace SUSModder.ViewModels
                                     });
                                 }
                             );
+
+                            if (!installResult.Success)
+                                throw new InvalidOperationException(installResult.ErrorMessage ?? "Update failed");
                         }
 
                         await Dispatcher.UIThread.InvokeAsync(() =>
@@ -783,7 +786,7 @@ namespace SUSModder.ViewModels
                                 RunSteamQrDownloadAsync = _userInteractionService.RunSteamQrDownloadAsync
                             };
 
-                            await modManager.ModifyAsync(
+                            var installResult = await modManager.ModifyAsync(
                                 updatedConfig,
                                 updatedConfigs,
                                 progressReporter,
@@ -798,6 +801,9 @@ namespace SUSModder.ViewModels
                                     });
                                 }
                             );
+
+                            if (!installResult.Success)
+                                throw new InvalidOperationException(installResult.ErrorMessage ?? "Update failed");
                         }
 
                         await Dispatcher.UIThread.InvokeAsync(() =>

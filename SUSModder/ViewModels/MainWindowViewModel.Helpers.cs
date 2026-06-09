@@ -263,12 +263,17 @@ namespace SUSModder.ViewModels
 
                         if (useSkeleton)
                             IsModsLoading = false;
+
+                        CaptureCatalogModsSnapshot();
                     }
                     finally
                     {
                         _suppressSelectedModPanelReset = false;
                     }
                 });
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[RefreshModsListAsync] UI: {Mods.Count} modów (configs={configs.Count}, full+vanilla={sortedConfigs.Count})");
 
                 // Sprawdź dostępność ról dla wszystkich modów w tle (nie blokuj UI)
                 _ = Task.Run(async () =>

@@ -79,7 +79,7 @@ namespace SUSModder.ViewModels
             _modConfig = modConfig;
             _localizationService = localizationService;
             var diagnostics = new UIDiagnosticsOutput(msg => System.Diagnostics.Debug.WriteLine(msg));
-            _versionService = new ModVersionService(configuration, diagnostics);
+            _versionService = new ModVersionService(diagnostics);
 
             ConfirmCommand = ReactiveCommand.Create(
                 () =>
@@ -139,7 +139,6 @@ namespace SUSModder.ViewModels
 
         public void Dispose()
         {
-            _versionService?.Dispose();
         }
 
         public void CancelSelection()

@@ -96,12 +96,22 @@
                         <ItemsControl ItemsSource="{Binding DllInstallTargets}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:DllInstallTargetItem">
-                                    <CheckBox Content="{Binding DisplayName}"
+                                    <CheckBox Content="{Binding DisplayLabel}"
                                               IsChecked="{Binding IsSelected}"
+                                              IsEnabled="{Binding IsCheckboxEnabled}"
+                                              ToolTip.Tip="{Binding CompatibilityTooltip}"
                                               Margin="0,4"/>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        <TextBlock FontSize="11"
+                                   Opacity="0.75"
+                                   Margin="0,4,0,0"
+                                   IsVisible="{Binding HasDllHiddenIncompatibleTargets}">
+                            <Run Text="⚠️ "/>
+                            <Run Text="{Binding DllHiddenIncompatibleTargetCount}"/>
+                            <Run Text="{loc:Localize DllManager.HiddenIncompatibleTargets}"/>
+                        </TextBlock>
                         <TextBlock Text="{loc:Localize UI.DllManager.NoModsInstalled}"
                                    FontSize="12"
                                    Opacity="0.7"

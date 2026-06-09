@@ -1,0 +1,152 @@
+﻿[
+    {
+        "Area":  "catalog",
+        "Test":  "GET /catalog",
+        "Verdict":  "OK",
+        "Detail":  "200, 20 mods"
+    },
+    {
+        "Area":  "catalog",
+        "Test":  "iconUrl present",
+        "Verdict":  "OK",
+        "Detail":  "20/20"
+    },
+    {
+        "Area":  "catalog",
+        "Test":  "GET /catalog/1",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "catalog",
+        "Test":  "GET /catalog/1/versions",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "catalog",
+        "Test":  "GET /catalog-meta",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "versions",
+        "Test":  "GET /versions",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "versions",
+        "Test":  "GET /versions/2025-3-31",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "versions",
+        "Test":  "GET /versions/2026-3-31/steam",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "versions",
+        "Test":  "GET /versions/2026-3-31/epic",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "downloads",
+        "Test":  "all mods steam x86",
+        "Verdict":  "OK",
+        "Detail":  "20/20 -\u003e 200"
+    },
+    {
+        "Area":  "compat",
+        "Test":  "GET /compatibility?fullModId\u0026dllModId",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "compat",
+        "Test":  "GET /compatibility/snapshot",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "roles",
+        "Test":  "GET /roles",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "discord",
+        "Test":  "GET /discord/favs/public",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "discord",
+        "Test":  "GET /discord/server-counts",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "public",
+        "Test":  "GET /releases?channel=release",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "public",
+        "Test":  "GET /releases?channel=beta",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "public",
+        "Test":  "GET /telemetry/stats",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "public",
+        "Test":  "GET /telemetry/health",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "public",
+        "Test":  "GET /online",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "public",
+        "Test":  "GET /virustotal/report",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "icons",
+        "Test":  "GET /icons/10.png",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 200"
+    },
+    {
+        "Area":  "telemetry",
+        "Test":  "POST /telemetry/heartbeat",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 429 (rate limit - endpoint dziala)"
+    },
+    {
+        "Area":  "lobby",
+        "Test":  "GET /lobby (no auth)",
+        "Verdict":  "EXPECTED",
+        "Detail":  "401 - wymaga Bearer token"
+    },
+    {
+        "Area":  "modpacks",
+        "Test":  "GET /modpacks/:code",
+        "Verdict":  "OK",
+        "Detail":  "HTTP 400 (route exists)"
+    }
+]

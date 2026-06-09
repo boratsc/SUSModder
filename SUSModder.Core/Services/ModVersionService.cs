@@ -1,48 +1,37 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Configuration;
+using SUSModder.Core.Api;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.Models;
-using SUSModder.Core.Utilities;
 
 namespace SUSModder.Core.Services
 {
     /// <summary>
-    /// Serwis do zarządzania wersjami modów - pobieranie historii, instalacja starszych wersji
+    /// Serwis do zarządzania wersjami modów - pobieranie historii, instalacja starszych wersji.
     /// </summary>
-    public class ModVersionService : IDisposable
+    public class ModVersionService
     {
-        private readonly HttpClient _httpClient;
+        private readonly ISUSModderApiClient _apiClient;
         private readonly IDiagnosticsOutput _log;
-        private readonly string _apiBaseUrl;
         private static readonly MemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
         private const int CacheMinutes = 5;
 
         public ModVersionService(
-            IConfiguration configuration,
-            IDiagnosticsOutput log)
+            IDiagnosticsOutput log,
+            ISUSModderApiClient? apiClient = null)
         {
-            _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
             _log = log;
-
-            var baseUrl = configuration.GetSection("Configuration")["BaseUrl"]
-                ?? "https://susmodder.app/";
-            _apiBaseUrl = baseUrl.TrimEnd('/');
+            _apiClient = apiClient ?? SUSModderApiClientProvider.TryGetDefault()
+                ?? throw new InvalidOperationException("ISUSModderApiClient nie jest dostępny.");
         }
 
-        /// <summary>
-        /// Pobierz historię wersji dla moda
-        /// </summary>
         public async Task<List<ModVersionHistory>> GetVersionHistoryAsync(int modId)
         {
             string cacheKey = $"version_history_{modId}";
 
-            // Sprawdź cache
             if (_cache.TryGetValue(cacheKey, out List<ModVersionHistory>? cached))
             {
                 _log.Write($"[Cache HIT] Historia wersji dla moda {modId}");
@@ -51,53 +40,22 @@ namespace SUSModder.Core.Services
 
             try
             {
-                var url = $"{_apiBaseUrl}/api/susmodder-config-versions?modId={modId}";
-                _log.Write($"[ModVersionService] Pobieranie historii z: {url}");
+                _log.Write($"[ModVersionService] Pobieranie historii dla moda {modId}");
 
-                // Dodaj token autoryzacji
-                string token = SecretProvider.GetDownloadToken();
-                _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Add("Authorization", token);
-
-                var response = await _httpClient.GetAsync(url);
-                response.EnsureSuccessStatusCode();
-
-                var json = await response.Content.ReadAsStringAsync();
-                
-                var options = new JsonSerializerOptions
+                var response = await _apiClient.GetCatalogVersionsAsync(modId);
+                if (!response.IsSuccess || response.Data?.Versions is null)
                 {
-                    PropertyNameCaseInsensitive = true
-                };
-                
-                var result = JsonSerializer.Deserialize<ModVersionsResponse>(json, options);
-
-                if (result?.Success == true && result.Versions != null)
-                {
-                    _log.Write($"[ModVersionService] Pobrano {result.Count} wersji dla moda {modId}");
-
-                    // Cache na 5 minut
-                    _cache.Set(cacheKey, result.Versions, TimeSpan.FromMinutes(CacheMinutes));
-
-                    return result.Versions;
+                    _log.Write($"[ModVersionService] Brak wersji dla moda {modId} (HTTP {response.StatusCode})");
+                    return new List<ModVersionHistory>();
                 }
 
-                _log.Write($"[ModVersionService] Brak wersji dla moda {modId} (success={result?.Success})");
-                return new List<ModVersionHistory>();
-            }
-            catch (HttpRequestException ex)
-            {
-                _log.Write($"[ERROR] Błąd HTTP podczas pobierania wersji: {ex.Message}");
-                throw new Exception($"Nie można pobrać historii wersji: {ex.Message}", ex);
-            }
-            catch (TaskCanceledException ex)
-            {
-                _log.Write($"[ERROR] Timeout podczas pobierania wersji: {ex.Message}");
-                throw new TimeoutException("Przekroczono czas oczekiwania na odpowiedź API", ex);
-            }
-            catch (JsonException ex)
-            {
-                _log.Write($"[ERROR] Błąd parsowania JSON: {ex.Message}");
-                throw new Exception($"Nieprawidłowa odpowiedź z API: {ex.Message}", ex);
+                var versions = response.Data.Versions
+                    .Select(v => CatalogMapper.ToModVersionHistory(v, modId))
+                    .ToList();
+
+                _log.Write($"[ModVersionService] Pobrano {versions.Count} wersji dla moda {modId}");
+                _cache.Set(cacheKey, versions, TimeSpan.FromMinutes(CacheMinutes));
+                return versions;
             }
             catch (Exception ex)
             {
@@ -106,24 +64,17 @@ namespace SUSModder.Core.Services
             }
         }
 
-        /// <summary>
-        /// Pobierz konkretną wersję moda
-        /// </summary>
         public async Task<ModVersionHistory?> GetSpecificVersionAsync(int modId, int versionId)
         {
             var versions = await GetVersionHistoryAsync(modId);
             return versions.FirstOrDefault(v => v.VersionId == versionId);
         }
 
-        /// <summary>
-        /// Pobierz wszystkie dostępne wersje dla moda (z nazwami dla UI)
-        /// </summary>
         public async Task<List<(int VersionId, string DisplayText)>> GetAvailableVersionsForUIAsync(int modId)
         {
             try
             {
                 var versions = await GetVersionHistoryAsync(modId);
-                
                 return versions
                     .Select(v => (v.VersionId, v.DisplayText))
                     .ToList();
@@ -135,29 +86,20 @@ namespace SUSModder.Core.Services
             }
         }
 
-        /// <summary>
-        /// Sprawdź czy istnieje nowsza wersja niż podana
-        /// </summary>
         public async Task<bool> IsNewerVersionAvailableAsync(int modId, string currentVersion)
         {
             try
             {
                 var versions = await GetVersionHistoryAsync(modId);
-                
                 if (versions.Count == 0)
                     return false;
-                
-                // Najnowsza wersja to pierwsza na liście (API sortuje od najnowszej)
+
                 var latestVersion = versions.First().ModVersion;
-                
-                // Proste porównanie stringów - można rozbudować o semantic versioning
                 bool isNewer = !string.Equals(latestVersion, currentVersion, StringComparison.OrdinalIgnoreCase);
-                
+
                 if (isNewer)
-                {
                     _log.Write($"[ModVersionService] Dostępna nowsza wersja dla moda {modId}: {currentVersion} → {latestVersion}");
-                }
-                
+
                 return isNewer;
             }
             catch (Exception ex)
@@ -167,9 +109,6 @@ namespace SUSModder.Core.Services
             }
         }
 
-        /// <summary>
-        /// Wyczyść cache (użyteczne po aktualizacji danych)
-        /// </summary>
         public void ClearCache(int? modId = null)
         {
             if (modId.HasValue)
@@ -177,15 +116,6 @@ namespace SUSModder.Core.Services
                 _cache.Remove($"version_history_{modId.Value}");
                 _log.Write($"[Cache] Wyczyszczono cache dla moda {modId}");
             }
-            else
-            {
-                _log.Write($"[Cache] Brak metody czyszczenia całego cache w MemoryCache");
-            }
-        }
-
-        public void Dispose()
-        {
-            _httpClient?.Dispose();
         }
     }
 }

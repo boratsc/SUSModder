@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using SUSModder.Core.Api;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.Lobby;
 using SUSModder.Core.Models;
@@ -15,25 +16,16 @@ namespace SUSModder.Core.Services
 {
     /// <summary>
     /// Implementacja ILobbyBoardService.
-    /// Komunikuje się z susmodder.app /api/lobby-board oraz bezpośrednio
+    /// Komunikuje się z API v2 /lobby oraz bezpośrednio
     /// z serwerami modowanych regionów Among Us dla live lookupu.
     /// </summary>
     public sealed class LobbyBoardService : ILobbyBoardService
     {
-        private readonly IConfiguration _configuration;
         private readonly IDiagnosticsOutput _log;
         private readonly string _userHash;
-        private readonly string _susmodderToken;
-        private readonly string _baseUrl;
-        private readonly string _lobbyEndpoint;
+        private readonly ISUSModderApiClient _apiClient;
 
-        // HttpClient dla susmodder.app (z autoryzacją SUSModder tokenem)
-        private static readonly HttpClient _apiClient = new()
-        {
-            Timeout = TimeSpan.FromSeconds(15)
-        };
-
-        // HttpClient dla region serverów (bez autoryzacji SUSModder — używa AmongUsAuth)
+        // HttpClient dla region serverów Among Us (nie przez SUSModder API)
         private static readonly HttpClient _regionClient = new()
         {
             Timeout = TimeSpan.FromSeconds(10)
@@ -51,18 +43,21 @@ namespace SUSModder.Core.Services
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
         };
 
-        public LobbyBoardService(IConfiguration configuration, IDiagnosticsOutput log, IHardwareIdProvider hardwareIdProvider)
+        public LobbyBoardService(
+            IConfiguration configuration,
+            IDiagnosticsOutput log,
+            IHardwareIdProvider hardwareIdProvider,
+            ISUSModderApiClient? apiClient = null)
         {
-            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _ = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _log = log ?? throw new ArgumentNullException(nameof(log));
             _userHash = (hardwareIdProvider ?? throw new ArgumentNullException(nameof(hardwareIdProvider))).GetAnonymousUserHash();
-            _susmodderToken = SecretProvider.GetDownloadToken();
-            _baseUrl = (_configuration["Configuration:BaseUrl"] ?? "https://susmodder.app/").TrimEnd('/');
-            _lobbyEndpoint = _configuration["Configuration:LobbyBoardEndpoint"] ?? "/api/lobby-board";
+            _apiClient = apiClient ?? SUSModderApiClientProvider.TryGetDefault()
+                ?? new SUSModderApiClient(configuration, log);
         }
 
-        private string LobbyUrl(string? path = null) =>
-            $"{_baseUrl}{_lobbyEndpoint}{(path != null ? "/" + path : "")}";
+        private static string LobbyPath(string? path = null) =>
+            string.IsNullOrWhiteSpace(path) ? "lobby" : $"lobby/{path.TrimStart('/')}";
 
         // ═══════════════════════════════════════════════════════════════
         // Publikacja kodu
@@ -105,24 +100,24 @@ namespace SUSModder.Core.Services
                 var json = JsonSerializer.Serialize(payload, _jsonOptions);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var request = new HttpRequestMessage(HttpMethod.Post, LobbyUrl())
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
                 {
-                    Content = content
-                };
-                request.Headers.Add("Authorization", _susmodderToken);
-                request.Headers.Add("X-User-Hash", _userHash);
-
-                var response = await _apiClient.SendAsync(request, ct);
+                    Method = HttpMethod.Post,
+                    RelativePath = LobbyPath(),
+                    Content = content,
+                    UserHash = _userHash,
+                    IncludeAuthToken = true
+                }, ct);
                 var body = await response.Content.ReadAsStringAsync(ct);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var err = JsonSerializer.Deserialize<PostLobbyEntryResponse>(body, _jsonOptions);
+                    var err = DeserializeLobbyPayload<PostLobbyEntryResponse>(body);
                     _log.Write($"[LobbyBoard] POST failed ({response.StatusCode}): {body}");
                     return new PostEntryResult(false, null, null, err?.ErrorCode ?? "UNKNOWN_ERROR", false);
                 }
 
-                var result = JsonSerializer.Deserialize<PostLobbyEntryResponse>(body, _jsonOptions);
+                var result = DeserializeLobbyPayload<PostLobbyEntryResponse>(body);
                 return new PostEntryResult(
                     result?.Success ?? true,
                     result?.Id,
@@ -149,24 +144,28 @@ namespace SUSModder.Core.Services
         {
             try
             {
-                var queryParts = new List<string>();
-                if (modId.HasValue) queryParts.Add($"modId={modId.Value}");
+                var query = new Dictionary<string, string?>
+                {
+                    ["limit"] = Math.Clamp(limit, 1, 50).ToString()
+                };
+                if (modId.HasValue) query["modId"] = modId.Value.ToString();
                 if (type.HasValue && type != LobbyEntryType.All)
-                    queryParts.Add($"type={type.Value.ToString().ToLowerInvariant()}");
-                if (!string.IsNullOrWhiteSpace(region)) queryParts.Add($"region={Uri.EscapeDataString(region)}");
-                queryParts.Add($"limit={Math.Clamp(limit, 1, 50)}");
+                    query["type"] = type.Value.ToString().ToLowerInvariant();
+                if (!string.IsNullOrWhiteSpace(region))
+                    query["region"] = region;
 
-                var url = LobbyUrl() + "?" + string.Join("&", queryParts);
-
-                var request = new HttpRequestMessage(HttpMethod.Get, url);
-                request.Headers.Add("Authorization", _susmodderToken);
-                request.Headers.Add("X-User-Hash", _userHash);
-
-                var response = await _apiClient.SendAsync(request, ct);
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
+                {
+                    Method = HttpMethod.Get,
+                    RelativePath = LobbyPath(),
+                    Query = query,
+                    UserHash = _userHash,
+                    IncludeAuthToken = true
+                }, ct);
                 response.EnsureSuccessStatusCode();
 
                 var body = await response.Content.ReadAsStringAsync(ct);
-                var result = JsonSerializer.Deserialize<LobbyBoardResponse>(body, _jsonOptions);
+                var result = DeserializeLobbyPayload<LobbyBoardResponse>(body);
 
                 return (IReadOnlyList<LobbyBoardEntry>?)result?.Entries.AsReadOnly() ?? Array.Empty<LobbyBoardEntry>();
             }
@@ -183,7 +182,7 @@ namespace SUSModder.Core.Services
 
         public async Task<bool> DeleteOwnEntryAsync(string entryId, CancellationToken ct = default)
         {
-            return await SimpleAuthenticatedRequest(HttpMethod.Delete, $"{LobbyUrl(entryId)}", ct);
+            return await SimpleAuthenticatedRequest(HttpMethod.Delete, LobbyPath(entryId), ct);
         }
 
         public async Task<bool> ReportEntryAsync(string entryId, string reason, CancellationToken ct = default)
@@ -194,14 +193,14 @@ namespace SUSModder.Core.Services
                 var json = JsonSerializer.Serialize(payload, _jsonOptions);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var request = new HttpRequestMessage(HttpMethod.Post, $"{LobbyUrl(entryId)}/report")
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
                 {
-                    Content = content
-                };
-                request.Headers.Add("Authorization", _susmodderToken);
-                request.Headers.Add("X-User-Hash", _userHash);
-
-                var response = await _apiClient.SendAsync(request, ct);
+                    Method = HttpMethod.Post,
+                    RelativePath = $"{LobbyPath(entryId)}/report",
+                    Content = content,
+                    UserHash = _userHash,
+                    IncludeAuthToken = true
+                }, ct);
                 // Report zawsze zwraca 200, niezależnie od wyniku
                 return response.IsSuccessStatusCode;
             }
@@ -223,14 +222,14 @@ namespace SUSModder.Core.Services
                 var json = JsonSerializer.Serialize(payload, _jsonOptions);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var request = new HttpRequestMessage(HttpMethod.Patch, LobbyUrl(entryId))
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
                 {
-                    Content = content
-                };
-                request.Headers.Add("Authorization", _susmodderToken);
-                request.Headers.Add("X-User-Hash", _userHash);
-
-                var response = await _apiClient.SendAsync(request, ct);
+                    Method = HttpMethod.Patch,
+                    RelativePath = LobbyPath(entryId),
+                    Content = content,
+                    UserHash = _userHash,
+                    IncludeAuthToken = true
+                }, ct);
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
@@ -240,21 +239,75 @@ namespace SUSModder.Core.Services
             }
         }
 
-        private async Task<bool> SimpleAuthenticatedRequest(HttpMethod method, string url, CancellationToken ct)
+        private async Task<bool> SimpleAuthenticatedRequest(HttpMethod method, string relativePath, CancellationToken ct)
         {
             try
             {
-                var request = new HttpRequestMessage(method, url);
-                request.Headers.Add("Authorization", _susmodderToken);
-                request.Headers.Add("X-User-Hash", _userHash);
-
-                var response = await _apiClient.SendAsync(request, ct);
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
+                {
+                    Method = method,
+                    RelativePath = relativePath,
+                    UserHash = _userHash,
+                    IncludeAuthToken = true
+                }, ct);
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
             {
-                _log.Write($"[LobbyBoard] {method} {url} exception: {ex.Message}");
+                _log.Write($"[LobbyBoard] {method} {relativePath} exception: {ex.Message}");
                 return false;
+            }
+        }
+
+        private T? DeserializeLobbyPayload<T>(string body) where T : class
+        {
+            if (string.IsNullOrWhiteSpace(body))
+                return null;
+
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                var element = doc.RootElement;
+
+                if (element.ValueKind == JsonValueKind.Array && typeof(T) == typeof(LobbyBoardResponse))
+                {
+                    var entries = JsonSerializer.Deserialize<List<LobbyBoardEntry>>(body, _jsonOptions);
+                    return (T)(object)new LobbyBoardResponse
+                    {
+                        Success = true,
+                        Entries = entries ?? new List<LobbyBoardEntry>(),
+                        Total = entries?.Count ?? 0
+                    };
+                }
+
+                if (element.TryGetProperty("error", out _))
+                    return null;
+
+                if (element.TryGetProperty("data", out var dataElement))
+                {
+                    if (dataElement.ValueKind == JsonValueKind.Array && typeof(T) == typeof(LobbyBoardResponse))
+                    {
+                        var entries = JsonSerializer.Deserialize<List<LobbyBoardEntry>>(dataElement.GetRawText(), _jsonOptions);
+                        return (T)(object)new LobbyBoardResponse
+                        {
+                            Success = true,
+                            Entries = entries ?? new List<LobbyBoardEntry>(),
+                            Total = entries?.Count ?? 0
+                        };
+                    }
+
+                    if (dataElement.TryGetProperty("entries", out _))
+                        return JsonSerializer.Deserialize<T>(dataElement.GetRawText(), _jsonOptions);
+
+                    return JsonSerializer.Deserialize<T>(dataElement.GetRawText(), _jsonOptions);
+                }
+
+                return JsonSerializer.Deserialize<T>(body, _jsonOptions);
+            }
+            catch (JsonException ex)
+            {
+                _log.Write($"[LobbyBoard] JSON parse error: {ex.Message}");
+                return null;
             }
         }
 

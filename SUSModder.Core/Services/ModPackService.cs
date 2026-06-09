@@ -10,6 +10,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using SUSModder.Core.Api;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.Models;
@@ -19,80 +20,78 @@ namespace SUSModder.Core.Services
 {
     public sealed class ModPackService : IModPackService
     {
-        private static readonly HttpClient ApiClient = new() { Timeout = TimeSpan.FromSeconds(60) };
-
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             PropertyNameCaseInsensitive = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
-        private static readonly JsonSerializerOptions CreatePackJsonOptions = new()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        };
-
-        private readonly IConfiguration _configuration;
         private readonly IDiagnosticsOutput _log;
-        private readonly string _authToken;
-        private readonly string _baseUrl;
-        private readonly string _endpoint;
+        private readonly ISUSModderApiClient _apiClient;
 
         public ModPackService(
             IConfiguration configuration,
             IDiagnosticsOutput log,
-            IHardwareIdProvider hardwareIdProvider)
+            IHardwareIdProvider hardwareIdProvider,
+            ISUSModderApiClient? apiClient = null)
         {
-            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _ = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _log = log ?? throw new ArgumentNullException(nameof(log));
             CreatorHash = (hardwareIdProvider ?? throw new ArgumentNullException(nameof(hardwareIdProvider)))
                 .GetAnonymousUserHash();
-            _authToken = SecretProvider.GetDownloadToken();
-            _baseUrl = (_configuration["Configuration:BaseUrl"] ?? "https://susmodder.app/").TrimEnd('/');
-            _endpoint = _configuration["Configuration:ModPacksEndpoint"] ?? "/api/mod-packs";
+            _apiClient = apiClient ?? SUSModderApiClientProvider.TryGetDefault()
+                ?? new SUSModderApiClient(configuration, log);
         }
 
         public string CreatorHash { get; }
 
-        private string PackUrl(string? path = null) =>
-            $"{_baseUrl}{_endpoint}{(path != null ? "/" + path : "")}";
+        private static string PackPath(string? path = null) =>
+            string.IsNullOrWhiteSpace(path) ? "modpacks" : $"modpacks/{path.TrimStart('/')}";
 
         public async Task<ModPackCreateResult> CreatePackAsync(ModPackCreateRequest request, CancellationToken ct = default)
         {
             try
             {
                 request.CreatorHash = CreatorHash;
-                var json = JsonSerializer.Serialize(request, CreatePackJsonOptions);
+                var json = ModPackCreateRequestSerializer.ToJson(request);
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
-                using var httpRequest = new HttpRequestMessage(HttpMethod.Post, PackUrl()) { Content = content };
-                httpRequest.Headers.Add("Authorization", _authToken);
-
-                var response = await ApiClient.SendAsync(httpRequest, ct);
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
+                {
+                    Method = HttpMethod.Post,
+                    RelativePath = PackPath(),
+                    Content = content,
+                    UserHash = CreatorHash,
+                    IncludeAuthToken = true
+                }, ct);
                 var body = await response.Content.ReadAsStringAsync(ct);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var err = TryDeserialize<ApiErrorResponse>(body);
+                    var err = ParseApiError(body);
                     _log.Write($"[ModPack] POST failed ({response.StatusCode}): {body}");
                     return new ModPackCreateResult
                     {
                         Success = false,
-                        ErrorCode = err?.ErrorCode ?? response.StatusCode.ToString(),
-                        ErrorMessage = err?.DisplayMessage ?? body
+                        ErrorCode = err?.Code ?? response.StatusCode.ToString(),
+                        ErrorMessage = err?.Message ?? body
                     };
                 }
 
-                var result = TryDeserialize<CreatePackApiResponse>(body);
-                return new ModPackCreateResult
+                var result = ParseCreatePackResponse(body);
+                if (result == null || string.IsNullOrWhiteSpace(result.PackCode))
                 {
-                    Success = result?.Success ?? true,
-                    PackId = result?.PackId,
-                    PackCode = result?.PackCode,
-                    ShareUrl = result?.ShareUrl,
-                    DeepLink = result?.DeepLink,
-                    ExpiresAt = result?.ExpiresAt
-                };
+                    _log.Write($"[ModPack] POST unexpected response: {body}");
+                    return new ModPackCreateResult
+                    {
+                        Success = false,
+                        ErrorCode = "INVALID_RESPONSE",
+                        ErrorMessage = "Nieoczekiwana odpowiedź serwera przy tworzeniu zestawu."
+                    };
+                }
+
+                await UploadPendingExternalDllsAsync(result.PackCode, request.ExternalDllFilePaths, ct);
+
+                return result;
             }
             catch (Exception ex)
             {
@@ -114,8 +113,11 @@ namespace SUSModder.Core.Services
             var normalized = ModPackCodeValidator.Normalize(packCode);
             try
             {
-                using var httpRequest = new HttpRequestMessage(HttpMethod.Get, PackUrl(normalized));
-                var response = await ApiClient.SendAsync(httpRequest, ct);
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
+                {
+                    Method = HttpMethod.Get,
+                    RelativePath = PackPath(normalized)
+                }, ct);
                 var body = await response.Content.ReadAsStringAsync(ct);
 
                 if (response.StatusCode == System.Net.HttpStatusCode.Gone ||
@@ -153,11 +155,14 @@ namespace SUSModder.Core.Services
         {
             try
             {
-                var url = $"{PackUrl()}?creatorHash={Uri.EscapeDataString(CreatorHash)}";
-                using var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
-                httpRequest.Headers.Add("Authorization", _authToken);
-
-                var response = await ApiClient.SendAsync(httpRequest, ct);
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
+                {
+                    Method = HttpMethod.Get,
+                    RelativePath = PackPath(),
+                    Query = new Dictionary<string, string?> { ["creatorHash"] = CreatorHash },
+                    UserHash = CreatorHash,
+                    IncludeAuthToken = true
+                }, ct);
                 var body = await response.Content.ReadAsStringAsync(ct);
 
                 if (!response.IsSuccessStatusCode)
@@ -186,10 +191,14 @@ namespace SUSModder.Core.Services
                 var normalized = ModPackCodeValidator.Normalize(packCode);
                 var payload = JsonSerializer.Serialize(new { creatorHash = CreatorHash }, JsonOptions);
                 using var content = new StringContent(payload, Encoding.UTF8, "application/json");
-                using var httpRequest = new HttpRequestMessage(HttpMethod.Delete, PackUrl(normalized)) { Content = content };
-                httpRequest.Headers.Add("Authorization", _authToken);
-
-                var response = await ApiClient.SendAsync(httpRequest, ct);
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
+                {
+                    Method = HttpMethod.Delete,
+                    RelativePath = PackPath(normalized),
+                    Content = content,
+                    UserHash = CreatorHash,
+                    IncludeAuthToken = true
+                }, ct);
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
@@ -213,15 +222,15 @@ namespace SUSModder.Core.Services
                 var fileContent = new StreamContent(fileStream);
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                 form.Add(fileContent, "file", Path.GetFileName(filePath));
-                form.Add(new StringContent(CreatorHash), "creatorHash");
 
-                using var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{PackUrl(normalized)}/external-dll")
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
                 {
-                    Content = form
-                };
-                httpRequest.Headers.Add("Authorization", _authToken);
-
-                var response = await ApiClient.SendAsync(httpRequest, ct);
+                    Method = HttpMethod.Post,
+                    RelativePath = $"{PackPath(normalized)}/dlls",
+                    Content = form,
+                    UserHash = CreatorHash,
+                    IncludeAuthToken = true
+                }, ct);
                 var body = await response.Content.ReadAsStringAsync(ct);
 
                 if (!response.IsSuccessStatusCode)
@@ -304,12 +313,118 @@ namespace SUSModder.Core.Services
             return Convert.ToHexString(hash).ToLowerInvariant();
         }
 
+        private async Task UploadPendingExternalDllsAsync(
+            string packCode,
+            IReadOnlyList<string> filePaths,
+            CancellationToken ct)
+        {
+            if (filePaths.Count == 0)
+                return;
+
+            foreach (var filePath in filePaths)
+            {
+                if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+                {
+                    _log.Write($"[ModPack] Pominięto upload external DLL — brak pliku: {filePath}");
+                    continue;
+                }
+
+                var uploaded = await UploadExternalDllAsync(packCode, filePath, ct);
+                if (uploaded == null)
+                    _log.Write($"[ModPack] Upload external DLL nie powiódł się: {Path.GetFileName(filePath)}");
+            }
+        }
+
+        private static ModPackCreateResult? ParseCreatePackResponse(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                if (root.TryGetProperty("data", out var dataEl))
+                    return ParseCreatePackElement(dataEl);
+
+                if (root.TryGetProperty("packCode", out _))
+                    return ParseCreatePackElement(root);
+
+                var legacy = TryDeserialize<CreatePackApiResponse>(json);
+                if (legacy == null)
+                    return null;
+
+                return new ModPackCreateResult
+                {
+                    Success = legacy.Success,
+                    PackId = legacy.PackId,
+                    PackCode = legacy.PackCode,
+                    ShareUrl = legacy.ShareUrl,
+                    DeepLink = legacy.DeepLink,
+                    ExpiresAt = legacy.ExpiresAt
+                };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static ModPackCreateResult ParseCreatePackElement(JsonElement el)
+        {
+            DateTimeOffset? expiresAt = null;
+            if (el.TryGetProperty("expiresAt", out var exp) &&
+                exp.ValueKind == JsonValueKind.String &&
+                DateTimeOffset.TryParse(exp.GetString(), out var parsed))
+                expiresAt = parsed;
+
+            return new ModPackCreateResult
+            {
+                Success = true,
+                PackId = GetString(el, "packId", "pack_id"),
+                PackCode = GetString(el, "packCode", "pack_code"),
+                ShareUrl = GetString(el, "shareUrl", "share_url"),
+                DeepLink = GetString(el, "deepLink", "deep_link"),
+                ExpiresAt = expiresAt
+            };
+        }
+
+        private static ApiErrorBody? ParseApiError(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("error", out var errorEl) && errorEl.ValueKind == JsonValueKind.Object)
+                    return JsonSerializer.Deserialize<ApiErrorBody>(errorEl.GetRawText(), JsonOptions);
+
+                var legacy = TryDeserialize<ApiErrorResponse>(json);
+                if (legacy == null)
+                    return null;
+
+                return new ApiErrorBody
+                {
+                    Code = legacy.ErrorCode,
+                    Message = legacy.DisplayMessage
+                };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         private static ModPack? ParsePackFromJson(string json)
         {
             try
             {
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
+                if (root.TryGetProperty("data", out var dataEl))
+                {
+                    if (dataEl.TryGetProperty("pack", out var nestedPack))
+                        return ParsePackElement(nestedPack);
+                    if (dataEl.ValueKind == JsonValueKind.Object && dataEl.TryGetProperty("packCode", out _))
+                        return ParsePackElement(dataEl);
+                }
                 if (root.TryGetProperty("pack", out var packEl))
                     return ParsePackElement(packEl);
             }
@@ -469,6 +584,15 @@ namespace SUSModder.Core.Services
             {
                 return default;
             }
+        }
+
+        private sealed class ApiErrorBody
+        {
+            [JsonPropertyName("code")]
+            public string? Code { get; set; }
+
+            [JsonPropertyName("message")]
+            public string? Message { get; set; }
         }
 
         private sealed class ApiErrorResponse

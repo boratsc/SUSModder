@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Reactive;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
@@ -25,6 +27,7 @@ namespace SUSModder.ViewModels
     {
         private readonly ObservableCollection<DllInstallTargetItem> _dllInstallTargets = new();
         private readonly ObservableCollection<DllCompatibilityLineItem> _dllCompatibilityLines = new();
+        private readonly CompositeDisposable _dllTargetItemSubscriptions = new();
         private CompatibilityService? _dllCompatibilityService;
         private CancellationTokenSource? _dllCompatibilityLoadCts;
 
@@ -38,6 +41,8 @@ namespace SUSModder.ViewModels
         public bool IsDllPanelVisible => SelectedDllMod != null && !IsAnyToolModalOpen;
         public bool HasDllInstalledInTargets => DllInstallTargets.Any(t => t.WasInstalled);
         public bool HasDllTargetPendingChanges => DllInstallTargets.Any(t => t.HasPendingChange);
+        public int DllHiddenIncompatibleTargetCount { get; private set; }
+        public bool HasDllHiddenIncompatibleTargets => DllHiddenIncompatibleTargetCount > 0;
 
         public string SelectedDllModVersion => SelectedDllMod?.ModVersion ?? string.Empty;
         public string SelectedDllDescription => SelectedDllMod?.Description ?? string.Empty;
@@ -56,7 +61,6 @@ namespace SUSModder.ViewModels
                 try
                 {
                     _dllCompatibilityService = new CompatibilityService(
-                        _configuration,
                         _diagnosticsOutput ?? new UIDiagnosticsOutput(_ => { }));
                 }
                 catch (Exception ex)
@@ -121,6 +125,7 @@ namespace SUSModder.ViewModels
             DllCompatibilityLines.Clear();
             _dllCompatibilityDisplay.Clear();
             IsDllCompatibilityExpanded = false;
+            DllHiddenIncompatibleTargetCount = 0;
             NotifyDllInspectorProperties();
         }
 
@@ -180,84 +185,48 @@ namespace SUSModder.ViewModels
             List<ModConfiguration> catalog)
         {
             var count = 0;
+            var instancePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var instance in instances)
             {
+                if (!string.IsNullOrEmpty(instance.InstallPath))
+                    instancePaths.Add(Path.GetFullPath(instance.InstallPath));
+
                 var catalogMod = catalog.FirstOrDefault(c => c.Id == instance.BaseModId);
                 var target = BuildDllTargetConfig(instance, catalogMod);
                 if (_dllModificationService.IsDllInstalledInMod(dllConfig, target, platform))
                     count++;
             }
 
-            if (instances.Count == 0)
-                count += _dllModificationService.GetModsWithDllInstalled(dllConfig, platform).Count;
+            foreach (var mod in catalog.Where(m =>
+                         m.ModType.Equals("full", StringComparison.OrdinalIgnoreCase) &&
+                         !string.IsNullOrEmpty(m.InstallPath) &&
+                         Directory.Exists(m.InstallPath)))
+            {
+                var installPath = mod.InstallPath!;
+                if (instancePaths.Contains(Path.GetFullPath(installPath)))
+                    continue;
+
+                if (_dllModificationService.IsDllInstalledInMod(dllConfig, mod, platform))
+                    count++;
+            }
 
             return count;
         }
 
         private void LoadDllInstallTargets()
         {
-            DllInstallTargets.Clear();
-            if (SelectedDllMod == null)
-                return;
-
-            try
-            {
-                string platform = DeterminePlatform();
-                var dllConfig = ModItemAdapter.ToConfig(SelectedDllMod);
-                var instanceRepo = App.GetService<IModInstanceRepository>();
-                var instances = instanceRepo.GetPackInstances()
-                    .Where(i => !string.IsNullOrEmpty(i.InstallPath) && Directory.Exists(i.InstallPath))
-                    .OrderBy(i => i.DisplayName)
-                    .ToList();
-
-                if (instances.Count > 0)
-                {
-                    var catalog = new ConfigService().LoadConfig();
-                    foreach (var instance in instances)
-                    {
-                        var catalogMod = catalog.FirstOrDefault(c => c.Id == instance.BaseModId);
-                        var target = BuildDllTargetConfig(instance, catalogMod);
-                        var item = ModItemAdapter.FromConfig(target);
-                        item.TargetInstanceId = instance.InstanceId;
-                        item.Name = instance.DisplayName;
-                        var installed = _dllModificationService.IsDllInstalledInMod(dllConfig, target, platform);
-                        DllInstallTargets.Add(new DllInstallTargetItem(item, installed));
-                    }
-                }
-                else
-                {
-                    var allTargets = _dllModificationService.GetModsWithDllInstalled(dllConfig, platform)
-                        .Concat(_dllModificationService.GetModsWithoutDllInstalled(dllConfig, platform))
-                        .GroupBy(m => m.Id)
-                        .Select(g => g.First())
-                        .OrderBy(m => m.ModName)
-                        .ToList();
-
-                    foreach (var target in allTargets)
-                    {
-                        var item = ModItemAdapter.FromConfig(target);
-                        var installed = _dllModificationService.IsDllInstalledInMod(dllConfig, target, platform);
-                        DllInstallTargets.Add(new DllInstallTargetItem(item, installed));
-                    }
-                }
-
-                NotifyDllInspectorProperties();
-                _ = LoadDllCompatibilityLinesAsync();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error loading DLL targets: {ex.Message}");
-            }
+            _ = LoadDllInstallTargetsAndCompatibilityAsync();
         }
 
-        private async Task LoadDllCompatibilityLinesAsync()
+        private async Task LoadDllInstallTargetsAndCompatibilityAsync()
         {
-            if (SelectedDllMod == null || _dllCompatibilityService == null)
-            {
-                DllCompatibilityLines.Clear();
-                NotifyDllInspectorProperties();
+            DllInstallTargets.Clear();
+            _dllTargetItemSubscriptions.Clear();
+            DllHiddenIncompatibleTargetCount = 0;
+
+            if (SelectedDllMod == null)
                 return;
-            }
 
             _dllCompatibilityLoadCts?.Cancel();
             _dllCompatibilityLoadCts = new CancellationTokenSource();
@@ -269,34 +238,73 @@ namespace SUSModder.ViewModels
 
             try
             {
-                var matrix = await _dllCompatibilityService.GetCompatibilityMatrixAsync(SelectedDllMod.Id, token);
-                if (token.IsCancellationRequested)
-                    return;
-
-                var catalog = new ConfigService().LoadConfig();
-                var fullMods = catalog
-                    .Where(c => c.ModType.Equals("full", StringComparison.OrdinalIgnoreCase) && c.Id > 0)
-                    .OrderBy(c => c.ModName)
-                    .ToList();
-
-                var lines = new List<(int Priority, DllCompatibilityLineItem Line)>();
-                foreach (var fullMod in fullMods)
+                var matrix = new Dictionary<int, CompatibilityInfo>();
+                if (_dllCompatibilityService != null)
                 {
-                    matrix.TryGetValue(fullMod.Id, out var compat);
-                    var line = CreateCompatLine(fullMod.ModName, compat);
-                    if (line == null)
-                        continue;
-
-                    var priority = CompatibilityDisplayHelper.GetSortPriority(line.Status);
-
-                    lines.Add((priority, line));
+                    matrix = await _dllCompatibilityService.GetCompatibilityMatrixAsync(SelectedDllMod.Id, token);
+                    if (token.IsCancellationRequested)
+                        return;
                 }
 
-                DllCompatibilityLines.Clear();
-                foreach (var entry in lines.OrderBy(x => x.Priority).ThenBy(x => x.Line.TargetName))
-                    DllCompatibilityLines.Add(entry.Line);
+                string platform = DeterminePlatform();
+                var dllConfig = ModItemAdapter.ToConfig(SelectedDllMod);
+                var instanceRepo = App.GetService<IModInstanceRepository>();
+                var instances = instanceRepo.GetPackInstances()
+                    .Where(i => !string.IsNullOrEmpty(i.InstallPath) && Directory.Exists(i.InstallPath))
+                    .OrderBy(i => i.DisplayName)
+                    .ToList();
+                var instancePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var catalog = new ConfigService().LoadConfig();
+                var hiddenIncompatible = 0;
 
-                RefreshDllCompatibilityDisplay();
+                foreach (var instance in instances)
+                {
+                    instancePaths.Add(Path.GetFullPath(instance.InstallPath!));
+                    var catalogMod = catalog.FirstOrDefault(c => c.Id == instance.BaseModId);
+                    var target = BuildDllTargetConfig(instance, catalogMod);
+                    var fullModId = catalogMod?.Id ?? instance.BaseModId;
+                    matrix.TryGetValue(fullModId, out var compat);
+                    var installed = _dllModificationService.IsDllInstalledInMod(dllConfig, target, platform);
+
+                    if (compat?.Status == CompatibilityStatus.NotWork && !installed)
+                    {
+                        hiddenIncompatible++;
+                        continue;
+                    }
+
+                    var item = ModItemAdapter.FromConfig(target);
+                    item.TargetInstanceId = instance.InstanceId;
+                    item.Name = instance.DisplayName;
+                    AddDllInstallTargetRow(CreateDllInstallTargetRow(item, installed, compat));
+                }
+
+                var legacyTargets = _dllModificationService.GetModsWithDllInstalled(dllConfig, platform)
+                    .Concat(_dllModificationService.GetModsWithoutDllInstalled(dllConfig, platform))
+                    .GroupBy(m => m.Id)
+                    .Select(g => g.First())
+                    .Where(m => !string.IsNullOrEmpty(m.InstallPath)
+                                && Directory.Exists(m.InstallPath)
+                                && !instancePaths.Contains(Path.GetFullPath(m.InstallPath)))
+                    .OrderBy(m => m.ModName);
+
+                foreach (var target in legacyTargets)
+                {
+                    matrix.TryGetValue(target.Id, out var compat);
+                    var installed = _dllModificationService.IsDllInstalledInMod(dllConfig, target, platform);
+
+                    if (compat?.Status == CompatibilityStatus.NotWork && !installed)
+                    {
+                        hiddenIncompatible++;
+                        continue;
+                    }
+
+                    var item = ModItemAdapter.FromConfig(target);
+                    AddDllInstallTargetRow(CreateDllInstallTargetRow(item, installed, compat));
+                }
+
+                DllHiddenIncompatibleTargetCount = hiddenIncompatible;
+                PopulateDllCompatibilityLines(matrix, catalog);
+                NotifyDllInspectorProperties();
             }
             catch (OperationCanceledException)
             {
@@ -304,14 +312,62 @@ namespace SUSModder.ViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[DllInspector] Compatibility: {ex.Message}");
-                DllCompatibilityLines.Clear();
+                System.Diagnostics.Debug.WriteLine($"Error loading DLL targets: {ex.Message}");
             }
             finally
             {
                 IsDllCompatibilityLoading = false;
                 NotifyDllInspectorProperties();
             }
+        }
+
+        private DllInstallTargetItem CreateDllInstallTargetRow(
+            ModItem item,
+            bool installed,
+            CompatibilityInfo? compat)
+        {
+            var tooltip = CompatibilityDisplayHelper.GetStatusLabel(compat, _localizationService);
+            var warning = CompatibilityDisplayHelper.GetWarning(compat, _localizationService);
+            if (!string.IsNullOrWhiteSpace(warning))
+                tooltip = $"{tooltip}\n{warning}";
+
+            return new DllInstallTargetItem(item, installed, compat, tooltip);
+        }
+
+        private void AddDllInstallTargetRow(DllInstallTargetItem row)
+        {
+            DllInstallTargets.Add(row);
+            _dllTargetItemSubscriptions.Add(
+                row.WhenAnyValue(r => r.IsSelected)
+                    .Subscribe(_ => this.RaisePropertyChanged(nameof(HasDllTargetPendingChanges))));
+        }
+
+        private void PopulateDllCompatibilityLines(
+            IReadOnlyDictionary<int, CompatibilityInfo> matrix,
+            IReadOnlyList<ModConfiguration> catalog)
+        {
+            var fullMods = catalog
+                .Where(c => c.ModType.Equals("full", StringComparison.OrdinalIgnoreCase) && c.Id > 0)
+                .OrderBy(c => c.ModName)
+                .ToList();
+
+            var lines = new List<(int Priority, DllCompatibilityLineItem Line)>();
+            foreach (var fullMod in fullMods)
+            {
+                matrix.TryGetValue(fullMod.Id, out var compat);
+                var line = CreateCompatLine(fullMod.ModName, compat);
+                if (line == null)
+                    continue;
+
+                var priority = CompatibilityDisplayHelper.GetSortPriority(line.Status);
+                lines.Add((priority, line));
+            }
+
+            DllCompatibilityLines.Clear();
+            foreach (var entry in lines.OrderBy(x => x.Priority).ThenBy(x => x.Line.TargetName))
+                DllCompatibilityLines.Add(entry.Line);
+
+            RefreshDllCompatibilityDisplay();
         }
 
         private void NotifyDllInspectorProperties()
@@ -329,6 +385,8 @@ namespace SUSModder.ViewModels
             this.RaisePropertyChanged(nameof(IsDllCompatibilityLoading));
             this.RaisePropertyChanged(nameof(ShowDllCompatibilityToggle));
             this.RaisePropertyChanged(nameof(DllCompatibilityToggleLabel));
+            this.RaisePropertyChanged(nameof(DllHiddenIncompatibleTargetCount));
+            this.RaisePropertyChanged(nameof(HasDllHiddenIncompatibleTargets));
         }
 
         private async Task ApplyDllTargetChangesAsync()
@@ -343,7 +401,19 @@ namespace SUSModder.ViewModels
             foreach (var row in pending)
             {
                 if (row.IsSelected && !row.WasInstalled)
+                {
+                    if (row.IsInstallBlocked)
+                    {
+                        await ShowErrorDialogAsync(
+                            _localizationService.GetFormatted(
+                                "UI.DllManager.InstallBlockedIncompatible",
+                                row.DisplayName),
+                            _localizationService.Get("UI.DllManager.InstallTitle"));
+                        continue;
+                    }
+
                     await InstallDllToMod(row.Target);
+                }
                 else if (!row.IsSelected && row.WasInstalled)
                     await UninstallDllFromMod(row.Target);
             }
@@ -364,13 +434,23 @@ namespace SUSModder.ViewModels
                 var targetConfig = ModItemAdapter.ToConfig(targetMod);
                 string platform = DeterminePlatform();
 
+                if (await IsDllInstallBlockedForTargetAsync(targetConfig))
+                {
+                    await ShowErrorDialogAsync(
+                        _localizationService.GetFormatted(
+                            "UI.DllManager.InstallBlockedIncompatible",
+                            targetMod.Name),
+                        _localizationService.Get("UI.DllManager.InstallTitle"));
+                    return;
+                }
+
                 if (!string.IsNullOrEmpty(targetMod.TargetInstanceId))
                 {
                     await App.GetService<ModInstanceInstaller>()
                         .InstallDllToInstanceAsync(dllConfig, targetMod.TargetInstanceId, platform);
                     ToastService.ShowSuccess(
                         _localizationService.GetFormatted("Toast.DllInstalled", SelectedDllMod.Name),
-                        _localizationService.GetFormatted("DllManager.InstallIn", targetMod.Name));
+                        _localizationService.GetFormatted("Toast.DllInstalledIn", targetMod.Name));
                     return;
                 }
 
@@ -380,7 +460,7 @@ namespace SUSModder.ViewModels
                 {
                     ToastService.ShowSuccess(
                         _localizationService.GetFormatted("Toast.DllInstalled", SelectedDllMod.Name),
-                        _localizationService.GetFormatted("DllManager.InstallIn", targetMod.Name));
+                        _localizationService.GetFormatted("Toast.DllInstalledIn", targetMod.Name));
                 }
                 else
                 {
@@ -428,7 +508,7 @@ namespace SUSModder.ViewModels
 
                     ToastService.ShowInfo(
                         _localizationService.GetFormatted("Toast.DllRemoved", SelectedDllMod.Name),
-                        _localizationService.GetFormatted("DllManager.UninstallFrom", targetMod.Name));
+                        _localizationService.GetFormatted("Toast.DllRemovedFrom", targetMod.Name));
                 }
                 else
                 {
@@ -444,6 +524,18 @@ namespace SUSModder.ViewModels
                     _localizationService.GetFormatted("UI.DllManager.UninstallError", ex.Message),
                     _localizationService.Get("UI.DllManager.UninstallTitle"));
             }
+        }
+
+        private async Task<bool> IsDllInstallBlockedForTargetAsync(ModConfiguration targetConfig)
+        {
+            if (_dllCompatibilityService == null || SelectedDllMod == null || targetConfig.Id <= 0)
+                return false;
+
+            var compat = await _dllCompatibilityService.CheckCompatibilityAsync(
+                SelectedDllMod.Id,
+                targetConfig.Id);
+
+            return compat?.Status == CompatibilityStatus.NotWork;
         }
 
         private static void RemoveDllRowsForInstance(string instanceId, int dllModId)

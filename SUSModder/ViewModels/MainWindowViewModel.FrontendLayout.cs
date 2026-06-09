@@ -37,6 +37,7 @@ namespace SUSModder.ViewModels
             IsDllSelectionModalVisible ||
             IsVersionSelectionModalVisible ||
             IsPostInstallSuccessVisible ||
+            IsPostInstallFailureVisible ||
             IsAmongUsNotFoundVisible ||
             IsModPackCodeEntryVisible ||
             IsModPackCreatorVisible ||
@@ -104,6 +105,11 @@ namespace SUSModder.ViewModels
                 if (IsPostInstallSuccessVisible && PostInstallSuccessViewModel != null)
                 {
                     return PostInstallSuccessViewModel.Title;
+                }
+
+                if (IsPostInstallFailureVisible && PostInstallFailureViewModel != null)
+                {
+                    return PostInstallFailureViewModel.Title;
                 }
 
                 if (IsAmongUsNotFoundVisible && AmongUsNotFoundViewModel != null)
@@ -177,6 +183,8 @@ namespace SUSModder.ViewModels
             IsRepairOptionsVisible = false;
             IsPostInstallSuccessVisible = false;
             PostInstallSuccessViewModel = null;
+            IsPostInstallFailureVisible = false;
+            PostInstallFailureViewModel = null;
             DismissAmongUsNotFoundModal(AmongUsNotFoundResult.Close);
             DismissActiveModPackModal();
             if (IsVersionSelectionModalVisible)

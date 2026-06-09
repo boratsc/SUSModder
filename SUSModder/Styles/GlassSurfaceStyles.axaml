@@ -85,11 +85,10 @@
 		<Setter Property="BoxShadow" Value="0 6 20 0 #77000000"/>
 	</Style>
 
-	<!-- === Top bar / zakładki === -->
+	<!-- === Top bar / zakładki — przezroczysty, kafelki zakładek i wyszukiwarka mają własne tło glass -->
 	<Style Selector="Window.glass-theme Border.glass-top-bar">
-		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
-		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeSubtleBrush}"/>
-		<Setter Property="BorderThickness" Value="0,0,0,1"/>
+		<Setter Property="Background" Value="Transparent"/>
+		<Setter Property="BorderThickness" Value="0"/>
 		<Setter Property="Padding" Value="0,0,0,10"/>
 		<Setter Property="Margin" Value="0"/>
 	</Style>
@@ -145,7 +144,7 @@
 
 	<!-- === Inspectory (mocniejszy tint) === -->
 	<Style Selector="Window.glass-theme Border.mod-detail-host">
-		<Setter Property="Margin" Value="0,72,10,10"/>
+		<Setter Property="Margin" Value="0,10,10,10"/>
 		<Setter Property="Background" Value="{DynamicResource GlassInspectorFillBrush}"/>
 		<Setter Property="BorderBrush" Value="{DynamicResource GlassInspectorBorderBrush}"/>
 		<Setter Property="BorderThickness" Value="1"/>

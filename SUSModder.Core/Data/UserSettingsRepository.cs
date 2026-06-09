@@ -63,14 +63,16 @@ namespace SUSModder.Core.Data
                     vanilla_install_path, av_warning_sig, last_seen_version,
                     minimize_to_tray, show_quick_launch_tray, tray_first_minimize_shown,
                     settings_version, active_sustats_guild_id,
-                    mod_packs_enabled, mod_packs_auto_install, glass_reduce_transparency
+                    mod_packs_enabled, mod_packs_auto_install, glass_reduce_transparency,
+                    prefer_depot_downloader
                 ) VALUES (
                     1, @mode, @last_launch_id, @theme, @language, @telemetry_enabled,
                     @mods_install_path, @license_accepted, @first_run_date, @update_channel,
                     @vanilla_install_path, @av_warning_sig, @last_seen_version,
                     @minimize_to_tray, @show_quick_launch_tray, @tray_first_minimize_shown,
                     @settings_version, @active_sustats_guild_id,
-                    @mod_packs_enabled, @mod_packs_auto_install, @glass_reduce_transparency
+                    @mod_packs_enabled, @mod_packs_auto_install, @glass_reduce_transparency,
+                    @prefer_depot_downloader
                 )
                 ON CONFLICT(id) DO UPDATE SET
                     mode = excluded.mode,
@@ -92,7 +94,8 @@ namespace SUSModder.Core.Data
                     active_sustats_guild_id = excluded.active_sustats_guild_id,
                     mod_packs_enabled = excluded.mod_packs_enabled,
                     mod_packs_auto_install = excluded.mod_packs_auto_install,
-                    glass_reduce_transparency = excluded.glass_reduce_transparency;";
+                    glass_reduce_transparency = excluded.glass_reduce_transparency,
+                    prefer_depot_downloader = excluded.prefer_depot_downloader;";
 
             cmd.Parameters.AddWithValue("@mode", settings.Mode ?? string.Empty);
             cmd.Parameters.AddWithValue("@last_launch_id", settings.LastLaunchId);
@@ -114,6 +117,7 @@ namespace SUSModder.Core.Data
             cmd.Parameters.AddWithValue("@mod_packs_enabled", settings.ModPacksEnabled ? 1 : 0);
             cmd.Parameters.AddWithValue("@mod_packs_auto_install", settings.ModPacksAutoInstall ? 1 : 0);
             cmd.Parameters.AddWithValue("@glass_reduce_transparency", settings.GlassReduceTransparency ? 1 : 0);
+            cmd.Parameters.AddWithValue("@prefer_depot_downloader", settings.PreferDepotDownloader ? 1 : 0);
 
             cmd.ExecuteNonQuery();
 
@@ -137,7 +141,8 @@ namespace SUSModder.Core.Data
                 "vanilla_install_path", "av_warning_sig", "last_seen_version",
                 "minimize_to_tray", "show_quick_launch_tray", "tray_first_minimize_shown",
                 "settings_version", "active_sustats_guild_id",
-                "mod_packs_enabled", "mod_packs_auto_install"
+                "mod_packs_enabled", "mod_packs_auto_install", "glass_reduce_transparency",
+                "prefer_depot_downloader"
             };
 
             if (!allowedColumns.Contains(columnName))
@@ -203,7 +208,8 @@ namespace SUSModder.Core.Data
                     : reader.GetString(reader.GetOrdinal("active_sustats_guild_id")),
                 ModPacksEnabled = TryGetBool(reader, "mod_packs_enabled", true),
                 ModPacksAutoInstall = TryGetBool(reader, "mod_packs_auto_install", false),
-                GlassReduceTransparency = TryGetBool(reader, "glass_reduce_transparency", false)
+                GlassReduceTransparency = TryGetBool(reader, "glass_reduce_transparency", false),
+                PreferDepotDownloader = TryGetBool(reader, "prefer_depot_downloader", false)
             };
         }
 

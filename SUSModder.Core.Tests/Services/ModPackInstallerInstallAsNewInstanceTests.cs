@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
+using SUSModder.Core.Api;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Data;
 using SUSModder.Core.Diagnostics;
@@ -24,7 +25,14 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
     public async Task InstallPack_AsNewInstance_CreatesInstanceDllRowsAndTouSnapshot()
     {
         await using var db = await CreateInitializedDatabaseAsync();
-        var modRepo = new ModRepository(db);
+        var testConfig = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2"
+            })
+            .Build();
+        var apiClient = new SUSModderApiClient(testConfig, new TestDiagnosticsOutput());
+        var modRepo = new ModRepository(db, apiClient);
         ConfigManager.SetRepository(modRepo);
         modRepo.SaveAllMods(new List<ModConfiguration>
         {
@@ -40,6 +48,7 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
+                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2",
                 ["Configuration:BaseUrl"] = "https://susmodder.app/",
                 ["Configuration:ModPacksEndpoint"] = "/api/mod-packs"
             })
@@ -141,7 +150,7 @@ internal static class ModInstanceInstallerTestsHelpers
     {
         public string? LastTargetPath { get; private set; }
 
-        public Task InstallAsync(
+        public Task<ModInstallResult> InstallAsync(
             ModConfiguration modConfig,
             string targetInstallPath,
             string platform,
@@ -153,7 +162,7 @@ internal static class ModInstanceInstallerTestsHelpers
             LastTargetPath = targetInstallPath;
             Directory.CreateDirectory(targetInstallPath);
             File.WriteAllText(Path.Combine(targetInstallPath, "Among Us.exe"), string.Empty);
-            return Task.CompletedTask;
+            return Task.FromResult(ModInstallResult.Succeeded());
         }
     }
 

@@ -269,7 +269,8 @@
       "UninstallTitle": "Remove DLL",
       "UninstallConfirm": "Remove \"{0}\" from \"{1}\"?",
       "UninstallFailed": "Failed to remove the DLL add-on.",
-      "UninstallError": "Removal error: {0}"
+      "UninstallError": "Removal error: {0}",
+      "InstallBlockedIncompatible": "Cannot install in \"{0}\" — this DLL add-on is marked as incompatible (does not work)."
     },
     "Repair": {
       "DialogTitle": "Repair Game",
@@ -381,7 +382,8 @@
     "CompatWorks": "Works",
     "CompatNotTested": "Not tested",
     "SkipAll": "Skip all",
-    "HiddenIncompatible": "modifications hidden (incompatible)"
+    "HiddenIncompatible": "modifications hidden (incompatible)",
+    "HiddenIncompatibleTargets": "packs hidden (incompatible)"
   },
   "Dialogs": {
     "Success": {
@@ -481,6 +483,13 @@
       "AutoUpdate": "Automatic updates",
       "DontShowAgain": "Don't show this again"
     },
+    "PostInstallFailure": {
+      "Title": "Installation failed",
+      "TitleWithName": "❌ Failed to install: {0}",
+      "LogLabel": "Installation log",
+      "LogEmpty": "No installation log entries available.",
+      "CloseButton": "Close"
+    },
     "AmongUsNotFound": {
       "Title": "Among Us not detected",
       "Message": "SUSModder could not find an Among Us installation on your system.\n\nTo point to the game manually, click Browse and select the Among Us.exe file from your Steam game folder (usually: …\\steamapps\\common\\Among Us\\Among Us.exe).\n\nMake sure Among Us is installed in your Steam library.",
@@ -500,7 +509,9 @@
     "DownloadError": "Download error – check your connection",
     "GameLaunchError": "Failed to launch the game",
     "DllInstalled": "DLL {0} installed",
+    "DllInstalledIn": "Installed in: {0}",
     "DllRemoved": "DLL {0} removed",
+    "DllRemovedFrom": "Removed from: {0}",
     "GenericInfo": "{0}",
     "ModUpdatesFound": "Found {0} mod updates",
     "ModUpdatesAutoUpdated": "Auto-updated {0} mod(s)",
@@ -574,6 +585,15 @@
       "Channels": {
         "Release": "Release (Stable releases)",
         "Beta": "Beta (Test versions)"
+      }
+    },
+    "SteamVanilla": {
+      "Title": "Among Us download (Steam)",
+      "Description": "By default SUSModder downloads vanilla from its own 7z packages. You can enable direct download from Steam.",
+      "ExperimentalWarning": "DepotDownloader download is experimental — it requires QR login in the Steam mobile app.",
+      "DepotDownloader": {
+        "Label": "Download vanilla directly from Steam (DepotDownloader)",
+        "Description": "Off: SUSModder 7z packages (default). On: download game files from your Steam account after scanning a QR code."
       }
     },
     "Advanced": {

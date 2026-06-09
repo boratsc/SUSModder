@@ -57,6 +57,7 @@ namespace SUSModder.ViewModels
 
             bool success = false;
             ModConfiguration? modConfig = null;
+            ModInstallResult? installResult = null;
 
             lock (_installationLock)
             {
@@ -88,9 +89,19 @@ namespace SUSModder.ViewModels
                 string platform = DeterminePlatform();
 
                 if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
+                {
                     success = await InstallEpicModAsync(currentSelectedMod, modConfig);
+                    if (!success)
+                    {
+                        installResult = ModInstallResult.Failed(
+                            _localizationService.Get("Dialogs.Error.InstallFailed"));
+                    }
+                }
                 else
-                    success = await InstallSteamModAsync(currentSelectedMod, modConfig, allConfigs);
+                {
+                    installResult = await InstallSteamModAsync(currentSelectedMod, modConfig, allConfigs);
+                    success = installResult.Success;
+                }
 
                 if (success)
                 {
@@ -104,6 +115,8 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Install] Exception: {ex.Message}");
+                installResult = ModInstallResult.Failed(ex.Message);
+                success = false;
             }
             finally
             {
@@ -129,6 +142,8 @@ namespace SUSModder.ViewModels
 
             if (success && showPostInstallFlow && modConfig != null)
                 await ShowPostInstallFlowAsync(currentSelectedMod, modConfig);
+            else if (!success)
+                await ShowPostInstallFailureFlowAsync(currentSelectedMod, installResult);
 
             return success;
         }
@@ -208,6 +223,7 @@ namespace SUSModder.ViewModels
             SyncIsAnyModInstalling();
 
             bool success = false;
+            ModInstallResult? installResult = null;
 
             try
             {
@@ -238,10 +254,16 @@ namespace SUSModder.ViewModels
                 if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
                 {
                     success = await InstallEpicModAsync(modItem, tempModConfig);
+                    if (!success)
+                    {
+                        installResult = ModInstallResult.Failed(
+                            _localizationService.Get("Dialogs.Error.InstallFailed"));
+                    }
                 }
                 else
                 {
-                    success = await InstallSteamModAsync(modItem, tempModConfig, allConfigs);
+                    installResult = await InstallSteamModAsync(modItem, tempModConfig, allConfigs);
+                    success = installResult.Success;
                 }
 
                 if (success)
@@ -264,9 +286,8 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[InstallSpecificVersion] Exception: {ex.Message}");
-                await _userInteractionService.ShowErrorAsync(
-                    _localizationService.GetFormatted("ModOperations.InstallError", ex.Message),
-                    _localizationService.Get("MainWindow.ErrorTitle"));
+                installResult = ModInstallResult.Failed(ex.Message);
+                success = false;
             }
             finally
             {
@@ -294,11 +315,10 @@ namespace SUSModder.ViewModels
                 await RefreshStatusBarAsync();
             }
 
-            // Poinstalacyjny flow sukcesu (działający po finally)
             if (success)
-            {
                 await ShowPostInstallFlowAsync(modItem, modConfig);
-            }
+            else
+                await ShowPostInstallFailureFlowAsync(modItem, installResult);
         }
 
         private async Task<bool> InstallEpicModAsync(ModItem currentSelectedMod, ModConfiguration modConfig)
@@ -360,7 +380,10 @@ namespace SUSModder.ViewModels
             }
         }
 
-        private async Task<bool> InstallSteamModAsync(ModItem currentSelectedMod, ModConfiguration modConfig, System.Collections.Generic.List<ModConfiguration> allConfigs)
+        private async Task<ModInstallResult> InstallSteamModAsync(
+            ModItem currentSelectedMod,
+            ModConfiguration modConfig,
+            System.Collections.Generic.List<ModConfiguration> allConfigs)
         {
             var progressReporter = new UIProgressReporter((percentage, message) =>
             {
@@ -368,10 +391,10 @@ namespace SUSModder.ViewModels
                 currentSelectedMod.InstallStatusMessage = message;
             });
 
-            var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+            var logCollector = new BufferingDiagnosticsOutput(new UIDiagnosticsOutput(message =>
             {
                 System.Diagnostics.Debug.WriteLine($"[Install Steam] {message}");
-            });
+            }));
 
             var configBuilder = new ConfigurationBuilder()
                 .SetBasePath(SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory())
@@ -384,11 +407,11 @@ namespace SUSModder.ViewModels
             {
                 var callbacks = CreateModManagerCallbacks();
 
-                await modManager.ModifyAsync(
+                var result = await modManager.ModifyAsync(
                     modConfig,
                     allConfigs,
                     progressReporter,
-                    diagnosticsOutput,
+                    logCollector,
                     callbacks,
                     "steam",
                     onSpeedUpdate: (speed) =>
@@ -397,31 +420,29 @@ namespace SUSModder.ViewModels
                         {
                             currentSelectedMod.DownloadSpeed = speed;
                         });
-                    }
-                );
+                    });
+
+                if (!result.Success)
+                {
+                    return ModInstallResult.Failed(
+                        result.ErrorMessage ?? _localizationService.Get("Dialogs.Error.InstallFailed"),
+                        logCollector.Lines);
+                }
 
                 var installedConfig = allConfigs.FirstOrDefault(c => c.Id == modConfig.Id);
 
-                // Aktualizuj ścieżkę instalacji w UI
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     currentSelectedMod.InstallPath = installedConfig?.InstallPath ?? modConfig.InstallPath;
                 });
 
                 RefreshModsSortingKeepSelection(currentSelectedMod);
-
-                // Uwaga: dialog DLL NIE jest pokazywany tutaj (przez ShowDllSelectionWindow),
-                // ponieważ zostałby dodany do kolejki i pokazałby się podczas trwania
-                // finally, ale potem RefreshModsListAsync/SelectedMod w Install() powodowały
-                // zamykanie się go natychmiast.
-                // Dialog jest pokazywany w Install() po wszystkich operacjach post-instalacyjnych.
-
-                return true;
+                return ModInstallResult.Succeeded(logCollector.Lines);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Install Steam] Exception: {ex.Message}");
-                return false;
+                logCollector.Write($"[Install Steam] Exception: {ex.Message}");
+                return ModInstallResult.Failed(ex.Message, logCollector.Lines);
             }
         }
 
@@ -600,6 +621,40 @@ namespace SUSModder.ViewModels
             vm.CloseRequested += OnPostInstallSuccessCloseRequested;
             PostInstallSuccessViewModel = vm;
             IsPostInstallSuccessVisible = true;
+        }
+
+        private async Task ShowPostInstallFailureFlowAsync(ModItem modItem, ModInstallResult? installResult)
+        {
+            await RefreshModsListAsync(checkUpdates: false);
+            SelectedMod = Mods.FirstOrDefault(m => m.Id == modItem.Id) ?? modItem;
+            if (SelectedMod != null)
+                IsModContentVisible = true;
+
+            var errorMessage = installResult?.ErrorMessage
+                ?? _localizationService.Get("Dialogs.Error.InstallFailed");
+            var logText = installResult?.GetLogText() ?? string.Empty;
+
+            var vm = new PostInstallFailureViewModel(
+                modItem.Name,
+                errorMessage,
+                logText,
+                _localizationService);
+            vm.CloseRequested += OnPostInstallFailureCloseRequested;
+            PostInstallFailureViewModel = vm;
+            IsPostInstallFailureVisible = true;
+        }
+
+        private void OnPostInstallFailureCloseRequested(object? sender, EventArgs e)
+        {
+            if (sender is PostInstallFailureViewModel vm)
+            {
+                vm.CloseRequested -= OnPostInstallFailureCloseRequested;
+                IsPostInstallFailureVisible = false;
+                PostInstallFailureViewModel = null;
+
+                if (SelectedMod != null)
+                    IsModContentVisible = true;
+            }
         }
 
         private void OnPostInstallSuccessCloseRequested(object? sender, EventArgs e)
@@ -960,7 +1015,7 @@ namespace SUSModder.ViewModels
                         RunSteamQrDownloadAsync = _userInteractionService.RunSteamQrDownloadAsync
                     };
 
-                    await modManager.ModifyAsync(
+                    var installResult = await modManager.ModifyAsync(
                         updatedConfig,
                         updatedConfigs,
                         progressReporter,
@@ -968,6 +1023,9 @@ namespace SUSModder.ViewModels
                         callbacks,
                         "steam"
                     );
+
+                    if (!installResult.Success)
+                        throw new InvalidOperationException(installResult.ErrorMessage ?? "Update failed");
                 }
 
                 // Aktualizuj ścieżkę instalacji w UI

@@ -46,6 +46,8 @@ namespace SUSModder.ViewModels
         private bool _originalGlassReduceTransparency;
         private bool _showQuickLaunchInTray = true;
         private bool _originalShowQuickLaunchInTray = true;
+        private bool _preferDepotDownloader;
+        private bool _originalPreferDepotDownloader;
 
         // Stała lista dostępnych języków (aby uniknąć problemów z referencjami)
         private static readonly List<LanguageOption> _availableLanguages = new()
@@ -203,6 +205,7 @@ namespace SUSModder.ViewModels
             set
             {
                 this.RaiseAndSetIfChanged(ref _gameMode, value);
+                this.RaisePropertyChanged(nameof(IsSteamDepotDownloaderSectionVisible));
                 CheckForChanges();
             }
         }
@@ -276,7 +279,19 @@ namespace SUSModder.ViewModels
             }
         }
 
+        public bool PreferDepotDownloader
+        {
+            get => _preferDepotDownloader;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _preferDepotDownloader, value);
+                CheckForChanges();
+            }
+        }
+
         public bool IsGlassAppearanceSectionVisible => _currentTheme == "glass";
+
+        public bool IsSteamDepotDownloaderSectionVisible => IsSteamMode;
 
         private string _currentTheme = "dark";
 
@@ -353,8 +368,12 @@ namespace SUSModder.ViewModels
                 _currentTheme = userSettings.Theme ?? "dark";
                 _glassReduceTransparency = userSettings.GlassReduceTransparency;
                 _originalGlassReduceTransparency = _glassReduceTransparency;
+                _preferDepotDownloader = userSettings.PreferDepotDownloader;
+                _originalPreferDepotDownloader = _preferDepotDownloader;
                 this.RaisePropertyChanged(nameof(IsGlassAppearanceSectionVisible));
                 this.RaisePropertyChanged(nameof(GlassReduceTransparency));
+                this.RaisePropertyChanged(nameof(PreferDepotDownloader));
+                this.RaisePropertyChanged(nameof(IsSteamDepotDownloaderSectionVisible));
 
                 // Załaduj GameMode z user settings
                 _gameMode = userSettings.Mode;
@@ -411,7 +430,8 @@ namespace SUSModder.ViewModels
                                _telemetryEnabled != _originalTelemetryEnabled ||
                                _minimizeToTray != _originalMinimizeToTray ||
                                _showQuickLaunchInTray != _originalShowQuickLaunchInTray ||
-                               _glassReduceTransparency != _originalGlassReduceTransparency;
+                               _glassReduceTransparency != _originalGlassReduceTransparency ||
+                               _preferDepotDownloader != _originalPreferDepotDownloader;
             this.RaisePropertyChanged(nameof(WindowTitle));
         }
 
@@ -568,6 +588,7 @@ namespace SUSModder.ViewModels
                     settings.MinimizeToTray = MinimizeToTray;
                     settings.ShowQuickLaunchInTray = ShowQuickLaunchInTray;
                     settings.GlassReduceTransparency = GlassReduceTransparency;
+                    settings.PreferDepotDownloader = PreferDepotDownloader;
                     if (_selectedLanguage != null)
                     {
                         settings.Language = _selectedLanguage.Code;
@@ -585,6 +606,7 @@ namespace SUSModder.ViewModels
                 _originalMinimizeToTray = MinimizeToTray;
                 _originalShowQuickLaunchInTray = ShowQuickLaunchInTray;
                 _originalGlassReduceTransparency = GlassReduceTransparency;
+                _originalPreferDepotDownloader = PreferDepotDownloader;
                 HasUnsavedChanges = false;
 
                 // Powiadom o zapisaniu ustawień

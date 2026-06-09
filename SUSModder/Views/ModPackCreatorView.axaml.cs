@@ -75,7 +75,7 @@ public partial class ModPackCreatorView : UserControl
         _instances = instances;
         _mapper = mapper;
         _instanceInstaller = instanceInstaller;
-        _versionService = new ModVersionService(configuration, diagnostics);
+        _versionService = new ModVersionService(diagnostics);
         _loc = loc;
         _platform = platform;
         _preselectedInstanceId = preselectedInstanceId;

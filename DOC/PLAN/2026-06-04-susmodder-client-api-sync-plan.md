@@ -1,10 +1,27 @@
 # Plan zmian: SUSModder client — synchronizacja configu i kompatybilności
 
 **Data:** 2026-06-04  
-**Status:** Do implementacji po akceptacji  
+**Status:** Częściowo wdrożone — migracja HTTP na **API v2** ukończona; optymalizacja sync/cache (Fazy 1–5 poniżej) **w toku**  
 **Priorytet:** P1  
+**Status wdrożenia API v2:** [`2026-06-07-api-v2-rollout-status.md`](2026-06-07-api-v2-rollout-status.md) ← **aktualny stan**  
 **Powiązany POC:** [`DOC/POC/2026-06-04-api-config-compatibility-sync-poc.md`](../POC/2026-06-04-api-config-compatibility-sync-poc.md)  
-**Backend plan:** [`2026-06-04-susmodder-backend-api-sync-plan.md`](2026-06-04-susmodder-backend-api-sync-plan.md)
+**Backend plan:** [`2026-06-04-susmodder-backend-api-sync-plan.md`](2026-06-04-susmodder-backend-api-sync-plan.md)  
+**Audyt E2E:** [`DOC/POC/API v2/2026-06-07-api-e2e-audit.md`](../POC/API%20v2/2026-06-07-api-e2e-audit.md)
+
+---
+
+## 0. Stan na 2026-06-07 (skrót)
+
+| Obszar | Status |
+|--------|--------|
+| Centralny klient HTTP `ISUSModderApiClient` + `ApiV2BaseUrl` | ✅ |
+| Katalog, pobrania, role, Discord, telemetria, releases, lobby, modpacki → v2 | ✅ |
+| Backend: CDN, ikony, warianty, `2025-3-31` | ✅ (remediacja 2026-06-07) |
+| E2E produkcja (`test-api-v2-client.ps1`) | ✅ 24/24 |
+| `CatalogSyncService`, ETag/`sync_state`, `compatibility_cache` | ⏳ plan poniżej |
+| Weryfikacja SHA256 przy pobieraniu | ⏳ |
+
+Szczegóły: [`2026-06-07-api-v2-rollout-status.md`](2026-06-07-api-v2-rollout-status.md).
 
 ---
 

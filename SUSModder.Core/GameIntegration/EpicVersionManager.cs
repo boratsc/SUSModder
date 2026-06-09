@@ -333,7 +333,7 @@ namespace SUSModder.Core.GameIntegration
                 return;
             }
 
-            string downloadUrl = ModDownloadUrlBuilder.Build(modConfig, "epic");
+            string downloadUrl = await ModDownloadUrlBuilder.ResolveAsync(modConfig, "epic");
 
             Write($"[CDN] URL pobierania moda Epic '{modConfig.ModName}': {downloadUrl}");
 

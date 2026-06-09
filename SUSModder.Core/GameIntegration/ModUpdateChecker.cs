@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using SUSModder.Core.Api;
 using SUSModder.Core.Utilities;
 using SUSModder.Core.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -133,28 +134,9 @@ namespace SUSModder.Core.GameIntegration
         {
             try
             {
-                var tempFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.temp.json");
-
-                using (HttpClient client = new HttpClient())
-                {
-                    string downloadToken = SecretProvider.GetDownloadToken();
-                    client.DefaultRequestHeaders.Add("Authorization", downloadToken);
-
-                    HttpResponseMessage response = await client.GetAsync(configuration["Configuration:UpdateServerUrl"]);
-                    response.EnsureSuccessStatusCode();
-
-                    using (FileStream fs = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write))
-                    {
-                        await response.Content.CopyToAsync(fs);
-                    }
-                }
-
-                var jsonContent = await File.ReadAllTextAsync(tempFilePath);
-                var remoteConfigs = JsonSerializer.Deserialize<List<ModConfiguration>>(jsonContent) ?? new List<ModConfiguration>();
-
-                File.Delete(tempFilePath);
-
-                return remoteConfigs;
+                var apiClient = SUSModderApiClientProvider.TryGetDefault()
+                    ?? new SUSModderApiClient(configuration, log);
+                return await apiClient.GetCatalogAsModConfigurationsAsync();
             }
             catch (Exception ex)
             {
@@ -380,7 +362,7 @@ namespace SUSModder.Core.GameIntegration
                     };
 
                     // KROK 3: Zainstaluj nową wersję moda FULL
-                    await modManager.ModifyAsync(
+                    var installResult = await modManager.ModifyAsync(
                         modToInstall,
                         updatedConfigs,
                         progress,
@@ -388,6 +370,12 @@ namespace SUSModder.Core.GameIntegration
                         callbacks,
                         configuration["Configuration:Mode"] ?? "steam"
                     );
+
+                    if (!installResult.Success)
+                    {
+                        log.Write($"[Aktualizacje] Błąd instalacji moda: {installResult.ErrorMessage}");
+                        return;
+                    }
 
                     // KROK 4: Przywróć zainstalowane DLL (jeśli były)
                     if (installedDlls.Any())

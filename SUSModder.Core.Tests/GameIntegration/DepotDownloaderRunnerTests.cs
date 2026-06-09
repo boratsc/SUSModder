@@ -30,6 +30,39 @@ public class DepotDownloaderRunnerTests
         Assert.DoesNotContain("-username", args);
         Assert.DoesNotContain("-password", args);
     }
+
+    [Fact]
+    public void TryExtractQrBlock_RecognizesOemEncodedAsciiQr()
+    {
+        var encoding = DepotDownloaderRunner.ResolveProcessOutputEncoding();
+        var sampleLine = encoding.GetString(new byte[] { 0xDB, 0xDB, 0xDB, 0x20, 0xDB, 0xDB, 0xDB, 0xDB, 0x20, 0xDB, 0xDB, 0xDB });
+        var lines = new[]
+        {
+            "Use the Steam Mobile App to sign in with this QR code:",
+            sampleLine,
+            sampleLine,
+            sampleLine,
+            "Done!"
+        };
+
+        Assert.True(DepotDownloaderRunner.TryExtractQrBlock(lines, out var qrBlock));
+        Assert.Contains("█", qrBlock);
+    }
+
+    [Fact]
+    public void TryExtractQrBlock_RecognizesUnicodeBlockGlyphs()
+    {
+        var lines = new[]
+        {
+            "Use the Steam Mobile App to sign in with this QR code:",
+            "█████████████  ██  ████  ████    ████  █████████████",
+            "██          ██    ████████  ████████    ██          ██",
+            "██████████████  ██  ██  ██  ██  ██  ██  ██████████████",
+        };
+
+        Assert.True(DepotDownloaderRunner.TryExtractQrBlock(lines, out var qrBlock));
+        Assert.Contains("█████████████", qrBlock);
+    }
 }
 
 public class AmongUsVersionHelperTests

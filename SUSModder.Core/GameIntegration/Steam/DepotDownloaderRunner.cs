@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
@@ -84,6 +85,8 @@ public sealed partial class DepotDownloaderRunner
         ConfigWriter.CleanCorrupt();
         ConfigWriter.RestoreFromCache();
 
+        var outputEncoding = ResolveProcessOutputEncoding();
+
         using var process = new Process
         {
             StartInfo = new ProcessStartInfo
@@ -93,7 +96,9 @@ public sealed partial class DepotDownloaderRunner
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 RedirectStandardInput = true,
-                CreateNoWindow = true
+                CreateNoWindow = true,
+                StandardOutputEncoding = outputEncoding,
+                StandardErrorEncoding = outputEncoding
             }
         };
 
@@ -151,6 +156,7 @@ public sealed partial class DepotDownloaderRunner
     {
         var buffer = new byte[4096];
         var textBuf = new StringBuilder();
+        var outputDecoder = new ProcessStreamDecoder(ResolveProcessOutputEncoding());
 
         try
         {
@@ -160,7 +166,7 @@ public sealed partial class DepotDownloaderRunner
                 if (bytesRead == 0)
                     break;
 
-                var decoded = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                var decoded = outputDecoder.Decode(buffer, bytesRead);
                 textBuf.Append(decoded);
                 outputLog.Append(decoded);
 
@@ -319,12 +325,35 @@ public sealed partial class DepotDownloaderRunner
         return string.Join(" | ", lastLines);
     }
 
+    public static bool IsQrArtLine(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+            return false;
+
+        var blockChars = 0;
+        foreach (var ch in line)
+        {
+            if (ch is ' ' or '\t')
+                continue;
+
+            if (IsQrGlyph(ch))
+            {
+                blockChars++;
+                continue;
+            }
+
+            return false;
+        }
+
+        return blockChars >= 8;
+    }
+
     public static bool TryExtractQrBlock(IEnumerable<string> lines, out string qrBlock)
     {
         var blockLines = new List<string>();
         foreach (var line in lines)
         {
-            if (line.Contains('█', StringComparison.Ordinal))
+            if (IsQrArtLine(line))
                 blockLines.Add(line);
             else if (blockLines.Count > 0)
                 break;
@@ -338,6 +367,63 @@ public sealed partial class DepotDownloaderRunner
 
         qrBlock = string.Empty;
         return false;
+    }
+
+    private static bool IsQrGlyph(char ch) =>
+        ch is '█' or '▀' or '▄' or '▌' or '▐' or '░' or '▒' or '▓'
+        || ch is >= '\u2580' and <= '\u259F';
+
+    internal static Encoding ResolveProcessOutputEncoding()
+    {
+        EnsureCodePagesRegistered();
+
+        if (!OperatingSystem.IsWindows())
+            return new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
+        // DepotDownloader (redirected stdout, brak okna konsoli) wypisuje AsciiQRCode
+        // bajtami OEM — UTF-8 daje U+FFFD i UI nie widzi kodu QR.
+        try
+        {
+            var oemCodePage = CultureInfo.CurrentCulture.TextInfo.OEMCodePage;
+            if (oemCodePage > 0)
+                return Encoding.GetEncoding(oemCodePage);
+        }
+        catch (ArgumentException)
+        {
+            // Fallback poniżej.
+        }
+
+        return Encoding.GetEncoding(437);
+    }
+
+    private static readonly Lock CodePagesLock = new();
+    private static bool _codePagesRegistered;
+
+    private static void EnsureCodePagesRegistered()
+    {
+        if (_codePagesRegistered)
+            return;
+
+        lock (CodePagesLock)
+        {
+            if (_codePagesRegistered)
+                return;
+
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            _codePagesRegistered = true;
+        }
+    }
+
+    private sealed class ProcessStreamDecoder(Encoding encoding)
+    {
+        private readonly Decoder _decoder = encoding.GetDecoder();
+
+        public string Decode(byte[] buffer, int count)
+        {
+            var chars = new char[encoding.GetMaxCharCount(count)];
+            var charCount = _decoder.GetChars(buffer, 0, count, chars, 0);
+            return new string(chars, 0, charCount);
+        }
     }
 
     private static async Task<string> EnsureDepotDownloaderAsync(IDiagnosticsOutput? log, CancellationToken ct)

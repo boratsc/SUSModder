@@ -17,7 +17,7 @@ namespace SUSModder.Core.Data
         List<ModConfiguration> GetAllMods();
 
         /// <summary>
-        /// Zapisuje całą listę modów do bazy (bulk replace).
+        /// Zapisuje mody do bazy (upsert — nie usuwa wpisów spoza przekazanej listy).
         /// </summary>
         void SaveAllMods(List<ModConfiguration> mods);
 
@@ -55,5 +55,11 @@ namespace SUSModder.Core.Data
         /// Odświeża konfigurację z API. Zwraca true jeśli były zmiany.
         /// </summary>
         Task<bool> RefreshFromApiAsync();
+
+        /// <summary>
+        /// Stosuje zwalidowany katalog z API (merge lokalnych pól + upsert SQLite).
+        /// Zwraca true, jeśli dane w bazie uległy zmianie.
+        /// </summary>
+        Task<bool> ApplyRemoteCatalogAsync(List<ModConfiguration> apiMods);
     }
 }

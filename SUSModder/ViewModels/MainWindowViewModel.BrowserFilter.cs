@@ -77,9 +77,33 @@ namespace SUSModder.ViewModels
             string? query,
             Func<T, string?, bool> matches)
         {
+            var effectiveSource = source;
+            if (effectiveSource.Count == 0 && target.Count > 0 && string.IsNullOrWhiteSpace(query))
+            {
+                // Snapshot nie został jeszcze zapisany (np. pierwsze odświeżenie listy) — nie czyść UI.
+                effectiveSource = target.ToList();
+            }
+
             var filtered = string.IsNullOrWhiteSpace(query)
-                ? source
-                : source.Where(item => matches(item, query)).ToList();
+                ? effectiveSource
+                : effectiveSource.Where(item => matches(item, query)).ToList();
+
+            if (filtered.Count == target.Count && target.Count > 0)
+            {
+                var unchanged = true;
+                using var enumerator = target.GetEnumerator();
+                foreach (var item in filtered)
+                {
+                    if (!enumerator.MoveNext() || !ReferenceEquals(enumerator.Current, item))
+                    {
+                        unchanged = false;
+                        break;
+                    }
+                }
+
+                if (unchanged)
+                    return;
+            }
 
             target.Clear();
             foreach (var item in filtered)

@@ -263,7 +263,7 @@ public class ModInstanceInstallerTests : IDisposable
     {
         public string? LastTargetPath { get; private set; }
 
-        public Task InstallAsync(
+        public Task<ModInstallResult> InstallAsync(
             ModConfiguration modConfig,
             string targetInstallPath,
             string platform,
@@ -275,7 +275,7 @@ public class ModInstanceInstallerTests : IDisposable
             LastTargetPath = targetInstallPath;
             Directory.CreateDirectory(targetInstallPath);
             File.WriteAllText(Path.Combine(targetInstallPath, "Among Us.exe"), string.Empty);
-            return Task.CompletedTask;
+            return Task.FromResult(ModInstallResult.Succeeded());
         }
     }
 

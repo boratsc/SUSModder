@@ -12,9 +12,10 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using SUSModder.Core.Api;
+using SUSModder.Core.Utilities;
 using SUSModder.Core.Repositories;
 using SUSModder.Core.Services;
-using SUSModder.Core.Utilities;
 
 namespace SUSModder.Core.Configuration
 {
@@ -456,67 +457,29 @@ namespace SUSModder.Core.Configuration
 
         private static async Task<List<ModConfiguration>> FetchConfigFromApiAsync()
         {
-            using (var httpClient = new HttpClient())
-            {
-                try
-                {
-                    // Ustaw timeout na 15 sekund
-                    httpClient.Timeout = TimeSpan.FromSeconds(15);
-
-                    // Pobierz URL z appsettings.json
-                    string configApiUrl = GetUpdateServerUrl();
-                    System.Diagnostics.Debug.WriteLine($"Fetching config from: {configApiUrl}");
-
-                    // Dodaj token autoryzacji tak jak w UpdateConfigMenuItem_Click
-                    string downloadToken = SecretProvider.GetDownloadToken();
-                    httpClient.DefaultRequestHeaders.Add("Authorization", downloadToken);
-
-                    var response = await httpClient.GetStringAsync(configApiUrl);
-                    System.Diagnostics.Debug.WriteLine($"API response received, length: {response.Length}");
-                    
-                    var configs = JsonSerializer.Deserialize<List<ModConfiguration>>(response) ?? new List<ModConfiguration>();
-                    System.Diagnostics.Debug.WriteLine($"Deserialized {configs.Count} configurations");
-                    
-                    return configs;
-                }
-                catch (TaskCanceledException ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"API request timeout: {ex.Message}");
-                    return new List<ModConfiguration>();
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error fetching config from API: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                    return new List<ModConfiguration>();
-                }
-            }
-        }
-
-        private static string GetUpdateServerUrl()
-        {
             try
             {
-                if (File.Exists(AppSettingsFilePath))
+                var apiClient = SUSModderApiClientProvider.TryGetDefault();
+                if (apiClient is null)
                 {
-                    var json = File.ReadAllText(AppSettingsFilePath);
-                    var jsonObj = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(json);
-
-                    if (jsonObj != null &&
-                        jsonObj.ContainsKey("Configuration") &&
-                        jsonObj["Configuration"].ContainsKey("UpdateServerUrl"))
-                    {
-                        return jsonObj["Configuration"]["UpdateServerUrl"].ToString() ?? "https://susmodder.app/api/susmodder-config";
-                    }
+                    System.Diagnostics.Debug.WriteLine("[ConfigManager] ISUSModderApiClient not initialized.");
+                    return new List<ModConfiguration>();
                 }
+
+                var configs = await apiClient.GetCatalogAsModConfigurationsAsync();
+                System.Diagnostics.Debug.WriteLine($"[ConfigManager] API v2 returned {configs.Count} configurations");
+                return configs;
+            }
+            catch (TaskCanceledException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"API request timeout: {ex.Message}");
+                return new List<ModConfiguration>();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error reading UpdateServerUrl from appsettings.json: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error fetching config from API: {ex.Message}");
+                return new List<ModConfiguration>();
             }
-
-            // Fallback do domyślnego URL-a
-            return "https://susmodder.app/api/susmodder-config";
         }
 
         public static void SaveConfig(List<ModConfiguration> configs)
@@ -779,6 +742,13 @@ namespace SUSModder.Core.Configuration
             if (!string.Equals(vanilla.Description, expectedDescription, StringComparison.OrdinalIgnoreCase))
             {
                 vanilla.Description = expectedDescription;
+                changed = true;
+            }
+
+            var expectedIcon = BundledModIconHelper.NormalizeVanillaIconReference(vanilla.PngFileName);
+            if (!string.Equals(vanilla.PngFileName, expectedIcon, StringComparison.OrdinalIgnoreCase))
+            {
+                vanilla.PngFileName = expectedIcon;
                 changed = true;
             }
 

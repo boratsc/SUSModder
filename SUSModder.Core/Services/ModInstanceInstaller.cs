@@ -72,7 +72,7 @@ namespace SUSModder.Core.Services
             EnsurePathCanBeUsedForNewInstance(installPath);
 
             log.Write($"[ModInstanceInstaller] Instaluję instancję '{displayName}' do: {installPath}");
-            await _fullModInstaller.InstallAsync(
+            var installResult = await _fullModInstaller.InstallAsync(
                 fullMod,
                 installPath,
                 platform,
@@ -80,6 +80,12 @@ namespace SUSModder.Core.Services
                 log,
                 userCallbacks,
                 onSpeedUpdate);
+
+            if (!installResult.Success)
+            {
+                throw new InvalidOperationException(
+                    installResult.ErrorMessage ?? "mod_instance_install_failed");
+            }
 
             var now = DateTime.UtcNow.ToString("O");
             var instance = new ModInstance

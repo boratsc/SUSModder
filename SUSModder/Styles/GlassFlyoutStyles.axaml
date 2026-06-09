@@ -26,4 +26,10 @@
 		<Setter Property="CornerRadius" Value="10"/>
 		<Setter Property="BoxShadow" Value="0 8 24 0 #66000000"/>
 	</Style>
+
+	<!-- Popupy są poza drzewem okna — nadpisanie globalnego stylu tooltipów -->
+	<Style Selector="ToolTip">
+		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeBrush}"/>
+	</Style>
 </Styles>

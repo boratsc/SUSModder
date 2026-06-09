@@ -44,14 +44,6 @@
 		<StyleInclude Source="/Styles/GlassSurfaceStyles.axaml"/>
 		<StyleInclude Source="/Styles/GlassOpaqueFallbackStyles.axaml"/>
 
-		<!-- Przezroczysty tooltip bez domyślnej obwoluty -->
-		<Style Selector="ToolTip">
-			<Setter Property="Background" Value="Transparent"/>
-			<Setter Property="BorderBrush" Value="Transparent"/>
-			<Setter Property="BorderThickness" Value="0"/>
-			<Setter Property="Padding" Value="0"/>
-		</Style>
-
 		<!-- Wspólny styl dla przycisków panelu szczegółów moda -->
 		<Style Selector="Button.mod-detail-btn">
 			<Setter Property="Padding" Value="12"/>
@@ -258,53 +250,45 @@
 										DoubleClickInterval="300"/>
 								</i:Interaction.Behaviors>
 								<ToolTip.Tip>
-									<Border Classes="glass-flyout-tip">
-										<StackPanel Spacing="4" MaxWidth="260">
-											<TextBlock Text="{Binding Name}"
-													   FontWeight="Bold"
-													   FontSize="14"
-													   Foreground="{DynamicResource TextPrimaryBrush}"/>
-											<Rectangle Height="1"
-													   Fill="{DynamicResource CardStrokeColorDefaultBrush}"
-													   Margin="0,2,0,4"
-													   Opacity="0.5"/>
-											<StackPanel Orientation="Horizontal" Spacing="6">
-												<TextBlock Text="{loc:Localize UI.Labels.ModVersion}"
-														   FontWeight="SemiBold"
-														   FontSize="11"
-														   Opacity="0.7"
-														   Foreground="{DynamicResource TextPrimaryBrush}"/>
-												<TextBlock Text="{Binding ModVersion, TargetNullValue=—}"
-														   FontSize="11"
-														   Foreground="{DynamicResource TextPrimaryBrush}"/>
-											</StackPanel>
-											<StackPanel Orientation="Horizontal" Spacing="6">
-												<TextBlock Text="{loc:Localize UI.Labels.GameVersion}"
-														   FontWeight="SemiBold"
-														   FontSize="11"
-														   Opacity="0.7"
-														   Foreground="{DynamicResource TextPrimaryBrush}"/>
-												<TextBlock Text="{Binding AmongVersion, TargetNullValue=—}"
-														   FontSize="11"
-														   Foreground="{DynamicResource TextPrimaryBrush}"/>
-											</StackPanel>
-											<StackPanel Orientation="Horizontal" Spacing="6">
-												<TextBlock Text="{loc:Localize UI.Labels.Status}"
-														   FontWeight="SemiBold"
-														   FontSize="11"
-														   Opacity="0.7"
-														   Foreground="{DynamicResource TextPrimaryBrush}"/>
-												<TextBlock Text="{loc:Localize UI.ModStatus.Installed}"
-														   FontSize="11"
-														   Foreground="#4CAF50"
-														   IsVisible="{Binding IsInstalled}"/>
-												<TextBlock Text="{loc:Localize UI.ModStatus.NotInstalled}"
-														   FontSize="11"
-														   Foreground="#FF5252"
-														   IsVisible="{Binding IsInstalled, Converter={StaticResource InverseBoolConverter}}"/>
-											</StackPanel>
+									<StackPanel Spacing="4" MaxWidth="260">
+										<TextBlock Text="{Binding Name}"
+												   FontWeight="Bold"
+												   FontSize="14"/>
+										<Rectangle Height="1"
+												   Fill="{DynamicResource ModCardBorderBrush}"
+												   Margin="0,2,0,4"
+												   Opacity="0.5"/>
+										<StackPanel Orientation="Horizontal" Spacing="6">
+											<TextBlock Text="{loc:Localize UI.Labels.ModVersion}"
+													   FontWeight="SemiBold"
+													   FontSize="11"
+													   Opacity="0.7"/>
+											<TextBlock Text="{Binding ModVersion, TargetNullValue=—}"
+													   FontSize="11"/>
 										</StackPanel>
-									</Border>
+										<StackPanel Orientation="Horizontal" Spacing="6">
+											<TextBlock Text="{loc:Localize UI.Labels.GameVersion}"
+													   FontWeight="SemiBold"
+													   FontSize="11"
+													   Opacity="0.7"/>
+											<TextBlock Text="{Binding AmongVersion, TargetNullValue=—}"
+													   FontSize="11"/>
+										</StackPanel>
+										<StackPanel Orientation="Horizontal" Spacing="6">
+											<TextBlock Text="{loc:Localize UI.Labels.Status}"
+													   FontWeight="SemiBold"
+													   FontSize="11"
+													   Opacity="0.7"/>
+											<TextBlock Text="{loc:Localize UI.ModStatus.Installed}"
+													   FontSize="11"
+													   Foreground="#4CAF50"
+													   IsVisible="{Binding IsInstalled}"/>
+											<TextBlock Text="{loc:Localize UI.ModStatus.NotInstalled}"
+													   FontSize="11"
+													   Foreground="#FF5252"
+													   IsVisible="{Binding IsInstalled, Converter={StaticResource InverseBoolConverter}}"/>
+										</StackPanel>
+									</StackPanel>
 								</ToolTip.Tip>
 								<controls:ModCard/>
 							</Panel>
@@ -361,13 +345,11 @@
 						<Button x:Name="FabButton"
 								Classes="fab"
 								Classes.active="{Binding IsPaneOpen}"
-								Command="{Binding TogglePaneCommand}">
+								Command="{Binding TogglePaneCommand}"
+								ToolTip.Tip="{Binding FabBadgeTooltip}">
 							<i:Interaction.Behaviors>
 								<behaviors:RippleBehavior RippleColor="#FFFFFF" RippleOpacity="0.25" RippleDuration="500"/>
 							</i:Interaction.Behaviors>
-							<ToolTip.Tip>
-								<TextBlock Text="{Binding FabBadgeTooltip}" FontSize="11" MaxWidth="200" TextWrapping="Wrap"/>
-							</ToolTip.Tip>
 							<Grid>
 								<ic:SymbolIcon x:Name="FabIcon" Symbol="{x:Static fic:Symbol.Navigation}" FontSize="20" Foreground="White"/>
 							</Grid>
@@ -642,6 +624,16 @@
 							<ContentControl.DataTemplates>
 								<DataTemplate DataType="vm:PostInstallSuccessViewModel">
 									<local:PostInstallSuccessView/>
+								</DataTemplate>
+							</ContentControl.DataTemplates>
+						</ContentControl>
+
+						<ContentControl Content="{Binding PostInstallFailureViewModel}"
+										IsVisible="{Binding IsPostInstallFailureVisible}"
+										Classes="fade-in-panel">
+							<ContentControl.DataTemplates>
+								<DataTemplate DataType="vm:PostInstallFailureViewModel">
+									<local:PostInstallFailureView/>
 								</DataTemplate>
 							</ContentControl.DataTemplates>
 						</ContentControl>

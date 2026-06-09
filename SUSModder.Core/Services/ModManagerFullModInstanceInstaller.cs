@@ -20,7 +20,7 @@ namespace SUSModder.Core.Services
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
-        public Task InstallAsync(
+        public Task<ModInstallResult> InstallAsync(
             ModConfiguration modConfig,
             string targetInstallPath,
             string platform,

@@ -32,6 +32,6 @@ namespace SUSModder.Core.Models
         public string Description { get; set; } = string.Empty;
 
         [JsonPropertyName("is_active")]
-        public bool IsActive { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 }

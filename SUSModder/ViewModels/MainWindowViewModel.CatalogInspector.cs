@@ -40,7 +40,6 @@ namespace SUSModder.ViewModels
             try
             {
                 _catalogCompatibilityService = new CompatibilityService(
-                    _configuration,
                     _diagnosticsOutput ?? new UIDiagnosticsOutput(_ => { }));
             }
             catch (Exception ex)

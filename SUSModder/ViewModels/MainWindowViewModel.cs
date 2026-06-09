@@ -93,6 +93,8 @@ namespace SUSModder.ViewModels
         private VersionSelectionViewModel? _versionSelectionModalViewModel;
         private bool _isPostInstallSuccessVisible = false;
         private PostInstallSuccessViewModel? _postInstallSuccessViewModel;
+        private bool _isPostInstallFailureVisible = false;
+        private PostInstallFailureViewModel? _postInstallFailureViewModel;
         private bool _isAmongUsNotFoundVisible = false;
         private AmongUsNotFoundViewModel? _amongUsNotFoundViewModel;
         private TaskCompletionSource<AmongUsNotFoundResult>? _amongUsNotFoundCompletionSource;
@@ -328,6 +330,22 @@ namespace SUSModder.ViewModels
             set => this.RaiseAndSetIfChanged(ref _postInstallSuccessViewModel, value);
         }
 
+        public bool IsPostInstallFailureVisible
+        {
+            get => _isPostInstallFailureVisible;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isPostInstallFailureVisible, value);
+                NotifyToolModalStateChanged();
+            }
+        }
+
+        public PostInstallFailureViewModel? PostInstallFailureViewModel
+        {
+            get => _postInstallFailureViewModel;
+            set => this.RaiseAndSetIfChanged(ref _postInstallFailureViewModel, value);
+        }
+
         public bool IsAmongUsNotFoundVisible
         {
             get => _isAmongUsNotFoundVisible;
@@ -460,9 +478,9 @@ namespace SUSModder.ViewModels
         public int FabBadgeCount => AvailableUpdatesCount;
         public bool FabHasBadge => AvailableUpdatesCount > 0;
 
-        public string FabBadgeTooltip => AvailableUpdatesCount > 0
+        public string? FabBadgeTooltip => AvailableUpdatesCount > 0
             ? _localizationService.GetFormatted("UI.Fab.UpdatesBadgeTooltip", AvailableUpdatesCount)
-            : string.Empty;
+            : null;
 
         public Symbol FabIconSymbol
         {
@@ -854,6 +872,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             CancelStatusBarBackgroundTask();
             DisposeVelopackService();
             DisposeDiscordBitmaps();
+            _dllTargetItemSubscriptions.Dispose();
 
             GC.SuppressFinalize(this);
         }

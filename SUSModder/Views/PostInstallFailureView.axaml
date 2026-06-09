@@ -1,0 +1,84 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             x:Class="SUSModder.Views.PostInstallFailureView"
+             x:DataType="vm:PostInstallFailureViewModel"
+             Background="{DynamicResource CardBackgroundBrush}">
+
+	<UserControl.Styles>
+		<Style Selector="UserControl">
+			<Style.Animations>
+				<Animation Duration="0:0:0.3" FillMode="Forward">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+
+		<Style Selector="Button.primary-button:pointerover">
+			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+	</UserControl.Styles>
+
+	<StackPanel Spacing="16" VerticalAlignment="Center" Margin="30">
+
+		<Border HorizontalAlignment="Center">
+			<TextBlock Text="❌" FontSize="48"/>
+		</Border>
+
+		<TextBlock FontSize="22"
+		           FontWeight="Bold"
+		           Foreground="{DynamicResource TextPrimaryBrush}"
+		           TextAlignment="Center"
+		           TextWrapping="Wrap"
+		           Text="{Binding TitleWithName}"/>
+
+		<TextBlock FontSize="14"
+		           Foreground="{DynamicResource TextSecondaryBrush}"
+		           TextAlignment="Center"
+		           TextWrapping="Wrap"
+		           Text="{Binding Message}"/>
+
+		<TextBlock FontSize="12"
+		           FontWeight="SemiBold"
+		           Foreground="{DynamicResource TextSecondaryBrush}"
+		           Text="{Binding LogLabel}"/>
+
+		<Border BorderBrush="{DynamicResource BorderBrush}"
+		        BorderThickness="1"
+		        CornerRadius="8"
+		        Padding="8"
+		        MaxHeight="220">
+			<ScrollViewer HorizontalScrollBarVisibility="Auto"
+			              VerticalScrollBarVisibility="Auto">
+				<TextBox Text="{Binding LogText}"
+				         IsReadOnly="True"
+				         AcceptsReturn="True"
+				         TextWrapping="Wrap"
+				         FontFamily="Consolas,Courier New,monospace"
+				         FontSize="11"
+				         Background="Transparent"
+				         BorderThickness="0"
+				         MinHeight="120"/>
+			</ScrollViewer>
+		</Border>
+
+		<Button Command="{Binding CloseCommand}"
+		        Classes="primary-button"
+		        HorizontalAlignment="Center"
+		        FontSize="16"
+		        FontWeight="SemiBold"
+		        Padding="20,12"
+		        CornerRadius="8"
+		        Background="{DynamicResource AccentBrush}"
+		        Foreground="White"
+		        BorderThickness="0"
+		        Content="{Binding CloseButton}"/>
+
+	</StackPanel>
+</UserControl>

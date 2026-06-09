@@ -8,7 +8,7 @@
 	</Style>
 
 	<Style Selector="Window.glass-theme.glass-opaque Border.glass-top-bar">
-		<Setter Property="Background" Value="{DynamicResource GlassBlurFallbackBrush}"/>
+		<Setter Property="Background" Value="Transparent"/>
 	</Style>
 
 	<Style Selector="Window.glass-theme.glass-opaque Panel.glass-browser-panel">

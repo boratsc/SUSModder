@@ -30,8 +30,7 @@ namespace SUSModder.Core.Services
         private readonly ModInstanceInstaller? _instanceInstaller;
         private readonly IModInstanceRepository? _instanceRepository;
         private readonly IDiagnosticsOutput _log;
-        private readonly string _baseUrl;
-        private readonly string _modPacksEndpoint;
+        private readonly string _apiV2BaseUrl;
 
         public ModPackInstaller(
             IConfiguration configuration,
@@ -47,8 +46,7 @@ namespace SUSModder.Core.Services
             _log = log;
             _instanceInstaller = instanceInstaller;
             _instanceRepository = instanceRepository;
-            _baseUrl = (_configuration["Configuration:BaseUrl"] ?? "https://susmodder.app/").TrimEnd('/');
-            _modPacksEndpoint = _configuration["Configuration:ModPacksEndpoint"] ?? "/api/mod-packs";
+            _apiV2BaseUrl = (_configuration["Configuration:ApiV2BaseUrl"] ?? "https://api.susmodder-cdn.ovh/v2").TrimEnd('/');
         }
 
         public async Task<ModPackInstallResult> InstallPackAsync(
@@ -233,13 +231,21 @@ namespace SUSModder.Core.Services
                     var diag = new SimpleDiagnostics(_log);
                     var callbacks = modManagerCallbacks ?? new ModManagerUserCallbacks();
 
-                    await modManager.ModifyAsync(
+                    var installResult = await modManager.ModifyAsync(
                         fullModConfig,
                         allConfigs,
                         progressReporter,
                         diag,
                         callbacks,
                         platform);
+                    if (!installResult.Success)
+                    {
+                        result.Success = false;
+                        result.ErrorMessage = installResult.ErrorMessage ?? "Nie udało się zainstalować moda głównego.";
+                        result.FailedMods.Add(fullModConfig.ModName ?? "full mod");
+                        return result;
+                    }
+
                     allConfigs = _configService.LoadConfig();
                     fullModConfig = allConfigs.FirstOrDefault(c => c.Id == pack.FullMod.Id) ?? fullModConfig;
                     result.InstalledMods.Add(fullModConfig.ModName ?? "full mod");
@@ -383,7 +389,7 @@ namespace SUSModder.Core.Services
                 var downloadUrl = ext.DownloadUrl;
                 if (string.IsNullOrEmpty(downloadUrl))
                 {
-                    downloadUrl = $"{_baseUrl}{_modPacksEndpoint}/{packCode}/dlls/{ext.Sha256}";
+                    downloadUrl = $"{_apiV2BaseUrl}/modpacks/{packCode}/dlls/{ext.Sha256}";
                 }
 
                 var response = await HttpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);

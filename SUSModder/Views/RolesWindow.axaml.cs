@@ -88,7 +88,7 @@ namespace SUSModder.Views
                 // Filtruj role dla konkretnego moda po Id
                 // _modId to ID moda z config.json
                 // role.Id to ID moda do którego należy rola (z endpointu)
-                _allRoles = allRoles.Where(role => role.Id == _modId).ToList();
+                _allRoles = allRoles.Where(role => role.IsAssociatedWithMod(_modId)).ToList();
 
                 if (_allRoles.Any())
                 {

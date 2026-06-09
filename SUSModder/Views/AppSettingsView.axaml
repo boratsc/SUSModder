@@ -47,6 +47,53 @@
 					</StackPanel>
 				</Border>
 
+				<!-- Steam: pobieranie vanilla (eksperymentalne) -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15"
+						IsVisible="{Binding IsSteamDepotDownloaderSectionVisible}">
+					<StackPanel Spacing="12">
+						<TextBlock Text="{local:Localize Settings.SteamVanilla.Title}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.SteamVanilla.Description}"
+								   FontSize="12"
+								   TextWrapping="Wrap"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.SteamVanilla.ExperimentalWarning}"
+								   FontSize="11"
+								   TextWrapping="Wrap"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   FontStyle="Italic"/>
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="12">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0" VerticalAlignment="Center">
+									<TextBlock Text="{local:Localize Settings.SteamVanilla.DepotDownloader.Label}"
+											   FontSize="13" FontWeight="Medium"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   TextWrapping="Wrap"/>
+									<TextBlock Text="{local:Localize Settings.SteamVanilla.DepotDownloader.Description}"
+											   FontSize="11"
+											   TextWrapping="Wrap"
+											   Foreground="{DynamicResource TextSecondaryBrush}"/>
+								</StackPanel>
+								<ToggleSwitch Grid.Column="1"
+											  IsChecked="{Binding PreferDepotDownloader}"
+											  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+											  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+											  VerticalAlignment="Center"
+											  Margin="10,0,0,0"/>
+							</Grid>
+						</Border>
+					</StackPanel>
+				</Border>
+
 				<!-- Sekcja wyboru języka -->
 				<Border Background="{DynamicResource ModCardBackgroundBrush}"
 						BorderBrush="{DynamicResource ModCardBorderBrush}"

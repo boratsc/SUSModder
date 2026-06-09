@@ -3,39 +3,34 @@ using Avalonia.Platform;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace SUSModder.Services
 {
     /// <summary>
-    /// Serwis do preloadowania i cachowania ikon modów
+    /// Serwis do preloadowania i cachowania ikon modów (lokalne avares + CDN HTTP).
     /// </summary>
     public class ModIconPreloader
     {
         private static readonly ConcurrentDictionary<string, Bitmap?> _cachedIcons = new();
         private static readonly object _lockObject = new();
+        private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(20) };
         private static bool _isPreloading = false;
 
-        /// <summary>
-        /// Wczytuje ikonę z cache lub ładuje ją z zasobów
-        /// </summary>
-        public static Bitmap? GetIcon(string? fileName)
+        public static Bitmap? GetIcon(string? iconReference)
         {
-            if (string.IsNullOrWhiteSpace(fileName))
+            if (string.IsNullOrWhiteSpace(iconReference))
                 return null;
 
-            // Sprawdź cache
-            if (_cachedIcons.TryGetValue(fileName, out var cachedBitmap))
+            if (_cachedIcons.TryGetValue(iconReference, out var cachedBitmap))
                 return cachedBitmap;
 
-            // Załaduj synchronicznie jeśli nie ma w cache
-            return LoadIconSync(fileName);
+            return LoadIconSync(iconReference);
         }
 
-        /// <summary>
-        /// Preloaduje wszystkie ikony modów w tle
-        /// </summary>
-        public static async Task PreloadIconsAsync(IEnumerable<string?> fileNames)
+        public static async Task PreloadIconsAsync(IEnumerable<string?> iconReferences)
         {
             lock (_lockObject)
             {
@@ -48,16 +43,15 @@ namespace SUSModder.Services
             {
                 var tasks = new List<Task>();
 
-                foreach (var fileName in fileNames)
+                foreach (var iconReference in iconReferences)
                 {
-                    if (string.IsNullOrWhiteSpace(fileName))
+                    if (string.IsNullOrWhiteSpace(iconReference))
                         continue;
 
-                    // Skip jeśli już jest w cache
-                    if (_cachedIcons.ContainsKey(fileName))
+                    if (_cachedIcons.ContainsKey(iconReference))
                         continue;
 
-                    tasks.Add(Task.Run(() => LoadIconSync(fileName)));
+                    tasks.Add(Task.Run(() => LoadIconSync(iconReference)));
                 }
 
                 await Task.WhenAll(tasks);
@@ -72,31 +66,96 @@ namespace SUSModder.Services
             }
         }
 
-        private static Bitmap? LoadIconSync(string fileName)
+        private static Bitmap? LoadIconSync(string iconReference)
         {
-            if (_cachedIcons.ContainsKey(fileName))
-                return _cachedIcons[fileName];
+            if (_cachedIcons.TryGetValue(iconReference, out var cached))
+                return cached;
 
             try
             {
-                var uri = new Uri($"avares://SUSModder/Assets/{fileName}");
-                var asset = AssetLoader.Open(uri);
-                var bitmap = new Bitmap(asset);
+                Bitmap bitmap;
+                if (TryLoadBundledAsset(iconReference, out var bundledBitmap))
+                {
+                    _cachedIcons.TryAdd(iconReference, bundledBitmap);
+                    return bundledBitmap;
+                }
 
-                _cachedIcons.TryAdd(fileName, bitmap);
+                if (IsRemoteUrl(iconReference))
+                {
+                    using var stream = _httpClient.GetStreamAsync(iconReference).GetAwaiter().GetResult();
+                    using var memory = new MemoryStream();
+                    stream.CopyTo(memory);
+                    memory.Position = 0;
+                    bitmap = new Bitmap(memory);
+                }
+                else
+                {
+                    var fileName = iconReference.Replace('\\', '/');
+                    var lastSlash = fileName.LastIndexOf('/');
+                    if (lastSlash >= 0)
+                        fileName = fileName[(lastSlash + 1)..];
+
+                    var uri = new Uri($"avares://SUSModder/Assets/{fileName}");
+                    using var asset = AssetLoader.Open(uri);
+                    bitmap = new Bitmap(asset);
+                }
+
+                _cachedIcons.TryAdd(iconReference, bitmap);
                 return bitmap;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[ModIconPreloader] ERROR loading {fileName}: {ex.Message}");
-                _cachedIcons.TryAdd(fileName, null);
+                System.Diagnostics.Debug.WriteLine($"[ModIconPreloader] ERROR loading {iconReference}: {ex.Message}");
+                _cachedIcons.TryAdd(iconReference, null);
                 return null;
             }
         }
 
-        /// <summary>
-        /// Czyści cache ikon
-        /// </summary>
+        private static bool IsRemoteUrl(string value) =>
+            value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            value.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+
+        private static bool TryLoadBundledAsset(string iconReference, out Bitmap? bitmap)
+        {
+            bitmap = null;
+            var fileName = ExtractAssetFileName(iconReference);
+            if (string.IsNullOrWhiteSpace(fileName))
+                return false;
+
+            if (!fileName.Equals("Vanilla.png", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            try
+            {
+                var uri = new Uri($"avares://SUSModder/Assets/{fileName}");
+                using var asset = AssetLoader.Open(uri);
+                bitmap = new Bitmap(asset);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ModIconPreloader] Bundled asset load failed for {fileName}: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static string? ExtractAssetFileName(string iconReference)
+        {
+            if (string.IsNullOrWhiteSpace(iconReference))
+                return null;
+
+            if (iconReference.Equals("Vanilla.png", StringComparison.OrdinalIgnoreCase))
+                return "Vanilla.png";
+
+            if (IsRemoteUrl(iconReference) &&
+                iconReference.Contains("/Vanilla.png", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Vanilla.png";
+            }
+
+            return null;
+        }
+
         public static void ClearCache()
         {
             foreach (var bitmap in _cachedIcons.Values)

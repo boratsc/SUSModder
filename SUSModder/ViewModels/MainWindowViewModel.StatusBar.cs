@@ -1,4 +1,5 @@
 using ReactiveUI;
+using SUSModder.Core.Api;
 using SUSModder.Core.Utilities;
 using SUSModder.Core.Services;
 using SUSModder.Models;
@@ -441,56 +442,53 @@ public int AvailableUpdatesCount
 
                 var configuration = configBuilder.Build();
 
-                var baseUrl = configuration["Configuration:BaseUrl"]?.TrimEnd('/');
-                ApiBaseUrl = baseUrl ?? "Nie ustawiono";
+                var apiBaseUrl = configuration["Configuration:ApiV2BaseUrl"]?.TrimEnd('/');
+                ApiBaseUrl = apiBaseUrl ?? "Nie ustawiono";
 
-                if (string.IsNullOrEmpty(baseUrl))
+                if (string.IsNullOrEmpty(apiBaseUrl))
                 {
                     ApiStatus = ApiConnectionStatus.Offline;
                     return;
                 }
 
+                var apiClient = SUSModderApiClientProvider.TryGetDefault()
+                    ?? new SUSModderApiClient(configuration, _diagnosticsOutput ?? new UIDiagnosticsOutput(_ => { }));
+
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-                
-                // Sprawdzamy endpoint do pobierania konfiguracji (UpdateServerUrl)
-                var updateServerUrl = configuration["Configuration:UpdateServerUrl"];
-                if (string.IsNullOrEmpty(updateServerUrl))
-                {
-                    // Fallback do baseUrl
-                    updateServerUrl = $"{baseUrl}/api/susmodder-current-version";
-                }
-
-                var response = await client.GetAsync(updateServerUrl);
-
+                var metaResponse = await apiClient.GetCatalogMetaAsync();
                 stopwatch.Stop();
 
-                if (response.IsSuccessStatusCode)
+                if (metaResponse.IsSuccess || metaResponse.IsNotModified)
                 {
                     ApiStatus = ApiConnectionStatus.Online;
                     ApiPingMs = (int)stopwatch.ElapsedMilliseconds;
 
-                    // Synchronizuj config z API nie częściej niż co 15 minut.
                     var nowUtc = DateTime.UtcNow;
                     if (nowUtc - _lastConfigSyncUtc >= ConfigSyncInterval)
                     {
-                        var configService = new ConfigService();
-                        bool configRefreshed = await configService.RefreshConfigFromApiAsync();
+                        bool configRefreshed = false;
+                        var catalogSync = CatalogSyncServiceProvider.TryGetDefault();
+                        if (catalogSync is not null)
+                        {
+                            var catalogResult = await catalogSync.RefreshCatalogIfDueAsync(force: false);
+                            configRefreshed = catalogResult.ConfigChanged;
+                            _ = catalogSync.RefreshCompatibilityIfDueAsync(force: false);
+                        }
+                        else
+                        {
+                            var configService = new ConfigService();
+                            configRefreshed = await configService.RefreshConfigFromApiAsync();
+                        }
+
                         _lastConfigSyncUtc = nowUtc;
 
-                        if (configRefreshed)
+                        if (configRefreshed && _activeInstallationsCount == 0)
                         {
-                            // Pomiń odświeżenie jeśli trwa instalacja (nie niszcz ModItem w trakcie)
-                            if (_activeInstallationsCount == 0)
-                            {
-                                await RefreshModsListAsync(checkUpdates: false, deferIfToolModalOpen: true);
-                            }
+                            await RefreshModsListAsync(checkUpdates: false, deferIfToolModalOpen: true);
                         }
                     }
-                    
-                    // Pobierz liczbę użytkowników online
-                    await FetchOnlineUsersAsync(baseUrl, client);
+
+                    await FetchOnlineUsersAsync(apiClient);
                 }
                 else
                 {
@@ -511,23 +509,12 @@ public int AvailableUpdatesCount
         /// <summary>
         /// Pobiera liczbę użytkowników online z API
         /// </summary>
-        private async Task FetchOnlineUsersAsync(string baseUrl, HttpClient client)
+        private async Task FetchOnlineUsersAsync(ISUSModderApiClient apiClient)
         {
             try
             {
-                var onlineUsersUrl = $"{baseUrl}/api/online-users";
-                var response = await client.GetAsync(onlineUsersUrl);
-                
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var data = System.Text.Json.JsonSerializer.Deserialize<OnlineUsersResponse>(json);
-                    OnlineUsersCount = data?.Online ?? 0;
-                }
-                else
-                {
-                    OnlineUsersCount = 0;
-                }
+                var response = await apiClient.GetOnlineAsync();
+                OnlineUsersCount = response.IsSuccess ? response.Data?.Online ?? 0 : 0;
             }
             catch (Exception ex)
             {

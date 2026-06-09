@@ -1,9 +1,9 @@
-using System.Net.Http.Headers;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Microsoft.Extensions.Configuration;
+using SUSModder.Core.Api;
+using SUSModder.Core.Api.Models;
 using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Models;
+using Microsoft.Extensions.Configuration;
+using SUSModder.Core.Diagnostics;
 
 namespace SUSModder.Core.Services;
 
@@ -11,16 +11,18 @@ public sealed class AmongUsManifestService
 {
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
 
-    private readonly IConfiguration _configuration;
-    private readonly HttpClient _httpClient;
+    private readonly ISUSModderApiClient _apiClient;
 
     private List<SteamManifestInfo>? _listCache;
     private DateTimeOffset _listCacheExpiry;
 
-    public AmongUsManifestService(IConfiguration configuration)
+    public AmongUsManifestService(
+        IConfiguration configuration,
+        ISUSModderApiClient? apiClient = null,
+        IDiagnosticsOutput? diagnostics = null)
     {
-        _configuration = configuration;
-        _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        _apiClient = apiClient ?? SUSModderApiClientProvider.TryGetDefault()
+            ?? new SUSModderApiClient(configuration, diagnostics ?? new NullAmongUsDiagnostics());
     }
 
     public async Task<SteamManifestInfo?> GetManifestForVersionAsync(string amongVersion, CancellationToken ct = default)
@@ -31,11 +33,9 @@ public sealed class AmongUsManifestService
 
         try
         {
-            var direct = await GetAsync<SteamManifestApiDto>(
-                $"among-us-steam-manifests/{Uri.EscapeDataString(normalized)}", ct);
-
-            if (direct is not null && !string.IsNullOrWhiteSpace(direct.ManifestId))
-                return MapDto(direct, normalized);
+            var response = await _apiClient.GetAmongUsVersionAsync(normalized, cancellationToken: ct);
+            if (response.IsSuccess && response.Data is not null)
+                return MapDto(response.Data, normalized);
         }
         catch
         {
@@ -56,13 +56,10 @@ public sealed class AmongUsManifestService
 
         try
         {
-            var wrapped = await GetAsync<SteamManifestListApiDto>("among-us-steam-manifests", ct);
-            var manifests = wrapped?.Manifests ?? wrapped?.Versions ?? [];
-            _listCache = manifests
-                .Where(m => !string.IsNullOrWhiteSpace(m.ManifestId))
-                .Select(m => MapDto(m, AmongUsVersionHelper.NormalizeAmongVersion(
-                    m.Version ?? m.DbValue ?? m.VersionAlias ?? string.Empty)))
-                .Where(m => !string.IsNullOrWhiteSpace(m.AmongVersion))
+            var response = await _apiClient.GetAmongUsVersionsAsync(cancellationToken: ct);
+            _listCache = (response.Data ?? [])
+                .Select(dto => MapDto(dto, AmongUsVersionHelper.NormalizeAmongVersion(dto.DbValue)))
+                .Where(m => !string.IsNullOrWhiteSpace(m.AmongVersion) && !string.IsNullOrWhiteSpace(m.ManifestId))
                 .ToList();
         }
         catch
@@ -74,82 +71,26 @@ public sealed class AmongUsManifestService
         return _listCache;
     }
 
-    private async Task<T?> GetAsync<T>(string relativePath, CancellationToken ct)
-    {
-        var baseUrl = _configuration.GetSection("Configuration")["BaseUrl"] ?? "https://susmodder.app/";
-        if (!baseUrl.EndsWith('/'))
-            baseUrl += "/";
-
-        var url = $"{baseUrl}api/{relativePath.TrimStart('/')}";
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.TryAddWithoutValidation("Authorization", SecretProvider.GetDownloadToken());
-
-        using var response = await _httpClient.SendAsync(request, ct);
-        if (!response.IsSuccessStatusCode)
-            return default;
-
-        await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, ct);
-    }
-
-    private static SteamManifestInfo MapDto(SteamManifestApiDto dto, string amongVersion)
+    private static SteamManifestInfo MapDto(AmongUsVersionDto dto, string amongVersion)
     {
         var resolvedAmong = AmongUsVersionHelper.NormalizeAmongVersion(
-            dto.Version ?? dto.DbValue ?? dto.VersionAlias ?? amongVersion);
+            string.IsNullOrWhiteSpace(amongVersion) ? dto.DbValue : amongVersion);
 
+        var steam = dto.Steam;
         return new SteamManifestInfo
         {
             AmongVersion = resolvedAmong,
             EpicVersion = dto.EpicVersion,
             StorageVersion = dto.StorageVersion ?? AmongUsVersionHelper.ToStorageVersion(resolvedAmong),
-            DepotId = dto.DepotId > 0 ? dto.DepotId : 945361,
-            ManifestId = dto.ManifestId ?? string.Empty,
-            BuildId = dto.BuildId,
-            SizeBytes = dto.SizeBytes
+            DepotId = steam?.DepotId > 0 ? steam.DepotId : 945361,
+            ManifestId = steam?.ManifestId ?? string.Empty,
+            BuildId = steam?.BuildId,
+            SizeBytes = steam?.SizeBytes
         };
     }
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    private sealed class NullAmongUsDiagnostics : IDiagnosticsOutput
     {
-        PropertyNameCaseInsensitive = true
-    };
-
-    private sealed class SteamManifestListApiDto
-    {
-        [JsonPropertyName("manifests")]
-        public List<SteamManifestApiDto> Manifests { get; init; } = [];
-
-        [JsonPropertyName("versions")]
-        public List<SteamManifestApiDto> Versions { get; init; } = [];
-    }
-
-    private sealed class SteamManifestApiDto
-    {
-        [JsonPropertyName("amongVersion")]
-        public string? Version { get; init; }
-
-        [JsonPropertyName("version")]
-        public string? VersionAlias { get; init; }
-
-        [JsonPropertyName("dbValue")]
-        public string? DbValue { get; init; }
-
-        [JsonPropertyName("storageVersion")]
-        public string? StorageVersion { get; init; }
-
-        [JsonPropertyName("epicVersion")]
-        public string? EpicVersion { get; init; }
-
-        [JsonPropertyName("depotId")]
-        public int DepotId { get; init; }
-
-        [JsonPropertyName("manifestId")]
-        public string? ManifestId { get; init; }
-
-        [JsonPropertyName("buildId")]
-        public string? BuildId { get; init; }
-
-        [JsonPropertyName("sizeBytes")]
-        public long? SizeBytes { get; init; }
+        public void Write(string message) { }
     }
 }

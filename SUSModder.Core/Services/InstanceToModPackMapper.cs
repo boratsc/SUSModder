@@ -43,12 +43,14 @@ namespace SUSModder.Core.Services
                 })
                 .ToList();
 
-            var externalDlls = dllRows
+            var externalDllEntries = dllRows
                 .Where(d => !d.DllModId.HasValue && string.Equals(d.Source, "external", StringComparison.OrdinalIgnoreCase))
                 .Select(MapExternalDll)
                 .Where(d => d != null)
-                .Cast<ModPackExternalDllDeclaration>()
+                .Cast<(ModPackExternalDllDeclaration Declaration, string FilePath)>()
                 .ToList();
+            var externalDlls = externalDllEntries.Select(e => e.Declaration).ToList();
+            var externalDllFilePaths = externalDllEntries.Select(e => e.FilePath).ToList();
 
             JsonElement? touConfig = TryReadTouConfig(instanceId);
 
@@ -67,11 +69,12 @@ namespace SUSModder.Core.Services
                 TtlDays = ttlDays,
                 DllMods = dllMods,
                 TouConfig = touConfig,
-                ExternalDlls = externalDlls
+                ExternalDlls = externalDlls,
+                ExternalDllFilePaths = externalDllFilePaths
             };
         }
 
-        private ModPackExternalDllDeclaration? MapExternalDll(ModInstanceDll row)
+        private (ModPackExternalDllDeclaration Declaration, string FilePath)? MapExternalDll(ModInstanceDll row)
         {
             if (string.IsNullOrWhiteSpace(row.InstalledPath))
                 return null;
@@ -92,12 +95,14 @@ namespace SUSModder.Core.Services
                 : row.Sha256;
             var info = new FileInfo(fullPath);
 
-            return new ModPackExternalDllDeclaration
-            {
-                FileName = fileName,
-                FileSha256 = sha256,
-                FileSize = info.Length
-            };
+            return (
+                new ModPackExternalDllDeclaration
+                {
+                    FileName = fileName,
+                    FileSha256 = sha256,
+                    FileSize = info.Length
+                },
+                fullPath);
         }
 
         private JsonElement? TryReadTouConfig(string instanceId)

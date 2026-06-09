@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Configuration;
+using SUSModder.Core.Configuration;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.GameIntegration.Steam;
 using SUSModder.Core.Models;
@@ -41,10 +42,7 @@ public sealed class SteamVanillaProvider
         Directory.CreateDirectory(Path.GetDirectoryName(extractedPath)!);
 
         var manifest = await _manifestService.GetManifestForVersionAsync(normalizedVersion, ct);
-        var preferDepotDownloader = !string.Equals(
-            _configuration["AppSettings:PreferDepotDownloader"],
-            "false",
-            StringComparison.OrdinalIgnoreCase);
+        var preferDepotDownloader = new UserSettingsService().LoadUserSettings().PreferDepotDownloader;
 
         if (_cacheService.IsValidExtractedCache(extractedPath, manifest?.ManifestId))
         {
@@ -79,6 +77,10 @@ public sealed class SteamVanillaProvider
         else if (preferDepotDownloader && manifest is null)
         {
             log.Write("[Vanilla] Brak manifestId w API — fallback do paczki 7z.");
+        }
+        else if (!preferDepotDownloader)
+        {
+            log.Write("[Vanilla] DepotDownloader wyłączony w ustawieniach — używam paczki 7z.");
         }
 
         return await AcquireViaFallback7zAsync(

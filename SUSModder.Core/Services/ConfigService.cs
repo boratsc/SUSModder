@@ -243,8 +243,8 @@ namespace SUSModder.Core.Services
         public async Task<bool> RefreshConfigFromApiAsync()
         {
             var result = await ConfigManager.RefreshConfigFromApiAsync();
-            // Unieważnij cache, aby następne LoadConfigAsync pobrało świeże dane
-            InvalidateConfigCache();
+            if (result)
+                InvalidateConfigCache();
             return result;
         }
 

@@ -20,7 +20,7 @@ namespace SUSModder.Core.Data
 
         // Aktualna wersja schematu bazy danych.
         // Zwiększaj przy każdej zmianie schematu (CREATE TABLE, ALTER TABLE, etc.).
-        private const int LatestSchemaVersion = 7;
+        private const int LatestSchemaVersion = 8;
 
         public DatabaseService()
         {
@@ -204,7 +204,8 @@ namespace SUSModder.Core.Data
                     active_sustats_guild_id TEXT DEFAULT NULL,
                     mod_packs_enabled     INTEGER NOT NULL DEFAULT 1,
                     mod_packs_auto_install INTEGER NOT NULL DEFAULT 0,
-                    glass_reduce_transparency INTEGER NOT NULL DEFAULT 0
+                    glass_reduce_transparency INTEGER NOT NULL DEFAULT 0,
+                    prefer_depot_downloader INTEGER NOT NULL DEFAULT 0
                 );";
             cmd.ExecuteNonQuery();
 
@@ -269,8 +270,9 @@ namespace SUSModder.Core.Data
             cmd.ExecuteNonQuery();
 
             CreateModInstanceTables(conn);
+            CreateSyncTables(conn);
 
-            System.Diagnostics.Debug.WriteLine("[DatabaseService] Wszystkie tabele utworzone (v5 – local modpack instances).");
+            System.Diagnostics.Debug.WriteLine("[DatabaseService] Wszystkie tabele utworzone (v8 – sync/cache).");
         }
 
         /// <summary>
@@ -524,6 +526,92 @@ namespace SUSModder.Core.Data
                     throw;
                 }
             }
+
+            if (currentVersion < 8)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v8 – sync_state + compatibility_cache...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    CreateSyncTables(conn, tx);
+                    tx.Commit();
+                    SetUserVersion(conn, 8);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v8 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v8: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 9)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v9 – prefer_depot_downloader...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+                    EnsureColumn(cmd, "user_settings", "prefer_depot_downloader",
+                        "ALTER TABLE user_settings ADD COLUMN prefer_depot_downloader INTEGER NOT NULL DEFAULT 0;");
+
+                    tx.Commit();
+                    SetUserVersion(conn, 9);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v9 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v9: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+        }
+
+        private static void CreateSyncTables(SqliteConnection conn, SqliteTransaction? tx = null)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+
+            cmd.CommandText = @"
+                CREATE TABLE IF NOT EXISTS sync_state (
+                    key TEXT PRIMARY KEY,
+                    etag TEXT NULL,
+                    last_modified TEXT NULL,
+                    last_success_utc TEXT NULL,
+                    last_attempt_utc TEXT NULL,
+                    last_error_code TEXT NULL,
+                    failure_count INTEGER NOT NULL DEFAULT 0,
+                    next_allowed_attempt_utc TEXT NULL
+                );";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = @"
+                CREATE TABLE IF NOT EXISTS compatibility_cache (
+                    full_mod_id INTEGER NOT NULL,
+                    full_mod_version TEXT NOT NULL,
+                    dll_mod_id INTEGER NOT NULL,
+                    dll_mod_version TEXT NOT NULL,
+                    status TEXT NOT NULL CHECK(status IN ('F','W','NT','NW')),
+                    is_exact_version INTEGER NOT NULL DEFAULT 1,
+                    warning TEXT NULL,
+                    source_updated_at TEXT NULL,
+                    fetched_at_utc TEXT NOT NULL,
+                    PRIMARY KEY (full_mod_id, full_mod_version, dll_mod_id, dll_mod_version)
+                );";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_compat_cache_full ON compatibility_cache(full_mod_id, full_mod_version);";
+            cmd.ExecuteNonQuery();
+
+            cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_compat_cache_dll ON compatibility_cache(dll_mod_id, dll_mod_version);";
+            cmd.ExecuteNonQuery();
         }
 
         private static void RemoveLegacyCatalogInstances(SqliteConnection conn, SqliteTransaction? tx)

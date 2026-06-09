@@ -134,5 +134,12 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         [JsonPropertyName("modPacksAutoInstall")]
         public bool ModPacksAutoInstall { get; set; } = false;
+
+        /// <summary>
+        /// Czy pobierać Among Us vanilla przez DepotDownloader (Steam) zamiast paczek 7z SUSModder.
+        /// Domyślnie wyłączone — funkcja eksperymentalna.
+        /// </summary>
+        [JsonPropertyName("preferDepotDownloader")]
+        public bool PreferDepotDownloader { get; set; } = false;
     }
 }

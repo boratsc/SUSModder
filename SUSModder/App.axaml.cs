@@ -12,6 +12,7 @@ using SUSModder.ViewModels;
 using SUSModder.Views;
 using SUSModder.Services;
 using SUSModder.Services.Localization;
+using SUSModder.Core.Api;
 using SUSModder.Core.Services;
 using SUSModder.Core.Services.Localization;
 using SUSModder.Core.Configuration;
@@ -77,7 +78,26 @@ public partial class App : Application
         services.AddSingleton<IModRepository>(sp =>
         {
             var db = sp.GetRequiredService<DatabaseService>();
-            return new ModRepository(db);
+            var api = sp.GetRequiredService<ISUSModderApiClient>();
+            return new ModRepository(db, api);
+        });
+        services.AddSingleton<ICatalogSyncStateRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new CatalogSyncStateRepository(db);
+        });
+        services.AddSingleton<ICompatibilityCacheRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new CompatibilityCacheRepository(db);
+        });
+        services.AddSingleton<CatalogSyncService>();
+        services.AddSingleton<CompatibilityService>(sp =>
+        {
+            var api = sp.GetRequiredService<ISUSModderApiClient>();
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            var cache = sp.GetRequiredService<ICompatibilityCacheRepository>();
+            return new CompatibilityService(diag, api, cache);
         });
         services.AddSingleton<ITouConfigRepository>(sp =>
         {
@@ -113,6 +133,13 @@ public partial class App : Application
         // Rejestracja diagnostyki
         services.AddSingleton<IDiagnosticsOutput>(_ => DebugDiagnosticsOutput.Instance);
 
+        services.AddSingleton<ISUSModderApiClient>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            return new SUSModderApiClient(config, diag);
+        });
+
         services.AddSingleton<ConfigService>();
         services.AddSingleton<DllModificationService>();
         services.AddSingleton<IDllModInstanceInstaller, DllModificationServiceInstanceInstaller>();
@@ -131,7 +158,8 @@ public partial class App : Application
             var config = sp.GetRequiredService<IConfiguration>();
             var diag = sp.GetRequiredService<IDiagnosticsOutput>();
             var hwid = sp.GetRequiredService<IHardwareIdProvider>();
-            return new LobbyBoardService(config, diag, hwid);
+            var api = sp.GetRequiredService<ISUSModderApiClient>();
+            return new LobbyBoardService(config, diag, hwid, api);
         });
 
         // Rejestracja Lobby Bridge File Reader (FileSystemWatcher na lobby-bridge.json)
@@ -147,7 +175,8 @@ public partial class App : Application
             var config = sp.GetRequiredService<IConfiguration>();
             var diag = sp.GetRequiredService<IDiagnosticsOutput>();
             var hwid = sp.GetRequiredService<IHardwareIdProvider>();
-            return new ModPackService(config, diag, hwid);
+            var api = sp.GetRequiredService<ISUSModderApiClient>();
+            return new ModPackService(config, diag, hwid, api);
         });
 
         // Rejestracja OAuthLoopbackListener dla Discord OAuth2 flow
@@ -179,6 +208,8 @@ public partial class App : Application
         });
 
         _serviceProvider = services.BuildServiceProvider();
+        SUSModderApiClientProvider.SetDefault(_serviceProvider.GetRequiredService<ISUSModderApiClient>());
+        CatalogSyncServiceProvider.SetDefault(_serviceProvider.GetRequiredService<CatalogSyncService>());
     }
 
     /// <summary>
@@ -545,7 +576,6 @@ public partial class App : Application
         if (_telemetryService != null)
         {
             await _telemetryService.SendShutdownHeartbeatAsync();
-            _telemetryService.Dispose();
         }
     }
 

@@ -91,7 +91,7 @@ namespace SUSModder.ViewModels
             {
                 try
                 {
-                    _compatibilityService = new CompatibilityService(configuration, diagnostics);
+                    _compatibilityService = new CompatibilityService(diagnostics);
                 }
                 catch (Exception ex)
                 {

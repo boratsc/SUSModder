@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Utilities;
@@ -34,7 +35,7 @@ namespace SUSModder.Core.GameIntegration
             _steamVanillaProvider = new SteamVanillaProvider(configuration);
         }
 
-        public async Task ModifyAsync(
+        public async Task<ModInstallResult> ModifyAsync(
             ModConfiguration modConfig,
             List<ModConfiguration> modConfigs,
             IProgressReporter progress,
@@ -43,36 +44,37 @@ namespace SUSModder.Core.GameIntegration
             string mode,
             Action<string>? onSpeedUpdate = null)
         {
-            this.log = log; // Przypisz log do pola klasy
+            this.log = log;
 
-            if (modConfig.ModType == "full")
+            if (modConfig.ModType != "full")
+                return ModInstallResult.Succeeded();
+
+            if (mode == "steam")
             {
-                if (mode == "steam")
-                {
-                    await InstallSteamAsync(
-                        modConfig,
-                        modConfigs,
-                        progress,
-                        log,
-                        userCallbacks,
-                        onSpeedUpdate,
-                        targetInstallPath: null,
-                        updateCatalogInstallPath: true,
-                        allowReplaceExistingTarget: true);
-                }
-                else
-                {
-                    if (userCallbacks.ShowInfoAsync != null)
-                        await userCallbacks.ShowInfoAsync("Instalacja modów Epic obsługiwana jest przez EpicVersionManager.", "Informacja");
-                }
+                return await InstallSteamAsync(
+                    modConfig,
+                    modConfigs,
+                    progress,
+                    log,
+                    userCallbacks,
+                    onSpeedUpdate,
+                    targetInstallPath: null,
+                    updateCatalogInstallPath: true,
+                    allowReplaceExistingTarget: true);
             }
+
+            const string epicMessage = "Instalacja modów Epic obsługiwana jest przez EpicVersionManager.";
+            if (userCallbacks.ShowInfoAsync != null)
+                await userCallbacks.ShowInfoAsync(epicMessage, "Informacja");
+
+            return ModInstallResult.Failed(epicMessage);
         }
 
         /// <summary>
         /// Instaluje moda FULL do konkretnego folderu bez aktualizowania katalogowego InstallPath.
         /// Używane przez lokalne instancje modpacków, gdzie jedna pozycja katalogowa może mieć wiele instalacji.
         /// </summary>
-        public async Task InstallFullModToPathAsync(
+        public Task<ModInstallResult> InstallFullModToPathAsync(
             ModConfiguration modConfig,
             string targetInstallPath,
             IProgressReporter progress,
@@ -91,7 +93,7 @@ namespace SUSModder.Core.GameIntegration
 
             if (mode == "steam")
             {
-                await InstallSteamAsync(
+                return InstallSteamAsync(
                     modConfig,
                     new List<ModConfiguration> { modConfig },
                     progress,
@@ -101,13 +103,12 @@ namespace SUSModder.Core.GameIntegration
                     targetInstallPath,
                     updateCatalogInstallPath: false,
                     allowReplaceExistingTarget: false);
-                return;
             }
 
             throw new NotSupportedException("Local instance installation currently supports Steam full mods only.");
         }
 
-        private async Task InstallSteamAsync(
+        private async Task<ModInstallResult> InstallSteamAsync(
             ModConfiguration modConfig,
             List<ModConfiguration> modConfigs,
             IProgressReporter progress,
@@ -134,8 +135,8 @@ namespace SUSModder.Core.GameIntegration
 
             try
             {
-            string downloadUrl = ModDownloadUrlBuilder.Build(modConfig, "steam");
-            log.Write($"[CDN] URL pobierania moda (Steam): {downloadUrl}");
+            var downloadResolution = await ModDownloadUrlBuilder.ResolveWithHashAsync(modConfig, "steam");
+            log.Write($"[CDN] URL pobierania moda (Steam): {downloadResolution.Url}");
 
             bool retryMod;
             do
@@ -144,11 +145,12 @@ namespace SUSModder.Core.GameIntegration
                 progress.Report(30, "Pobieranie moda...");
 
                 bool modDownloaded = await DownloadFileWithMemoryManagementAsync(
-                    downloadUrl,
+                    downloadResolution.Url,
                     modFile,
                     progress,
                     $"mod {modConfig.ModName}",
-                    onSpeedUpdate);
+                    onSpeedUpdate,
+                    downloadResolution.ExpectedSha256);
 
                 if (!modDownloaded)
                 {
@@ -160,11 +162,8 @@ namespace SUSModder.Core.GameIntegration
                         "Błąd pobierania");
 
                     if (!retry)
-                    {
-                        if (userCallbacks.ShowErrorAsync != null)
-                            await userCallbacks.ShowErrorAsync("Przerwano instalację moda.", "Błąd");
-                        return;
-                    }
+                        return ModInstallResult.Failed("Przerwano instalację moda.");
+
                     retryMod = retry;
                 }
             } while (retryMod);
@@ -190,23 +189,20 @@ namespace SUSModder.Core.GameIntegration
                     catch (UnauthorizedAccessException ex)
                     {
                         log.Write($"[ERROR] Brak dostępu do katalogu: {modFolderPath} - {ex.Message}");
-                        if (userCallbacks.ShowErrorAsync != null)
-                            await userCallbacks.ShowErrorAsync(
-                                $"Nie można usunąć katalogu:\n{modFolderPath}\n\n" +
-                                $"Dostęp został zabroniony. Upewnij się, że:\n" +
-                                $"- Gra Among Us NIE jest uruchomiona\n" +
-                                $"- Żaden plik z tego folderu nie jest otwarty\n" +
-                                $"- Folder nie jest tylko do odczytu\n" +
-                                $"- Masz uprawnienia administratora\n\n" +
-                                $"Szczegóły: {ex.Message}",
-                                "Błąd dostępu");
-                        return;
+                        return ModInstallResult.Failed(
+                            $"Nie można usunąć katalogu:\n{modFolderPath}\n\n" +
+                            $"Dostęp został zabroniony. Upewnij się, że:\n" +
+                            $"- Gra Among Us NIE jest uruchomiona\n" +
+                            $"- Żaden plik z tego folderu nie jest otwarty\n" +
+                            $"- Folder nie jest tylko do odczytu\n" +
+                            $"- Masz uprawnienia administratora\n\n" +
+                            $"Szczegóły: {ex.Message}");
                     }
                 }
             }
             Directory.CreateDirectory(modFolderPath);
 
-            // Vanilla: DepotDownloader (primary) lub fallback 7z, z cache per wersja
+            // Vanilla: domyślnie paczka 7z; DepotDownloader opcjonalnie (user_settings.prefer_depot_downloader)
             log.Write($"[Vanilla] Wersja Among Us: {modConfig.AmongVersion}");
             var vanillaResult = await _steamVanillaProvider.AcquireAsync(
                 modConfig.AmongVersion,
@@ -217,12 +213,9 @@ namespace SUSModder.Core.GameIntegration
 
             if (!vanillaResult.Success)
             {
-                log.Write($"[Vanilla] Nie udało się przygotować vanilli: {vanillaResult.ErrorMessage}");
-                if (userCallbacks.ShowErrorAsync != null)
-                    await userCallbacks.ShowErrorAsync(
-                        vanillaResult.ErrorMessage ?? "Nie udało się pobrać gry vanilla.",
-                        "Błąd");
-                return;
+                var vanillaError = vanillaResult.ErrorMessage ?? "Nie udało się pobrać gry vanilla.";
+                log.Write($"[Vanilla] Nie udało się przygotować vanilli: {vanillaError}");
+                return ModInstallResult.Failed(vanillaError);
             }
 
             log.Write($"[Vanilla] Źródło: {vanillaResult.Source}");
@@ -268,9 +261,7 @@ namespace SUSModder.Core.GameIntegration
             catch (Exception ex)
             {
                 log.Write($"ERROR podczas rozpakowywania moda: {ex.Message}");
-                if (userCallbacks.ShowErrorAsync != null)
-                    await userCallbacks.ShowErrorAsync($"Błąd podczas rozpakowywania archiwum moda: {ex.Message}", "Błąd");
-                return;
+                return ModInstallResult.Failed($"Błąd podczas rozpakowywania archiwum moda: {ex.Message}");
             }
 
             // Skopiuj pliki moda do katalogu moda
@@ -282,9 +273,7 @@ namespace SUSModder.Core.GameIntegration
             if (string.IsNullOrEmpty(sourcePath))
             {
                 log.Write("ERROR: Nie znaleziono plików do skopiowania");
-                if (userCallbacks.ShowErrorAsync != null)
-                    await userCallbacks.ShowErrorAsync("Nie znaleziono plików do skopiowania.", "Błąd");
-                return;
+                return ModInstallResult.Failed("Nie znaleziono plików do skopiowania.");
             }
 
             log.Write($"Kopiuję pliki z {sourcePath} do {modFolderPath}");
@@ -348,6 +337,7 @@ namespace SUSModder.Core.GameIntegration
 
             GC.Collect();
             GC.WaitForPendingFinalizers();
+            return ModInstallResult.Succeeded();
             }
             finally
             {
@@ -371,7 +361,7 @@ namespace SUSModder.Core.GameIntegration
             Directory.CreateDirectory(tempDir);
 
             string modFile = Path.Combine(tempDir, "mod.dll");
-            string downloadUrl = ModDownloadUrlBuilder.Build(modConfig, mode);
+            string downloadUrl = await ModDownloadUrlBuilder.ResolveAsync(modConfig, mode);
             log.Write($"[CDN] URL pobierania DLL moda ({mode}): {downloadUrl}");
 
             try
@@ -555,7 +545,8 @@ namespace SUSModder.Core.GameIntegration
             string filePath,
             IProgressReporter progress,
             string fileDescription,
-            Action<string>? onSpeedUpdate = null)
+            Action<string>? onSpeedUpdate = null,
+            string? expectedSha256 = null)
         {
             const int bufferSize = 8192; // 8KB buffer
             const long maxMemoryThreshold = 50 * 1024 * 1024; // 50MB threshold dla GC
@@ -572,64 +563,79 @@ namespace SUSModder.Core.GameIntegration
                 using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
                 response.EnsureSuccessStatusCode();
 
+                var headerSha256 = response.Headers.TryGetValues("X-SUSModder-SHA256", out var shaValues)
+                    ? shaValues.FirstOrDefault()?.Trim().ToLowerInvariant()
+                    : null;
+                var expectedHash = !string.IsNullOrWhiteSpace(expectedSha256)
+                    ? expectedSha256.Trim().ToLowerInvariant()
+                    : headerSha256;
+
                 var totalBytes = response.Content.Headers.ContentLength ?? 0;
                 var downloadedBytes = 0L;
                 var lastGcBytes = 0L;
                 var lastSpeedBytes = 0L;
                 var stopwatch = Stopwatch.StartNew();
 
-                using var contentStream = await response.Content.ReadAsStreamAsync();
-                using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize);
-
-                var buffer = new byte[bufferSize];
-                int bytesRead;
-
-                while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                using (var contentStream = await response.Content.ReadAsStreamAsync())
+                using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize))
                 {
-                    await fileStream.WriteAsync(buffer, 0, bytesRead);
-                    downloadedBytes += bytesRead;
+                    var buffer = new byte[bufferSize];
+                    int bytesRead;
 
-                    // Aktualizuj progress
-                    if (totalBytes > 0)
+                    while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
                     {
-                        var percentage = (int)((downloadedBytes * 100) / totalBytes);
-                        progress?.Report(percentage, $"Pobieranie {fileDescription}...");
-                    }
+                        await fileStream.WriteAsync(buffer, 0, bytesRead);
+                        downloadedBytes += bytesRead;
 
-                    // Aktualizuj prędkość pobierania co ~512KB
-                    if (onSpeedUpdate != null && downloadedBytes - lastSpeedBytes > speedUpdateInterval)
-                    {
-                        lastSpeedBytes = downloadedBytes;
-                        var speed = CalculateDownloadSpeed(downloadedBytes, stopwatch);
-                        if (speed != null)
+                        if (totalBytes > 0)
                         {
-                            onSpeedUpdate(speed);
+                            var percentage = (int)((downloadedBytes * 100) / totalBytes);
+                            progress?.Report(percentage, $"Pobieranie {fileDescription}...");
+                        }
+
+                        if (onSpeedUpdate != null && downloadedBytes - lastSpeedBytes > speedUpdateInterval)
+                        {
+                            lastSpeedBytes = downloadedBytes;
+                            var speed = CalculateDownloadSpeed(downloadedBytes, stopwatch);
+                            if (speed != null)
+                                onSpeedUpdate(speed);
+                        }
+
+                        if (downloadedBytes - lastGcBytes > maxMemoryThreshold)
+                        {
+                            lastGcBytes = downloadedBytes;
+                            GC.Collect(0, GCCollectionMode.Optimized);
+                            GC.WaitForPendingFinalizers();
                         }
                     }
 
-                    // Wymuś GC co 50MB pobranych danych
-                    if (downloadedBytes - lastGcBytes > maxMemoryThreshold)
-                    {
-                        lastGcBytes = downloadedBytes;
-                        GC.Collect(0, GCCollectionMode.Optimized);
-                        GC.WaitForPendingFinalizers();
-                    }
+                    await fileStream.FlushAsync();
                 }
 
-                // Wymuś flush i zamknij strumień
-                await fileStream.FlushAsync();
-
-                // Finalna aktualizacja prędkości po zakończeniu pobierania
                 if (onSpeedUpdate != null)
                 {
                     var finalSpeed = CalculateDownloadSpeed(downloadedBytes, stopwatch);
                     if (finalSpeed != null)
-                    {
                         onSpeedUpdate(finalSpeed);
-                    }
                 }
 
                 stopwatch.Stop();
+
+                if (!string.IsNullOrWhiteSpace(expectedHash))
+                {
+                    await using var verifyStream = File.OpenRead(filePath);
+                    using var sha = SHA256.Create();
+                    var hashBytes = await sha.ComputeHashAsync(verifyStream);
+                    var actualHash = Convert.ToHexString(hashBytes).ToLowerInvariant();
+                    if (!string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase))
+                    {
+                        log?.Write($"Błąd weryfikacji SHA256 {fileDescription}: oczekiwano {expectedHash}, otrzymano {actualHash}");
+                        try { File.Delete(filePath); } catch { }
+                        return false;
+                    }
+
+                    log?.Write($"SHA256 OK dla {fileDescription}");
+                }
 
                 log?.Write($"Pobrano {fileDescription}: {downloadedBytes:N0} bajtów do {filePath}");
                 return true;

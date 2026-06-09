@@ -104,8 +104,20 @@ namespace SUSModder.Core.Models
         public int TtlDays { get; set; } = 30;
         public IReadOnlyList<ModPackDllModRequest> DllMods { get; set; } = Array.Empty<ModPackDllModRequest>();
         public JsonElement? TouConfig { get; set; }
+
+        /// <summary>
+        /// Metadane zewnętrznych DLL (lokalne). API v2 nie przyjmuje tego pola w POST /modpacks —
+        /// pliki uploaduje się osobno przez POST /modpacks/:code/dlls.
+        /// </summary>
+        [JsonIgnore]
         public IReadOnlyList<ModPackExternalDllDeclaration> ExternalDlls { get; set; } =
             Array.Empty<ModPackExternalDllDeclaration>();
+
+        /// <summary>
+        /// Ścieżki plików zewnętrznych DLL do uploadu po utworzeniu paczki.
+        /// </summary>
+        [JsonIgnore]
+        public IReadOnlyList<string> ExternalDllFilePaths { get; set; } = Array.Empty<string>();
     }
 
     public sealed class ModPackDllModRequest

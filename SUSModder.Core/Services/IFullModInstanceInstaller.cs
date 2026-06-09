@@ -12,7 +12,7 @@ namespace SUSModder.Core.Services
     /// </summary>
     public interface IFullModInstanceInstaller
     {
-        Task InstallAsync(
+        Task<ModInstallResult> InstallAsync(
             ModConfiguration modConfig,
             string targetInstallPath,
             string platform,
