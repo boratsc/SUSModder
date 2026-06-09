@@ -19,6 +19,7 @@ velopack-releases/
 Update.exe
 dummy-release/
 _delta-base/
+_build-check/
 nul
 
 # Deployment scripts with credentials
