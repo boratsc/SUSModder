@@ -481,7 +481,8 @@
       "LaunchButton": "🚀 Launch",
       "AddDllButton": "🔧 Add DLL...",
       "AutoUpdate": "Automatic updates",
-      "DontShowAgain": "Don't show this again"
+      "DontShowAgain": "Don't show this again",
+      "ShowChangelogButton": "📋 Show changelog"
     },
     "PostInstallFailure": {
       "Title": "Installation failed",
@@ -497,6 +498,9 @@
       "CloseButton": "Close",
       "InvalidFileTitle": "Invalid file",
       "InvalidFileMessage": "The selected file must be named Among Us.exe and come from the Among Us Steam installation folder."
+    },
+    "UpdateSuccess": {
+      "ChangelogExpander": "What changed?"
     }
   },
   "Toast": {
@@ -1020,6 +1024,13 @@
     "DeveloperMenu": {
       "RemoveSingleInstance": "Remove SingleInstance",
       "LaunchMultipleInstances": "Launch selected number of instances"
+    },
+    "UpdateSuccess": {
+      "Title": "Update complete",
+      "SuccessCount": "✅ Successfully updated ({0}):",
+      "FailCount": "❌ Failed to update ({0}):",
+      "SkipCount": "⏭️ Skipped ({0}):",
+      "ChangelogHint": "You can view the changelog for each mod in the details panel."
     }
   },
   "ModOperations": {
@@ -1261,5 +1272,15 @@
     "SelectFullMod": "Select a main mod.",
     "CreateFailed": "Failed to create pack.",
     "TouConfigNotSupportedYet": "Including ToU config from this dialog is coming soon — create the pack without config for now."
+  },
+  "ModChangelog": {
+    "Button": "Changelog",
+    "WindowTitle": "Changelog: {0}",
+    "Loading": "Loading changelog...",
+    "Empty": "No changelog available for this mod.",
+    "Error": "Failed to load changelog. Please try again later.",
+    "OpenRelease": "Open release on GitHub",
+    "FallbackLanguageNotice": "Polish translation is not ready yet — showing English.",
+    "WhatChanged": "What changed?"
   }
 }

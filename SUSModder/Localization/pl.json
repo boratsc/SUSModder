@@ -481,7 +481,8 @@
       "LaunchButton": "🚀 Uruchom",
       "AddDllButton": "🔧 Dodaj DLL...",
       "AutoUpdate": "Automatyczne aktualizacje",
-      "DontShowAgain": "Nie pokazuj więcej"
+      "DontShowAgain": "Nie pokazuj więcej",
+      "ShowChangelogButton": "📋 Zobacz listę zmian"
     },
     "PostInstallFailure": {
       "Title": "Instalacja nieudana",
@@ -497,6 +498,9 @@
       "CloseButton": "Zamknij",
       "InvalidFileTitle": "Nieprawidłowy plik",
       "InvalidFileMessage": "Wybrany plik musi nazywać się „Among Us.exe” i pochodzić z folderu instalacji gry Among Us w Steam."
+    },
+    "UpdateSuccess": {
+      "ChangelogExpander": "Co się zmieniło?"
     }
   },
   "Toast": {
@@ -1020,6 +1024,13 @@
     "DeveloperMenu": {
       "RemoveSingleInstance": "Usuń SingleInstance",
       "LaunchMultipleInstances": "Uruchom wybraną ilość instancji"
+    },
+    "UpdateSuccess": {
+      "Title": "Aktualizacja zakończona",
+      "SuccessCount": "✅ Pomyślnie zaktualizowano ({0}):",
+      "FailCount": "❌ Nie udało się zaktualizować ({0}):",
+      "SkipCount": "⏭️ Pominięto ({0}):",
+      "ChangelogHint": "Listę zmian dla każdego moda możesz sprawdzić w panelu szczegółów."
     }
   },
   "ModOperations": {
@@ -1261,5 +1272,15 @@
     "SelectFullMod": "Wybierz mod główny.",
     "CreateFailed": "Nie udało się utworzyć zestawu.",
     "TouConfigNotSupportedYet": "Dołączanie configu ToU z tego okna będzie dostępne wkrótce — na razie utwórz paczkę bez configu."
+  },
+  "ModChangelog": {
+    "Button": "Lista zmian",
+    "WindowTitle": "Lista zmian: {0}",
+    "Loading": "Ładowanie listy zmian...",
+    "Empty": "Brak changeloga dla tego moda.",
+    "Error": "Nie udało się pobrać changeloga. Spróbuj ponownie później.",
+    "OpenRelease": "Otwórz release na GitHub",
+    "FallbackLanguageNotice": "Tłumaczenie po polsku nie jest jeszcze gotowe — pokazujemy wersję angielską.",
+    "WhatChanged": "Co się zmieniło?"
   }
 }
