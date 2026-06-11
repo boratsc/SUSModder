@@ -81,6 +81,13 @@ public interface ISUSModderApiClient : IDisposable
 
     Task SendHeartbeatAsync(object payload, CancellationToken cancellationToken = default);
 
+    Task<SusModderApiResult<List<CatalogChangelogEntryDto>>> GetCatalogChangelogAsync(
+        int modId,
+        string lang = "pl",
+        int limit = 5,
+        string? ifNoneMatch = null,
+        CancellationToken cancellationToken = default);
+
     Task<HttpResponseMessage> SendAsync(
         SusModderApiRequest request,
         CancellationToken cancellationToken = default);

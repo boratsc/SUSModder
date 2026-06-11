@@ -131,6 +131,23 @@ public sealed class SUSModderApiClient : ISUSModderApiClient
         CancellationToken cancellationToken = default) =>
         GetEnvelopeAsync<CatalogVersionsDto>($"catalog/{modId}/versions", null, ifNoneMatch, cancellationToken);
 
+    public Task<SusModderApiResult<List<CatalogChangelogEntryDto>>> GetCatalogChangelogAsync(
+        int modId,
+        string lang = "pl",
+        int limit = 5,
+        string? ifNoneMatch = null,
+        CancellationToken cancellationToken = default)
+    {
+        var queryParams = new Dictionary<string, string?>
+        {
+            ["lang"] = lang,
+            ["limit"] = limit.ToString()
+        };
+
+        return GetEnvelopeAsync<List<CatalogChangelogEntryDto>>(
+            $"catalog/{modId}/changelog", queryParams, ifNoneMatch, cancellationToken);
+    }
+
     public Task<SusModderApiResult<CompatibilityDataDto>> GetCompatibilityAsync(
         CompatibilityQueryParams query,
         string? ifNoneMatch = null,
