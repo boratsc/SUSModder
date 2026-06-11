@@ -918,4 +918,59 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             ViewModel.ShowLobbyBoard();
         }
     }
+
+    // ── Launch diagnostics actions ────────────────────────────
+
+    private void OnOpenModFolderClicked(object? sender, RoutedEventArgs e)
+        => ViewModel?.OpenModFolder();
+
+    private void OnOpenBepInExLogsClicked(object? sender, RoutedEventArgs e)
+        => ViewModel?.OpenBepInExLogs();
+
+    private async void OnGenerateSupportBundleClicked(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+            await ViewModel.GenerateSupportBundleAsync();
+    }
+
+    private void OnOpenAiSupportClicked(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+        {
+            ViewModel.IsLaunchDiagnosticsVisible = false;
+            ViewModel.ShowAiSupport();
+        }
+    }
+
+    private void OnCloseLaunchDiagnosticsClicked(object? sender, RoutedEventArgs e)
+        => ViewModel?.HideLaunchDiagnostics();
+
+    // ── AI Support actions ────────────────────────────────────
+
+    private void OnAiSupportAcceptPrivacyClicked(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+            ViewModel.AiSupportPrivacyAccepted = true;
+    }
+
+    private async void OnAnalyzeAiSupportClicked(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+            await ViewModel.AnalyzeProblemAsync();
+    }
+
+    private async void OnAiSupportHelpedClicked(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+            await ViewModel.SendAiSupportFeedbackAsync(helped: true);
+    }
+
+    private async void OnAiSupportNotHelpedClicked(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+            await ViewModel.SendAiSupportFeedbackAsync(helped: false);
+    }
+
+    private void OnCloseAiSupportClicked(object? sender, RoutedEventArgs e)
+        => ViewModel?.HideAiSupport();
 }

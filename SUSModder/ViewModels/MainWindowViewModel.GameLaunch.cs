@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -11,6 +12,7 @@ using SUSModder.Core.Configuration;
 using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Services;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Diagnostics.Launch;
 using SUSModder.Core.Utilities;
 using SUSModder.Services;
 using SUSModder.Views;
@@ -157,8 +159,7 @@ namespace SUSModder.ViewModels
 
         private async Task LaunchEpicGameAsync(ModItem currentSelectedMod, ModConfiguration modConfig)
         {
-            // 4) Obsługa Epic z progress parserem
-            currentSelectedMod.InstallStatusMessage = "Uruchamianie Epic...";
+            currentSelectedMod.InstallStatusMessage = _localizationService.Get("LaunchDiagnostics.Progress.Starting");
             currentSelectedMod.InstallProgress = 5;
 
             var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
@@ -171,15 +172,19 @@ namespace SUSModder.ViewModels
 
             epicManager.ResetErrorState();
 
+            var legendaryErrorDetected = false;
+            string legendaryErrorContent = string.Empty;
+
             epicManager.EpicLaunchError += async (modName, logContent) =>
             {
+                legendaryErrorDetected = true;
+                legendaryErrorContent = logContent;
                 await Dispatcher.UIThread.InvokeAsync(async () =>
                 {
                     await ShowEpicErrorDialogAsync(currentSelectedMod.Name, logContent);
                 });
             };
 
-            // NOWE: Subskrybuj progress z legendary
             epicManager.ProgressChanged += (percentage, message) =>
             {
                 Dispatcher.UIThread.InvokeAsync(() =>
@@ -189,7 +194,6 @@ namespace SUSModder.ViewModels
                 });
             };
 
-            // Subskrybuj prędkość pobierania z legendary
             epicManager.SpeedChanged += (speed) =>
             {
                 Dispatcher.UIThread.InvokeAsync(() =>
@@ -198,7 +202,6 @@ namespace SUSModder.ViewModels
                 });
             };
 
-            // Podpinamy event do przekazywania linii do debug output
             epicManager.LegendaryOutput += (message) =>
             {
                 Dispatcher.UIThread.InvokeAsync(() =>
@@ -208,86 +211,141 @@ namespace SUSModder.ViewModels
 
             // Wywołujemy Epic
             await epicManager.HandleEpicGameAsync(modConfig);
+
+            // Po zakończeniu Legendary flow, zbierz diagnostykę BepInEx
+            if (modConfig.InstallPath != null)
+            {
+                var context = new LaunchContext
+                {
+                    ModId = modConfig.Id,
+                    ModName = modConfig.ModName ?? currentSelectedMod.Name,
+                    ModType = modConfig.ModType ?? "full",
+                    PlatformMode = "epic",
+                    InstallPath = modConfig.InstallPath,
+                    ExePath = Path.Combine(PathSettings.GetActualModPath(modConfig.InstallPath), "Among Us.exe"),
+                    WasRunAsAdmin = false
+                };
+
+                // Stwórz attempt i result bez LaunchAndObserveAsync (bo proces już prowadzony przez Legendary)
+                var attempt = new SUSModder.Core.Diagnostics.Launch.LaunchAttempt
+                {
+                    ModId = context.ModId,
+                    ModName = context.ModName,
+                    ModType = context.ModType,
+                    PlatformMode = context.PlatformMode,
+                    InstallPath = context.InstallPath,
+                    ExePath = context.ExePath,
+                    StartedAtUtc = DateTimeOffset.UtcNow
+                };
+
+                var result = new SUSModder.Core.Diagnostics.Launch.LaunchResult { Attempt = attempt };
+
+                // Zbierz logi BepInEx – użyj statycznej metody
+                LaunchSupervisor.CollectBepInExDiagnostics(attempt, result);
+
+                // Skopiuj diagnozę z błędów Legendary
+                if (legendaryErrorDetected)
+                {
+                    result.DiagnosisCodes.Add(SUSModder.Core.Diagnostics.Launch.DiagnosisCode.ProcessStartFailed);
+                    result.Severity = SUSModder.Core.Diagnostics.Launch.DiagnosisSeverity.Critical;
+                    result.TechnicalSummary = "Epic/Legendary launch error detected.";
+                }
+
+                if (result.DiagnosisCodes.Count > 0)
+                {
+                    _lastLaunchResult = result;
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        currentSelectedMod.InstallProgress = 0;
+                        currentSelectedMod.InstallStatusMessage = string.Empty;
+                        ShowLaunchDiagnostics(result);
+                    });
+                }
+                else
+                {
+                    currentSelectedMod.InstallProgress = 100;
+                    currentSelectedMod.InstallStatusMessage = _localizationService.Get("GameLaunch.GameStarted");
+                }
+            }
         }
 
         private async Task LaunchSteamGameAsync(ModItem currentSelectedMod, ModConfiguration modConfig)
         {
-            // 5) Obsługa Steam / vanilla
-            currentSelectedMod.InstallStatusMessage = "Uruchamiam Steam...";
+            currentSelectedMod.InstallStatusMessage = _localizationService.Get("LaunchDiagnostics.Progress.Starting");
             currentSelectedMod.InstallProgress = 25;
 
             if (string.IsNullOrEmpty(modConfig.InstallPath))
             {
-                throw new InvalidOperationException("InstallPath nie może być pusty.");
+                currentSelectedMod.InstallStatusMessage = _localizationService.Get("GameLaunch.NoInstallPath");
+                return;
             }
 
-            // Uwzględnij strukturę Epic (podkatalog AmongUs)
             string actualModPath = PathSettings.GetActualModPath(modConfig.InstallPath);
             string exePath = Path.Combine(actualModPath, "Among Us.exe");
-            string steamAppIdPath = Path.Combine(actualModPath, "steam_appid.txt");
+
+            var context = new LaunchContext
+            {
+                ModId = modConfig.Id,
+                ModName = modConfig.ModName ?? currentSelectedMod.Name,
+                ModType = modConfig.ModType ?? "full",
+                PlatformMode = "steam",
+                InstallPath = modConfig.InstallPath,
+                ExePath = exePath,
+                WasRunAsAdmin = false
+            };
 
             try
             {
-                // Zapisz steam_appid.txt
-                await File.WriteAllTextAsync(steamAppIdPath, "945360");
-
                 currentSelectedMod.InstallProgress = 50;
+                currentSelectedMod.InstallStatusMessage = _localizationService.Get("LaunchDiagnostics.Progress.Observing");
 
-                if (File.Exists(exePath))
+                var supervisor = new SteamLaunchSupervisor();
+                var result = await supervisor.LaunchAndObserveAsync(
+                    context,
+                    observationWindow: TimeSpan.FromSeconds(35),
+                    cancellationToken: CancellationToken.None);
+
+                _lastLaunchResult = result;
+
+                if (result.IsSuccessful)
                 {
-                    currentSelectedMod.InstallStatusMessage = "Uruchamiam grę...";
-                    currentSelectedMod.InstallProgress = 75;
-
-                    // Uruchom Steam
-                    Process.Start(new ProcessStartInfo("steam://") { UseShellExecute = true });
-
-                    // Poczekaj chwilę i uruchom grę
-                    await Task.Delay(1000);
-                    Process.Start(exePath);
-
                     currentSelectedMod.InstallProgress = 100;
-                    currentSelectedMod.InstallStatusMessage = "Gra uruchomiona";
-
-                    // Poczekaj chwilę żeby użytkownik zobaczył komunikat
-                    await Task.Delay(1500);
+                    currentSelectedMod.InstallStatusMessage = _localizationService.Get("GameLaunch.GameStarted");
                 }
                 else
                 {
-                    await ShowErrorDialogAsync(
-                        _localizationService.Get("GameLaunch.AmongUsExeNotFound"),
-                        _localizationService.Get("GameLaunch.LaunchErrorTitle"));
-                    return;
+                    currentSelectedMod.InstallProgress = 0;
+                    currentSelectedMod.InstallStatusMessage = string.Empty;
+
+                    await Dispatcher.UIThread.InvokeAsync(() => ShowLaunchDiagnostics(result));
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Problem z utworzeniem pliku steam_appid.txt: {ex.Message}");
+                Debug.WriteLine($"[Launch Steam] Supervisor failed: {ex.Message}");
 
-                await ShowErrorDialogAsync(
-                    $"Problem z utworzeniem pliku steam_appid.txt: {ex.Message}. " +
-                    "Próba uruchomienia przez Steam URI.",
-                    "Błąd");
-
-                try
+                var result = new LaunchResult
                 {
-                    currentSelectedMod.InstallStatusMessage = "Uruchamiam przez Steam URI...";
-                    currentSelectedMod.InstallProgress = 75;
-
-                    Process.Start(new ProcessStartInfo("steam://rungameid/945360")
+                    Attempt = new LaunchAttempt
                     {
-                        UseShellExecute = true
-                    });
+                        ModId = context.ModId,
+                        ModName = context.ModName,
+                        ModType = context.ModType,
+                        PlatformMode = context.PlatformMode,
+                        InstallPath = context.InstallPath,
+                        ExePath = context.ExePath
+                    },
+                    DiagnosisCodes = { DiagnosisCode.ProcessStartFailed },
+                    Severity = DiagnosisSeverity.Critical,
+                    TechnicalSummary = ex.Message
+                };
 
-                    currentSelectedMod.InstallProgress = 100;
-                    currentSelectedMod.InstallStatusMessage = "Uruchomiono przez Steam";
-                    await Task.Delay(1500);
-                }
-                catch (Exception uriEx)
-                {
-                    await ShowErrorDialogAsync(
-                        $"Nie udało się uruchomić gry przez Steam URI: {uriEx.Message}",
-                        "Błąd");
-                }
+                _lastLaunchResult = result;
+
+                currentSelectedMod.InstallProgress = 0;
+                currentSelectedMod.InstallStatusMessage = string.Empty;
+
+                await Dispatcher.UIThread.InvokeAsync(() => ShowLaunchDiagnostics(result));
             }
         }
 
