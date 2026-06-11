@@ -614,11 +614,14 @@ namespace SUSModder.ViewModels
             bool isPinnedVersion = SelectedMod?.IsPinnedVersionInstall == true;
             var vm = new PostInstallSuccessViewModel(
                 modItem.Name,
+                modItem.Id,
+                modItem.ModVersion,
                 supportsDll,
                 _localizationService,
                 defaultAutoUpdateEnabled: !isPinnedVersion,
                 showAutoUpdateCheckbox: !isPinnedVersion);
             vm.CloseRequested += OnPostInstallSuccessCloseRequested;
+            vm.ChangelogRequested += OnPostInstallChangelogRequested;
             PostInstallSuccessViewModel = vm;
             IsPostInstallSuccessVisible = true;
         }
@@ -657,13 +660,23 @@ namespace SUSModder.ViewModels
             }
         }
 
+        private void OnPostInstallChangelogRequested(object? sender, EventArgs e)
+        {
+            if (sender is PostInstallSuccessViewModel vm)
+            {
+                // Otw�rz modal changeloga dla zainstalowanego moda
+                _ = OpenModChangelogAsync();
+            }
+        }
+
         private void OnPostInstallSuccessCloseRequested(object? sender, EventArgs e)
         {
             if (sender is PostInstallSuccessViewModel vm)
             {
                 vm.CloseRequested -= OnPostInstallSuccessCloseRequested;
+                vm.ChangelogRequested -= OnPostInstallChangelogRequested;
 
-                // Zapisz flagę "Nie pokazuj więcej" jeśli zaznaczona
+                // Zapisz flag� "Nie pokazuj wi�cej" jeśli zaznaczona
                 if (vm.DontShowAgain && SelectedMod != null && !string.IsNullOrWhiteSpace(SelectedMod.InstallPath))
                 {
                     _ = SaveDontShowPostInstallDialogAsync(SelectedMod.InstallPath);

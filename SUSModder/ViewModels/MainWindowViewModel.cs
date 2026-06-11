@@ -689,6 +689,7 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> CheckForModUpdatesFromMenuCommand { get; private set; }
     public ReactiveCommand<string, Unit> ExecuteRepairOptionCommand { get; }
     public ReactiveCommand<ModItem, Unit> ModDoubleClickCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenModChangelogCommand { get; }
 
         #endregion
 
@@ -753,6 +754,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             UninstallDllFromModCommand = ReactiveCommand.CreateFromTask<ModItem>(UninstallDllFromMod);
             CloseDllDialogCommand = ReactiveCommand.Create(CloseDllDialog);
             ShowAppSettingsCommand = ReactiveCommand.Create(ShowAppSettings);
+            OpenModChangelogCommand = ReactiveCommand.CreateFromTask(OpenModChangelogAsync);
             this.RaisePropertyChanged(nameof(IsDeveloperMode));
             ShowRecommendedDiscordsCommand = ReactiveCommand.Create(ShowRecommendedDiscords);
             ShowLobbyBoardCommand = ReactiveCommand.Create(ShowLobbyBoardFromMenu);

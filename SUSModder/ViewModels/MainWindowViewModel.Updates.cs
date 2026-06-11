@@ -24,6 +24,11 @@ namespace SUSModder.ViewModels
     /// </summary>
     public partial class MainWindowViewModel
     {
+        private sealed record CompletedModUpdate(
+            int ModId,
+            string ModName,
+            string CurrentVersion,
+            string NewVersion);
         private DateTime _lastInteractiveModUpdateCheckUtc = DateTime.MinValue;
         private static readonly TimeSpan InteractiveModUpdateCheckCooldown = TimeSpan.FromMinutes(2);
 
@@ -198,7 +203,7 @@ namespace SUSModder.ViewModels
 
         private async Task ProcessUpdatesWithIndividualDialogsAsync(List<ModUpdateInfo> availableUpdates)
         {
-            var successfulUpdates = new List<string>();
+            var successfulUpdates = new List<CompletedModUpdate>();
             var failedUpdates = new List<string>();
             var skippedUpdates = new List<string>();
             var autoUpdatedMods = new List<string>();
@@ -274,7 +279,11 @@ namespace SUSModder.ViewModels
 
                         if (success)
                         {
-                            successfulUpdates.Add($"{modUpdate.ModName} ({modUpdate.CurrentVersion} → {modUpdate.NewVersion})");
+                            successfulUpdates.Add(new CompletedModUpdate(
+                                modUpdate.LocalMod?.Id ?? 0,
+                                modUpdate.ModName,
+                                modUpdate.CurrentVersion,
+                                modUpdate.NewVersion));
                         }
                         else
                         {
@@ -313,27 +322,40 @@ namespace SUSModder.ViewModels
             }
         }
 
-        private async Task ShowUpdateSummaryAsync(List<string> successful, List<string> failed, List<string> skipped)
+        private async Task ShowUpdateSummaryAsync(
+            List<CompletedModUpdate> successful, List<string> failed, List<string> skipped)
         {
             if (successful.Count == 0 && failed.Count == 0 && skipped.Count == 0)
                 return;
 
+            var title = _localizationService.Get("MainWindow.UpdateSuccess.Title");
             var messageBuilder = new System.Text.StringBuilder();
-            messageBuilder.AppendLine("🎉 Podsumowanie aktualizacji\n");
 
             if (successful.Any())
             {
-                messageBuilder.AppendLine($"✅ Pomyślnie zaktualizowano ({successful.Count}):");
+                var successLine = _localizationService.GetFormatted(
+                    "MainWindow.UpdateSuccess.SuccessCount", successful.Count);
+                messageBuilder.AppendLine(successLine);
                 foreach (var update in successful)
                 {
-                    messageBuilder.AppendLine($"   • {update}");
+                    messageBuilder.AppendLine(
+                        $"   • {update.ModName} ({update.CurrentVersion} → {update.NewVersion})");
                 }
+                messageBuilder.AppendLine();
+
+                // Dodaj informację o changelogu
+                var changelogHint = _localizationService.Get(
+                    "ModChangelog.Button") + " — " +
+                    _localizationService.Get("MainWindow.UpdateSuccess.ChangelogHint");
+                messageBuilder.AppendLine(changelogHint);
                 messageBuilder.AppendLine();
             }
 
             if (failed.Any())
             {
-                messageBuilder.AppendLine($"❌ Nie udało się zaktualizować ({failed.Count}):");
+                var failLine = _localizationService.GetFormatted(
+                    "MainWindow.UpdateSuccess.FailCount", failed.Count);
+                messageBuilder.AppendLine(failLine);
                 foreach (var failure in failed)
                 {
                     messageBuilder.AppendLine($"   • {failure}");
@@ -343,14 +365,16 @@ namespace SUSModder.ViewModels
 
             if (skipped.Any())
             {
-                messageBuilder.AppendLine($"⏭️ Pominięto ({skipped.Count}):");
-                foreach (var skipped_mod in skipped)
+                var skipLine = _localizationService.GetFormatted(
+                    "MainWindow.UpdateSuccess.SkipCount", skipped.Count);
+                messageBuilder.AppendLine(skipLine);
+                foreach (var skippedMod in skipped)
                 {
-                    messageBuilder.AppendLine($"   • {skipped_mod}");
+                    messageBuilder.AppendLine($"   • {skippedMod}");
                 }
             }
 
-            await ShowMessageAsync("Aktualizacja zakończona", messageBuilder.ToString());
+            await ShowMessageAsync(title, messageBuilder.ToString());
         }
 
         private async Task<ModItem> GetOrCreateModItemAsync(ModUpdateInfo modUpdate)

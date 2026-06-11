@@ -86,6 +86,19 @@
 				        Content="{Binding AddDllButton}"/>
 			</StackPanel>
 
+		<!-- Przycisk changeloga -->
+		<Button Content="{Binding ShowChangelogButton}"
+		        Classes="secondary-button"
+		        FontSize="14"
+		        Padding="15,8"
+		        CornerRadius="6"
+		        Background="Transparent"
+		        BorderBrush="{DynamicResource BorderMediumBrush}"
+		        BorderThickness="0.5"
+		        Foreground="{DynamicResource TextSecondaryBrush}"
+		        HorizontalAlignment="Center"
+		        Command="{Binding ShowChangelogCommand}"/>
+
 		<!-- Checkbox auto-aktualizacji -->
 		<CheckBox IsChecked="{Binding AutoUpdateEnabled}"
 		          IsVisible="{Binding IsAutoUpdateCheckboxVisible}"

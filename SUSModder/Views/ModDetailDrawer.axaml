@@ -65,6 +65,17 @@
 									<Run Text=":"/>
 									<Run Text="{Binding AmongVersion}"/>
 								</TextBlock>
+								<Button Content="{loc:Localize ModChangelog.Button}"
+								        FontSize="11"
+								        Padding="10,4"
+								        CornerRadius="4"
+								        Background="{DynamicResource SecondaryBackgroundBrush}"
+								        Foreground="{DynamicResource TextSecondaryBrush}"
+								        BorderBrush="{DynamicResource BorderMediumBrush}"
+								        BorderThickness="0.5"
+								        HorizontalAlignment="Left"
+								        IsVisible="{Binding IsVanilla, Converter={x:Static BoolConverters.Not}}"
+								        Command="{Binding $parent[local:ModDetailDrawer].DataContext.OpenModChangelogCommand}"/>
 							</StackPanel>
 						</StackPanel>
 						<Button Grid.Column="2"

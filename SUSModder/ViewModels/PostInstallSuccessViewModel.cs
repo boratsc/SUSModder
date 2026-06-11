@@ -31,10 +31,19 @@ namespace SUSModder.ViewModels
         /// <summary>Event wołany gdy użytkownik zamyka modal (przycisk lub zewnętrzne zamknięcie).</summary>
         public event EventHandler? CloseRequested;
 
+        /// <summary>Event wołany gdy użytkownik chce zobaczyć changelog zainstalowanego moda.</summary>
+        public event EventHandler? ChangelogRequested;
+
         /// <summary>Nazwa zainstalowanego moda.</summary>
         public string ModName { get; }
 
-        /// <summary>Czy mod obsługuje modyfikacje DLL.</summary>
+        /// <summary>ID zainstalowanego moda (z API).</summary>
+        public int ModId { get; }
+
+        /// <summary>Wersja zainstalowanego moda.</summary>
+        public string ModVersion { get; }
+
+        /// <summary>Czy mod obsluguje modyfikacje DLL.</summary>
         public bool SupportsDll { get; }
 
         /// <summary>Czy zaznaczono "Nie pokazuj więcej".</summary>
@@ -69,20 +78,26 @@ namespace SUSModder.ViewModels
         public string AddDllButton { get; }
         public string DontShowAgainCheckbox { get; }
         public string AutoUpdateCheckbox { get; }
+        public string ShowChangelogButton { get; }
 
         // Komendy
         public ReactiveCommand<Unit, Unit> LaunchCommand { get; }
         public ReactiveCommand<Unit, Unit> AddDllCommand { get; }
         public ReactiveCommand<Unit, Unit> DismissCommand { get; }
+        public ReactiveCommand<Unit, Unit> ShowChangelogCommand { get; }
 
         public PostInstallSuccessViewModel(
             string modName,
+            int modId,
+            string modVersion,
             bool supportsDll,
             ILocalizationService localizationService,
             bool defaultAutoUpdateEnabled = true,
             bool showAutoUpdateCheckbox = true)
         {
             ModName = modName;
+            ModId = modId;
+            ModVersion = modVersion;
             SupportsDll = supportsDll;
             IsAutoUpdateCheckboxVisible = showAutoUpdateCheckbox;
             _autoUpdateEnabled = defaultAutoUpdateEnabled;
@@ -96,6 +111,7 @@ namespace SUSModder.ViewModels
             AddDllButton = localizationService.Get("Dialogs.PostInstallSuccess.AddDllButton");
             DontShowAgainCheckbox = localizationService.Get("Dialogs.PostInstallSuccess.DontShowAgain");
             AutoUpdateCheckbox = localizationService.Get("Dialogs.PostInstallSuccess.AutoUpdate");
+            ShowChangelogButton = localizationService.Get("Dialogs.PostInstallSuccess.ShowChangelogButton");
 
             LaunchCommand = ReactiveCommand.Create(() =>
             {
@@ -113,6 +129,11 @@ namespace SUSModder.ViewModels
             {
                 Result = PostInstallAction.Dismiss;
                 CloseRequested?.Invoke(this, EventArgs.Empty);
+            });
+
+            ShowChangelogCommand = ReactiveCommand.Create(() =>
+            {
+                ChangelogRequested?.Invoke(this, EventArgs.Empty);
             });
         }
     }
