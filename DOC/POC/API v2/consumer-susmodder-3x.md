@@ -159,3 +159,56 @@ Uploading a custom DLL:
 4. Only then can the DLL be downloaded
 
 Status flow: `pending` → `scanning` → `clean` (or `suspicious`/`rejected`)
+
+---
+
+## Mod Changelog (v2.2.0+)
+
+Fetch per-mod changelogs from GitHub releases with optional PL translation.
+
+```
+GET /v2/catalog/:id/changelog?lang=pl|en&limit=1..20
+```
+
+**Parameters:**
+| Param | Type | Required | Default | Notes |
+|-------|------|----------|---------|-------|
+| `lang` | `string` | yes | `pl` | `pl` or `en`; other values → `400` |
+| `limit` | `int` | no | `5` | Range `1..20`; outside range → `400` |
+
+**Response (200):**
+```json
+{
+  "data": [{
+    "id": "123",
+    "modId": 1,
+    "version": "5.4.0",
+    "releaseName": "v5.4.0",
+    "body": "- Fixed lobby crash\n- Added new roles",
+    "language": "pl",
+    "requestedLanguage": "pl",
+    "fallbackLanguage": null,
+    "translationStatus": "auto",
+    "translationProvider": "deepl",
+    "translationModel": null,
+    "releaseUrl": "https://github.com/user/repo/releases/tag/v5.4.0",
+    "source": "github"
+  }],
+  "meta": { "total": 45, "offset": 0, "limit": 5 }
+}
+```
+
+**Caching:** ETag/304 supported. Use `If-None-Match` with **quoted** ETag values. Object-level cache TTL: 120s.
+
+**Error cases:**
+- `404 NOT_FOUND` – No changelog available for this mod.
+- `400 VALIDATION_ERROR` – Invalid `lang` or `limit`.
+- `500 INTERNAL_ERROR` – Backend failure.
+
+**Client behavior (SUSModder 3.x):**
+- Always send `lang=pl` or `lang=en` based on app locale.
+- Tolerate `id` as string or number (use `JsonNumberHandling.AllowReadingFromString`).
+- On `304`, reuse cached entries from memory cache (TTL 2 min).
+- On `404`, show localized empty state, not a crash.
+- On error, show localized error message and allow user to close the dialog.
+- Do NOT block install/update flows when changelog API is unavailable.

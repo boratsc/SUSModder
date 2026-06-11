@@ -169,6 +169,18 @@
 - `GET /versions/:dbValue/epic` ✅ – Epic manifest by version
 
 ### Known (deferred)
-- Sustats/drafts – deprecated, Clair took over
+- Sustats/drafts - deprecated, Clair took over
 - `role_drafts` table missing in prod (not needed)
 - ModEditorPage variants/deps tabs (Phase 6 backlog)
+
+---
+
+## Phase 6 – Mod Changelog ✅ DEPLOYED (2026-06-11)
+
+| Endpoint | Route | Schema | Swagger | Live | Notes |
+|----------|-------|--------|---------|------|-------|
+| `GET /catalog/:id/changelog` | ✅ | ✅ | ✅ | ✅ 200 | PL/EN changelog, ETag/304, limit 1..20 |
+
+**Smoke tested:** `curl` on production returns 200 with PL/EN body, ETag, Cache-Control. `404` for non-existent mods. `400` for invalid lang/limit. `If-None-Match` with quoted ETag returns `304 Not Modified`.
+
+**Client implemented:** SUSModder 3.x (2026-06-11). See `DOC/PLAN/2026-06-11-mod-changelog-client-integration-plan.md`.
