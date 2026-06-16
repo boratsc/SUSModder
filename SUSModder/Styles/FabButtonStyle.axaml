@@ -129,6 +129,38 @@
         <Setter Property="Cursor" Value="No"/>
     </Style>
 
+    <Style Selector="Border.fab-menu-group">
+        <Setter Property="Margin" Value="0,4"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Background" Value="#1000BCD4"/>
+    </Style>
+
+    <Style Selector="Button.fab-menu-subitem">
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Padding" Value="10,8"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="Margin" Value="0,2"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.fab-menu-subitem:pointerover">
+        <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+    </Style>
+
+    <Style Selector="Button.fab-menu-subitem:pressed">
+        <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPressed}"/>
+    </Style>
+
     <!-- Separator in menu -->
     <Style Selector="Border.fab-menu-separator">
         <Setter Property="Height" Value="1"/>

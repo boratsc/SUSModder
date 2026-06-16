@@ -20,16 +20,36 @@ namespace SUSModder.Core.Models
         public bool IncludeIntegrationDll { get; set; }
         public int TtlDays { get; set; }
         public string VtStatus { get; set; } = "unknown";
+        public string Status { get; set; } = "ready";
+        public bool? Installable { get; set; }
         public JsonElement? Metadata { get; set; }
         public DateTimeOffset? CreatedAt { get; set; }
         public DateTimeOffset? ExpiresAt { get; set; }
         public IReadOnlyList<ModPackDllMod> DllMods { get; set; } = Array.Empty<ModPackDllMod>();
         public IReadOnlyList<ModPackExternalDll> ExternalDlls { get; set; } = Array.Empty<ModPackExternalDll>();
+        public IReadOnlyList<ModPackCustomArtifact> CustomArtifacts { get; set; } = Array.Empty<ModPackCustomArtifact>();
         public JsonElement? TouConfig { get; set; }
 
+        /// <summary>Custom full mod z GitHuba zamiast katalogowego FullMod.</summary>
+        public ModPackCustomArtifact? CustomFullMod { get; set; }
+
+        public bool HasCustomFullMod => CustomFullMod != null;
         public bool HasExternalDlls => ExternalDlls.Count > 0;
+        public bool HasCustomArtifacts => CustomArtifacts.Count > 0;
+        public bool HasCustomContent => HasCustomFullMod || HasExternalDlls || HasCustomArtifacts;
+        public bool IsBlockedOrNonCleanPack =>
+            HasNonCleanCustomArtifact ||
+            (Installable == false && HasCustomContent) ||
+            string.Equals(Status, "blocked", StringComparison.OrdinalIgnoreCase);
         public bool HasSuspiciousExternalDll =>
             ExternalDlls.Any(d => string.Equals(d.VtStatus, "suspicious", StringComparison.OrdinalIgnoreCase));
+        public bool HasNonCleanExternalDll =>
+            ExternalDlls.Any(d => !IsCleanStatus(d.VtStatus));
+        public bool HasNonCleanCustomArtifact =>
+            CustomArtifacts.Any(a => !IsCleanStatus(a.Status));
+
+        private static bool IsCleanStatus(string? status) =>
+            string.Equals(status, "clean", StringComparison.OrdinalIgnoreCase);
     }
 
     public sealed class ModPackFullMod
@@ -53,6 +73,25 @@ namespace SUSModder.Core.Models
         public string VtStatus { get; set; } = "unknown";
         public string? VtPermalink { get; set; }
         public string? DownloadUrl { get; set; }
+        public string? DllInstallPath { get; set; }
+    }
+
+    public sealed class ModPackCustomArtifact
+    {
+        public string ArtifactId { get; set; } = string.Empty;
+        public string SourceKind { get; set; } = "uploaded_dll";
+        public string ModType { get; set; } = "dll";
+        public string DisplayName { get; set; } = string.Empty;
+        public string? Version { get; set; }
+        public string? OriginalSourceUrl { get; set; }
+        public string FileName { get; set; } = string.Empty;
+        public string Sha256 { get; set; } = string.Empty;
+        public long FileSize { get; set; }
+        public string Status { get; set; } = "pending";
+        public string? VtPermalink { get; set; }
+        public string? DownloadUrl { get; set; }
+        public string? DllInstallPath { get; set; }
+        public IReadOnlyList<string> StructureWarnings { get; set; } = Array.Empty<string>();
     }
 
     /// <summary>
@@ -68,6 +107,9 @@ namespace SUSModder.Core.Models
         public DateTimeOffset? ExpiresAt { get; set; }
         public string? ErrorCode { get; set; }
         public string? ErrorMessage { get; set; }
+        public string Status { get; set; } = "ready";
+        public bool? Installable { get; set; }
+        public IReadOnlyList<ModPackCustomArtifact> CustomArtifacts { get; set; } = Array.Empty<ModPackCustomArtifact>();
     }
 
     /// <summary>
@@ -118,6 +160,52 @@ namespace SUSModder.Core.Models
         /// </summary>
         [JsonIgnore]
         public IReadOnlyList<string> ExternalDllFilePaths { get; set; } = Array.Empty<string>();
+    }
+
+    public sealed class ModPackCustomGithubModRequest
+    {
+        [JsonPropertyName("creatorHash")]
+        public string CreatorHash { get; set; } = string.Empty;
+
+        [JsonPropertyName("sourceKind")]
+        public string SourceKind { get; set; } = "github_dll";
+
+        [JsonPropertyName("modType")]
+        public string ModType { get; set; } = "dll";
+
+        [JsonPropertyName("displayName")]
+        public string DisplayName { get; set; } = string.Empty;
+
+        [JsonPropertyName("version")]
+        public string? Version { get; set; }
+
+        [JsonPropertyName("githubUrl")]
+        public string GithubUrl { get; set; } = string.Empty;
+
+        [JsonPropertyName("dllInstallPath")]
+        public string? DllInstallPath { get; set; }
+    }
+
+    public sealed class ModPackArtifactStatusResult
+    {
+        public bool Success { get; set; }
+        public string? ErrorCode { get; set; }
+        public string? ErrorMessage { get; set; }
+        public string Status { get; set; } = "unknown";
+        public bool DownloadAvailable { get; set; }
+        public ModPackExternalDll? DllEntry { get; set; }
+        public ModPackCustomArtifact? CustomArtifact { get; set; }
+    }
+
+    public sealed class ModPackFinalizeResult
+    {
+        public bool Success { get; set; }
+        public string? ErrorCode { get; set; }
+        public string? ErrorMessage { get; set; }
+        public string Status { get; set; } = "unknown";
+        public bool Installable { get; set; }
+        public string? ShareUrl { get; set; }
+        public string? DeepLink { get; set; }
     }
 
     public sealed class ModPackDllModRequest

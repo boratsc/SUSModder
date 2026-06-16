@@ -20,6 +20,7 @@
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="*"/>
 				</Grid.RowDefinitions>
 
@@ -116,8 +117,34 @@
 					<StackPanel x:Name="DescriptionPanel" Orientation="Vertical"/>
 				</ScrollViewer>
 
-				<!-- 3. Uruchom / Instaluj (stały) -->
-				<Border Grid.Row="2" Classes="mod-detail-sticky-cta" Margin="0,0,0,8" Padding="0,0,0,8">
+				<!-- 3. VirusTotal – uproszczony wskaźnik -->
+				<Button Grid.Row="2"
+						IsVisible="{Binding HasVtReport}"
+						Padding="8,4"
+						Margin="0,0,0,6"
+						HorizontalAlignment="Left"
+						Background="Transparent"
+						BorderThickness="0"
+						Command="{Binding $parent[local:ModDetailDrawer].DataContext.OpenVirusTotalReportCommand}"
+						ToolTip.Tip="{Binding VtTooltip}">
+					<StackPanel Orientation="Horizontal" Spacing="6">
+						<TextBlock Text="{Binding VtStatusEmoji}" FontSize="18" VerticalAlignment="Center"/>
+						<TextBlock FontSize="12"
+								   Text="{loc:Localize SecurityScan.ScannedByVirusTotal}"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   VerticalAlignment="Center"/>
+						<!-- Link do raportu tylko jeśli jest permalink -->
+						<TextBlock IsVisible="{Binding HasVtPermalink}"
+								   FontSize="11"
+								   Text="{loc:Localize SecurityScan.OpenReport}"
+								   Foreground="{DynamicResource AccentBrush}"
+								   VerticalAlignment="Center"
+								   TextDecorations="Underline"/>
+					</StackPanel>
+				</Button>
+
+				<!-- 4. Uruchom / Instaluj (stały) -->
+				<Border Grid.Row="3" Classes="mod-detail-sticky-cta" Margin="0,0,0,8" Padding="0,0,0,8">
 					<StackPanel Spacing="8">
 						<Button Content="{loc:Localize UI.Buttons.Launch}"
 								Classes="mod-detail-btn"
@@ -175,7 +202,7 @@
 				</Border>
 
 				<!-- 4. Przewijalne sekcje -->
-				<ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+				<ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto">
 					<StackPanel Spacing="10">
 
 						<!-- Dodatkowe akcje (zwijane) -->
@@ -221,6 +248,14 @@
 												IsVisible="{Binding IsFullMod}"
 												IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 												Command="{Binding $parent[local:ModDetailDrawer].DataContext.CreateLocalPackCommand}"/>
+										<Button Content="{loc:Localize UI.Packs.CreateAndShare}"
+												Classes="mod-detail-btn"
+												Background="Transparent"
+												BorderBrush="{DynamicResource AccentPrimaryBrush}"
+												BorderThickness="2"
+												IsVisible="{Binding IsFullMod}"
+												IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+												Command="{Binding $parent[local:ModDetailDrawer].DataContext.CreateAndSharePackCommand}"/>
 									</StackPanel>
 
 									<StackPanel Spacing="8"

@@ -116,19 +116,19 @@ public partial class MainWindowViewModel
 
 
 
-    private async Task ShowModPackCreatorAsync() =>
-
-        await ShowModPackCreatorDialogAsync(ModPackCreatorMode.ShareOnline);
-
-
-
     private async Task ShowCreateLocalPackAsync() =>
 
         await ShowModPackCreatorDialogAsync(ModPackCreatorMode.InstallLocal);
 
 
 
-    private async Task ShowModPackCreatorDialogAsync(ModPackCreatorMode mode)
+    private async Task ShowShareExistingPackAsync() =>
+    await ShowModPackCreatorDialogAsync(ModPackCreatorMode.ShareExisting);
+
+private async Task ShowCreateAndSharePackAsync() =>
+    await ShowModPackCreatorDialogAsync(ModPackCreatorMode.CreateAndShare);
+
+private async Task ShowModPackCreatorDialogAsync(ModPackCreatorMode mode)
 
     {
 
@@ -138,7 +138,8 @@ public partial class MainWindowViewModel
 
 
 
-        if (mode == ModPackCreatorMode.ShareOnline && !settings.ModPacksEnabled)
+        if ((mode == ModPackCreatorMode.ShareExisting || mode == ModPackCreatorMode.CreateAndShare) &&
+            !settings.ModPacksEnabled)
 
         {
 
@@ -158,7 +159,21 @@ public partial class MainWindowViewModel
 
 
 
-        if (result.Mode == ModPackCreatorMode.ShareOnline &&
+        if (result.Mode == ModPackCreatorMode.CreateAndShare && !string.IsNullOrEmpty(result.CreatedInstanceId))
+
+        {
+
+            await RefreshPackInstancesAsync();
+
+            ActiveBrowserTab = ModBrowserTab.MyPacks;
+
+            SelectedPackInstance = PackInstances.FirstOrDefault(p => p.InstanceId == result.CreatedInstanceId);
+
+        }
+
+
+
+        if ((result.Mode == ModPackCreatorMode.ShareExisting || result.Mode == ModPackCreatorMode.CreateAndShare) &&
 
             result.ShareResult?.Success == true &&
 
@@ -186,9 +201,19 @@ public partial class MainWindowViewModel
 
             SelectedPackInstance = PackInstances.FirstOrDefault(p => p.InstanceId == result.CreatedInstanceId);
 
+            var message = result.FailedDllNames.Count > 0
+
+                ? string.Format(
+
+                    _localizationService.Get("UI.Packs.CreateLocalPartial"),
+
+                    string.Join(", ", result.FailedDllNames))
+
+                : _localizationService.Get("UI.Packs.CreateLocalSuccess");
+
             await ShowMessageAsync(
 
-                _localizationService.Get("UI.Packs.CreateLocalSuccess"),
+                message,
 
                 _localizationService.Get("UI.Packs.CreateLocalTitle"));
 

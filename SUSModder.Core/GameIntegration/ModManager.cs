@@ -412,9 +412,15 @@ namespace SUSModder.Core.GameIntegration
                     continue;
                 }
 
-                string dllTargetDir = Path.Combine(fullMod.InstallPath, modConfig.DllInstallPath ?? string.Empty);
+                var actualModPath = PathSettings.GetActualModPath(fullMod.InstallPath);
+                if (!ModPackInstaller.TryResolveSafeDllDirectory(actualModPath, modConfig.DllInstallPath, out var dllTargetDir) ||
+                    !ModPackInstaller.TryResolveSafeDllPath(dllTargetDir, $"{modConfig.ModName}.dll", out var dllTargetPath))
+                {
+                    log.Write($"Pominięto mod '{fullMod.ModName}' - niebezpieczna ścieżka DLL");
+                    continue;
+                }
+
                 Directory.CreateDirectory(dllTargetDir);
-                string dllTargetPath = Path.Combine(dllTargetDir, $"{modConfig.ModName}.dll");
                 File.Copy(modFile, dllTargetPath, overwrite: true);
                 log.Write($"Skopiowano DLL do: {dllTargetPath}");
             }

@@ -621,6 +621,43 @@ namespace SUSModder.ViewModels
             }
         }
 
+        private void OpenVirusTotalReport()
+        {
+            if (SelectedMod == null)
+                return;
+
+            var permalink = SelectedMod.VtPermalink;
+            if (string.IsNullOrWhiteSpace(permalink))
+            {
+                Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await ShowErrorDialogAsync(
+                        _localizationService.Get("SecurityScan.NoReportAvailable"),
+                        _localizationService.Get("Dialogs.Error.Title"));
+                });
+                return;
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = permalink,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[VT] Nie udało się otworzyć raportu: {ex.Message}");
+                Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await ShowErrorDialogAsync(
+                        string.Format(_localizationService.Get("SecurityScan.OpenReportError"), ex.Message),
+                        _localizationService.Get("Dialogs.Error.Title"));
+                });
+            }
+        }
+
         private void CreateShortcut()
         {
             if (SelectedMod?.InstallPath != null && Directory.Exists(SelectedMod.InstallPath))

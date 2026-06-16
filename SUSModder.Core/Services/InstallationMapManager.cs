@@ -410,5 +410,136 @@ namespace SUSModder.Core.Services
             log.Write($"[InstallationMapManager] Walidacja zakończona: {cleanedCount} modów wyczyszczono");
             return cleanedCount;
         }
+
+        // ─────────────────────────────────────────────
+        // DLL Auto-Update helpers (v2.x)
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Stan auto-update dla danego moda DLL we wszystkich lokalizacjach.
+        /// </summary>
+        public enum DllAutoUpdateState
+        {
+            /// <summary>DLL nie jest nigdzie zainstalowany</summary>
+            NotInstalled,
+            /// <summary>Wszystkie lokalizacje mają auto-update OFF</summary>
+            Disabled,
+            /// <summary>Wszystkie lokalizacje mają auto-update ON</summary>
+            Enabled,
+            /// <summary>Różne lokalizacje mają różne ustawienie (mixed)</summary>
+            Mixed
+        }
+
+        /// <summary>
+        /// Odczytuje stan auto-update dla danego moda DLL (ID) we wszystkich lokalizacjach.
+        /// Skanuje wszystkie znane mody FULL (przekazane przez installedFullMods) i sprawdza
+        /// InstallationMap każdego z nich.
+        /// </summary>
+        /// <param name="dllModId">ID moda DLL</param>
+        /// <param name="installedFullMods">Lista wszystkich zainstalowanych modów FULL</param>
+        /// <returns>Stan auto-update (NotInstalled/Disabled/Enabled/Mixed)</returns>
+        public static async Task<DllAutoUpdateState> GetDllAutoUpdateStateAsync(
+            int dllModId,
+            List<ModConfiguration> installedFullMods)
+        {
+            bool foundAny = false;
+            bool? firstFlag = null;
+
+            foreach (var fullMod in installedFullMods)
+            {
+                if (string.IsNullOrEmpty(fullMod.InstallPath))
+                    continue;
+
+                var map = await LoadInstallationMapAsync(fullMod.InstallPath);
+                if (map?.InstalledDlls == null)
+                    continue;
+
+                var dllEntry = map.InstalledDlls.FirstOrDefault(d => d.ModId == dllModId);
+                if (dllEntry == null)
+                    continue;
+
+                foundAny = true;
+                if (firstFlag == null)
+                {
+                    firstFlag = dllEntry.AutoUpdateEnabled;
+                }
+                else if (firstFlag.Value != dllEntry.AutoUpdateEnabled)
+                {
+                    return DllAutoUpdateState.Mixed;
+                }
+            }
+
+            if (!foundAny)
+                return DllAutoUpdateState.NotInstalled;
+
+            return firstFlag == true ? DllAutoUpdateState.Enabled : DllAutoUpdateState.Disabled;
+        }
+
+        /// <summary>
+        /// Ustawia flagę auto-update dla danego moda DLL (ID) we wszystkich lokalizacjach
+        /// (wszystkie mody FULL gdzie DLL jest zainstalowany).
+        /// </summary>
+        /// <param name="dllModId">ID moda DLL</param>
+        /// <param name="installedFullMods">Lista wszystkich zainstalowanych modów FULL</param>
+        /// <param name="enabled">Wartość flagi do ustawienia</param>
+        /// <returns>Liczba zaktualizowanych lokalizacji</returns>
+        public static async Task<int> SetDllAutoUpdateAsync(
+            int dllModId,
+            List<ModConfiguration> installedFullMods,
+            bool enabled)
+        {
+            int updatedCount = 0;
+
+            foreach (var fullMod in installedFullMods)
+            {
+                if (string.IsNullOrEmpty(fullMod.InstallPath))
+                    continue;
+
+                var map = await LoadInstallationMapAsync(fullMod.InstallPath);
+                if (map?.InstalledDlls == null)
+                    continue;
+
+                var dllEntry = map.InstalledDlls.FirstOrDefault(d => d.ModId == dllModId);
+                if (dllEntry == null)
+                    continue;
+
+                if (dllEntry.AutoUpdateEnabled != enabled)
+                {
+                    dllEntry.AutoUpdateEnabled = enabled;
+                    await SaveInstallationMapAsync(fullMod.InstallPath, map);
+                    updatedCount++;
+                }
+            }
+
+            return updatedCount;
+        }
+
+        /// <summary>
+        /// Zwraca liczbę modów FULL w których zainstalowany jest dany DLL.
+        /// </summary>
+        /// <param name="dllModId">ID moda DLL</param>
+        /// <param name="installedFullMods">Lista wszystkich zainstalowanych modów FULL</param>
+        /// <returns>Liczba lokalizacji</returns>
+        public static async Task<int> GetDllInstallationCountAsync(
+            int dllModId,
+            List<ModConfiguration> installedFullMods)
+        {
+            int count = 0;
+
+            foreach (var fullMod in installedFullMods)
+            {
+                if (string.IsNullOrEmpty(fullMod.InstallPath))
+                    continue;
+
+                var map = await LoadInstallationMapAsync(fullMod.InstallPath);
+                if (map?.InstalledDlls == null)
+                    continue;
+
+                if (map.InstalledDlls.Any(d => d.ModId == dllModId))
+                    count++;
+            }
+
+            return count;
+        }
     }
 }

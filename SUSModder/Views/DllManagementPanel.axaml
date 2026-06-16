@@ -31,7 +31,7 @@
 										CornerRadius="8"
 										Margin="0,0,0,10"
 										Padding="15">
-									<Grid ColumnDefinitions="Auto,*,Auto">
+									<Grid ColumnDefinitions="Auto,*,Auto,Auto" RowDefinitions="Auto">
 										<!-- Ikona -->
 										<Image Grid.Column="0"
 											   Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
@@ -52,8 +52,25 @@
 													   Foreground="{DynamicResource TextSecondaryBrush}"
 													   Text="{Binding ModVersion, StringFormat='Wersja: {0}'}"/>
 										</StackPanel>
+
+										<!-- Toggle auto-update DLL -->
+										<StackPanel Grid.Column="2" VerticalAlignment="Center"
+													Margin="0,0,10,0" MinWidth="120"
+													ToolTip.Tip="{Binding DllAutoUpdateTooltip}">
+											<ToggleSwitch IsChecked="{Binding DllAutoUpdateEnabled}"
+														  IsEnabled="{Binding DllAutoUpdateNotInstalled, Converter={x:Static BoolConverters.Not}}"
+														  Command="{Binding #Root.DataContext.ToggleDllAutoUpdateCommand}"
+														  CommandParameter="{Binding}"
+														  HorizontalAlignment="Center"/>
+											<TextBlock Text="{Binding DllAutoUpdateLabel}"
+													   FontSize="10"
+													   HorizontalAlignment="Center"
+													   Foreground="{DynamicResource TextSecondaryBrush}"
+													   Margin="0,2,0,0"/>
+										</StackPanel>
+
 										<!-- Przycisk wyboru -->
-										<Button Grid.Column="2"
+										<Button Grid.Column="3"
 												Content="{loc:Localize UI.Buttons.Select}"
 												Background="{DynamicResource AccentBrush}"
 												Foreground="White"

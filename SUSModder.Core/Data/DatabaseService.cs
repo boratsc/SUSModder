@@ -20,7 +20,7 @@ namespace SUSModder.Core.Data
 
         // Aktualna wersja schematu bazy danych.
         // Zwiększaj przy każdej zmianie schematu (CREATE TABLE, ALTER TABLE, etc.).
-        private const int LatestSchemaVersion = 8;
+        private const int LatestSchemaVersion = 11;
 
         public DatabaseService()
         {
@@ -169,6 +169,12 @@ namespace SUSModder.Core.Data
                     HasRoles        INTEGER,
                     LobbyRegionBaseUrl TEXT,
                     SupportsLobbySharing INTEGER NOT NULL DEFAULT 0,
+                    VtScanStatus    TEXT,
+                    VtPermalink     TEXT,
+                    VtLastCheckedAt TEXT,
+                    VtStats         TEXT,
+                    VtAiReviewStatus TEXT,
+                    VtAiReviewSummary TEXT,
                     CreatedAt       TEXT    NOT NULL DEFAULT (datetime('now')),
                     UpdatedAt       TEXT    NOT NULL DEFAULT (datetime('now'))
                 );";
@@ -204,6 +210,8 @@ namespace SUSModder.Core.Data
                     active_sustats_guild_id TEXT DEFAULT NULL,
                     mod_packs_enabled     INTEGER NOT NULL DEFAULT 1,
                     mod_packs_auto_install INTEGER NOT NULL DEFAULT 0,
+                    mod_pack_share_creator_name TEXT NOT NULL DEFAULT '',
+                    mod_pack_share_discord_invite TEXT NOT NULL DEFAULT '',
                     glass_reduce_transparency INTEGER NOT NULL DEFAULT 0,
                     prefer_depot_downloader INTEGER NOT NULL DEFAULT 0
                 );";
@@ -568,6 +576,70 @@ namespace SUSModder.Core.Data
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v9: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 10)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v10 – VirusTotal columns...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+
+                    EnsureColumn(cmd, "mods", "VtScanStatus",
+                        "ALTER TABLE mods ADD COLUMN VtScanStatus TEXT;");
+                    EnsureColumn(cmd, "mods", "VtPermalink",
+                        "ALTER TABLE mods ADD COLUMN VtPermalink TEXT;");
+                    EnsureColumn(cmd, "mods", "VtLastCheckedAt",
+                        "ALTER TABLE mods ADD COLUMN VtLastCheckedAt TEXT;");
+                    EnsureColumn(cmd, "mods", "VtStats",
+                        "ALTER TABLE mods ADD COLUMN VtStats TEXT;");
+                    EnsureColumn(cmd, "mods", "VtAiReviewStatus",
+                        "ALTER TABLE mods ADD COLUMN VtAiReviewStatus TEXT;");
+                    EnsureColumn(cmd, "mods", "VtAiReviewSummary",
+                        "ALTER TABLE mods ADD COLUMN VtAiReviewSummary TEXT;");
+
+                    tx.Commit();
+                    SetUserVersion(conn, 10);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v10 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v10: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 11)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v11 – modpack share profile...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+
+                    EnsureColumn(cmd, "user_settings", "mod_pack_share_creator_name",
+                        "ALTER TABLE user_settings ADD COLUMN mod_pack_share_creator_name TEXT NOT NULL DEFAULT '';");
+                    EnsureColumn(cmd, "user_settings", "mod_pack_share_discord_invite",
+                        "ALTER TABLE user_settings ADD COLUMN mod_pack_share_discord_invite TEXT NOT NULL DEFAULT '';");
+
+                    tx.Commit();
+                    SetUserVersion(conn, 11);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v11 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v11: {ex.Message}. Wycofywanie...");
                     try { tx.Rollback(); } catch { /* ignore */ }
                     throw;
                 }

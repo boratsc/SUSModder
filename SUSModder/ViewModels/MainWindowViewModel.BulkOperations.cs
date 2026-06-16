@@ -254,6 +254,26 @@ namespace SUSModder.ViewModels
             if (selected.Count == 0)
                 return;
 
+            // ── VirusTotal bulk security gate (czyta z DB) ──
+            var riskyMods = selected
+                .Where(m => !m.IsVanilla && m.IsVtRisky)
+                .ToList();
+
+            if (riskyMods.Count > 0)
+            {
+                var title = _localizationService.Get("SecurityScan.BulkWarningTitle");
+                var message = BuildBulkSecurityWarningMessageFromDb(riskyMods);
+
+                bool proceed = await ShowConfirmDialogAsync(message, title);
+                if (!proceed)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[BulkInstall] Anulowano z powodu ostrzeżeń VT dla {riskyMods.Count} modów.");
+                    return;
+                }
+            }
+            // ── Koniec VT bulk gate ──
+
             await RunBulkQueueAsync(
                 selected.Select(m => new ModQueueItem
                 {
@@ -608,6 +628,28 @@ namespace SUSModder.ViewModels
                 currentSelectedMod.InstallProgress = 0;
                 currentSelectedMod.InstallStatusMessage = string.Empty;
             }
+        }
+
+        /// <summary>
+        /// Buduje komunikat ostrzegawczy dla zbiorczego dialogu przy bulk install (czyta z DB).
+        /// </summary>
+        private string BuildBulkSecurityWarningMessageFromDb(List<ModItem> riskyMods)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine(_localizationService.Get("SecurityScan.BulkWarningIntro"));
+            sb.AppendLine();
+
+            foreach (var mod in riskyMods)
+            {
+                sb.AppendLine($"\u25b8 {mod.Name} ({mod.ModVersion})");
+                sb.AppendLine($"  {_localizationService.Get("SecurityScan.WarningStatus")}: {mod.VtScanStatus}");
+                if (!string.IsNullOrWhiteSpace(mod.VtAiReviewSummary))
+                    sb.AppendLine($"  {_localizationService.Get("SecurityScan.WarningAiReview")}: {mod.VtAiReviewSummary}");
+                sb.AppendLine();
+            }
+
+            sb.Append(_localizationService.Get("SecurityScan.BulkWarningFooter"));
+            return sb.ToString();
         }
     }
 }

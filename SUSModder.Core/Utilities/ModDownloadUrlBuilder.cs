@@ -46,6 +46,12 @@ namespace SUSModder.Core.Utilities
 
         {
 
+            var directUrl = TryGetDirectDownloadUrl(mod, platform);
+
+            if (!string.IsNullOrWhiteSpace(directUrl))
+
+                return directUrl;
+
             var client = SUSModderApiClientProvider.TryGetDefault();
 
             if (client is not null)
@@ -78,6 +84,10 @@ namespace SUSModder.Core.Utilities
             string platform,
             CancellationToken cancellationToken = default)
         {
+            var directUrl = TryGetDirectDownloadUrl(mod, platform);
+            if (!string.IsNullOrWhiteSpace(directUrl))
+                return new ModDownloadResolution { Url = directUrl };
+
             var client = SUSModderApiClientProvider.TryGetDefault();
             if (client is null)
             {
@@ -131,6 +141,25 @@ namespace SUSModder.Core.Utilities
             }
 
             return new ModDownloadResolution { Url = Build(mod, platform) };
+        }
+
+        private static string? TryGetDirectDownloadUrl(ModConfiguration mod, string platform)
+        {
+            if (mod.Id > 0)
+                return null;
+
+            var sourceUrl = platform.Equals("epic", StringComparison.OrdinalIgnoreCase) &&
+                            !string.IsNullOrWhiteSpace(mod.EpicGitHubRepoOrLink)
+                ? mod.EpicGitHubRepoOrLink
+                : mod.GitHubRepoOrLink;
+
+            if (Uri.TryCreate(sourceUrl, UriKind.Absolute, out var uri) &&
+                (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp))
+            {
+                return uri.ToString();
+            }
+
+            return null;
         }
 
         private static string? NormalizeSha256(string? sha256)

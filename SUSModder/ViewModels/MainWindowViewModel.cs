@@ -54,6 +54,7 @@ namespace SUSModder.ViewModels
         #region Private Fields
 
         private bool _isPaneOpen;
+        private bool _isFabModPackActionsExpanded;
         private ModItem? _selectedMod;
         private ThemeType _currentTheme = ThemeType.Dark;
         private ResourceDictionary? _currentThemeDictionary;
@@ -74,6 +75,7 @@ namespace SUSModder.ViewModels
         private Microsoft.Extensions.Configuration.IConfiguration? _configuration;
         private SUSModder.Core.Diagnostics.IDiagnosticsOutput? _diagnosticsOutput;
         private readonly UserSettingsService _userSettingsService;
+        private SUSModder.Core.Services.ModSecurityScanService? _securityScanService;
         private bool _isDllModificationsVisible = false;
         private ObservableCollection<ModItem> _dllMods = new();
         private ModItem? _selectedDllMod;
@@ -462,6 +464,12 @@ namespace SUSModder.ViewModels
             get => _isPaneOpen;
             set => this.RaiseAndSetIfChanged(ref _isPaneOpen, value);
         }
+
+        public bool IsFabModPackActionsExpanded
+        {
+            get => _isFabModPackActionsExpanded;
+            private set => this.RaiseAndSetIfChanged(ref _isFabModPackActionsExpanded, value);
+        }
         // FAB – badge and contextual icon
         private bool _isAnyModInstalling;
 
@@ -681,15 +689,18 @@ namespace SUSModder.ViewModels
     public ReactiveCommand<Unit, Unit> CloseDllDialogCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowLobbyBoardCommand { get; }
-        public ReactiveCommand<Unit, Unit> ShareModPackCommand { get; }
-        public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; }
+        public ReactiveCommand<Unit, Unit> ShareExistingPackCommand { get; }
+        public ReactiveCommand<Unit, Unit> CreateAndSharePackCommand { get; }
+public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
         public ReactiveCommand<Unit, Unit> EnterModPackCodeCommand { get; }
+        public ReactiveCommand<Unit, Unit> ToggleFabModPackActionsCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowDllSelectionCommand { get; }
     public ReactiveCommand<Unit, Unit> CheckForAppUpdatesCommand { get; }
         public ReactiveCommand<Unit, Unit> CheckForModUpdatesFromMenuCommand { get; private set; }
     public ReactiveCommand<string, Unit> ExecuteRepairOptionCommand { get; }
     public ReactiveCommand<ModItem, Unit> ModDoubleClickCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenModChangelogCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenVirusTotalReportCommand { get; }
 
         #endregion
 
@@ -698,6 +709,12 @@ namespace SUSModder.ViewModels
         public MainWindowViewModel()
         {
             _localizationService = App.GetService<SUSModder.Core.Services.Localization.ILocalizationService>();
+
+            // Podłącz lokalizację dla tooltipów VT w ModItem
+            ModItem.InitializeLocalization(_localizationService);
+
+            // Inicjalizuj serwis skanowania bezpieczeństwa (VirusTotal)
+            _securityScanService = App.GetService<SUSModder.Core.Services.ModSecurityScanService>();
 
             // Inicjalizuj serwis powiadomień toast (singleton z DI)
             ToastService = App.GetService<ToastService>();
@@ -755,11 +772,14 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             CloseDllDialogCommand = ReactiveCommand.Create(CloseDllDialog);
             ShowAppSettingsCommand = ReactiveCommand.Create(ShowAppSettings);
             OpenModChangelogCommand = ReactiveCommand.CreateFromTask(OpenModChangelogAsync);
+            OpenVirusTotalReportCommand = ReactiveCommand.Create(OpenVirusTotalReport);
             this.RaisePropertyChanged(nameof(IsDeveloperMode));
             ShowRecommendedDiscordsCommand = ReactiveCommand.Create(ShowRecommendedDiscords);
             ShowLobbyBoardCommand = ReactiveCommand.Create(ShowLobbyBoardFromMenu);
-            ShareModPackCommand = ReactiveCommand.CreateFromTask(ShowModPackCreatorAsync);
+            ToggleFabModPackActionsCommand = ReactiveCommand.Create(ToggleFabModPackActions);
+            ShareExistingPackCommand = ReactiveCommand.CreateFromTask(ShowShareExistingPackAsync);
             CreateLocalPackCommand = ReactiveCommand.CreateFromTask(ShowCreateLocalPackAsync);
+            CreateAndSharePackCommand = ReactiveCommand.CreateFromTask(ShowCreateAndSharePackAsync);
             EnterModPackCodeCommand = ReactiveCommand.CreateFromTask(ShowModPackCodeEntryAsync);
             ShowSUStatsConfigCommand = ReactiveCommand.Create(ShowSUStatsConfig);
             ExecuteRepairOptionCommand = ReactiveCommand.CreateFromTask<string>(ExecuteRepairOptionFromModalAsync);
@@ -833,6 +853,13 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
         private void TogglePane()
         {
             IsPaneOpen = !IsPaneOpen;
+            if (!IsPaneOpen)
+                IsFabModPackActionsExpanded = false;
+        }
+
+        private void ToggleFabModPackActions()
+        {
+            IsFabModPackActionsExpanded = !IsFabModPackActionsExpanded;
         }
 
         private void HandleCommandError(Exception ex)

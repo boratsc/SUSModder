@@ -88,6 +88,40 @@ namespace SUSModder.ViewModels
 
                 string platform = DeterminePlatform();
 
+                // ── VirusTotal security gate (czyta z DB, nie woła API) ──
+                if (!currentSelectedMod.IsVanilla && currentSelectedMod.IsVtRisky)
+                {
+                    string warningTitle = _localizationService.Get("SecurityScan.InstallWarningTitle");
+                    string warningMessage = string.Format(
+                        _localizationService.Get("SecurityScan.WarningIntro"),
+                        currentSelectedMod.Name, modConfig.ModVersion);
+                    warningMessage += "\n\n";
+                    warningMessage += string.Format(
+                        _localizationService.Get("SecurityScan.WarningStatus"),
+                        currentSelectedMod.VtScanStatus ?? "unknown");
+                    if (!string.IsNullOrWhiteSpace(currentSelectedMod.VtAiReviewSummary))
+                    {
+                        warningMessage += "\n" + string.Format(
+                            _localizationService.Get("SecurityScan.WarningAiReview"),
+                            currentSelectedMod.VtAiReviewSummary);
+                    }
+                    if (!string.IsNullOrWhiteSpace(currentSelectedMod.VtPermalink))
+                    {
+                        warningMessage += "\n\n" + string.Format(
+                            _localizationService.Get("SecurityScan.WarningPermalink"),
+                            currentSelectedMod.VtPermalink);
+                    }
+
+                    bool proceed = await ShowConfirmDialogAsync(warningMessage, warningTitle);
+                    if (!proceed)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[Install] Użytkownik anulował instalację moda {currentSelectedMod.Name} z powodu ostrzeżenia VT.");
+                        return false;
+                    }
+                }
+                // ── Koniec security gate ──
+
                 if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
                 {
                     success = await InstallEpicModAsync(currentSelectedMod, modConfig);

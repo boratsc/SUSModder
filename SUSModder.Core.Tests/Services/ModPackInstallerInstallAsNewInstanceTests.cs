@@ -1,4 +1,7 @@
 using System.Text.Json;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using Microsoft.Extensions.Configuration;
 using SUSModder.Core.Api;
 using SUSModder.Core.Configuration;
@@ -98,6 +101,76 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
         Assert.Equal(stored.InstallPath, fakeFull.LastTargetPath);
     }
 
+    [Fact]
+    public async Task InstallPack_AsNewInstance_InstallsCleanCustomDllArtifactWithSha256Verification()
+    {
+        await using var db = await CreateInitializedDatabaseAsync();
+        var testConfig = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2"
+            })
+            .Build();
+        var apiClient = new SUSModderApiClient(testConfig, new TestDiagnosticsOutput());
+        var modRepo = new ModRepository(db, apiClient);
+        ConfigManager.SetRepository(modRepo);
+        modRepo.SaveAllMods(new List<ModConfiguration>
+        {
+            ModInstanceInstallerTestsHelpers.CreateFullMod()
+        });
+
+        var bytes = Encoding.UTF8.GetBytes("clean custom dll bytes");
+        using var server = new SingleResponseHttpServer(bytes);
+        var instanceRepo = new ModInstanceRepository(db);
+        var fakeFull = new ModInstanceInstallerTestsHelpers.FakeFullModInstaller();
+        var instanceInstaller = new ModInstanceInstaller(
+            instanceRepo,
+            fakeFull,
+            new ModInstanceInstallerTestsHelpers.FakeDllInstaller());
+        var configuration = new ConfigurationBuilder().Build();
+        var configService = new ConfigService();
+        var log = new TestDiagnosticsOutput();
+        var installer = new ModPackInstaller(
+            configuration,
+            configService,
+            new DllModificationService(configService, log),
+            log,
+            instanceInstaller,
+            instanceRepo);
+        var pack = new ModPack
+        {
+            PackCode = "TEST-CODE-1234",
+            ModName = "Custom DLL pack",
+            FullMod = new ModPackFullMod { Id = 10, Version = "5.5.0" },
+            Status = "ready",
+            Installable = true,
+            CustomArtifacts = new[]
+            {
+                new ModPackCustomArtifact
+                {
+                    ArtifactId = "artifact-1",
+                    SourceKind = "uploaded_dll",
+                    ModType = "dll",
+                    FileName = "custom.dll",
+                    Sha256 = Sha256Verifier.ComputeHex(bytes),
+                    FileSize = bytes.Length,
+                    Status = "clean",
+                    DownloadUrl = server.Url,
+                    DllInstallPath = Path.Combine("BepInEx", "plugins", "Custom")
+                }
+            }
+        };
+
+        var result = await installer.InstallPackAsync(pack, "steam", displayName: "custom artifact");
+
+        Assert.True(result.Success);
+        Assert.Contains("custom.dll", result.InstalledMods);
+        Assert.NotNull(fakeFull.LastTargetPath);
+        var installedPath = Path.Combine(fakeFull.LastTargetPath!, "BepInEx", "plugins", "Custom", "custom.dll");
+        Assert.True(File.Exists(installedPath));
+        Assert.Equal(bytes, File.ReadAllBytes(installedPath));
+    }
+
     public void Dispose()
     {
         try
@@ -116,6 +189,58 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
         var db = new DatabaseService(Path.Combine(_tempDir, Guid.NewGuid().ToString("N"), "susmodder.db"));
         await db.InitializeAsync();
         return db;
+    }
+}
+
+internal sealed class SingleResponseHttpServer : IDisposable
+{
+    private readonly TcpListener _listener;
+    private readonly CancellationTokenSource _cts = new();
+    private readonly Task _serverTask;
+    private readonly byte[] _body;
+
+    public SingleResponseHttpServer(byte[] body)
+    {
+        _body = body;
+        _listener = new TcpListener(IPAddress.Loopback, 0);
+        _listener.Start();
+        var port = ((IPEndPoint)_listener.LocalEndpoint).Port;
+        Url = $"http://127.0.0.1:{port}/artifact.dll";
+        _serverTask = Task.Run(ServeOnceAsync);
+    }
+
+    public string Url { get; }
+
+    private async Task ServeOnceAsync()
+    {
+        try
+        {
+            using var client = await _listener.AcceptTcpClientAsync(_cts.Token);
+            await using var stream = client.GetStream();
+            var buffer = new byte[1024];
+            _ = await stream.ReadAsync(buffer, _cts.Token);
+            var headers = Encoding.ASCII.GetBytes(
+                "HTTP/1.1 200 OK\r\n" +
+                "Content-Type: application/octet-stream\r\n" +
+                $"Content-Length: {_body.Length}\r\n" +
+                "Connection: close\r\n\r\n");
+            await stream.WriteAsync(headers, _cts.Token);
+            await stream.WriteAsync(_body, _cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _listener.Stop();
+        try { _serverTask.Wait(TimeSpan.FromSeconds(1)); } catch { }
+        _cts.Dispose();
     }
 }
 

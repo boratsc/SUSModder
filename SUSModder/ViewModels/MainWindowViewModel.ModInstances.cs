@@ -637,7 +637,7 @@ namespace SUSModder.ViewModels
         }
 
         private Task ShareSelectedPackInstanceViaCreatorAsync() =>
-            ShowModPackCreatorDialogAsync(ModPackCreatorMode.ShareOnline);
+            ShowModPackCreatorDialogAsync(ModPackCreatorMode.ShareExisting);
 
         private void ClosePackInstanceDetail()
         {
@@ -695,6 +695,66 @@ namespace SUSModder.ViewModels
                 return _localizationService.Get("UI.Packs.ContentsEmpty");
 
             return string.Join(Environment.NewLine, lines);
+        }
+
+        // ─────────────────────────────────────────────
+        // Modpack Update Notification Check
+        // ─────────────────────────────────────────────
+
+        private async Task CheckModPackUpdatesAsync()
+        {
+            try
+            {
+                var modPackService = App.GetService<IModPackService>();
+                var instanceRepo = App.GetService<IModInstanceRepository>();
+                var configService = new ConfigService();
+
+                if (modPackService == null || instanceRepo == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[ModPackUpdates] Brak wymaganych serwisów, pomijam");
+                    return;
+                }
+
+                var checker = new ModPackUpdateChecker(
+                    modPackService, instanceRepo,
+                    _diagnosticsOutput ?? new UIDiagnosticsOutput(_ => { }),
+                    configService);
+
+                var results = await checker.CheckAllInstancesAsync();
+
+                if (!results.Any())
+                {
+                    System.Diagnostics.Debug.WriteLine("[ModPackUpdates] Brak instancji shared_pack do sprawdzenia");
+                    return;
+                }
+
+                // Zaktualizuj HasUpdateAvailable w istniejących ModInstanceItem
+                foreach (var result in results)
+                {
+                    var packItem = PackInstances.FirstOrDefault(p => p.InstanceId == result.InstanceId);
+                    if (packItem != null)
+                    {
+                        packItem.HasUpdateAvailable = packItem.HasUpdateAvailable || result.HasUpdate;
+                        packItem.PackUpdateInfo = result; // Przechowaj szczegóły do wyświetlenia
+                    }
+                }
+
+                var updateCount = results.Count(r => r.HasUpdate);
+                if (updateCount > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ModPackUpdates] Znaleziono {updateCount} instancji z dostępną aktualizacją paczki");
+                    ToastService.ShowInfo(
+                        _localizationService.GetFormatted("ModPacks.UpdateAvailableCount", updateCount));
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[ModPackUpdates] Wszystkie instancje są aktualne");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ModPackUpdates] Błąd: {ex.Message}");
+            }
         }
     }
 }

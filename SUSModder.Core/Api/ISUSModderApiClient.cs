@@ -88,6 +88,13 @@ public interface ISUSModderApiClient : IDisposable
         string? ifNoneMatch = null,
         CancellationToken cancellationToken = default);
 
+    Task<SusModderApiResult<ModVariantVirusTotalReportDto>> GetModVariantVirusTotalReportAsync(
+        int modId,
+        string version,
+        string platform,
+        string arch,
+        CancellationToken cancellationToken = default);
+
     Task<HttpResponseMessage> SendAsync(
         SusModderApiRequest request,
         CancellationToken cancellationToken = default);

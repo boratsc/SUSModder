@@ -73,22 +73,43 @@ namespace SUSModder.Core.Services
             CancellationToken ct)
         {
             var result = new ModPackInstallResult();
-            if (pack.FullMod == null)
+
+            var usingCustomFull = pack.HasCustomFullMod;
+            var customFull = pack.CustomFullMod;
+
+            if (!usingCustomFull && pack.FullMod == null)
             {
                 result.ErrorMessage = "mod_pack_missing_full_mod";
                 return result;
             }
 
             var allConfigs = _configService.LoadConfig();
-            var fullModConfig = allConfigs.FirstOrDefault(c => c.Id == pack.FullMod.Id);
-            if (fullModConfig == null)
+            ModConfiguration fullModConfig;
+            if (usingCustomFull)
             {
-                result.ErrorMessage = "mod_pack_full_mod_not_in_catalog";
-                result.FailedMods.Add(pack.ModName ?? $"mod#{pack.FullMod.Id}");
-                return result;
+                if (string.IsNullOrWhiteSpace(customFull!.DownloadUrl))
+                {
+                    result.ErrorMessage = "custom_full_download_missing";
+                    return result;
+                }
+
+                fullModConfig = BuildCustomFullModConfig(customFull);
+            }
+            else
+            {
+                var fullMod = pack.FullMod!;
+                var match = allConfigs.FirstOrDefault(c => c.Id == fullMod.Id);
+                if (match == null)
+                {
+                    result.ErrorMessage = "mod_pack_full_mod_not_in_catalog";
+                    result.FailedMods.Add(pack.ModName ?? $"mod#{fullMod.Id}");
+                    return result;
+                }
+
+                fullModConfig = CloneForInstall(match, fullMod.Version);
             }
 
-            var modToInstall = CloneForInstall(fullModConfig, pack.FullMod.Version);
+            var modToInstall = fullModConfig;
             var instanceName = string.IsNullOrWhiteSpace(displayName)
                 ? (pack.ModName ?? fullModConfig.ModName ?? "Zestaw")
                 : displayName.Trim();
@@ -100,6 +121,7 @@ namespace SUSModder.Core.Services
                 var diag = new SimpleDiagnostics(_log);
                 var callbacks = modManagerCallbacks ?? new ModManagerUserCallbacks();
 
+                var origin = usingCustomFull ? "shared_pack_custom_full" : "shared_pack";
                 var instance = await _instanceInstaller!.InstallFullModInstanceAsync(
                     modToInstall,
                     instanceName,
@@ -107,7 +129,7 @@ namespace SUSModder.Core.Services
                     progressReporter,
                     diag,
                     callbacks,
-                    origin: "shared_pack",
+                    origin: origin,
                     sourcePackCode: pack.PackCode);
 
                 result.InstanceId = instance.InstanceId;
@@ -149,17 +171,17 @@ namespace SUSModder.Core.Services
                 }
 
                 var targetMod = TargetModFromInstance(instance, fullModConfig);
-                foreach (var ext in pack.ExternalDlls)
+                foreach (var ext in EnumerateExternalDlls(pack))
                 {
                     ct.ThrowIfCancellationRequested();
-                    if (string.Equals(ext.VtStatus, "suspicious", StringComparison.OrdinalIgnoreCase))
+                    if (!string.Equals(ext.VtStatus, "clean", StringComparison.OrdinalIgnoreCase))
                     {
                         result.FailedMods.Add(ext.FileName);
                         continue;
                     }
 
                     progress?.Report((78, $"Pobieranie {ext.FileName}..."));
-                    var ok = await InstallExternalDllAsync(pack.PackCode, ext, targetMod);
+                    var ok = await InstallExternalDllAsync(pack.PackCode, ext, targetMod, ct);
                     if (ok)
                         result.InstalledMods.Add(ext.FileName);
                     else
@@ -205,19 +227,40 @@ namespace SUSModder.Core.Services
             CancellationToken ct)
         {
             var result = new ModPackInstallResult();
-            if (pack.FullMod == null)
+
+            var usingCustomFull = pack.HasCustomFullMod;
+            var customFull = pack.CustomFullMod;
+
+            if (!usingCustomFull && pack.FullMod == null)
             {
                 result.ErrorMessage = "Brak moda głównego.";
                 return result;
             }
 
             var allConfigs = _configService.LoadConfig();
-            var fullModConfig = allConfigs.FirstOrDefault(c => c.Id == pack.FullMod.Id);
-            if (fullModConfig == null)
+            ModConfiguration fullModConfig;
+
+            if (usingCustomFull)
             {
-                result.ErrorMessage = "Mod główny nie znaleziony w katalogu.";
-                result.FailedMods.Add(pack.ModName ?? $"mod#{pack.FullMod.Id}");
-                return result;
+                if (string.IsNullOrWhiteSpace(customFull!.DownloadUrl))
+                {
+                    result.ErrorMessage = "custom_full_download_missing";
+                    return result;
+                }
+
+                fullModConfig = BuildCustomFullModConfig(customFull);
+            }
+            else
+            {
+                var fullMod = pack.FullMod!;
+                var match = allConfigs.FirstOrDefault(c => c.Id == fullMod.Id);
+                if (match == null)
+                {
+                    result.ErrorMessage = "Mod główny nie znaleziony w katalogu.";
+                    result.FailedMods.Add(pack.ModName ?? $"mod#{fullMod.Id}");
+                    return result;
+                }
+                fullModConfig = match;
             }
 
             try
@@ -247,7 +290,7 @@ namespace SUSModder.Core.Services
                     }
 
                     allConfigs = _configService.LoadConfig();
-                    fullModConfig = allConfigs.FirstOrDefault(c => c.Id == pack.FullMod.Id) ?? fullModConfig;
+                    fullModConfig = allConfigs.FirstOrDefault(c => c.Id == fullModConfig.Id) ?? fullModConfig;
                     result.InstalledMods.Add(fullModConfig.ModName ?? "full mod");
                 }
                 else
@@ -293,17 +336,17 @@ namespace SUSModder.Core.Services
                         result.FailedMods.Add(dllMod.ModName ?? $"DLL#{dllEntry.DllModId}");
                 }
 
-                foreach (var ext in pack.ExternalDlls)
+                foreach (var ext in EnumerateExternalDlls(pack))
                 {
                     ct.ThrowIfCancellationRequested();
-                    if (string.Equals(ext.VtStatus, "suspicious", StringComparison.OrdinalIgnoreCase))
+                    if (!string.Equals(ext.VtStatus, "clean", StringComparison.OrdinalIgnoreCase))
                     {
                         result.FailedMods.Add(ext.FileName);
                         continue;
                     }
 
                     progress?.Report((75, $"Pobieranie {ext.FileName}..."));
-                    var ok = await InstallExternalDllAsync(pack.PackCode, ext, fullModConfig);
+                    var ok = await InstallExternalDllAsync(pack.PackCode, ext, fullModConfig, ct);
                     if (ok)
                         result.InstalledMods.Add(ext.FileName);
                     else
@@ -365,6 +408,21 @@ namespace SUSModder.Core.Services
             return clone;
         }
 
+        private static ModConfiguration BuildCustomFullModConfig(ModPackCustomArtifact customFull)
+        {
+            return new ModConfiguration
+            {
+                Id = 0,
+                ModName = string.IsNullOrWhiteSpace(customFull.DisplayName)
+                    ? customFull.FileName
+                    : customFull.DisplayName,
+                ModType = "full",
+                ModVersion = customFull.Version ?? string.Empty,
+                GitHubRepoOrLink = customFull.DownloadUrl ?? string.Empty,
+                DllInstallPath = "BepInEx/plugins"
+            };
+        }
+
         private static ModConfiguration TargetModFromInstance(ModInstance instance, ModConfiguration catalogMod)
         {
             return new ModConfiguration
@@ -381,8 +439,36 @@ namespace SUSModder.Core.Services
             };
         }
 
+        private static IEnumerable<ModPackExternalDll> EnumerateExternalDlls(ModPack pack)
+        {
+            foreach (var ext in pack.ExternalDlls)
+                yield return ext;
+
+            foreach (var artifact in pack.CustomArtifacts)
+            {
+                if (!IsDllArtifact(artifact))
+                    continue;
+
+                yield return new ModPackExternalDll
+                {
+                    FileName = artifact.FileName,
+                    Sha256 = artifact.Sha256,
+                    FileSize = artifact.FileSize,
+                    VtStatus = artifact.Status,
+                    VtPermalink = artifact.VtPermalink,
+                    DownloadUrl = artifact.DownloadUrl,
+                    DllInstallPath = artifact.DllInstallPath
+                };
+            }
+        }
+
+        private static bool IsDllArtifact(ModPackCustomArtifact artifact) =>
+            string.Equals(artifact.ModType, "dll", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(artifact.SourceKind, "uploaded_dll", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(artifact.SourceKind, "github_dll", StringComparison.OrdinalIgnoreCase);
+
         private async Task<bool> InstallExternalDllAsync(
-            string packCode, ModPackExternalDll ext, ModConfiguration targetMod)
+            string packCode, ModPackExternalDll ext, ModConfiguration targetMod, CancellationToken ct)
         {
             try
             {
@@ -392,7 +478,7 @@ namespace SUSModder.Core.Services
                     downloadUrl = $"{_apiV2BaseUrl}/modpacks/{packCode}/dlls/{ext.Sha256}";
                 }
 
-                var response = await HttpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                var response = await HttpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, ct);
                 if (!response.IsSuccessStatusCode)
                 {
                     _log.Write($"[ModPackInstaller] External DLL download failed: {response.StatusCode}");
@@ -405,9 +491,20 @@ namespace SUSModder.Core.Services
                     return false;
                 }
 
-                var bytes = await response.Content.ReadAsByteArrayAsync();
+                var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+                if (!string.IsNullOrWhiteSpace(ext.Sha256) &&
+                    !Sha256Verifier.VerifyBytes(bytes, ext.Sha256))
+                {
+                    _log.Write($"[ModPackInstaller] External DLL SHA256 mismatch: {ext.FileName}");
+                    return false;
+                }
+
                 var actualPath = PathSettings.GetActualModPath(targetMod.InstallPath!);
-                var pluginsDir = Path.Combine(actualPath, "BepInEx", "plugins");
+                if (!TryResolveSafeDllDirectory(actualPath, ext.DllInstallPath, out var pluginsDir))
+                {
+                    _log.Write($"[ModPackInstaller] Unsafe DLL install path blocked: {ext.DllInstallPath}");
+                    return false;
+                }
 
                 if (!TryResolveSafeDllPath(pluginsDir, ext.FileName, out var safeDest))
                 {
@@ -416,7 +513,17 @@ namespace SUSModder.Core.Services
                 }
 
                 Directory.CreateDirectory(pluginsDir);
-                await File.WriteAllBytesAsync(safeDest, bytes);
+                var tempPath = Path.Combine(pluginsDir, $".{Path.GetFileName(safeDest)}.{Guid.NewGuid():N}.tmp");
+                try
+                {
+                    await File.WriteAllBytesAsync(tempPath, bytes, ct);
+                    File.Move(tempPath, safeDest, overwrite: true);
+                }
+                catch
+                {
+                    TryDeleteTempFile(tempPath);
+                    throw;
+                }
                 _log.Write($"[ModPackInstaller] External DLL saved: {safeDest}");
                 return true;
             }
@@ -424,6 +531,57 @@ namespace SUSModder.Core.Services
             {
                 _log.Write($"[ModPackInstaller] External DLL error: {ex.Message}");
                 return false;
+            }
+        }
+
+        internal static bool TryResolveSafeDllDirectory(string actualModPath, string? dllInstallPath, out string safeDirectory)
+        {
+            safeDirectory = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(actualModPath))
+                return false;
+
+            var relativePath = string.IsNullOrWhiteSpace(dllInstallPath)
+                ? Path.Combine("BepInEx", "plugins")
+                : dllInstallPath.Trim().Replace('/', Path.DirectorySeparatorChar);
+
+            if (Path.IsPathRooted(relativePath) ||
+                relativePath.Contains("..", StringComparison.Ordinal) ||
+                relativePath.Contains(':', StringComparison.Ordinal))
+                return false;
+
+            var fullActualPath = Path.GetFullPath(actualModPath);
+            var pluginsRoot = Path.GetFullPath(Path.Combine(fullActualPath, "BepInEx", "plugins"));
+            var targetDirectory = Path.GetFullPath(Path.Combine(fullActualPath, relativePath));
+
+            if (!IsSameOrChildPath(targetDirectory, pluginsRoot))
+                return false;
+
+            safeDirectory = targetDirectory;
+            return true;
+        }
+
+        private static bool IsSameOrChildPath(string candidate, string root)
+        {
+            var normalizedRoot = root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var normalizedCandidate = candidate.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+            return string.Equals(normalizedCandidate, normalizedRoot, StringComparison.OrdinalIgnoreCase) ||
+                   normalizedCandidate.StartsWith(
+                       normalizedRoot + Path.DirectorySeparatorChar,
+                       StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void TryDeleteTempFile(string tempPath)
+        {
+            try
+            {
+                if (File.Exists(tempPath))
+                    File.Delete(tempPath);
+            }
+            catch
+            {
+                // best-effort cleanup only
             }
         }
 
@@ -456,11 +614,21 @@ namespace SUSModder.Core.Services
             if (string.IsNullOrWhiteSpace(fileName))
                 return false;
 
+            if (Path.IsPathRooted(fileName) ||
+                fileName.Contains("..", StringComparison.Ordinal) ||
+                fileName.Contains(Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+                fileName.Contains(Path.AltDirectorySeparatorChar, StringComparison.Ordinal) ||
+                fileName.Contains(':', StringComparison.Ordinal))
+                return false;
+
             var safeFileName = Path.GetFileName(fileName);
             if (string.IsNullOrWhiteSpace(safeFileName))
                 return false;
 
             if (safeFileName is "." or "..")
+                return false;
+
+            if (!string.Equals(Path.GetExtension(safeFileName), ".dll", StringComparison.OrdinalIgnoreCase))
                 return false;
 
             var dest = Path.Combine(pluginsDir, safeFileName);

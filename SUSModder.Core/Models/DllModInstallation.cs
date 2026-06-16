@@ -49,5 +49,13 @@ namespace SUSModder.Core.Models
         /// </summary>
         [JsonPropertyName("lastUpdated")]
         public DateTime LastUpdated { get; set; }
+
+        /// <summary>
+        /// Auto-aktualizacja DLL — gdy true, aktualizacje są instalowane
+        /// automatycznie bez pytania użytkownika o potwierdzenie.
+        /// Domyślnie false (backward compatible: brak pola = false).
+        /// </summary>
+        [JsonPropertyName("autoUpdateEnabled")]
+        public bool AutoUpdateEnabled { get; set; }
     }
 }

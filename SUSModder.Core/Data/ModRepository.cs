@@ -446,6 +446,12 @@ namespace SUSModder.Core.Data
             cmd.Parameters.AddWithValue("@HasRoles", mod.HasRoles.HasValue ? (object)(mod.HasRoles.Value ? 1 : 0) : DBNull.Value);
             cmd.Parameters.AddWithValue("@LobbyRegionBaseUrl", (object?)mod.LobbyRegionBaseUrl ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@SupportsLobbySharing", mod.SupportsLobbySharing ? 1 : 0);
+            cmd.Parameters.AddWithValue("@VtScanStatus", (object?)mod.VtScanStatus ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@VtPermalink", (object?)mod.VtPermalink ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@VtLastCheckedAt", (object?)mod.VtLastCheckedAt ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@VtStats", (object?)mod.VtStats ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@VtAiReviewStatus", (object?)mod.VtAiReviewStatus ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@VtAiReviewSummary", (object?)mod.VtAiReviewSummary ?? DBNull.Value);
         }
 
         private static ModConfiguration MapModFromReader(SqliteDataReader reader)
@@ -466,8 +472,20 @@ namespace SUSModder.Core.Data
                 Description = reader.GetString(reader.GetOrdinal("Description")),
                 HasRoles = reader.IsDBNull(reader.GetOrdinal("HasRoles")) ? null : reader.GetInt32(reader.GetOrdinal("HasRoles")) != 0,
                 LobbyRegionBaseUrl = reader.IsDBNull(reader.GetOrdinal("LobbyRegionBaseUrl")) ? null : reader.GetString(reader.GetOrdinal("LobbyRegionBaseUrl")),
-                SupportsLobbySharing = !reader.IsDBNull(reader.GetOrdinal("SupportsLobbySharing")) && reader.GetInt32(reader.GetOrdinal("SupportsLobbySharing")) != 0
+                SupportsLobbySharing = !reader.IsDBNull(reader.GetOrdinal("SupportsLobbySharing")) && reader.GetInt32(reader.GetOrdinal("SupportsLobbySharing")) != 0,
+                VtScanStatus = SafeGetString(reader, "VtScanStatus"),
+                VtPermalink = SafeGetString(reader, "VtPermalink"),
+                VtLastCheckedAt = SafeGetString(reader, "VtLastCheckedAt"),
+                VtStats = SafeGetString(reader, "VtStats"),
+                VtAiReviewStatus = SafeGetString(reader, "VtAiReviewStatus"),
+                VtAiReviewSummary = SafeGetString(reader, "VtAiReviewSummary")
             };
+        }
+
+        private static string? SafeGetString(SqliteDataReader reader, string column)
+        {
+            var ordinal = reader.GetOrdinal(column);
+            return reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);
         }
 
         // --- Metody przeniesione z ConfigManager ---
@@ -598,12 +616,10 @@ namespace SUSModder.Core.Data
                 {
                     if (!string.IsNullOrEmpty(prev.InstallPath) && string.IsNullOrEmpty(apiMod.InstallPath))
                         apiMod.InstallPath = prev.InstallPath;
-                    if (!string.IsNullOrEmpty(prev.InstallPath) &&
-                        !string.IsNullOrEmpty(prev.ModVersion) &&
-                        prev.ModVersion != apiMod.ModVersion)
-                    {
-                        apiMod.ModVersion = prev.ModVersion;
-                    }
+                    // NOTE: NIE nadpisujemy ModVersion z poprzedniej konfiguracji.
+                    // Wersja z API katalogu musi być zachowana, aby ModUpdateManager
+                    // mógł prawidłowo wykryć dostępne aktualizacje.
+                    // Rzeczywista zainstalowana wersja jest śledzona w InstallationMap.
                     if (prev.LastUpdated.HasValue)
                         apiMod.LastUpdated = prev.LastUpdated;
                 }
@@ -720,5 +736,42 @@ namespace SUSModder.Core.Data
         }
 
         #endregion
+
+        /// <inheritdoc/>
+        public void SaveModVirusTotalData(int modId,
+            string? scanStatus,
+            string? permalink,
+            string? lastCheckedAt,
+            string? stats,
+            string? aiReviewStatus,
+            string? aiReviewSummary)
+        {
+            var conn = _db.GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+                UPDATE mods SET
+                    VtScanStatus = @ScanStatus,
+                    VtPermalink = @Permalink,
+                    VtLastCheckedAt = @LastCheckedAt,
+                    VtStats = @Stats,
+                    VtAiReviewStatus = @AiReviewStatus,
+                    VtAiReviewSummary = @AiReviewSummary,
+                    UpdatedAt = datetime('now')
+                WHERE Id = @Id;";
+            cmd.Parameters.AddWithValue("@Id", modId);
+            cmd.Parameters.AddWithValue("@ScanStatus", (object?)scanStatus ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Permalink", (object?)permalink ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@LastCheckedAt", (object?)lastCheckedAt ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Stats", (object?)stats ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@AiReviewStatus", (object?)aiReviewStatus ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@AiReviewSummary", (object?)aiReviewSummary ?? DBNull.Value);
+            cmd.ExecuteNonQuery();
+
+            // Unieważnij cache po zapisie VT
+            lock (_cacheLock)
+            {
+                _cachedMods = null;
+            }
+        }
     }
 }

@@ -63,7 +63,9 @@ namespace SUSModder.Core.Data
                     vanilla_install_path, av_warning_sig, last_seen_version,
                     minimize_to_tray, show_quick_launch_tray, tray_first_minimize_shown,
                     settings_version, active_sustats_guild_id,
-                    mod_packs_enabled, mod_packs_auto_install, glass_reduce_transparency,
+                    mod_packs_enabled, mod_packs_auto_install,
+                    mod_pack_share_creator_name, mod_pack_share_discord_invite,
+                    glass_reduce_transparency,
                     prefer_depot_downloader
                 ) VALUES (
                     1, @mode, @last_launch_id, @theme, @language, @telemetry_enabled,
@@ -71,7 +73,9 @@ namespace SUSModder.Core.Data
                     @vanilla_install_path, @av_warning_sig, @last_seen_version,
                     @minimize_to_tray, @show_quick_launch_tray, @tray_first_minimize_shown,
                     @settings_version, @active_sustats_guild_id,
-                    @mod_packs_enabled, @mod_packs_auto_install, @glass_reduce_transparency,
+                    @mod_packs_enabled, @mod_packs_auto_install,
+                    @mod_pack_share_creator_name, @mod_pack_share_discord_invite,
+                    @glass_reduce_transparency,
                     @prefer_depot_downloader
                 )
                 ON CONFLICT(id) DO UPDATE SET
@@ -94,6 +98,8 @@ namespace SUSModder.Core.Data
                     active_sustats_guild_id = excluded.active_sustats_guild_id,
                     mod_packs_enabled = excluded.mod_packs_enabled,
                     mod_packs_auto_install = excluded.mod_packs_auto_install,
+                    mod_pack_share_creator_name = excluded.mod_pack_share_creator_name,
+                    mod_pack_share_discord_invite = excluded.mod_pack_share_discord_invite,
                     glass_reduce_transparency = excluded.glass_reduce_transparency,
                     prefer_depot_downloader = excluded.prefer_depot_downloader;";
 
@@ -116,6 +122,8 @@ namespace SUSModder.Core.Data
             cmd.Parameters.AddWithValue("@active_sustats_guild_id", settings.ActiveSustatsGuildId ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@mod_packs_enabled", settings.ModPacksEnabled ? 1 : 0);
             cmd.Parameters.AddWithValue("@mod_packs_auto_install", settings.ModPacksAutoInstall ? 1 : 0);
+            cmd.Parameters.AddWithValue("@mod_pack_share_creator_name", settings.ModPackShareCreatorName ?? string.Empty);
+            cmd.Parameters.AddWithValue("@mod_pack_share_discord_invite", settings.ModPackShareDiscordInvite ?? string.Empty);
             cmd.Parameters.AddWithValue("@glass_reduce_transparency", settings.GlassReduceTransparency ? 1 : 0);
             cmd.Parameters.AddWithValue("@prefer_depot_downloader", settings.PreferDepotDownloader ? 1 : 0);
 
@@ -142,7 +150,7 @@ namespace SUSModder.Core.Data
                 "minimize_to_tray", "show_quick_launch_tray", "tray_first_minimize_shown",
                 "settings_version", "active_sustats_guild_id",
                 "mod_packs_enabled", "mod_packs_auto_install", "glass_reduce_transparency",
-                "prefer_depot_downloader"
+                "prefer_depot_downloader", "mod_pack_share_creator_name", "mod_pack_share_discord_invite"
             };
 
             if (!allowedColumns.Contains(columnName))
@@ -208,9 +216,24 @@ namespace SUSModder.Core.Data
                     : reader.GetString(reader.GetOrdinal("active_sustats_guild_id")),
                 ModPacksEnabled = TryGetBool(reader, "mod_packs_enabled", true),
                 ModPacksAutoInstall = TryGetBool(reader, "mod_packs_auto_install", false),
+                ModPackShareCreatorName = TryGetString(reader, "mod_pack_share_creator_name", string.Empty),
+                ModPackShareDiscordInvite = TryGetString(reader, "mod_pack_share_discord_invite", string.Empty),
                 GlassReduceTransparency = TryGetBool(reader, "glass_reduce_transparency", false),
                 PreferDepotDownloader = TryGetBool(reader, "prefer_depot_downloader", false)
             };
+        }
+
+        private static string TryGetString(SqliteDataReader reader, string column, string defaultValue)
+        {
+            try
+            {
+                var ordinal = reader.GetOrdinal(column);
+                return reader.IsDBNull(ordinal) ? defaultValue : reader.GetString(ordinal);
+            }
+            catch
+            {
+                return defaultValue;
+            }
         }
 
         private static bool TryGetBool(SqliteDataReader reader, string column, bool defaultValue)

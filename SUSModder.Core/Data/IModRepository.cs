@@ -61,5 +61,16 @@ namespace SUSModder.Core.Data
         /// Zwraca true, jeśli dane w bazie uległy zmianie.
         /// </summary>
         Task<bool> ApplyRemoteCatalogAsync(List<ModConfiguration> apiMods);
+
+        /// <summary>
+        /// Zapisuje dane VirusTotal dla konkretnego moda (UPDATE tylko kolumn Vt*).
+        /// </summary>
+        void SaveModVirusTotalData(int modId,
+            string? scanStatus,
+            string? permalink,
+            string? lastCheckedAt,
+            string? stats,
+            string? aiReviewStatus,
+            string? aiReviewSummary);
     }
 }

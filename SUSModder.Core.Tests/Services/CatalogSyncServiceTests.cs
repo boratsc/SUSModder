@@ -168,6 +168,7 @@ public class CatalogSyncServiceTests : IDisposable
         public void ClearCache() { }
         public Task<List<ModConfiguration>> FetchAndMergeFromApiAsync() => Task.FromResult(LocalMods);
         public Task<bool> RefreshFromApiAsync() => Task.FromResult(false);
+        public void SaveModVirusTotalData(int modId, string? scanStatus, string? permalink, string? lastCheckedAt, string? stats, string? aiReviewStatus, string? aiReviewSummary) { }
     }
 
     private sealed class FakeApiClient : ISUSModderApiClient
@@ -203,5 +204,6 @@ public class CatalogSyncServiceTests : IDisposable
         public Task<SusModderApiResult<System.Text.Json.JsonElement>> GetReleasesAsync(string? channel = null, string? ifNoneMatch = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task SendHeartbeatAsync(object payload, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<HttpResponseMessage> SendAsync(SusModderApiRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<SusModderApiResult<ModVariantVirusTotalReportDto>> GetModVariantVirusTotalReportAsync(int modId, string version, string platform, string arch, CancellationToken cancellationToken = default) => throw new NotImplementedException();
     }
 }

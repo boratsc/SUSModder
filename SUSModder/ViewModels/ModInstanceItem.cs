@@ -14,6 +14,7 @@ namespace SUSModder.ViewModels
         private string _statusMessage = string.Empty;
         private bool _hasUpdateAvailable;
         private bool _isCheckedForBulk;
+        private ModPackUpdateInfo? _packUpdateInfo;
 
         public ModInstanceItem(ModInstance instance, string? pngFileName, int dllCount, bool hasTouConfig)
         {
@@ -74,6 +75,15 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(ShowStatusUpdate));
                 this.RaisePropertyChanged(nameof(ShowStatusInstalled));
             }
+        }
+
+        /// <summary>
+        /// Szczegóły aktualizacji paczki (jeśli HasUpdateAvailable = true).
+        /// </summary>
+        public ModPackUpdateInfo? PackUpdateInfo
+        {
+            get => _packUpdateInfo;
+            set => this.RaiseAndSetIfChanged(ref _packUpdateInfo, value);
         }
 
         public bool ShowStatusBusy => IsBusy;

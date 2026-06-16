@@ -136,6 +136,18 @@ namespace SUSModder.Core.Configuration
         public bool ModPacksAutoInstall { get; set; } = false;
 
         /// <summary>
+        /// Ostatnio użyty nick autora przy udostępnianiu zestawu modów.
+        /// </summary>
+        [JsonPropertyName("modPackShareCreatorName")]
+        public string ModPackShareCreatorName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Ostatnio użyty link Discord przy udostępnianiu zestawu modów.
+        /// </summary>
+        [JsonPropertyName("modPackShareDiscordInvite")]
+        public string ModPackShareDiscordInvite { get; set; } = string.Empty;
+
+        /// <summary>
         /// Czy pobierać Among Us vanilla przez DepotDownloader (Steam) zamiast paczek 7z SUSModder.
         /// Domyślnie wyłączone — funkcja eksperymentalna.
         /// </summary>

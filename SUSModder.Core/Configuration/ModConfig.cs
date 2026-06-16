@@ -166,6 +166,44 @@ namespace SUSModder.Core.Configuration
         [JsonPropertyName("SupportsLobbySharing")]
         public bool SupportsLobbySharing { get; set; } = false;
 
+        // ── VirusTotal cache (DB-only, nie z API) ──
+
+        /// <summary>
+        /// Status skanu VT: clean / suspicious / malicious / pending / unknown / null.
+        /// </summary>
+        [JsonIgnore]
+        public string? VtScanStatus { get; set; }
+
+        /// <summary>
+        /// Link do pełnego raportu na virustotal.com.
+        /// </summary>
+        [JsonIgnore]
+        public string? VtPermalink { get; set; }
+
+        /// <summary>
+        /// Kiedy ostatnio sprawdzono raport (ISO 8601).
+        /// </summary>
+        [JsonIgnore]
+        public string? VtLastCheckedAt { get; set; }
+
+        /// <summary>
+        /// Statystyki detekcji jako JSON string (malicious, suspicious, undetected, harmless).
+        /// </summary>
+        [JsonIgnore]
+        public string? VtStats { get; set; }
+
+        /// <summary>
+        /// Status AI review.
+        /// </summary>
+        [JsonIgnore]
+        public string? VtAiReviewStatus { get; set; }
+
+        /// <summary>
+        /// Podsumowanie AI review (tekst z backendu).
+        /// </summary>
+        [JsonIgnore]
+        public string? VtAiReviewSummary { get; set; }
+
     }
 
     public static class ConfigManager

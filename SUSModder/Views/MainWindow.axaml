@@ -1016,27 +1016,51 @@
 						</StackPanel>
 					</Button>
 
-					<Button Classes="fab-menu-item"
-							Command="{Binding ShareModPackCommand}">
-						<i:Interaction.Behaviors>
-							<behaviors:RippleBehavior/>
-						</i:Interaction.Behaviors>
-						<StackPanel Orientation="Horizontal" Spacing="12">
-							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Box}" FontSize="20" Foreground="#00BCD4"/>
-							<TextBlock Text="{loc:Localize ModPacks.ShareMenu}" VerticalAlignment="Center"/>
-						</StackPanel>
-					</Button>
 
-					<Button Classes="fab-menu-item"
-							Command="{Binding EnterModPackCodeCommand}">
-						<i:Interaction.Behaviors>
-							<behaviors:RippleBehavior/>
-						</i:Interaction.Behaviors>
-						<StackPanel Orientation="Horizontal" Spacing="12">
-							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ClipboardPaste}" FontSize="20" Foreground="#00BCD4"/>
-							<TextBlock Text="{loc:Localize ModPacks.EnterCodeMenu}" VerticalAlignment="Center"/>
+					<Border Classes="fab-menu-group">
+						<StackPanel Spacing="2">
+							<Button Classes="fab-menu-item"
+									Command="{Binding ToggleFabModPackActionsCommand}">
+								<i:Interaction.Behaviors>
+									<behaviors:RippleBehavior/>
+								</i:Interaction.Behaviors>
+								<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+									<ic:SymbolIcon Grid.Column="0" Symbol="{x:Static fic:Symbol.Box}" FontSize="20" Foreground="#00BCD4"/>
+									<TextBlock Grid.Column="1"
+											   Text="{loc:Localize ModPacks.MenuGroup}"
+											   VerticalAlignment="Center"
+											   TextWrapping="Wrap"/>
+									<TextBlock Grid.Column="2" Text="▼" VerticalAlignment="Center" FontSize="10"
+											   IsVisible="{Binding IsFabModPackActionsExpanded}"/>
+									<TextBlock Grid.Column="2" Text="▶" VerticalAlignment="Center" FontSize="10"
+											   IsVisible="{Binding IsFabModPackActionsExpanded, Converter={x:Static BoolConverters.Not}}"/>
+								</Grid>
+							</Button>
+
+							<StackPanel Spacing="2" Margin="28,0,0,4"
+										IsVisible="{Binding IsFabModPackActionsExpanded}">
+								<Button Classes="fab-menu-subitem"
+										Command="{Binding CreateLocalPackCommand}">
+									<TextBlock Text="{loc:Localize UI.Packs.CreateLocal}" TextWrapping="Wrap" MaxWidth="220"/>
+								</Button>
+								<Button Classes="fab-menu-subitem"
+										Command="{Binding CreateAndSharePackCommand}">
+									<TextBlock Text="{loc:Localize UI.Packs.CreateAndShare}" TextWrapping="Wrap" MaxWidth="220"/>
+								</Button>
+								<Button Classes="fab-menu-subitem"
+										Command="{Binding ShareExistingPackCommand}">
+									<TextBlock Text="{loc:Localize ModPacks.ShareMenu}" TextWrapping="Wrap" MaxWidth="220"/>
+								</Button>
+								<Button Classes="fab-menu-subitem"
+										Command="{Binding EnterModPackCodeCommand}">
+									<StackPanel Orientation="Horizontal" Spacing="8">
+										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ClipboardPaste}" FontSize="16" Foreground="#00BCD4"/>
+										<TextBlock Text="{loc:Localize ModPacks.EnterCodeMenu}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="190"/>
+									</StackPanel>
+								</Button>
+							</StackPanel>
 						</StackPanel>
-					</Button>
+					</Border>
 
 					<Button Classes="fab-menu-item"
 							Command="{Binding ShowLobbyBoardCommand}">

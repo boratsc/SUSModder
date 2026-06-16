@@ -62,15 +62,10 @@ namespace SUSModder.Core.Services
             bool configChanged = false;
 
             List<ModConfiguration>? remoteConfigs;
-            var sync = CatalogSyncServiceProvider.TryGetDefault();
-            if (sync is not null)
-            {
-                remoteConfigs = await sync.EnsureRemoteConfigCachedAsync();
-            }
-            else
-            {
-                remoteConfigs = await _configRepository.LoadConfigFromApiAsync();
-            }
+            // ZAWSZE pobieramy świeże dane z API do porównania wersji.
+            // EnsureRemoteConfigCachedAsync zwraca scalone dane z bazy (z InstallPath, lokalną wersją),
+            // co zafałszowuje porównanie wersji. LoadConfigFromApiAsync daje czyste dane katalogowe.
+            remoteConfigs = await _configRepository.LoadConfigFromApiAsync();
 
             if (remoteConfigs == null || remoteConfigs.Count == 0)
             {

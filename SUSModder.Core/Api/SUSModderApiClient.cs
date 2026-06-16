@@ -193,6 +193,27 @@ public sealed class SUSModderApiClient : ISUSModderApiClient
         CancellationToken cancellationToken = default) =>
         GetEnvelopeAsync<AmongUsVersionDto>($"versions/{Uri.EscapeDataString(dbValue)}", null, ifNoneMatch, cancellationToken);
 
+    public Task<SusModderApiResult<ModVariantVirusTotalReportDto>> GetModVariantVirusTotalReportAsync(
+        int modId,
+        string version,
+        string platform,
+        string arch,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedPlatform = platform.Equals("epic", StringComparison.OrdinalIgnoreCase) ? "epic" : "steam";
+        var query = new Dictionary<string, string?>
+        {
+            ["platform"] = normalizedPlatform,
+            ["arch"] = arch
+        };
+
+        return GetEnvelopeAsync<ModVariantVirusTotalReportDto>(
+            $"downloads/mod/{modId}/{Uri.EscapeDataString(version)}/virustotal",
+            query,
+            null,
+            cancellationToken);
+    }
+
     public Task<SusModderApiResult<JsonElement>> GetRolesAsync(
         string? ifNoneMatch = null,
         CancellationToken cancellationToken = default) =>

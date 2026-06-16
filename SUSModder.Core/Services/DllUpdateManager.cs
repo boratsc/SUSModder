@@ -232,5 +232,66 @@ namespace SUSModder.Core.Services
 
             return results;
         }
+
+        // ─────────────────────────────────────────────
+        // Auto-update helpers (v2.x)
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Dzieli listę znalezionych aktualizacji DLL na automatyczne (DLL z AutoUpdateEnabled)
+        /// i ręczne (DLL bez flagi). Skanuje InstallationMap dla każdego DLL.
+        /// </summary>
+        public async Task<(List<DllUpdateInfo> AutoUpdates, List<DllUpdateInfo> ManualUpdates)>
+            FilterAutoUpdateDllsAsync(List<DllUpdateInfo> allUpdates, List<ModConfiguration> installedFullMods)
+        {
+            var autoUpdates = new List<DllUpdateInfo>();
+            var manualUpdates = new List<DllUpdateInfo>();
+
+            foreach (var update in allUpdates)
+            {
+                var state = await InstallationMapManager.GetDllAutoUpdateStateAsync(
+                    update.DllMod.Id, installedFullMods);
+
+                if (state == InstallationMapManager.DllAutoUpdateState.Enabled)
+                    autoUpdates.Add(update);
+                else
+                    manualUpdates.Add(update);
+            }
+
+            _log.Write($"[DllUpdateManager] Auto-update: {autoUpdates.Count}, Manual: {manualUpdates.Count}");
+            return (autoUpdates, manualUpdates);
+        }
+
+        /// <summary>
+        /// Uruchamia ciche (auto) aktualizacje DLL. Zwraca wyniki.
+        /// Błędy są logowane, ale nie przerywają procesu.
+        /// </summary>
+        public async Task<List<DllUpdateResult>> RunAutoUpdatesAsync(
+            List<DllUpdateInfo> autoUpdates, string platform)
+        {
+            if (!autoUpdates.Any())
+                return new List<DllUpdateResult>();
+
+            _log.Write($"[DllUpdateManager] Rozpoczynam ciche auto-update {autoUpdates.Count} DLL...");
+
+            var results = await UpdateAllDllsAsync(autoUpdates, platform);
+
+            foreach (var result in results)
+            {
+                if (result.FailedUpdates > 0)
+                {
+                    _log.Write($"[DllUpdateManager] ⚠ Auto-update {result.DllName}: " +
+                               $"{result.SuccessfulUpdates}/{result.TotalLocations} udanych, " +
+                               $"{result.FailedUpdates} nieudanych – ponowna próba przy następnym sprawdzeniu");
+                }
+                else
+                {
+                    _log.Write($"[DllUpdateManager] ✓ Auto-update {result.DllName}: " +
+                               $"{result.SuccessfulUpdates}/{result.TotalLocations} udanych");
+                }
+            }
+
+            return results;
+        }
     }
 }

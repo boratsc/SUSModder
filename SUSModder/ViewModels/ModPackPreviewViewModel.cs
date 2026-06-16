@@ -99,7 +99,9 @@ public sealed class ModPackPreviewViewModel : ViewModelBase
         LocalNamePlaceholder = loc.Get("UI.Packs.LocalNamePlaceholder");
         ExternalDllWarning = loc.Get("ModPacks.ExternalDllWarning");
         ExternalDllCaution = loc.Get("ModPacks.ExternalDllCaution");
-        RiskConsentLabel = loc.Get("ModPacks.RiskConsent");
+        RiskConsentLabel = pack.HasCustomContent
+            ? loc.Get("ModPacks.CustomContent.InstallConsent")
+            : loc.Get("ModPacks.RiskConsent");
         CancelButton = loc.Get("UI.Buttons.Cancel");
         InstallButton = loc.Get("UI.Packs.InstallAsNewButton");
 
@@ -115,22 +117,18 @@ public sealed class ModPackPreviewViewModel : ViewModelBase
         LocalDisplayName = displayName;
         DetailsText = BuildDetailsText(catalog, fullModName);
 
-        if (pack.HasExternalDlls)
+        if (pack.HasCustomContent)
         {
             IsExternalWarningVisible = true;
             IsRiskConsentVisible = true;
 
-            var vtKey = pack.HasSuspiciousExternalDll
-                ? "ModPacks.VirusTotalSuspicious"
-                : pack.ExternalDlls.Any(d => d.VtStatus is "pending" or "unknown")
-                    ? "ModPacks.VirusTotalUnknown"
-                    : "ModPacks.VirusTotalClean";
+            var vtKey = GetCustomContentStatusKey(pack);
             VtStatusText = loc.Get(vtKey);
 
-            if (pack.HasSuspiciousExternalDll)
+            if (pack.Installable == false || pack.HasNonCleanExternalDll || pack.HasNonCleanCustomArtifact)
             {
                 IsBlockedVisible = true;
-                BlockedText = loc.Get("ModPacks.VirusTotalSuspicious");
+                BlockedText = loc.Get(vtKey);
                 IsInstallEnabled = false;
             }
             else
@@ -163,10 +161,33 @@ public sealed class ModPackPreviewViewModel : ViewModelBase
 
     private void UpdateInstallButton()
     {
-        if (!_pack.HasExternalDlls || _pack.HasSuspiciousExternalDll)
+        if (!_pack.HasCustomContent || _pack.HasNonCleanExternalDll || _pack.HasNonCleanCustomArtifact)
+            return;
+
+        if (_pack.HasCustomFullMod &&
+            !string.Equals(_pack.CustomFullMod!.Status, "clean", StringComparison.OrdinalIgnoreCase))
             return;
 
         IsInstallEnabled = RiskConsent;
+    }
+
+    private static string GetCustomContentStatusKey(ModPack pack)
+    {
+        if (pack.HasSuspiciousExternalDll ||
+            pack.CustomArtifacts.Any(a => string.Equals(a.Status, "suspicious", StringComparison.OrdinalIgnoreCase)))
+            return "ModPacks.VirusTotalSuspicious";
+
+        if (pack.CustomArtifacts.Any(a => string.Equals(a.Status, "rejected", StringComparison.OrdinalIgnoreCase)))
+            return "ModPacks.CustomContent.InstallBlockedSuspicious";
+
+        if (pack.HasCustomFullMod &&
+            !string.Equals(pack.CustomFullMod!.Status, "clean", StringComparison.OrdinalIgnoreCase))
+            return "ModPacks.CustomContent.InstallBlockedPendingScan";
+
+        if (pack.Installable == false || pack.HasNonCleanExternalDll || pack.HasNonCleanCustomArtifact)
+            return "ModPacks.CustomContent.InstallBlockedPendingScan";
+
+        return "ModPacks.VirusTotalClean";
     }
 
     private string BuildDetailsText(System.Collections.Generic.List<ModConfiguration> catalog, string? fullModName)
@@ -178,6 +199,12 @@ public sealed class ModPackPreviewViewModel : ViewModelBase
         {
             var name = fullModName ?? $"#{_pack.FullMod.Id}";
             sb.AppendLine($"{_loc.Get("ModPacks.FullModLabel")}: {name} v{_pack.FullMod.Version}");
+        }
+        else if (_pack.HasCustomFullMod)
+        {
+            var cf = _pack.CustomFullMod!;
+            var name = string.IsNullOrWhiteSpace(cf.DisplayName) ? cf.FileName : cf.DisplayName;
+            sb.AppendLine($"{_loc.Get("ModPacks.FullModLabel")}: {name} ({_loc.Get("ModPacks.CustomFull.Title")}, {cf.Status})");
         }
         if (_pack.DllMods.Count > 0)
         {
@@ -201,8 +228,27 @@ public sealed class ModPackPreviewViewModel : ViewModelBase
 
         if (_pack.HasExternalDlls)
         {
+            sb.AppendLine(_loc.Get("ModPacks.CustomDlls.Title") + ":");
             foreach (var ext in _pack.ExternalDlls)
                 sb.AppendLine($"  • {ext.FileName} ({ext.VtStatus})");
+        }
+
+        if (_pack.HasCustomArtifacts)
+        {
+            sb.AppendLine(_loc.Get("ModPacks.CustomContent.ArtifactsLabel") + ":");
+            foreach (var artifact in _pack.CustomArtifacts)
+            {
+                var source = artifact.SourceKind switch
+                {
+                    "github_dll" or "github_full" => "GitHub",
+                    "uploaded_dll" => _loc.Get("ModPacks.CustomContent.SourceUploadedDll"),
+                    _ => artifact.SourceKind
+                };
+                var name = string.IsNullOrWhiteSpace(artifact.DisplayName)
+                    ? artifact.FileName
+                    : artifact.DisplayName;
+                sb.AppendLine($"  • {name} ({source}, {artifact.Status}, {artifact.Sha256[..Math.Min(12, artifact.Sha256.Length)]}…)");
+            }
         }
 
         if (sb.Length == 0)

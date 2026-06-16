@@ -1,13 +1,16 @@
 namespace SUSModder.Views;
 
 /// <summary>
-/// Tryb kreatora modpacków: udostępnienie online (API) lub utworzenie lokalnej instancji.
+/// Tryb kreatora modpacków.
 /// </summary>
 public enum ModPackCreatorMode
 {
-    /// <summary>Mapuje wybraną instancję (lub legacy InstallPath) na kod/link API.</summary>
-    ShareOnline,
-
     /// <summary>Instaluje nowy zestaw jako lokalną instancję z katalogu modów.</summary>
-    InstallLocal
+    InstallLocal,
+
+    /// <summary>Udostępnia istniejący lokalny zestaw online (pre-fill z instancji).</summary>
+    ShareExisting,
+
+    /// <summary>Tworzy lokalną instancję, a następnie od razu ją udostępnia online.</summary>
+    CreateAndShare
 }

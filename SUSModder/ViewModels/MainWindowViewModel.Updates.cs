@@ -407,6 +407,9 @@ namespace SUSModder.ViewModels
         {
             _activeInstallationsCount++;
             SyncIsAnyModInstalling();
+            string backupPath = "";
+            bool hasBackup = false;
+            var configService = new ConfigService();
             try
             {
                 // Pokaż postęp na karcie moda (dla auto-aktualizacji bez dialogu)
@@ -420,8 +423,6 @@ namespace SUSModder.ViewModels
                         modItem.InstallProgress = 5;
                     });
                 }
-
-                var configService = new ConfigService();
 
                 // 1. Pobierz zaktualizowaną konfigurację
                 UpdateModProgress(modItem, progressDialog, 10, "Pobieranie nowej konfiguracji...");
@@ -473,19 +474,28 @@ namespace SUSModder.ViewModels
                         System.Diagnostics.Debug.WriteLine($"[Update] Nie udało się odczytać Installation Map: {ex.Message}");
                     }
 
-                    // UNINSTALL
-                    UpdateModProgress(modItem, progressDialog, 40, "Odinstalowywanie starej wersji...");
+                    // ATOMIC UPDATE: zamiast usuwać stary mod PRZED instalacją,
+                    // przenosimy go do backupu. Jeśli instalacja się nie powiedzie,
+                    // przywracamy backup — stara wersja pozostaje nienaruszona.
+                    UpdateModProgress(modItem, progressDialog, 40, "Przygotowywanie backupu starej wersji...");
+
+                    backupPath = modItem.InstallPath + ".backup";
 
                     if (Directory.Exists(modItem.InstallPath))
                     {
-                        bool deleteSuccess = await SafeDeleteDirectoryAsync(modItem.InstallPath, modItem.Name);
-                        if (!deleteSuccess)
+                        // Usuń stary backup jeśli istnieje (pozostałość po poprzedniej nieudanej aktualizacji)
+                        if (Directory.Exists(backupPath))
                         {
-                            throw new InvalidOperationException($"Nie udało się usunąć starej wersji moda '{modItem.Name}'. Aktualizacja została przerwana.");
+                            await SafeDeleteDirectoryAsync(backupPath, modItem.Name + " (stary backup)");
                         }
+
+                        // Przenieś aktualną instalację do backupu (atomowe rename, szybkie)
+                        Directory.Move(modItem.InstallPath, backupPath);
+                        hasBackup = true;
+                        System.Diagnostics.Debug.WriteLine($"[Update] Backup utworzony: {backupPath}");
                     }
 
-                    // Aktualizuj konfigurację - usuń ścieżkę instalacji
+                    // Aktualizuj konfigurację - usuń ścieżkę instalacji przed reinstalacją
                     var configs = configService.LoadConfig();
                     var modConfig = configs.FirstOrDefault(c => c.ModName == modItem.Name);
                     if (modConfig != null)
@@ -498,7 +508,7 @@ namespace SUSModder.ViewModels
                     // podczas aktualizacji, UI nie przełącza się na "Nie zainstalowano",
                     // a pasek postępu (ShowProgress) jest widoczny.
                     // Nowa ścieżka zostanie przypisana po zakończeniu instalacji.
-                    
+
                     UpdateModProgress(modItem, progressDialog, 50, "Rozpoczynanie instalacji nowej wersji...");
 
                     // INSTALL
@@ -618,12 +628,61 @@ namespace SUSModder.ViewModels
 
                 UpdateModProgress(modItem, progressDialog, 100, "Aktualizacja zakończona");
                 await Task.Delay(500);
+
+                // Posprzątaj backup po udanej aktualizacji
+                if (hasBackup && Directory.Exists(backupPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Update] Usuwam backup po udanej aktualizacji: {backupPath}");
+                    await SafeDeleteDirectoryAsync(backupPath, modItem.Name + " (backup)");
+                }
+
                 return true;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error updating single mod {modItem.Name}: {ex.Message}");
                 UpdateModProgress(modItem, progressDialog, 100, $"Błąd: {ex.Message}");
+
+                // Przywróć backup jeśli instalacja się nie powiodła
+                if (hasBackup && Directory.Exists(backupPath))
+                {
+                    try
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Update] Przywracam backup po nieudanej aktualizacji: {backupPath}");
+                        // Usuń nieudaną instalację (jeśli cokolwiek powstało)
+                        if (!string.IsNullOrEmpty(modItem.InstallPath) && Directory.Exists(modItem.InstallPath))
+                        {
+                            await SafeDeleteDirectoryAsync(modItem.InstallPath, modItem.Name + " (failed)");
+                        }
+                        // Przywróć backup
+                        if (!string.IsNullOrEmpty(modItem.InstallPath))
+                        {
+                            Directory.Move(backupPath, modItem.InstallPath);
+                            System.Diagnostics.Debug.WriteLine($"[Update] Backup przywrócony: {modItem.InstallPath}");
+                        }
+
+                        // Przywróć ścieżkę instalacji w konfiguracji
+                        try
+                        {
+                            var restoredConfigs = configService.LoadConfig();
+                            var restoredConfig = restoredConfigs.FirstOrDefault(c => c.ModName == modItem.Name);
+                            if (restoredConfig != null)
+                            {
+                                restoredConfig.InstallPath = modItem.InstallPath;
+                                ConfigManager.SaveConfig(restoredConfigs);
+                            }
+                        }
+                        catch (Exception restoreEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[Update] Nie udało się przywrócić ścieżki w konfiguracji: {restoreEx.Message}");
+                        }
+                    }
+                    catch (Exception restoreEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Update] CRITICAL: Nie udało się przywrócić backupu! {restoreEx.Message}");
+                    }
+                }
+
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     modItem.DownloadSpeed = null;
@@ -905,8 +964,50 @@ namespace SUSModder.ViewModels
 
                 _diagnosticsOutput?.Write($"[CheckDllUpdates] Znaleziono {updates.Count} aktualizacji");
 
-                // Dla każdego DLL pokazujemy osobny dialog (jak dla modów FULL)
-                foreach (var updateInfo in updates)
+                // ── Podziel na auto-update i manualne ──
+                var installedFullMods = configService.LoadConfig()
+                    .Where(c => c.ModType == "full" && !string.IsNullOrEmpty(c.InstallPath))
+                    .ToList();
+
+                var (autoUpdates, manualUpdates) = await dllUpdateManager.FilterAutoUpdateDllsAsync(updates, installedFullMods);
+
+                // ── Wykonaj ciche auto-update ──
+                if (autoUpdates.Any())
+                {
+                    _diagnosticsOutput?.Write($"[CheckDllUpdates] Uruchamiam ciche auto-update {autoUpdates.Count} DLL...");
+                    var autoResults = await dllUpdateManager.RunAutoUpdatesAsync(autoUpdates, platform);
+
+                    int autoSuccess = autoResults.Sum(r => r.SuccessfulUpdates);
+                    int autoFailed = autoResults.Sum(r => r.FailedUpdates);
+
+                    if (autoSuccess > 0)
+                    {
+                        // Użyj klucza i18n dla auto-aktualizacji
+                        var msg = _localizationService.GetFormatted("Dialogs.ModUpdatesAutoUpdated", autoSuccess);
+                        ToastService.ShowInfo(msg);
+                    }
+                    else if (autoFailed > 0)
+                    {
+                        _diagnosticsOutput?.Write($"[CheckDllUpdates] ⚠ Wszystkie auto-update DLL nieudane ({autoFailed}), ponowna próba przy następnym sprawdzeniu");
+                    }
+
+                    _diagnosticsOutput?.Write($"[CheckDllUpdates] Auto-update zakończone: {autoSuccess} OK, {autoFailed} FAIL");
+                }
+
+                // Jeśli nie ma ręcznych aktualizacji, zakończ
+                if (!manualUpdates.Any())
+                {
+                    if (autoUpdates.Any())
+                    {
+                        // Odśwież listę modów po auto-update
+                        await RefreshModsListAsync();
+                    }
+                    _diagnosticsOutput?.Write("[CheckDllUpdates] Brak ręcznych aktualizacji DLL do pokazania");
+                    return;
+                }
+
+                // ── Pokaż dialogi dla ręcznych aktualizacji ──
+                foreach (var updateInfo in manualUpdates)
                 {
                     try
                     {
@@ -947,28 +1048,39 @@ namespace SUSModder.ViewModels
                         // Pokaż wynik
                         if (result.SuccessfulUpdates > 0)
                         {
-                            var successMessage = $"✅ Pomyślnie zaktualizowano {updateInfo.DllMod.ModName} w {result.SuccessfulUpdates} lokalizacjach";
+                            var successMessage = _localizationService.GetFormatted(
+                                "Updates.DllUpdateSuccess",
+                                updateInfo.DllMod.ModName,
+                                result.SuccessfulUpdates);
                             if (result.FailedUpdates > 0)
                             {
-                                successMessage += $"\n\n❌ Nieudane aktualizacje: {result.FailedUpdates}\n• " + 
+                                successMessage += "\n\n" + _localizationService.GetFormatted(
+                                    "Updates.FailedUpdates", result.FailedUpdates) + "\n• " +
                                     string.Join("\n• ", result.FailedLocations);
                             }
-                            await ShowMessageAsync("Aktualizacja zakończona", successMessage);
+                            await ShowMessageAsync(
+                                _localizationService.Get("Updates.UpdateCompleted"),
+                                successMessage);
                         }
                         else
                         {
                             await ShowErrorDialogAsync(
-                                $"Nie udało się zaktualizować {updateInfo.DllMod.ModName} w żadnej lokalizacji.\n\n" +
-                                $"Nieudane lokalizacje:\n• " + string.Join("\n• ", result.FailedLocations),
-                                "Błąd aktualizacji");
+                                _localizationService.GetFormatted(
+                                    "Updates.DllUpdateFailed",
+                                    updateInfo.DllMod.ModName,
+                                    string.Join("\n• ", result.FailedLocations)),
+                                _localizationService.Get("Updates.DllUpdateFailedTitle"));
                         }
                     }
                     catch (Exception ex)
                     {
                         _diagnosticsOutput?.Write($"[CheckDllUpdates ERROR] Błąd dla {updateInfo.DllMod.ModName}: {ex.Message}");
                         await ShowErrorDialogAsync(
-                            $"Błąd podczas aktualizacji {updateInfo.DllMod.ModName}: {ex.Message}",
-                            "Błąd");
+                            _localizationService.GetFormatted(
+                                "Updates.DllUpdateError",
+                                updateInfo.DllMod.ModName,
+                                ex.Message),
+                            _localizationService.Get("Updates.DllUpdateFailedTitle"));
                     }
                 }
 
@@ -979,7 +1091,9 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 _diagnosticsOutput?.Write($"[CheckDllUpdates ERROR] {ex.Message}");
-                await ShowErrorDialogAsync($"Błąd podczas sprawdzania aktualizacji DLL: {ex.Message}", "Błąd");
+                await ShowErrorDialogAsync(
+                    _localizationService.GetFormatted("Updates.DllCheckError", ex.Message),
+                    _localizationService.Get("Updates.DllUpdateFailedTitle"));
             }
         }
 

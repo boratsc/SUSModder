@@ -41,16 +41,110 @@
 					</ComboBox>
 				</StackPanel>
 
-				<TextBlock x:Name="SourceLabel" Text="{loc:Localize ModPacks.FullModLabel}" FontWeight="SemiBold"/>
-				<ComboBox x:Name="FullModCombo" HorizontalAlignment="Stretch"/>
+		<TextBlock x:Name="SourceLabel" Text="{loc:Localize ModPacks.FullModLabel}" FontWeight="SemiBold"/>
+		<ComboBox x:Name="FullModCombo" HorizontalAlignment="Stretch"/>
 
-				<StackPanel x:Name="VersionPanel" Spacing="4">
-					<TextBlock Text="{loc:Localize ModPacks.VersionLabel}" FontWeight="SemiBold"/>
-					<ComboBox x:Name="VersionCombo" HorizontalAlignment="Stretch" PlaceholderText="{loc:Localize ModPacks.VersionLatest}"/>
-				</StackPanel>
+		<StackPanel x:Name="VersionPanel" Spacing="4">
+			<TextBlock Text="{loc:Localize ModPacks.VersionLabel}" FontWeight="SemiBold"/>
+			<ComboBox x:Name="VersionCombo" HorizontalAlignment="Stretch" PlaceholderText="{loc:Localize ModPacks.VersionLatest}"/>
+		</StackPanel>
 
-				<TextBlock Text="{loc:Localize ModPacks.DllModsLabel}" FontWeight="SemiBold"/>
-				<StackPanel x:Name="DllModsPanel" Spacing="4"/>
+		<CheckBox x:Name="UseCustomFullCheck"
+		          Content="{loc:Localize ModPacks.CustomFull.Toggle}"
+		          IsVisible="False"/>
+
+		<Border x:Name="CustomFullPanel"
+		        BorderBrush="{DynamicResource AccentBrush}"
+		        BorderThickness="1"
+		        CornerRadius="8"
+		        Padding="10"
+		        IsVisible="False">
+			<StackPanel Spacing="8">
+				<TextBlock Text="{loc:Localize ModPacks.CustomFull.Title}"
+				           FontWeight="SemiBold"/>
+				<TextBlock Text="{loc:Localize ModPacks.CustomFull.GitHubOnlyWarning}"
+				           TextWrapping="Wrap"
+				           FontSize="12"
+				           Foreground="{DynamicResource TextSecondaryBrush}"/>
+				<TextBlock Text="{loc:Localize ModPacks.CustomFull.NameLabel}" FontWeight="SemiBold"/>
+				<TextBox x:Name="CustomFullNameBox"
+				         PlaceholderText="{loc:Localize ModPacks.CustomFull.NamePlaceholder}"/>
+				<TextBlock Text="{loc:Localize ModPacks.CustomFull.VersionLabel}" FontWeight="SemiBold"/>
+				<TextBox x:Name="CustomFullVersionBox"
+				         PlaceholderText="{loc:Localize ModPacks.CustomFull.VersionPlaceholder}"/>
+				<TextBlock Text="{loc:Localize ModPacks.CustomFull.UrlLabel}" FontWeight="SemiBold"/>
+				<TextBox x:Name="CustomFullUrlBox"
+				         PlaceholderText="{loc:Localize ModPacks.CustomFull.UrlPlaceholder}"/>
+				<TextBlock x:Name="CustomFullStatusText"
+				           TextWrapping="Wrap"
+				           FontSize="12"
+				           Foreground="{DynamicResource TextSecondaryBrush}"
+				           IsVisible="False"/>
+			</StackPanel>
+		</Border>
+
+		<Border x:Name="CustomDllPanel"
+		        BorderBrush="{DynamicResource AccentBrush}"
+		        BorderThickness="2"
+		        CornerRadius="8"
+		        Padding="12"
+		        IsVisible="False">
+			<StackPanel Spacing="8">
+			<TextBlock Text="{loc:Localize ModPacks.CustomDlls.Title}"
+			           FontSize="15"
+			           FontWeight="Bold"/>
+			<TextBlock x:Name="CustomDllNoticeText"
+			           Text="{loc:Localize ModPacks.CustomDlls.ServerScanNotice}"
+				           TextWrapping="Wrap"
+				           FontSize="12"
+				           Foreground="{DynamicResource TextSecondaryBrush}"
+				           Margin="0,0,0,4"/>
+				<Button Content="{loc:Localize ModPacks.CustomDlls.AddFiles}"
+				        HorizontalAlignment="Left"
+				        Padding="12,8"
+				        Click="AddCustomDllFiles_Click"/>
+				<StackPanel x:Name="CustomDllFilesPanel" Spacing="4"/>
+				<TextBlock x:Name="CustomDllStatusText"
+				           TextWrapping="Wrap"
+				           FontSize="12"
+				           Foreground="{DynamicResource TextSecondaryBrush}"
+				           IsVisible="False"/>
+			</StackPanel>
+		</Border>
+
+		<CheckBox x:Name="UseGithubDllCheck"
+		          Content="{loc:Localize ModPacks.CustomGitHub.Toggle}"
+		          IsVisible="False"/>
+
+		<Border x:Name="CustomGithubDllPanel"
+		        BorderBrush="{DynamicResource BorderBrush}"
+		        BorderThickness="1"
+		        CornerRadius="8"
+		        Padding="10"
+		        IsVisible="False">
+			<StackPanel Spacing="8">
+				<TextBlock Text="{loc:Localize ModPacks.CustomGitHub.Title}"
+				           FontWeight="SemiBold"/>
+				<TextBlock Text="{loc:Localize ModPacks.CustomGitHub.GitHubOnlyWarning}"
+				           TextWrapping="Wrap"
+				           FontSize="12"
+				           Foreground="{DynamicResource TextSecondaryBrush}"/>
+				<Button x:Name="AddGithubDllButton"
+				        Content="{loc:Localize ModPacks.CustomGitHub.AddDll}"
+				        HorizontalAlignment="Left"
+				        Padding="12,8"
+				        Click="AddGithubDll_Click"/>
+				<StackPanel x:Name="GithubDllEntriesPanel" Spacing="8"/>
+				<TextBlock x:Name="GithubDllStatusText"
+				           TextWrapping="Wrap"
+				           FontSize="12"
+				           Foreground="{DynamicResource TextSecondaryBrush}"
+				           IsVisible="False"/>
+			</StackPanel>
+		</Border>
+
+		<TextBlock Text="{loc:Localize ModPacks.DllModsLabel}" FontWeight="SemiBold"/>
+		<StackPanel x:Name="DllModsPanel" Spacing="4"/>
 
 				<CheckBox x:Name="IncludeTouCheck" Content="{loc:Localize ModPacks.TouConfigLabel}"/>
 				<CheckBox x:Name="IncludeIntegrationCheck" Content="{loc:Localize ModPacks.IntegrationLabel}"/>

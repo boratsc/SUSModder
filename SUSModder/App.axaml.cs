@@ -140,6 +140,14 @@ public partial class App : Application
             return new SUSModderApiClient(config, diag);
         });
 
+        services.AddSingleton<ModSecurityScanService>(sp =>
+        {
+            var api = sp.GetRequiredService<ISUSModderApiClient>();
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            var modRepo = sp.GetRequiredService<IModRepository>();
+            return new ModSecurityScanService(api, diag, modRepo);
+        });
+
         services.AddSingleton<ConfigService>();
         services.AddSingleton<DllModificationService>();
         services.AddSingleton<IDllModInstanceInstaller, DllModificationServiceInstanceInstaller>();

@@ -206,7 +206,7 @@ public partial class MainWindowViewModel
         string? preselectedInstance = null;
         int? preselectedCatalogMod = null;
 
-        if (mode == ModPackCreatorMode.ShareOnline)
+        if (mode == ModPackCreatorMode.ShareExisting)
         {
             preselectedInstance = SelectedPackInstance?.InstanceId;
             preselectedCatalogMod = preselectedInstance == null ? SelectedMod?.Id : null;

@@ -105,7 +105,10 @@ namespace SUSModder.ViewModels
                     }),
 
                     // Migracja instalacji
-                    MigrateExistingInstallationsAsync()
+                    MigrateExistingInstallationsAsync(),
+
+                    // Batch VirusTotal fetch dla wszystkich pełnych modów (best-effort, w tle)
+                    FetchVirusTotalForCatalogAsync()
                 };
 
                 // Nie czekamy na backgroundTasks - niech działają w tle
@@ -415,6 +418,9 @@ namespace SUSModder.ViewModels
 
                 System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji modów DLL...");
                 await CheckDllUpdates();
+
+                System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji modpacków...");
+                await CheckModPackUpdatesAsync();
 
                 System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji zakończone");
             }
@@ -729,6 +735,42 @@ namespace SUSModder.ViewModels
                 System.Diagnostics.Debug.WriteLine($"[Registry] Error during registration check: {ex.Message}");
                 _diagnosticsOutput?.Write($"[Registry] Błąd podczas sprawdzania rejestracji: {ex.Message}");
                 // Nie pokazujemy błędu użytkownikowi - rejestracja nie jest krytyczna
+            }
+        }
+
+        /// <summary>
+        /// Pobiera raporty VirusTotal dla wszystkich pełnych modów w tle (best-effort).
+        /// </summary>
+        private async Task FetchVirusTotalForCatalogAsync()
+        {
+            if (_securityScanService == null || _loadedConfigs.Count == 0)
+                return;
+
+            try
+            {
+                var platform = DeterminePlatform();
+                var fullMods = _loadedConfigs
+                    .Where(c => !c.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase))
+                    .Select(c => (c.Id, c.ModVersion))
+                    .ToList();
+
+                if (fullMods.Count == 0)
+                    return;
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[SecurityScan] Rozpoczynam batch VT fetch dla {fullMods.Count} modów...");
+
+                await _securityScanService.FetchAndStoreVtForCatalogAsync(fullMods, platform);
+
+                // Po zapisie do DB, odśwież listę modów w UI
+                await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await RefreshModsListAsync();
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SecurityScan] Batch VT fetch failed: {ex.Message}");
             }
         }
     }

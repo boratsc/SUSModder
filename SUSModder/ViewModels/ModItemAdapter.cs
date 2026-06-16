@@ -22,7 +22,13 @@ namespace SUSModder.Core.Configuration
                 LastUpdated = config.LastUpdated,
                 HasRoles = config.HasRoles,
                 LobbyRegionBaseUrl = config.LobbyRegionBaseUrl,
-                SupportsLobbySharing = config.SupportsLobbySharing
+                SupportsLobbySharing = config.SupportsLobbySharing,
+                VtScanStatus = config.VtScanStatus,
+                VtPermalink = config.VtPermalink,
+                VtLastCheckedAt = config.VtLastCheckedAt,
+                VtStats = config.VtStats,
+                VtAiReviewStatus = config.VtAiReviewStatus,
+                VtAiReviewSummary = config.VtAiReviewSummary
             };
         }
 
@@ -46,6 +52,12 @@ namespace SUSModder.Core.Configuration
             item.HasRoles = config.HasRoles;
             item.LobbyRegionBaseUrl = config.LobbyRegionBaseUrl;
             item.SupportsLobbySharing = config.SupportsLobbySharing;
+            item.VtScanStatus = config.VtScanStatus;
+            item.VtPermalink = config.VtPermalink;
+            item.VtLastCheckedAt = config.VtLastCheckedAt;
+            item.VtStats = config.VtStats;
+            item.VtAiReviewStatus = config.VtAiReviewStatus;
+            item.VtAiReviewSummary = config.VtAiReviewSummary;
         }
 
         public static ModConfiguration ToConfig(ModItem item)

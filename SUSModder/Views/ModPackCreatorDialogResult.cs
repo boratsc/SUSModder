@@ -9,4 +9,5 @@ public sealed class ModPackCreatorDialogResult
     public ModPackCreateResult? ShareResult { get; init; }
     public string? CreatedInstanceId { get; init; }
     public IReadOnlyList<int> InstalledDllModIds { get; init; } = [];
+    public IReadOnlyList<string> FailedDllNames { get; init; } = [];
 }

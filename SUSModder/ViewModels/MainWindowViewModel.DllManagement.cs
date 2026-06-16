@@ -53,6 +53,7 @@ namespace SUSModder.ViewModels
 
         public ReactiveCommand<Unit, Unit> CloseDllDetailCommand { get; private set; } = null!;
         public ReactiveCommand<Unit, Unit> ApplyDllTargetChangesCommand { get; private set; } = null!;
+        public ReactiveCommand<ModItem, Unit> ToggleDllAutoUpdateCommand { get; private set; } = null!;
 
         private void InitializeDllBrowser()
         {
@@ -71,6 +72,7 @@ namespace SUSModder.ViewModels
 
             CloseDllDetailCommand = ReactiveCommand.Create(CloseDllDetail);
             ApplyDllTargetChangesCommand = ReactiveCommand.CreateFromTask(ApplyDllTargetChangesAsync);
+            ToggleDllAutoUpdateCommand = ReactiveCommand.Create<ModItem>(ToggleDllAutoUpdate);
         }
 
         private void ActivateDllAddonsTab()
@@ -86,7 +88,7 @@ namespace SUSModder.ViewModels
             IsRepairOptionsVisible = false;
             SelectedMod = null;
             SelectedPackInstance = null;
-            LoadDllMods();
+            _ = LoadDllMods();
             this.RaisePropertyChanged(nameof(IsDllAddonsGridVisible));
             this.RaisePropertyChanged(nameof(IsModPanelVisible));
             this.RaisePropertyChanged(nameof(IsDllPanelVisible));
@@ -134,7 +136,7 @@ namespace SUSModder.ViewModels
             IsDllInstallDialogVisible = false;
         }
 
-        private void LoadDllMods()
+        private async Task LoadDllMods()
         {
             try
             {
@@ -147,6 +149,11 @@ namespace SUSModder.ViewModels
                 var catalog = new ConfigService().LoadConfig();
 
                 DllMods.Clear();
+                // Pobierz listę zainstalowanych modów FULL (dla InstallationMap)
+                var fullMods = catalog
+                    .Where(c => c.ModType == "full" && !string.IsNullOrEmpty(c.InstallPath))
+                    .ToList();
+
                 foreach (var config in dllConfigs)
                 {
                     var item = ModItemAdapter.FromConfig(config);
@@ -156,6 +163,14 @@ namespace SUSModder.ViewModels
                     item.InstalledInSummary = count == 0
                         ? _localizationService.Get("UI.DllManager.NotInstalledAnywhere")
                         : _localizationService.GetFormatted("UI.DllManager.InstalledInCount", count);
+
+                    // ── Wczytaj stan auto-update DLL ──
+                    var autoUpdateState = await InstallationMapManager.GetDllAutoUpdateStateAsync(
+                        config.Id, fullMods);
+                    item.DllInstallationCount = count;
+                    item.DllAutoUpdateNotInstalled = autoUpdateState == InstallationMapManager.DllAutoUpdateState.NotInstalled;
+                    item.DllAutoUpdateIsMixed = autoUpdateState == InstallationMapManager.DllAutoUpdateState.Mixed;
+                    item.DllAutoUpdateEnabled = autoUpdateState == InstallationMapManager.DllAutoUpdateState.Enabled;
                     DllMods.Add(item);
                 }
 
@@ -170,6 +185,7 @@ namespace SUSModder.ViewModels
                 }
 
                 CaptureDllModsSnapshot();
+                SubscribeToDllAutoUpdateChanges();
                 System.Diagnostics.Debug.WriteLine($"Loaded {DllMods.Count} DLL mods");
             }
             catch (Exception ex)
@@ -419,7 +435,7 @@ namespace SUSModder.ViewModels
             }
 
             LoadDllInstallTargets();
-            LoadDllMods();
+            await LoadDllMods();
             await RefreshPackInstancesAsync();
         }
 
@@ -566,6 +582,79 @@ namespace SUSModder.ViewModels
                 EpicGitHubRepoOrLink = catalogMod.EpicGitHubRepoOrLink,
                 PngFileName = catalogMod.PngFileName
             };
+        }
+
+        // ─────────────────────────────────────────────
+        // DLL Auto-Update Toggle
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Przełącza auto-update dla danego DLL (globalnie we wszystkich lokalizacjach).
+        /// </summary>
+        private void ToggleDllAutoUpdate(ModItem dllItem)
+        {
+            if (dllItem == null || dllItem.DllAutoUpdateNotInstalled)
+                return;
+
+            // Ustaw przeciwny stan; Mixed → ON
+            bool newState = !dllItem.DllAutoUpdateEnabled || dllItem.DllAutoUpdateIsMixed;
+
+            _ = ToggleDllAutoUpdateAsync(dllItem, newState);
+        }
+
+        private async Task ToggleDllAutoUpdateAsync(ModItem dllItem, bool enabled)
+        {
+            try
+            {
+                var configService = new ConfigService();
+                var fullMods = configService.LoadConfig()
+                    .Where(c => c.ModType == "full" && !string.IsNullOrEmpty(c.InstallPath))
+                    .ToList();
+
+                var updatedCount = await InstallationMapManager.SetDllAutoUpdateAsync(
+                    dllItem.Id, fullMods, enabled);
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[DllAutoUpdate] Toggle {dllItem.Name} → {(enabled ? "ON" : "OFF")} ({updatedCount} lokalizacji)");
+
+                // Odśwież stan w UI
+                dllItem.DllAutoUpdateEnabled = enabled;
+                dllItem.DllAutoUpdateIsMixed = false;
+                dllItem.DllAutoUpdateNotInstalled = updatedCount == 0;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DllAutoUpdate] Error toggling {dllItem.Name}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Podpina się pod PropertyChanged każdego elementu DllMods, aby
+        /// zapisywać zmiany DllAutoUpdateEnabled do InstallationMap.
+        /// </summary>
+        private void SubscribeToDllAutoUpdateChanges()
+        {
+            foreach (var item in DllMods)
+            {
+                // Unikaj wielokrotnych subskrypcji — odepnij najpierw
+                item.PropertyChanged -= OnDllItemAutoUpdateChanged;
+                item.PropertyChanged += OnDllItemAutoUpdateChanged;
+            }
+        }
+
+        private void OnDllItemAutoUpdateChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(ModItem.DllAutoUpdateEnabled))
+                return;
+
+            if (sender is not ModItem dllItem)
+                return;
+
+            if (dllItem.DllAutoUpdateNotInstalled)
+                return;
+
+            // Wywołaj persystencję z aktualnym stanem (już ustawionym przez binding)
+            _ = ToggleDllAutoUpdateAsync(dllItem, dllItem.DllAutoUpdateEnabled);
         }
     }
 }

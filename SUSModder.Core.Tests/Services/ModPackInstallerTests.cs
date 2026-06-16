@@ -21,12 +21,11 @@ public class ModPackInstallerTests
     [Fact]
     public void TryResolveSafeDllPath_PathTraversal_PathGetFileNameStripsDirectories()
     {
-        // Path.GetFileName usuwa komponenty ścieżki, więc "..\..\Windows\evil.dll" staje się "evil.dll"
         var result = ModPackInstaller.TryResolveSafeDllPath(
             @"C:\AmongUs\BepInEx\plugins", @"..\..\Windows\evil.dll", out var safePath);
 
-        Assert.True(result);
-        Assert.EndsWith("evil.dll", safePath);
+        Assert.False(result);
+        Assert.Equal(string.Empty, safePath);
     }
 
     [Fact]
@@ -35,20 +34,18 @@ public class ModPackInstallerTests
         var result = ModPackInstaller.TryResolveSafeDllPath(
             @"C:\AmongUs\BepInEx\plugins", @"../../Windows/evil.dll", out var safePath);
 
-        Assert.True(result);
-        Assert.EndsWith("evil.dll", safePath);
+        Assert.False(result);
+        Assert.Equal(string.Empty, safePath);
     }
 
     [Fact]
     public void TryResolveSafeDllPath_AbsolutePath_IsNeutralizedByGetFileName()
     {
-        // Path.GetFileName wyciąga samą nazwę pliku, neutralizując ścieżkę absolutną.
         var result = ModPackInstaller.TryResolveSafeDllPath(
             @"C:\AmongUs\BepInEx\plugins", @"C:\Windows\evil.dll", out var safePath);
 
-        Assert.True(result);
-        Assert.EndsWith("evil.dll", safePath);
-        Assert.StartsWith(@"C:\AmongUs\BepInEx\plugins", safePath);
+        Assert.False(result);
+        Assert.Equal(string.Empty, safePath);
     }
 
     [Fact]
@@ -81,13 +78,11 @@ public class ModPackInstallerTests
     [Fact]
     public void TryResolveSafeDllPath_DeepPathTraversal_IsNeutralizedByGetFileName()
     {
-        // Path.GetFileName wyciąga samą nazwę pliku, neutralizując głęboki path traversal.
         var result = ModPackInstaller.TryResolveSafeDllPath(
             @"C:\AmongUs\BepInEx\plugins", @"..\..\..\..\..\Windows\System32\evil.dll", out var safePath);
 
-        Assert.True(result);
-        Assert.EndsWith("evil.dll", safePath);
-        Assert.StartsWith(@"C:\AmongUs\BepInEx\plugins", safePath);
+        Assert.False(result);
+        Assert.Equal(string.Empty, safePath);
     }
 
     [Fact]
@@ -96,8 +91,8 @@ public class ModPackInstallerTests
         var result = ModPackInstaller.TryResolveSafeDllPath(
             @"C:\AmongUs\BepInEx\plugins", "evil", out var safePath);
 
-        Assert.True(result);
-        Assert.EndsWith("evil", safePath);
+        Assert.False(result);
+        Assert.Equal(string.Empty, safePath);
     }
 
     [Fact]
@@ -132,14 +127,46 @@ public class ModPackInstallerTests
     [Fact]
     public void TryResolveSafeDllPath_FileNameAltStream_IsAccepted()
     {
-        // Alt Data Stream (evil.dll:$DATA) nie może uciec z katalogu plugins,
-        // więc metoda akceptuje — Path.GetFileName nie usuwa składowej :$DATA,
-        // a wynikowa ścieżka nadal znajduje się w plugins.
         var result = ModPackInstaller.TryResolveSafeDllPath(
             @"C:\AmongUs\BepInEx\plugins", "evil.dll:$DATA", out var safePath);
 
+        Assert.False(result);
+        Assert.Equal(string.Empty, safePath);
+    }
+
+    [Fact]
+    public void TryResolveSafeDllDirectory_DefaultPath_ReturnsPluginsDirectory()
+    {
+        var result = ModPackInstaller.TryResolveSafeDllDirectory(
+            @"C:\AmongUs", null, out var safeDirectory);
+
         Assert.True(result);
-        Assert.StartsWith(@"C:\AmongUs\BepInEx\plugins", safePath);
+        Assert.Equal(@"C:\AmongUs\BepInEx\plugins", safeDirectory);
+    }
+
+    [Fact]
+    public void TryResolveSafeDllDirectory_PluginsSubfolder_ReturnsTrue()
+    {
+        var result = ModPackInstaller.TryResolveSafeDllDirectory(
+            @"C:\AmongUs", @"BepInEx\plugins\Custom", out var safeDirectory);
+
+        Assert.True(result);
+        Assert.Equal(@"C:\AmongUs\BepInEx\plugins\Custom", safeDirectory);
+    }
+
+    [Theory]
+    [InlineData(@"..\evil")]
+    [InlineData(@"C:\Windows")]
+    [InlineData(@"BepInEx\..\evil")]
+    [InlineData(@"BepInEx\core")]
+    [InlineData(@"BepInEx\plugins:evil")]
+    public void TryResolveSafeDllDirectory_UnsafePath_ReturnsFalse(string dllInstallPath)
+    {
+        var result = ModPackInstaller.TryResolveSafeDllDirectory(
+            @"C:\AmongUs", dllInstallPath, out var safeDirectory);
+
+        Assert.False(result);
+        Assert.Equal(string.Empty, safeDirectory);
     }
 
     // --- SimpleDiagnostics tests ---

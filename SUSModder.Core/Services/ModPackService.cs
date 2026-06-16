@@ -222,6 +222,7 @@ namespace SUSModder.Core.Services
                 var fileContent = new StreamContent(fileStream);
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                 form.Add(fileContent, "file", Path.GetFileName(filePath));
+                form.Add(new StringContent(CreatorHash), "creatorHash");
 
                 var response = await _apiClient.SendAsync(new SusModderApiRequest
                 {
@@ -229,7 +230,7 @@ namespace SUSModder.Core.Services
                     RelativePath = $"{PackPath(normalized)}/dlls",
                     Content = form,
                     UserHash = CreatorHash,
-                    IncludeAuthToken = true
+                    IncludeAuthToken = false
                 }, ct);
                 var body = await response.Content.ReadAsStringAsync(ct);
 
@@ -239,8 +240,7 @@ namespace SUSModder.Core.Services
                     return null;
                 }
 
-                var result = TryDeserialize<UploadDllApiResponse>(body);
-                return result?.DllEntry;
+                return ParseUploadExternalDllResponse(body);
             }
             catch (Exception ex)
             {
@@ -249,9 +249,156 @@ namespace SUSModder.Core.Services
             }
         }
 
+        public async Task<ModPackCustomArtifact?> UploadCustomDllAsync(
+            string packCode, string filePath, CancellationToken ct = default)
+        {
+            if (!ModPackCodeValidator.IsValid(packCode) || !File.Exists(filePath))
+                return null;
+
+            try
+            {
+                var normalized = ModPackCodeValidator.Normalize(packCode);
+                using var form = new MultipartFormDataContent();
+                await using var fileStream = File.OpenRead(filePath);
+                var fileContent = new StreamContent(fileStream);
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                form.Add(fileContent, "file", Path.GetFileName(filePath));
+                form.Add(new StringContent(CreatorHash), "creatorHash");
+
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
+                {
+                    Method = HttpMethod.Post,
+                    RelativePath = $"{PackPath(normalized)}/dlls",
+                    Content = form,
+                    UserHash = CreatorHash,
+                    IncludeAuthToken = false
+                }, ct);
+                var body = await response.Content.ReadAsStringAsync(ct);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _log.Write($"[ModPack] Upload custom DLL failed ({response.StatusCode}): {body}");
+                    return null;
+                }
+
+                return ParseUploadCustomDllResponse(body);
+            }
+            catch (Exception ex)
+            {
+                _log.Write($"[ModPack] Upload custom DLL exception: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<ModPackArtifactStatusResult> GetExternalDllStatusAsync(
+            string packCode, string sha256, CancellationToken ct = default)
+        {
+            if (!ModPackCodeValidator.IsValid(packCode) || string.IsNullOrWhiteSpace(sha256))
+                return StatusError("INVALID_REQUEST", "Invalid pack code or SHA256.");
+
+            var normalized = ModPackCodeValidator.Normalize(packCode);
+            return await GetArtifactStatusAsync($"{PackPath(normalized)}/dlls/{Uri.EscapeDataString(sha256)}/status", ct);
+        }
+
+        public async Task<ModPackCustomArtifact?> DeclareGitHubCustomModAsync(
+            string packCode, ModPackCustomGithubModRequest request, CancellationToken ct = default)
+        {
+            if (!ModPackCodeValidator.IsValid(packCode) || request == null || string.IsNullOrWhiteSpace(request.GithubUrl))
+                return null;
+
+            try
+            {
+                var normalized = ModPackCodeValidator.Normalize(packCode);
+                request.CreatorHash = CreatorHash;
+                var payload = JsonSerializer.Serialize(request, JsonOptions);
+                using var content = new StringContent(payload, Encoding.UTF8, "application/json");
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
+                {
+                    Method = HttpMethod.Post,
+                    RelativePath = $"{PackPath(normalized)}/custom-github-mods",
+                    Content = content,
+                    UserHash = CreatorHash,
+                    IncludeAuthToken = false
+                }, ct);
+                var body = await response.Content.ReadAsStringAsync(ct);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _log.Write($"[ModPack] Declare GitHub custom mod failed ({response.StatusCode}): {body}");
+                    return null;
+                }
+
+                return ParseCustomArtifactResponse(body);
+            }
+            catch (Exception ex)
+            {
+                _log.Write($"[ModPack] Declare GitHub custom mod exception: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<ModPackArtifactStatusResult> GetCustomArtifactStatusAsync(
+            string packCode, string artifactId, CancellationToken ct = default)
+        {
+            if (!ModPackCodeValidator.IsValid(packCode) || string.IsNullOrWhiteSpace(artifactId))
+                return StatusError("INVALID_REQUEST", "Invalid pack code or artifact id.");
+
+            var normalized = ModPackCodeValidator.Normalize(packCode);
+            return await GetArtifactStatusAsync(
+                $"{PackPath(normalized)}/custom-artifacts/{Uri.EscapeDataString(artifactId)}/status",
+                ct);
+        }
+
+        public async Task<ModPackFinalizeResult> FinalizePackAsync(string packCode, CancellationToken ct = default)
+        {
+            if (!ModPackCodeValidator.IsValid(packCode))
+                return new ModPackFinalizeResult { Success = false, ErrorCode = "INVALID_PACK_CODE" };
+
+            try
+            {
+                var normalized = ModPackCodeValidator.Normalize(packCode);
+                var finalizeBody = JsonSerializer.Serialize(new { creatorHash = CreatorHash }, JsonOptions);
+                using var content = new StringContent(finalizeBody, Encoding.UTF8, "application/json");
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
+                {
+                    Method = HttpMethod.Post,
+                    RelativePath = $"{PackPath(normalized)}/finalize",
+                    Content = content,
+                    UserHash = CreatorHash,
+                    IncludeAuthToken = false
+                }, ct);
+                var body = await response.Content.ReadAsStringAsync(ct);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var err = ParseApiError(body);
+                    return new ModPackFinalizeResult
+                    {
+                        Success = false,
+                        ErrorCode = err?.Code ?? response.StatusCode.ToString(),
+                        ErrorMessage = err?.Message ?? body
+                    };
+                }
+
+                return ParseFinalizeResponse(body);
+            }
+            catch (Exception ex)
+            {
+                _log.Write($"[ModPack] Finalize exception: {ex.Message}");
+                return new ModPackFinalizeResult
+                {
+                    Success = false,
+                    ErrorCode = "NETWORK_ERROR",
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
         public ModPackValidationResult ValidatePack(ModPack pack, bool externalDllConsentGiven)
         {
-            if (pack.FullMod == null || pack.FullMod.Id <= 0)
+            var isCustomFull = pack.HasCustomFullMod;
+
+            if (!isCustomFull && (pack.FullMod == null || pack.FullMod.Id <= 0))
             {
                 return new ModPackValidationResult
                 {
@@ -261,28 +408,59 @@ namespace SUSModder.Core.Services
                 };
             }
 
-            var configs = ConfigManager.LoadConfig();
-            var fullMod = configs.Find(c => c.Id == pack.FullMod.Id);
-            if (fullMod == null)
+            if (!isCustomFull)
+            {
+                var configs = ConfigManager.LoadConfig();
+                var fullMod = configs.Find(c => c.Id == pack.FullMod!.Id);
+                if (fullMod == null)
+                {
+                    return new ModPackValidationResult
+                    {
+                        IsValid = false,
+                        ErrorCode = "MOD_NOT_IN_CATALOG",
+                        ErrorMessage = "Mod główny nie istnieje w katalogu SUSModder."
+                    };
+                }
+            }
+
+            if (pack.Installable == false ||
+                (isCustomFull && string.Equals(pack.Status, "draft", StringComparison.OrdinalIgnoreCase)) ||
+                string.Equals(pack.Status, "scanning", StringComparison.OrdinalIgnoreCase) ||
+                (isCustomFull && string.Equals(pack.CustomFullMod!.Status, "pending", StringComparison.OrdinalIgnoreCase)))
             {
                 return new ModPackValidationResult
                 {
                     IsValid = false,
-                    ErrorCode = "MOD_NOT_IN_CATALOG",
-                    ErrorMessage = "Mod główny nie istnieje w katalogu SUSModder."
+                    ErrorCode = "CUSTOM_CONTENT_PENDING_SCAN",
+                    ErrorMessage = "Custom content is still being scanned.",
+                    RequiresExternalDllConsent = pack.HasCustomContent,
+                    BlocksExternalDllInstall = pack.HasCustomContent
                 };
             }
 
-            if (!pack.HasExternalDlls)
-                return new ModPackValidationResult { IsValid = true };
-
-            if (pack.HasSuspiciousExternalDll)
+            if (string.Equals(pack.Status, "blocked", StringComparison.OrdinalIgnoreCase) ||
+                pack.HasNonCleanCustomArtifact)
             {
                 return new ModPackValidationResult
                 {
                     IsValid = false,
-                    ErrorCode = "DLL_SUSPICIOUS",
-                    ErrorMessage = "Zewnętrzne DLL oznaczone jako podejrzane — instalacja zablokowana.",
+                    ErrorCode = "CUSTOM_CONTENT_REJECTED",
+                    ErrorMessage = "Custom content is not clean — installation blocked.",
+                    RequiresExternalDllConsent = pack.HasCustomContent,
+                    BlocksExternalDllInstall = true
+                };
+            }
+
+            if (!pack.HasCustomContent)
+                return new ModPackValidationResult { IsValid = true };
+
+            if (pack.HasSuspiciousExternalDll || pack.HasNonCleanExternalDll)
+            {
+                return new ModPackValidationResult
+                {
+                    IsValid = false,
+                    ErrorCode = pack.HasSuspiciousExternalDll ? "CUSTOM_CONTENT_SUSPICIOUS" : "CUSTOM_CONTENT_PENDING_SCAN",
+                    ErrorMessage = "External DLL is not clean — installation blocked.",
                     RequiresExternalDllConsent = true,
                     BlocksExternalDllInstall = true
                 };
@@ -325,7 +503,7 @@ namespace SUSModder.Core.Services
             {
                 if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
                 {
-                    _log.Write($"[ModPack] Pominięto upload external DLL — brak pliku: {filePath}");
+                    _log.Write($"[ModPack] Pominięto upload external DLL — brak pliku: {Path.GetFileName(filePath)}");
                     continue;
                 }
 
@@ -334,6 +512,41 @@ namespace SUSModder.Core.Services
                     _log.Write($"[ModPack] Upload external DLL nie powiódł się: {Path.GetFileName(filePath)}");
             }
         }
+
+        private async Task<ModPackArtifactStatusResult> GetArtifactStatusAsync(string relativePath, CancellationToken ct)
+        {
+            try
+            {
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
+                {
+                    Method = HttpMethod.Get,
+                    RelativePath = relativePath,
+                    IncludeAuthToken = false
+                }, ct);
+                var body = await response.Content.ReadAsStringAsync(ct);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var err = ParseApiError(body);
+                    return StatusError(err?.Code ?? response.StatusCode.ToString(), err?.Message ?? body);
+                }
+
+                return ParseArtifactStatusResponse(body);
+            }
+            catch (Exception ex)
+            {
+                _log.Write($"[ModPack] Artifact status exception: {ex.Message}");
+                return StatusError("NETWORK_ERROR", ex.Message);
+            }
+        }
+
+        private static ModPackArtifactStatusResult StatusError(string code, string? message = null) => new()
+        {
+            Success = false,
+            ErrorCode = code,
+            ErrorMessage = message,
+            Status = "unknown"
+        };
 
         private static ModPackCreateResult? ParseCreatePackResponse(string json)
         {
@@ -376,16 +589,19 @@ namespace SUSModder.Core.Services
                 DateTimeOffset.TryParse(exp.GetString(), out var parsed))
                 expiresAt = parsed;
 
-            return new ModPackCreateResult
-            {
-                Success = true,
-                PackId = GetString(el, "packId", "pack_id"),
-                PackCode = GetString(el, "packCode", "pack_code"),
-                ShareUrl = GetString(el, "shareUrl", "share_url"),
-                DeepLink = GetString(el, "deepLink", "deep_link"),
-                ExpiresAt = expiresAt
-            };
-        }
+                return new ModPackCreateResult
+                {
+                    Success = true,
+                    PackId = GetString(el, "packId", "pack_id"),
+                    PackCode = GetString(el, "packCode", "pack_code"),
+                    ShareUrl = GetString(el, "shareUrl", "share_url"),
+                    DeepLink = GetString(el, "deepLink", "deep_link"),
+                    ExpiresAt = expiresAt,
+                    Status = GetString(el, "status") ?? "ready",
+                    Installable = GetNullableBool(el, "installable"),
+                    CustomArtifacts = ParseCustomArtifacts(el)
+                };
+            }
 
         private static ApiErrorBody? ParseApiError(string json)
         {
@@ -447,7 +663,9 @@ namespace SUSModder.Core.Services
                 DiscordInvite = GetString(el, "discordInvite", "discord_invite"),
                 IncludeIntegrationDll = GetBool(el, "includeIntegrationDll", "include_integration_dll"),
                 TtlDays = GetInt(el, "ttlDays", "ttl_days") is var ttl && ttl > 0 ? ttl : 30,
-                VtStatus = GetString(el, "vtStatus", "vt_status") ?? "unknown"
+                VtStatus = GetString(el, "vtStatus", "vt_status") ?? "unknown",
+                Status = GetString(el, "status") ?? "ready",
+                Installable = GetNullableBool(el, "installable")
             };
 
             if (TryGetProperty(el, "fullMod", "full_mod", out var fullModEl))
@@ -500,24 +718,242 @@ namespace SUSModder.Core.Services
                 var list = new List<ModPackExternalDll>();
                 foreach (var item in ext.EnumerateArray())
                 {
-                    list.Add(new ModPackExternalDll
-                    {
-                        Id = GetInt(item, "id"),
-                        FileName = GetString(item, "fileName", "file_name") ?? string.Empty,
-                        Sha256 = GetString(item, "sha256", "fileSha256", "file_sha256") ?? string.Empty,
-                        FileSize = GetLong(item, "fileSize", "file_size"),
-                        VtStatus = GetString(item, "vtStatus", "vt_status") ?? "unknown",
-                        VtPermalink = GetString(item, "vtPermalink", "vt_permalink"),
-                        DownloadUrl = GetString(item, "downloadUrl", "download_url")
-                    });
+                    list.Add(ParseExternalDll(item));
                 }
                 pack.ExternalDlls = list;
             }
+
+            pack.CustomArtifacts = ParseCustomArtifacts(el);
+            pack.CustomFullMod = FindCustomFullArtifact(pack.CustomArtifacts);
 
             if (TryGetProperty(el, "touConfig", "tou_config", out var tou))
                 pack.TouConfig = tou.Clone();
 
             return pack;
+        }
+
+        private static ModPackExternalDll ParseExternalDll(JsonElement item) => new()
+        {
+            Id = GetInt(item, "id"),
+            FileName = GetString(item, "fileName", "file_name") ?? string.Empty,
+            Sha256 = GetString(item, "sha256", "fileSha256", "file_sha256") ?? string.Empty,
+            FileSize = GetLong(item, "fileSize", "file_size"),
+            VtStatus = GetString(item, "vtStatus", "vt_status", "status") ?? "unknown",
+            VtPermalink = GetString(item, "vtPermalink", "vt_permalink"),
+            DownloadUrl = GetString(item, "downloadUrl", "download_url"),
+            DllInstallPath = GetString(item, "dllInstallPath", "dll_install_path")
+        };
+
+        private static ModPackCustomArtifact ParseCustomArtifact(JsonElement item)
+        {
+            var artifact = new ModPackCustomArtifact
+            {
+                ArtifactId = GetString(item, "artifactId", "artifact_id", "id") ?? string.Empty,
+                SourceKind = GetString(item, "sourceKind", "source_kind") ?? "uploaded_dll",
+                ModType = GetString(item, "modType", "mod_type") ?? "dll",
+                DisplayName = GetString(item, "displayName", "display_name", "fileName", "file_name") ?? string.Empty,
+                Version = GetString(item, "version"),
+                OriginalSourceUrl = GetString(item, "originalSourceUrl", "original_source_url", "githubUrl", "github_url"),
+                FileName = GetString(item, "fileName", "file_name") ?? string.Empty,
+                Sha256 = GetString(item, "sha256", "fileSha256", "file_sha256") ?? string.Empty,
+                FileSize = GetLong(item, "fileSize", "file_size"),
+                Status = GetString(item, "status", "vtStatus", "vt_status") ?? "pending",
+                VtPermalink = GetString(item, "vtPermalink", "vt_permalink"),
+                DownloadUrl = GetString(item, "downloadUrl", "download_url"),
+                DllInstallPath = GetString(item, "dllInstallPath", "dll_install_path")
+            };
+
+            if (TryGetProperty(item, "structureWarnings", "structure_warnings", out var warnings) &&
+                warnings.ValueKind == JsonValueKind.Array)
+            {
+                var list = new List<string>();
+                foreach (var warning in warnings.EnumerateArray())
+                {
+                    if (warning.ValueKind == JsonValueKind.String && warning.GetString() is { } text)
+                        list.Add(text);
+                }
+                artifact.StructureWarnings = list;
+            }
+
+            return artifact;
+        }
+
+        private static IReadOnlyList<ModPackCustomArtifact> ParseCustomArtifacts(JsonElement el)
+        {
+            if (!TryGetProperty(el, "customArtifacts", "custom_artifacts", out var artifacts) ||
+                artifacts.ValueKind != JsonValueKind.Array)
+                return Array.Empty<ModPackCustomArtifact>();
+
+            var list = new List<ModPackCustomArtifact>();
+            foreach (var item in artifacts.EnumerateArray())
+                list.Add(ParseCustomArtifact(item));
+            return list;
+        }
+
+        private static ModPackCustomArtifact? FindCustomFullArtifact(IReadOnlyList<ModPackCustomArtifact> artifacts)
+        {
+            foreach (var artifact in artifacts)
+            {
+                if (string.Equals(artifact.ModType, "full", StringComparison.OrdinalIgnoreCase) &&
+                    (string.Equals(artifact.SourceKind, "github_full", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(artifact.SourceKind, "uploaded_full", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return artifact;
+                }
+            }
+
+            return null;
+        }
+
+        private static ModPackCustomArtifact? ParseUploadCustomDllResponse(string json)
+        {
+            if (!TryUnwrapData(json, out var el))
+                return null;
+
+            if (TryGetProperty(el, "customArtifact", "custom_artifact", out var artifactEl))
+                return ParseCustomArtifact(artifactEl);
+
+            if (TryGetProperty(el, "dllEntry", "dll_entry", out var dllEl))
+            {
+                var dll = ParseExternalDll(dllEl);
+                return ExternalDllToCustomArtifact(dll);
+            }
+
+            if (el.ValueKind == JsonValueKind.Object &&
+                (el.TryGetProperty("sha256", out _) || el.TryGetProperty("fileName", out _) || el.TryGetProperty("file_name", out _)))
+                return ParseCustomArtifact(el);
+
+            return null;
+        }
+
+        private static ModPackExternalDll? ParseUploadExternalDllResponse(string json)
+        {
+            var legacy = TryDeserialize<UploadDllApiResponse>(json);
+            if (legacy?.DllEntry != null)
+                return legacy.DllEntry;
+
+            if (!TryUnwrapData(json, out var el))
+                return null;
+
+            if (TryGetProperty(el, "dllEntry", "dll_entry", out var dllEl))
+                return ParseExternalDll(dllEl);
+
+            if (TryGetProperty(el, "customArtifact", "custom_artifact", out var artifactEl))
+                return CustomArtifactToExternalDll(ParseCustomArtifact(artifactEl));
+
+            if (el.ValueKind == JsonValueKind.Object &&
+                (el.TryGetProperty("sha256", out _) || el.TryGetProperty("fileName", out _) || el.TryGetProperty("file_name", out _)))
+                return ParseExternalDll(el);
+
+            return null;
+        }
+
+        private static ModPackCustomArtifact? ParseCustomArtifactResponse(string json)
+        {
+            if (!TryUnwrapData(json, out var el))
+                return null;
+
+            if (TryGetProperty(el, "customArtifact", "custom_artifact", out var artifactEl))
+                return ParseCustomArtifact(artifactEl);
+
+            if (el.ValueKind == JsonValueKind.Object &&
+                (el.TryGetProperty("artifactId", out _) || el.TryGetProperty("artifact_id", out _) || el.TryGetProperty("id", out _)))
+                return ParseCustomArtifact(el);
+
+            return null;
+        }
+
+        private static ModPackArtifactStatusResult ParseArtifactStatusResponse(string json)
+        {
+            if (!TryUnwrapData(json, out var el))
+                return StatusError("INVALID_RESPONSE", "Invalid artifact status response.");
+
+            ModPackExternalDll? dllEntry = null;
+            ModPackCustomArtifact? customArtifact = null;
+
+            if (TryGetProperty(el, "dllEntry", "dll_entry", out var dllEl))
+                dllEntry = ParseExternalDll(dllEl);
+
+            if (TryGetProperty(el, "customArtifact", "custom_artifact", out var artifactEl))
+                customArtifact = ParseCustomArtifact(artifactEl);
+            else if (el.ValueKind == JsonValueKind.Object &&
+                (el.TryGetProperty("artifactId", out _) || el.TryGetProperty("artifact_id", out _)))
+                customArtifact = ParseCustomArtifact(el);
+
+            var status = GetString(el, "status", "vtStatus", "vt_status")
+                ?? customArtifact?.Status
+                ?? dllEntry?.VtStatus
+                ?? "unknown";
+
+            return new ModPackArtifactStatusResult
+            {
+                Success = true,
+                Status = status,
+                DownloadAvailable = GetBool(el, "downloadAvailable", "download_available") ||
+                    string.Equals(status, "clean", StringComparison.OrdinalIgnoreCase),
+                DllEntry = dllEntry,
+                CustomArtifact = customArtifact
+            };
+        }
+
+        private static ModPackFinalizeResult ParseFinalizeResponse(string json)
+        {
+            if (!TryUnwrapData(json, out var el))
+                return new ModPackFinalizeResult { Success = false, ErrorCode = "INVALID_RESPONSE" };
+
+            return new ModPackFinalizeResult
+            {
+                Success = true,
+                Status = GetString(el, "status") ?? "unknown",
+                Installable = GetBool(el, "installable"),
+                ShareUrl = GetString(el, "shareUrl", "share_url"),
+                DeepLink = GetString(el, "deepLink", "deep_link")
+            };
+        }
+
+        private static ModPackCustomArtifact ExternalDllToCustomArtifact(ModPackExternalDll dll) => new()
+        {
+            ArtifactId = string.IsNullOrWhiteSpace(dll.Sha256) ? dll.Id.ToString() : dll.Sha256,
+            SourceKind = "uploaded_dll",
+            ModType = "dll",
+            DisplayName = dll.FileName,
+            FileName = dll.FileName,
+            Sha256 = dll.Sha256,
+            FileSize = dll.FileSize,
+            Status = dll.VtStatus,
+            VtPermalink = dll.VtPermalink,
+            DownloadUrl = dll.DownloadUrl,
+            DllInstallPath = "BepInEx/plugins"
+        };
+
+        private static ModPackExternalDll CustomArtifactToExternalDll(ModPackCustomArtifact artifact) => new()
+        {
+            FileName = artifact.FileName,
+            Sha256 = artifact.Sha256,
+            FileSize = artifact.FileSize,
+            VtStatus = artifact.Status,
+            VtPermalink = artifact.VtPermalink,
+            DownloadUrl = artifact.DownloadUrl,
+            DllInstallPath = artifact.DllInstallPath
+        };
+
+        private static bool TryUnwrapData(string json, out JsonElement element)
+        {
+            element = default;
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("data", out var dataEl))
+                    element = dataEl.Clone();
+                else
+                    element = root.Clone();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static bool TryGetProperty(JsonElement el, string name1, string name2, out JsonElement value)
@@ -572,6 +1008,18 @@ namespace SUSModder.Core.Services
                 if (prop.ValueKind == JsonValueKind.False) return false;
             }
             return false;
+        }
+
+        private static bool? GetNullableBool(JsonElement el, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                if (!el.TryGetProperty(name, out var prop))
+                    continue;
+                if (prop.ValueKind == JsonValueKind.True) return true;
+                if (prop.ValueKind == JsonValueKind.False) return false;
+            }
+            return null;
         }
 
         private static T? TryDeserialize<T>(string json)
