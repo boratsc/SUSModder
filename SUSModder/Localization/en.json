@@ -176,6 +176,13 @@
       "CheckModUpdates": "Check mod updates",
       "LobbyBoard": "Lobby Board"
     },
+    "LobbyBoard": {
+      "Time": {
+        "JustNow": "Just now",
+        "MinutesAgo": "{0} min ago",
+        "HoursAgo": "{0}h ago"
+      }
+    },
     "Fab": {
       "UpdatesBadgeTooltip": "{0} available updates"
     },
@@ -509,6 +516,55 @@
       "InvalidFileTitle": "Invalid file",
       "InvalidFileMessage": "The selected file must be named Among Us.exe and come from the Among Us Steam installation folder."
     },
+    "EpicLoginRequired": {
+      "Title": "Epic Games Login",
+      "Header": "Epic Games login required",
+      "Message": "Could not verify Epic Games login. Without an active session the app will not work correctly in Epic mode.",
+      "LoginButton": "Log in",
+      "SwitchToSteamButton": "Switch to Steam",
+      "CloseButton": "Close"
+    },
+    "PlatformSelection": {
+      "Title": "Choose platform",
+      "Header": "Choose platform",
+      "SteamLabel": "Steam",
+      "EpicLabel": "Epic Games",
+      "Footer": "You can change the platform later in settings"
+    },
+    "SteamQr": {
+      "Title": "Steam Login",
+      "Header": "Downloading Among Us from Steam",
+      "Description": "SUSModder never asks for your Steam password. Scan the code in the Steam app on your phone.",
+      "StatusPreparing": "Preparing Steam login...",
+      "FallbackButton": "Use backup copy (7z)",
+      "CancelButton": "Cancel"
+    },
+    "EpicAuth": {
+      "Title": "Epic Games Login",
+      "Header": "Epic Games Store Login",
+      "Subtitle": "Required to launch the game",
+      "CancelButton": "Cancel",
+      "OpenInBrowser": "Open in browser",
+      "LegendaryInfo": "SUSModder uses Legendary to manage Epic games. Legendary is an open-source, free launcher for the Epic Games Store.",
+      "LegendaryMoreInfo": "More info:",
+      "InstructionsTitle": "Instructions",
+      "InstructionsBody": "1. A browser window with Epic Games login will open shortly\n2. Log in to your Epic Games account\n3. After login you will see a page with a code\n4. Select all text (Ctrl+A) and copy (Ctrl+C)\n\nThe code will be detected automatically and login will proceed.\nYou can also paste the code manually below (Ctrl+V).",
+      "PasteLabel": "Paste code or full JSON here:",
+      "PastePlaceholder": "Paste JSON or authorization code here...",
+      "OpenBrowserButton": "Open browser",
+      "ConfirmButton": "Log in",
+      "WebViewLoading": "Loading Epic Games login page...",
+      "WebViewCodeCaptured": "Authorization code captured! Logging in...",
+      "AutoOpenCountdown": "Browser will open automatically in {0} seconds...",
+      "BrowserOpened": "Browser opened!",
+      "BrowserOpenFailed": "Failed to open browser",
+      "ClipboardMonitoring": "Clipboard monitoring active — copy the code!",
+      "ClipboardCodeDetected": "Authorization code detected! Logging in...",
+      "ClipboardCodeDetectedShort": "Authorization code detected in clipboard!"
+    },
+    "Prompt": {
+      "Placeholder": "Paste JSON, URL or code..."
+    },
     "UpdateSuccess": {
       "ChangelogExpander": "What changed?"
     }
@@ -741,6 +797,11 @@
     "TestersLabel": "TESTERS",
     "TestersCommunity": "Psychopathic Community",
     "SpecialThanksLabel": "SPECIAL THANKS",
+    "SpecialThanksMessage": "Thanks for helping with testing, feedback, and project development.",
+    "CreatorAndGraphicsHeader": "APPLICATION CREATOR & GRAPHICS",
+    "VersionShort": "Version v{0}",
+    "Tagline": "Among Us Mod Manager",
+    "Email": "Email",
     "Copyright": "© 2026 SUSModder - Software licensed under GPLv3. All rights reserved."
   },
   "Tools": {
@@ -961,7 +1022,8 @@
     "RefreshGuilds": "Refresh server list",
     "SelectGuildPlaceholder": "Select server...",
     "NoGuildsHint": "Make sure you have an active SUStats on one of your Discord servers.",
-    "CredentialsError": "Error fetching credentials: {0}"
+    "CredentialsError": "Error fetching credentials: {0}",
+    "DpapiUnprotectFailed": "Could not read stored login data (DPAPI). Log out and sign in again via Discord."
   },
   "RecommendedDiscords": {
     "WindowTitle": "Recommended Discords",
@@ -1361,7 +1423,15 @@
     "DllChange": "DLL {0}: {1} → {2}",
     "ExternalDllChange": "External DLL {0}: file changed",
     "ConfigMayChange": "Configuration may have changed",
-    "UpdateAvailableCount": "Updates available for {0} packs"
+    "UpdateAvailableCount": "Updates available for {0} packs",
+    "Change": {
+      "FullMod": "Main mod {0}: {1} → {2}",
+      "Dll": "DLL {0}: {1} → {2}",
+      "ExternalDll": "External DLL {0}: file changed",
+      "Config": "Configuration {0} may have changed",
+      "Missing": "(missing)",
+      "Generic": "{0}: {1} → {2}"
+    }
   },
   "ModChangelog": {
     "Button": "Changelog",
@@ -1416,6 +1486,7 @@
     "Result.SafetyNotice": "Safety notice",
     "Actions.Helped": "It helped",
     "Actions.NotHelped": "Problem persists",
+    "Actions.AcceptPrivacy": "I understand and accept",
     "Actions.GenerateReport": "Generate diagnostic report",
     "Actions.JoinDiscord": "Join Discord",
     "Actions.OpenFirewallRepair": "Firewall tool",

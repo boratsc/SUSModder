@@ -20,7 +20,7 @@ namespace SUSModder.Core.Data
 
         // Aktualna wersja schematu bazy danych.
         // Zwiększaj przy każdej zmianie schematu (CREATE TABLE, ALTER TABLE, etc.).
-        private const int LatestSchemaVersion = 11;
+        private const int LatestSchemaVersion = 12;
 
         public DatabaseService()
         {
@@ -213,7 +213,8 @@ namespace SUSModder.Core.Data
                     mod_pack_share_creator_name TEXT NOT NULL DEFAULT '',
                     mod_pack_share_discord_invite TEXT NOT NULL DEFAULT '',
                     glass_reduce_transparency INTEGER NOT NULL DEFAULT 0,
-                    prefer_depot_downloader INTEGER NOT NULL DEFAULT 0
+                    prefer_depot_downloader INTEGER NOT NULL DEFAULT 0,
+                    developer_mode      INTEGER NOT NULL DEFAULT 0
                 );";
             cmd.ExecuteNonQuery();
 
@@ -640,6 +641,32 @@ namespace SUSModder.Core.Data
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v11: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 12)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v12 – developer_mode w user_settings...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+
+                    EnsureColumn(cmd, "user_settings", "developer_mode",
+                        "ALTER TABLE user_settings ADD COLUMN developer_mode INTEGER NOT NULL DEFAULT 0;");
+
+                    tx.Commit();
+                    SetUserVersion(conn, 12);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v12 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v12: {ex.Message}. Wycofywanie...");
                     try { tx.Rollback(); } catch { /* ignore */ }
                     throw;
                 }

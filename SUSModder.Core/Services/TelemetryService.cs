@@ -88,9 +88,9 @@ namespace SUSModder.Core.Services
                 var language = userSettings.Language;
                 if (string.IsNullOrWhiteSpace(language))
                 {
-                    // Fallback do system locale jeśli nie ustawiono
                     language = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
                 }
+                language = SUSModder.Core.Api.Support.SupportDiagnosticContextBuilder.NormalizeLanguage(language);
 
                 var data = new
                 {

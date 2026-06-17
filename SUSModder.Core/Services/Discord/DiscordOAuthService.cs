@@ -5,8 +5,6 @@ using SUSModder.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -44,6 +42,9 @@ public class DiscordOAuthService : IDiscordOAuthService
     // Tymczasowo przechowywany code_verifier między StartLoginAsync a CompleteLoginAsync
     private string? _lastCodeVerifier;
 
+    // Tymczasowo przechowywany state parameter między StartLoginAsync a CompleteLoginAsync (anti-CSRF)
+    private string? _lastOAuthState;
+
     public DiscordOAuthService(
         IConfiguration configuration,
         IDiscordAuthRepository authRepository,
@@ -62,25 +63,30 @@ public class DiscordOAuthService : IDiscordOAuthService
             _diagnosticsOutput.Write("[DiscordOAuth] Starting login flow...");
 
             // 1. Generuj code_verifier (64 bajty, URL-safe Base64 bez padding)
-            var codeVerifier = GenerateCodeVerifier();
+            var codeVerifier = DiscordOAuthPkce.GenerateCodeVerifier();
             _lastCodeVerifier = codeVerifier;
             _diagnosticsOutput.Write("[DiscordOAuth] Code verifier generated.");
 
             // 2. Generuj code_challenge = URL-safe Base64(SHA256(code_verifier)), bez padding
-            var codeChallenge = GenerateCodeChallenge(codeVerifier);
+            var codeChallenge = DiscordOAuthPkce.GenerateCodeChallenge(codeVerifier);
             _diagnosticsOutput.Write("[DiscordOAuth] Code challenge computed.");
 
-            // 3. Pobierz discord_client_id z Clair API
+            // 3. Generuj OAuth state parameter (anti-CSRF)
+            var state = DiscordOAuthPkce.GenerateState();
+            _lastOAuthState = state;
+            _diagnosticsOutput.Write("[DiscordOAuth] State parameter generated.");
+
+            // 4. Pobierz discord_client_id z Clair API
             var discordClientId = await GetDiscordClientIdAsync();
             _discordClientId = discordClientId;
 
-            // 4. Zbuduj URL autoryzacji Discord OAuth2
+            // 5. Zbuduj URL autoryzacji Discord OAuth2
             var redirectUri = $"http://127.0.0.1:{CallbackPort}/susmodder/callback";
-            var authUrl = BuildAuthorizationUrl(discordClientId, redirectUri, codeChallenge);
+            var authUrl = BuildAuthorizationUrl(discordClientId, redirectUri, codeChallenge, state);
 
             _diagnosticsOutput.Write($"[DiscordOAuth] Auth URL built (redirect_uri: {redirectUri})");
 
-            return new OAuthStartResult(authUrl, CallbackPort, codeVerifier);
+            return new OAuthStartResult(authUrl, CallbackPort, codeVerifier, state);
         }
         catch (Exception ex)
         {
@@ -90,7 +96,7 @@ public class DiscordOAuthService : IDiscordOAuthService
     }
 
     /// <inheritdoc />
-    public async Task<OAuthCompleteResult> CompleteLoginAsync(string code, string redirectUri)
+    public async Task<OAuthCompleteResult> CompleteLoginAsync(string code, string redirectUri, string? state = null)
     {
         try
         {
@@ -105,6 +111,15 @@ public class DiscordOAuthService : IDiscordOAuthService
             {
                 return new OAuthCompleteResult(false, "Brak code_verifier. Uruchom StartLoginAsync przed CompleteLoginAsync.");
             }
+
+            // 0. Walidacja state parameter (anti-CSRF) — zawsze wymagana po StartLoginAsync
+            var stateValidation = DiscordOAuthPkce.ValidateState(_lastOAuthState, state);
+            if (!stateValidation.IsValid)
+            {
+                _diagnosticsOutput.Write($"[DiscordOAuth] State validation failed: {stateValidation.ErrorMessage}");
+                return new OAuthCompleteResult(false, stateValidation.ErrorMessage);
+            }
+            _diagnosticsOutput.Write("[DiscordOAuth] State parameter validated.");
 
             // Upewnij się, że mamy client_id
             if (string.IsNullOrEmpty(_discordClientId))
@@ -156,6 +171,9 @@ public class DiscordOAuthService : IDiscordOAuthService
 
             await _authRepository.SaveTokenInfoAsync(tokenInfo);
             _diagnosticsOutput.Write("[DiscordOAuth] Token saved to repository.");
+
+            _lastCodeVerifier = null;
+            _lastOAuthState = null;
 
             return new OAuthCompleteResult(true, null);
         }
@@ -344,6 +362,7 @@ public class DiscordOAuthService : IDiscordOAuthService
             // Zawsze czyścimy lokalnie
             await _authRepository.ClearTokenAsync();
             _lastCodeVerifier = null;
+            _lastOAuthState = null;
             _discordClientId = null;
 
             _diagnosticsOutput.Write("[DiscordOAuth] Logout completed.");
@@ -369,41 +388,6 @@ public class DiscordOAuthService : IDiscordOAuthService
             return null;
         }
     }
-
-    #region PKCE Helpers
-
-    /// <summary>
-    /// Generuje code_verifier: 64 bajty kryptograficznie losowych danych,
-    /// zakodowane URL-safe Base64 bez znaków padding ('=').
-    /// </summary>
-    private static string GenerateCodeVerifier()
-    {
-        byte[] randomBytes = RandomNumberGenerator.GetBytes(64);
-        return Base64UrlEncode(randomBytes);
-    }
-
-    /// <summary>
-    /// Oblicza code_challenge = URL-safe Base64(SHA256(code_verifier)), bez padding.
-    /// </summary>
-    private static string GenerateCodeChallenge(string codeVerifier)
-    {
-        byte[] codeVerifierBytes = Encoding.ASCII.GetBytes(codeVerifier);
-        byte[] sha256Bytes = SHA256.HashData(codeVerifierBytes);
-        return Base64UrlEncode(sha256Bytes);
-    }
-
-    /// <summary>
-    /// Koduje bajty do URL-safe Base64 bez znaków padding.
-    /// </summary>
-    private static string Base64UrlEncode(byte[] data)
-    {
-        return Convert.ToBase64String(data)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
-    }
-
-    #endregion
 
     #region Discord OAuth2 API Calls
 
@@ -436,13 +420,14 @@ public class DiscordOAuthService : IDiscordOAuthService
     /// <summary>
     /// Buduje URL autoryzacji Discord OAuth2 z parametrami PKCE.
     /// </summary>
-    private static string BuildAuthorizationUrl(string clientId, string redirectUri, string codeChallenge)
+    private static string BuildAuthorizationUrl(string clientId, string redirectUri, string codeChallenge, string state)
     {
         return $"https://discord.com/api/oauth2/authorize" +
             $"?client_id={Uri.EscapeDataString(clientId)}" +
             $"&response_type=code" +
             $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
             $"&scope={Uri.EscapeDataString("identify guilds")}" +
+            $"&state={Uri.EscapeDataString(state)}" +
             $"&code_challenge={codeChallenge}" +
             $"&code_challenge_method=S256";
     }

@@ -18,7 +18,8 @@ public interface IDiscordOAuthService
     /// </summary>
     /// <param name="code">Kod autoryzacyjny z callbacku OAuth</param>
     /// <param name="redirectUri">Redirect URI użyty w żądaniu autoryzacji</param>
-    Task<OAuthCompleteResult> CompleteLoginAsync(string code, string redirectUri);
+    /// <param name="state">State parameter z callbacku OAuth (weryfikowany przeciw CSRF)</param>
+    Task<OAuthCompleteResult> CompleteLoginAsync(string code, string redirectUri, string? state = null);
 
     /// <summary>
     /// Sprawdza, czy użytkownik ma ważny token Discord (automatycznie odświeża w razie potrzeby).
@@ -47,7 +48,8 @@ public interface IDiscordOAuthService
 /// <param name="AuthUrl">URL do otwarcia w przeglądarce (Discord OAuth authorize)</param>
 /// <param name="Port">Port lokalnego serwera nasłuchującego na callback</param>
 /// <param name="CodeVerifier">Code verifier do weryfikacji PKCE (wymagany przy wymianie kodu na token)</param>
-public record OAuthStartResult(string AuthUrl, int Port, string CodeVerifier);
+/// <param name="State">OAuth state parameter do weryfikacji CSRF</param>
+public record OAuthStartResult(string AuthUrl, int Port, string CodeVerifier, string State);
 
 /// <summary>
 /// Wynik zakończenia flow OAuth — wymiany kodu na token.

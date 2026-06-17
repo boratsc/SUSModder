@@ -17,8 +17,8 @@ namespace SUSModder.Services
         private TcpListener? _listener;
         private CancellationTokenSource? _cts;
 
-        /// <summary>Wywoływany po otrzymaniu kodu autoryzacyjnego.</summary>
-        public event Action<string>? CodeReceived;
+        /// <summary>Wywoływany po otrzymaniu kodu autoryzacyjnego (code, state).</summary>
+        public event Action<string, string?>? CodeReceived;
 
         /// <summary>Wywoływany w przypadku błędu.</summary>
         public event Action<string>? ErrorOccurred;
@@ -106,8 +106,9 @@ namespace SUSModder.Services
                 var parts = firstLine.Split(' ');
                 var path = parts.Length > 1 ? parts[1] : "/";
 
-                // Wyciągnij code z query string
+                // Wyciągnij code i state z query string
                 string? code = null;
+                string? state = null;
                 string? error = null;
 
                 if (path.StartsWith("/susmodder/callback"))
@@ -125,6 +126,7 @@ namespace SUSModder.Services
                                 var key = Uri.UnescapeDataString(kv[0]);
                                 var val = Uri.UnescapeDataString(kv[1]);
                                 if (key == "code") code = val;
+                                if (key == "state") state = val;
                                 if (key == "error") error = val;
                             }
                         }
@@ -158,7 +160,7 @@ namespace SUSModder.Services
                 else if (!string.IsNullOrEmpty(code))
                 {
                     System.Diagnostics.Debug.WriteLine("[OAuthLoopbackListener] Authorization code received.");
-                    CodeReceived?.Invoke(code);
+                    CodeReceived?.Invoke(code, state);
                 }
                 else
                 {

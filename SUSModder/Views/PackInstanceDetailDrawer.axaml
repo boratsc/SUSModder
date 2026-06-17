@@ -56,6 +56,15 @@
                             <TextBlock Text="{loc:Localize UI.ModStatus.UpdateAvailable}"
                                        Foreground="{DynamicResource StatusUpdateBrush}"
                                        FontWeight="SemiBold"/>
+                            <TextBlock Text="{loc:Localize ModPacks.WhatChanged}"
+                                       FontWeight="SemiBold"
+                                       FontSize="12"
+                                       Opacity="0.9"/>
+                            <TextBlock Text="{Binding PackUpdateChangesText}"
+                                       TextWrapping="Wrap"
+                                       FontSize="12"
+                                       Opacity="0.85"
+                                       IsVisible="{Binding PackUpdateChangesText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                             <Button Content="{loc:Localize UI.Packs.Update}"
                                     Classes="mod-detail-btn"
                                     Background="{DynamicResource StatusUpdateBrush}"

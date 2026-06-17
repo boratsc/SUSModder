@@ -702,15 +702,15 @@
 									<TextBlock Text="{Binding LaunchDiagnosticsSummary}" TextWrapping="Wrap"/>
 									<TextBlock Text="{Binding LaunchDiagnosticsCodes}" TextWrapping="Wrap" Opacity="0.7" FontSize="12"/>
 									<StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-										<Button Content="Folder moda" Click="OnOpenModFolderClicked"
+										<Button Content="{Binding LaunchDiagBtnOpenModFolder}" Click="OnOpenModFolderClicked"
 												Classes="secondary" Padding="12,6" Margin="0,0,6,0"/>
-										<Button Content="Logi BepInEx" Click="OnOpenBepInExLogsClicked"
+										<Button Content="{Binding LaunchDiagBtnOpenLogs}" Click="OnOpenBepInExLogsClicked"
 												Classes="secondary" Padding="12,6" Margin="0,0,6,0"/>
-										<Button Content="Pakiet wsparcia" Click="OnGenerateSupportBundleClicked"
+										<Button Content="{Binding LaunchDiagBtnSupportBundle}" Click="OnGenerateSupportBundleClicked"
 												Classes="secondary" Padding="12,6" Margin="0,0,6,0"/>
-										<Button Content="Pomoc SUSModder" Click="OnOpenAiSupportClicked"
+										<Button Content="{Binding LaunchDiagBtnAiSupport}" Click="OnOpenAiSupportClicked"
 												Classes="accent" Padding="12,6" Margin="0,0,6,0"/>
-										<Button Content="Zamknij" Click="OnCloseLaunchDiagnosticsClicked"
+										<Button Content="{Binding LaunchDiagBtnClose}" Click="OnCloseLaunchDiagnosticsClicked"
 												Padding="12,6"/>
 									</StackPanel>
 								</StackPanel>
@@ -722,19 +722,19 @@
 							<Border Background="{StaticResource SystemAltMediumLowColor}" CornerRadius="8" Padding="16"
 									Margin="0,0,0,12">
 								<StackPanel Spacing="10">
-									<TextBlock Text="Pomoc SUSModder" FontSize="18" FontWeight="Bold"/>
-									<TextBlock Text="{x:Static vm:MainWindowViewModel.AiSupportPrivacyNotice}"
+									<TextBlock Text="{Binding AiSupportTitle}" FontSize="18" FontWeight="Bold"/>
+									<TextBlock Text="{Binding AiSupportPrivacyNoticeText}"
 											   TextWrapping="Wrap" Opacity="0.8" FontSize="12"
 											   IsVisible="{Binding !AiSupportPrivacyAccepted}"/>
-									<Button Content="Rozumiem i akceptuję"
+									<Button Content="{Binding AiSupportAcceptPrivacyBtn}"
 											IsVisible="{Binding !AiSupportPrivacyAccepted}"
 											Click="OnAiSupportAcceptPrivacyClicked" Classes="accent" Padding="12,6"/>
 									<StackPanel IsVisible="{Binding AiSupportPrivacyAccepted}" Spacing="8">
-												<TextBox Text="{Binding AiSupportProblem}" PlaceholderText="Opisz swój problem (min. 20 znaków)..."
+												<TextBox Text="{Binding AiSupportProblem}" PlaceholderText="{Binding AiSupportProblemPlaceholder}"
 														 AcceptsReturn="True" MinHeight="80"/>
 										<CheckBox IsChecked="{Binding AiSupportIncludeDiagnostics}"
-												  Content="Dołącz podstawową diagnostykę"/>
-										<Button Content="Analizuj problem" Click="OnAnalyzeAiSupportClicked"
+												  Content="{Binding AiSupportIncludeDiagnosticsLabel}"/>
+										<Button Content="{Binding AiSupportAnalyzeBtn}" Click="OnAnalyzeAiSupportClicked"
 												Classes="accent" Padding="12,6"
 												IsEnabled="{Binding !AiSupportIsLoading}"/>
 										<ProgressBar IsVisible="{Binding AiSupportIsLoading}" IsIndeterminate="True"/>
@@ -745,17 +745,17 @@
 												<TextBlock Text="{Binding AiSupportResultWarnings}" TextWrapping="Wrap"
 														   Foreground="#FFB900" IsVisible="{Binding AiSupportResultWarnings, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
 												<StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-													<Button Content="Pomogło" Click="OnAiSupportHelpedClicked"
+													<Button Content="{Binding AiSupportHelpedBtn}" Click="OnAiSupportHelpedClicked"
 															Classes="accent" Padding="12,6" Margin="0,0,6,0"/>
-													<Button Content="Problem nadal występuje" Click="OnAiSupportNotHelpedClicked"
+													<Button Content="{Binding AiSupportNotHelpedBtn}" Click="OnAiSupportNotHelpedClicked"
 															Classes="secondary" Padding="12,6" Margin="0,0,6,0"/>
-													<Button Content="Wygeneruj raport" Click="OnGenerateSupportBundleClicked"
+													<Button Content="{Binding AiSupportGenerateReportBtn}" Click="OnGenerateSupportBundleClicked"
 															Classes="secondary" Padding="12,6"/>
 												</StackPanel>
 											</StackPanel>
 										</Border>
 									</StackPanel>
-									<Button Content="Zamknij" Click="OnCloseAiSupportClicked" Padding="12,6"/>
+									<Button Content="{Binding AiSupportCloseBtn}" Click="OnCloseAiSupportClicked" Padding="12,6"/>
 								</StackPanel>
 							</Border>
 						</Panel>

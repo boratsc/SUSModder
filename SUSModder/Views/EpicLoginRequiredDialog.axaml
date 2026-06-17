@@ -1,7 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.EpicLoginRequiredDialog"
-        Title="Logowanie Epic Games"
+        Title="{loc:Localize Dialogs.EpicLoginRequired.Title}"
         Width="560"
         Height="360"
         WindowStartupLocation="CenterOwner"
@@ -26,16 +27,14 @@
 
         <Grid RowDefinitions="Auto,*,Auto" Margin="30">
 
-            <!-- Header -->
             <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,10,0,20">
-                <!-- Warning Icon -->
                 <TextBlock Text="⚠"
                           FontSize="36"
                           HorizontalAlignment="Center"
                           Foreground="#FF6B35"
                           Margin="0,0,0,10"/>
 
-                <TextBlock Text="Wymagane logowanie do Epic Games"
+                <TextBlock Text="{loc:Localize Dialogs.EpicLoginRequired.Header}"
                           FontSize="18"
                           FontWeight="Bold"
                           Foreground="White"
@@ -43,39 +42,22 @@
                           TextWrapping="Wrap"
                           TextAlignment="Center"
                           Margin="0,0,0,5"/>
-                <TextBlock Text="Epic Games login required"
-                          FontSize="14"
-                          FontWeight="SemiBold"
-                          Foreground="#AAAAAA"
-                          HorizontalAlignment="Center"
-                          TextWrapping="Wrap"
-                          TextAlignment="Center"/>
             </StackPanel>
 
-            <!-- Message -->
             <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,0,0,10">
-                <TextBlock Text="Nie można potwierdzić zalogowania do konta Epic Games. Bez aktywnej sesji aplikacja nie będzie działać poprawnie w trybie Epic."
+                <TextBlock Text="{loc:Localize Dialogs.EpicLoginRequired.Message}"
                           FontSize="13"
                           Foreground="#CCCCCC"
                           HorizontalAlignment="Center"
                           TextWrapping="Wrap"
-                          TextAlignment="Center"
-                          Margin="0,0,0,8"/>
-                <TextBlock Text="Could not verify Epic Games login. Without an active session the app will not work correctly in Epic mode."
-                          FontSize="11"
-                          Foreground="#888888"
-                          HorizontalAlignment="Center"
-                          TextWrapping="Wrap"
                           TextAlignment="Center"/>
             </StackPanel>
 
-            <!-- Buttons -->
             <Grid Grid.Row="2"
                   ColumnDefinitions="*,*,*"
                   ColumnSpacing="10"
                   Margin="10,12,10,0">
 
-                <!-- Zaloguj się -->
                 <Button Grid.Column="0"
                         Name="LoginButton"
                         Height="54"
@@ -95,20 +77,13 @@
                             <Setter Property="Background" Value="#009960"/>
                         </Style>
                     </Button.Styles>
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="Zaloguj się"
-                                  FontSize="13"
-                                  FontWeight="Bold"
-                                  Foreground="White"
-                                  HorizontalAlignment="Center"/>
-                        <TextBlock Text="Log in"
-                                  FontSize="11"
-                                  Foreground="#CCFFEE"
-                                  HorizontalAlignment="Center"/>
-                    </StackPanel>
+                    <TextBlock Text="{loc:Localize Dialogs.EpicLoginRequired.LoginButton}"
+                               FontSize="13"
+                               FontWeight="Bold"
+                               Foreground="White"
+                               HorizontalAlignment="Center"/>
                 </Button>
 
-                <!-- Zmień na Steam -->
                 <Button Grid.Column="1"
                         Name="SwitchToSteamButton"
                         Height="54"
@@ -128,20 +103,13 @@
                             <Setter Property="Background" Value="#4A4A6E"/>
                         </Style>
                     </Button.Styles>
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="Zmień na Steam"
-                                  FontSize="13"
-                                  FontWeight="Bold"
-                                  Foreground="White"
-                                  HorizontalAlignment="Center"/>
-                        <TextBlock Text="Switch to Steam"
-                                  FontSize="11"
-                                  Foreground="#CCCCCC"
-                                  HorizontalAlignment="Center"/>
-                    </StackPanel>
+                    <TextBlock Text="{loc:Localize Dialogs.EpicLoginRequired.SwitchToSteamButton}"
+                               FontSize="13"
+                               FontWeight="Bold"
+                               Foreground="White"
+                               HorizontalAlignment="Center"/>
                 </Button>
 
-                <!-- Zamknij -->
                 <Button Grid.Column="2"
                         Name="CloseButton"
                         Height="54"
@@ -161,17 +129,11 @@
                             <Setter Property="Background" Value="#6A3A3A"/>
                         </Style>
                     </Button.Styles>
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="Zamknij"
-                                  FontSize="13"
-                                  FontWeight="Bold"
-                                  Foreground="#FF8888"
-                                  HorizontalAlignment="Center"/>
-                        <TextBlock Text="Close"
-                                  FontSize="11"
-                                  Foreground="#FF6666"
-                                  HorizontalAlignment="Center"/>
-                    </StackPanel>
+                    <TextBlock Text="{loc:Localize Dialogs.EpicLoginRequired.CloseButton}"
+                               FontSize="13"
+                               FontWeight="Bold"
+                               Foreground="#FF8888"
+                               HorizontalAlignment="Center"/>
                 </Button>
             </Grid>
 

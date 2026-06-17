@@ -172,8 +172,17 @@ namespace SUSModder.ViewModels
         public string AppVersion
         {
             get => _appVersion;
-            set => this.RaiseAndSetIfChanged(ref _appVersion, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _appVersion, value);
+                this.RaisePropertyChanged(nameof(InfoPanelVersionText));
+            }
         }
+
+        public string InfoPanelVersionText =>
+            string.IsNullOrWhiteSpace(_appVersion)
+                ? string.Empty
+                : _localizationService.GetFormatted("About.VersionShort", _appVersion);
 
         public string WindowTitle
         {
@@ -791,6 +800,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             InitializeInspectorCompatExpand();
             InitializeInspectorLayout();
             InitializeBulkOperations();
+            RefreshLaunchDiagnosticsPanelStrings();
             
             // Subscribe to language changes to update theme button text
             if (_localizationService is INotifyPropertyChanged localizationNotify)
@@ -799,6 +809,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
                 {
                     this.RaisePropertyChanged(nameof(ThemeButtonText));
                     this.RaisePropertyChanged(nameof(ToolModalTitle));
+                    RefreshLaunchDiagnosticsPanelStrings();
                 };
             }
 

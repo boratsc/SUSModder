@@ -329,7 +329,7 @@ namespace SUSModder.ViewModels
 
                 foreach (var entry in entries)
                 {
-                    var vm = new LobbyBoardItemViewModel(entry, null);
+                    var vm = new LobbyBoardItemViewModel(entry, null, _loc);
                     if (entry.Type == LobbyEntryType.Code)
                         ActiveCodes.Add(vm);
                     else if (entry.Type == LobbyEntryType.Message)

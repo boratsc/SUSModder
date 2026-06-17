@@ -7,6 +7,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using ReactiveUI;
+using SUSModder.Core.Api.Support;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.Diagnostics.Launch;
@@ -16,11 +17,136 @@ namespace SUSModder.ViewModels;
 
 public partial class MainWindowViewModel
 {
-    // ── Ostrzeżenie prywatności (stałe, ładowane z i18n) ──────
+    // ── Launch diagnostics panel (i18n) ─────────────────────
 
-    public static string AiSupportPrivacyNotice { get; set; } =
-        "SUSModder wyśle: opis problemu, kody diagnozy, wersję aplikacji, tryb Steam/Epic i ograniczone podsumowanie logów. " +
-        "Nie wysyłamy: pełnych logów, plików ZIP, tokenów Discord, ścieżek użytkownika ani zrzutów pamięci.";
+    private string _launchDiagBtnOpenModFolder = string.Empty;
+    private string _launchDiagBtnOpenLogs = string.Empty;
+    private string _launchDiagBtnSupportBundle = string.Empty;
+    private string _launchDiagBtnAiSupport = string.Empty;
+    private string _launchDiagBtnClose = string.Empty;
+
+    public string LaunchDiagBtnOpenModFolder
+    {
+        get => _launchDiagBtnOpenModFolder;
+        private set => this.RaiseAndSetIfChanged(ref _launchDiagBtnOpenModFolder, value);
+    }
+
+    public string LaunchDiagBtnOpenLogs
+    {
+        get => _launchDiagBtnOpenLogs;
+        private set => this.RaiseAndSetIfChanged(ref _launchDiagBtnOpenLogs, value);
+    }
+
+    public string LaunchDiagBtnSupportBundle
+    {
+        get => _launchDiagBtnSupportBundle;
+        private set => this.RaiseAndSetIfChanged(ref _launchDiagBtnSupportBundle, value);
+    }
+
+    public string LaunchDiagBtnAiSupport
+    {
+        get => _launchDiagBtnAiSupport;
+        private set => this.RaiseAndSetIfChanged(ref _launchDiagBtnAiSupport, value);
+    }
+
+    public string LaunchDiagBtnClose
+    {
+        get => _launchDiagBtnClose;
+        private set => this.RaiseAndSetIfChanged(ref _launchDiagBtnClose, value);
+    }
+
+    // ── AI Support panel (i18n) ─────────────────────────────
+
+    private string _aiSupportTitle = string.Empty;
+    private string _aiSupportPrivacyNoticeText = string.Empty;
+    private string _aiSupportAcceptPrivacyBtn = string.Empty;
+    private string _aiSupportProblemPlaceholder = string.Empty;
+    private string _aiSupportIncludeDiagnosticsLabel = string.Empty;
+    private string _aiSupportAnalyzeBtn = string.Empty;
+    private string _aiSupportHelpedBtn = string.Empty;
+    private string _aiSupportNotHelpedBtn = string.Empty;
+    private string _aiSupportGenerateReportBtn = string.Empty;
+    private string _aiSupportCloseBtn = string.Empty;
+
+    public string AiSupportTitle
+    {
+        get => _aiSupportTitle;
+        private set => this.RaiseAndSetIfChanged(ref _aiSupportTitle, value);
+    }
+
+    public string AiSupportPrivacyNoticeText
+    {
+        get => _aiSupportPrivacyNoticeText;
+        private set => this.RaiseAndSetIfChanged(ref _aiSupportPrivacyNoticeText, value);
+    }
+
+    public string AiSupportAcceptPrivacyBtn
+    {
+        get => _aiSupportAcceptPrivacyBtn;
+        private set => this.RaiseAndSetIfChanged(ref _aiSupportAcceptPrivacyBtn, value);
+    }
+
+    public string AiSupportProblemPlaceholder
+    {
+        get => _aiSupportProblemPlaceholder;
+        private set => this.RaiseAndSetIfChanged(ref _aiSupportProblemPlaceholder, value);
+    }
+
+    public string AiSupportIncludeDiagnosticsLabel
+    {
+        get => _aiSupportIncludeDiagnosticsLabel;
+        private set => this.RaiseAndSetIfChanged(ref _aiSupportIncludeDiagnosticsLabel, value);
+    }
+
+    public string AiSupportAnalyzeBtn
+    {
+        get => _aiSupportAnalyzeBtn;
+        private set => this.RaiseAndSetIfChanged(ref _aiSupportAnalyzeBtn, value);
+    }
+
+    public string AiSupportHelpedBtn
+    {
+        get => _aiSupportHelpedBtn;
+        private set => this.RaiseAndSetIfChanged(ref _aiSupportHelpedBtn, value);
+    }
+
+    public string AiSupportNotHelpedBtn
+    {
+        get => _aiSupportNotHelpedBtn;
+        private set => this.RaiseAndSetIfChanged(ref _aiSupportNotHelpedBtn, value);
+    }
+
+    public string AiSupportGenerateReportBtn
+    {
+        get => _aiSupportGenerateReportBtn;
+        private set => this.RaiseAndSetIfChanged(ref _aiSupportGenerateReportBtn, value);
+    }
+
+    public string AiSupportCloseBtn
+    {
+        get => _aiSupportCloseBtn;
+        private set => this.RaiseAndSetIfChanged(ref _aiSupportCloseBtn, value);
+    }
+
+    public void RefreshLaunchDiagnosticsPanelStrings()
+    {
+        LaunchDiagBtnOpenModFolder = _localizationService.Get("LaunchDiagnostics.Actions.OpenModFolder");
+        LaunchDiagBtnOpenLogs = _localizationService.Get("LaunchDiagnostics.Actions.OpenLogs");
+        LaunchDiagBtnSupportBundle = _localizationService.Get("LaunchDiagnostics.Actions.CreateSupportBundle");
+        LaunchDiagBtnAiSupport = _localizationService.Get("LaunchDiagnostics.Actions.OpenAiSupport");
+        LaunchDiagBtnClose = _localizationService.Get("LaunchDiagnostics.Actions.Close");
+
+        AiSupportTitle = _localizationService.Get("AiSupport.Title");
+        AiSupportPrivacyNoticeText = _localizationService.Get("AiSupport.PrivacyNotice");
+        AiSupportAcceptPrivacyBtn = _localizationService.Get("AiSupport.Actions.AcceptPrivacy");
+        AiSupportProblemPlaceholder = _localizationService.Get("AiSupport.ProblemPlaceholder");
+        AiSupportIncludeDiagnosticsLabel = _localizationService.Get("AiSupport.IncludeDiagnostics");
+        AiSupportAnalyzeBtn = _localizationService.Get("AiSupport.AnalyzeButton");
+        AiSupportHelpedBtn = _localizationService.Get("AiSupport.Actions.Helped");
+        AiSupportNotHelpedBtn = _localizationService.Get("AiSupport.Actions.NotHelped");
+        AiSupportGenerateReportBtn = _localizationService.Get("AiSupport.Actions.GenerateReport");
+        AiSupportCloseBtn = _localizationService.Get("AiSupport.Actions.Dismiss");
+    }
 
     // ── AI Support visibility ───────────────────────────────
 
@@ -201,8 +327,7 @@ public partial class MainWindowViewModel
         try
         {
             var userSettings = _userSettingsService.LoadUserSettings();
-            var language = string.IsNullOrWhiteSpace(userSettings.Language)
-                ? "pl" : userSettings.Language;
+            var language = SupportDiagnosticContextBuilder.NormalizeLanguage(userSettings.Language);
 
             // Zbuduj kontekst diagnostyczny jeśli checkbox włączony
             SUSModder.Core.Api.Support.SupportDiagnosticsInfo? diagnostics = null;
@@ -298,7 +423,8 @@ public partial class MainWindowViewModel
                 SupportSessionId = _aiSupportSessionId,
                 Result = helped ? "helped" : "not_helped",
                 DiagnosisCodes = _lastLaunchResult?.DiagnosisCodes?.Take(10).ToList(),
-                Language = _userSettingsService.LoadUserSettings().Language ?? "pl"
+                Language = SupportDiagnosticContextBuilder.NormalizeLanguage(
+                    _userSettingsService.LoadUserSettings().Language)
             });
         }
         catch { /* best-effort */ }

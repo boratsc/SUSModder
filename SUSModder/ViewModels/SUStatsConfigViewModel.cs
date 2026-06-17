@@ -306,10 +306,10 @@ namespace SUSModder.ViewModels
                 }
 
                 // 2. Uruchom loopback listener
-                var codeTcs = new TaskCompletionSource<string>();
+                var codeTcs = new TaskCompletionSource<(string code, string? state)>();
                 var errorTcs = new TaskCompletionSource<string>();
 
-                _loopbackListener.CodeReceived += code => codeTcs.TrySetResult(code);
+                _loopbackListener.CodeReceived += (code, state) => codeTcs.TrySetResult((code, state));
                 _loopbackListener.ErrorOccurred += err => errorTcs.TrySetResult(err);
 
                 await _loopbackListener.StartAsync(startResult.Port);
@@ -332,7 +332,7 @@ namespace SUSModder.ViewModels
                     FileName = startResult.AuthUrl
                 });
 
-                LogDiagnostics($"[SUStats] Otwarto przeglądarkę: {startResult.AuthUrl}");
+                LogDiagnostics("[SUStats] Otwarto przeglądarkę systemową (URL OAuth ukryty w logach).");
 
                 // 4. Czekaj na kod autoryzacyjny (max 5 minut)
                 var completedTask = await Task.WhenAny(
@@ -350,13 +350,13 @@ namespace SUSModder.ViewModels
                     return;
                 }
 
-                if (completedTask is Task<string> codeTask && codeTask.IsCompleted)
+                if (completedTask is Task<(string code, string? state)> codeTask && codeTask.IsCompleted)
                 {
-                    var code = codeTask.Result;
+                    var (code, callbackState) = codeTask.Result;
 
                     // 5. Wymień kod na token
                     var redirectUri = $"http://127.0.0.1:{startResult.Port}/susmodder/callback";
-                    var completeResult = await _discordOAuthService.CompleteLoginAsync(code, redirectUri);
+                    var completeResult = await _discordOAuthService.CompleteLoginAsync(code, redirectUri, callbackState);
 
                     if (completeResult is not { Success: true })
                     {
@@ -407,6 +407,9 @@ namespace SUSModder.ViewModels
             {
                 LogDiagnostics("[SUStats] Wylogowywanie...");
                 await _discordOAuthService.LogoutAsync();
+
+                await _sustatsRepo.DeleteAllAsync();
+                _userSettingsRepo.UpdateSingleField("active_sustats_guild_id", null);
 
                 // Wyczyść stan UI
                 IsLoggedIn = false;
@@ -463,6 +466,11 @@ namespace SUSModder.ViewModels
                 LogDiagnostics($"[SUStats] Załadowano {AvailableGuilds.Count} serwerów.");
                 this.RaisePropertyChanged(nameof(ShowGuildSelector));
                 this.RaisePropertyChanged(nameof(ShowNoGuildsMessage));
+            }
+            catch (CredentialProtectionException)
+            {
+                ErrorMessage = _localizationService?.Get("DiscordAuth.DpapiUnprotectFailed")
+                    ?? "Nie udało się odczytać zapisanych danych logowania. Wyloguj się i zaloguj ponownie.";
             }
             catch (Exception ex)
             {
@@ -537,6 +545,11 @@ namespace SUSModder.ViewModels
                 IsStatsToggleVisible = true;
 
                 LogDiagnostics($"[SUStats] Credentials zapisane dla serwera: {creds.ServerName}");
+            }
+            catch (CredentialProtectionException)
+            {
+                ErrorMessage = _localizationService?.Get("DiscordAuth.DpapiUnprotectFailed")
+                    ?? "Nie udało się odczytać zapisanych danych logowania. Wyloguj się i zaloguj ponownie.";
             }
             catch (Exception ex)
             {

@@ -1,6 +1,7 @@
 using System;
 using ReactiveUI;
 using SUSModder.Core.Models;
+using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.ViewModels
 {
@@ -9,6 +10,8 @@ namespace SUSModder.ViewModels
     /// </summary>
     public class LobbyBoardItemViewModel : ReactiveObject
     {
+        private readonly ILocalizationService _loc;
+
         public string Id { get; }
         public LobbyEntryType Type { get; }
 
@@ -33,8 +36,9 @@ namespace SUSModder.ViewModels
         /// </summary>
         public string? CopyTarget => Code;
 
-        public LobbyBoardItemViewModel(LobbyBoardEntry entry, string? userHash)
+        public LobbyBoardItemViewModel(LobbyBoardEntry entry, string? userHash, ILocalizationService loc)
         {
+            _loc = loc ?? throw new ArgumentNullException(nameof(loc));
             Id = entry.Id;
             Type = entry.Type;
             Code = entry.Code;
@@ -49,15 +53,15 @@ namespace SUSModder.ViewModels
             // IsOwnEntry = entry.UserHash == userHash;
         }
 
-        private static string FormatTimeAgo(int ageSeconds)
+        private string FormatTimeAgo(int ageSeconds)
         {
             if (ageSeconds < 60)
-                return "Przed chwilą"; // TODO: i18n
+                return _loc.Get("UI.LobbyBoard.Time.JustNow");
             int minutes = ageSeconds / 60;
             if (minutes < 60)
-                return $"{minutes} min temu"; // TODO: i18n
+                return _loc.GetFormatted("UI.LobbyBoard.Time.MinutesAgo", minutes);
             int hours = minutes / 60;
-            return $"{hours}h temu"; // TODO: i18n
+            return _loc.GetFormatted("UI.LobbyBoard.Time.HoursAgo", hours);
         }
     }
 }

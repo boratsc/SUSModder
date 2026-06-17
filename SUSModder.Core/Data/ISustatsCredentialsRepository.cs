@@ -25,6 +25,11 @@ namespace SUSModder.Core.Data
         Task DeleteAsync(string guildId);
 
         /// <summary>
+        /// Usuwa wszystkie zapisane dane uwierzytelniające SUStats (np. przy wylogowaniu Discord).
+        /// </summary>
+        Task DeleteAllAsync();
+
+        /// <summary>
         /// Zwraca aktualnie aktywne dane uwierzytelniające.
         /// Używa user_settings.active_sustats_guild_id do określenia aktywnego serwera.
         /// </summary>

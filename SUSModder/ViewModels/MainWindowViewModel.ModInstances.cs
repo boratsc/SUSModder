@@ -318,7 +318,6 @@ namespace SUSModder.ViewModels
             if (pack == null || !pack.HasUpdateAvailable)
                 return;
 
-            var configService = new ConfigService();
             var repo = App.GetService<IModInstanceRepository>();
             var instance = repo.GetInstance(pack.InstanceId);
             if (instance == null)
@@ -330,15 +329,7 @@ namespace SUSModder.ViewModels
 
             try
             {
-                var updatedMod = await configService.CheckInstanceUpdateAsync(instance);
-                if (updatedMod == null)
-                {
-                    ToastService.ShowInfo(_localizationService.Get("UI.Packs.NoUpdateAvailable"));
-                    await RefreshPackInstancesAsync();
-                    return;
-                }
-
-                var catalog = configService.LoadConfig();
+                var platform = DeterminePlatform();
                 var progressReporter = new UIProgressReporter((percent, _) =>
                 {
                     pack.Progress = percent;
@@ -355,11 +346,77 @@ namespace SUSModder.ViewModels
                     RunSteamQrDownloadAsync = _userInteractionService.RunSteamQrDownloadAsync
                 };
 
+                if (!string.IsNullOrEmpty(instance.SourcePackCode))
+                {
+                    var modPackService = App.GetService<IModPackService>();
+                    var remotePack = await modPackService.GetPackAsync(instance.SourcePackCode);
+                    if (remotePack == null)
+                    {
+                        ToastService.ShowInfo(_localizationService.Get("ModPacks.PackNotFound"));
+                        await RefreshPackInstancesAsync();
+                        return;
+                    }
+
+                    var configService = new ConfigService();
+                    var installer = new ModPackInstaller(
+                        _configuration ?? App.GetService<Microsoft.Extensions.Configuration.IConfiguration>(),
+                        configService,
+                        _dllModificationService,
+                        diagnostics,
+                        App.GetService<ModInstanceInstaller>(),
+                        repo);
+
+                    var installResult = await installer.UpdateExistingInstanceAsync(
+                        pack.InstanceId,
+                        remotePack,
+                        platform,
+                        new Progress<(int percent, string message)>(p =>
+                        {
+                            pack.Progress = p.percent;
+                            if (!string.IsNullOrWhiteSpace(p.message))
+                                pack.StatusMessage = p.message;
+                        }),
+                        callbacks);
+
+                    if (!installResult.Success && installResult.InstalledMods.Count == 0)
+                    {
+                        ToastService.ShowInfo(
+                            installResult.ErrorMessage ?? _localizationService.Get("UI.Packs.NoUpdateAvailable"));
+                        await RefreshPackInstancesAsync();
+                        return;
+                    }
+
+                    await RefreshPackInstancesAsync();
+                    await CheckForModUpdatesForStatusBarAsync(force: true);
+                    await CheckModPackUpdatesAsync();
+
+                    var newVersion = remotePack.HasCustomFullMod
+                        ? remotePack.CustomFullMod?.Version
+                        : remotePack.FullMod?.Version;
+                    ToastService.ShowSuccess(
+                        _localizationService.GetFormatted(
+                            "UI.Packs.UpdateSuccess",
+                            pack.DisplayName,
+                            newVersion ?? instance.FullModVersion ?? "?"));
+                    return;
+                }
+
+                var catalogConfigService = new ConfigService();
+                var updatedMod = await catalogConfigService.CheckInstanceUpdateAsync(instance);
+                if (updatedMod == null)
+                {
+                    ToastService.ShowInfo(_localizationService.Get("UI.Packs.NoUpdateAvailable"));
+                    await RefreshPackInstancesAsync();
+                    return;
+                }
+
+                var catalog = catalogConfigService.LoadConfig();
+
                 await App.GetService<ModInstanceInstaller>().UpdateInstanceAsync(
                     pack.InstanceId,
                     updatedMod,
                     catalog,
-                    DeterminePlatform(),
+                    platform,
                     progressReporter,
                     diagnostics,
                     callbacks);
@@ -735,7 +792,13 @@ namespace SUSModder.ViewModels
                     if (packItem != null)
                     {
                         packItem.HasUpdateAvailable = packItem.HasUpdateAvailable || result.HasUpdate;
-                        packItem.PackUpdateInfo = result; // Przechowaj szczegóły do wyświetlenia
+                        packItem.PackUpdateInfo = result;
+                        packItem.PackUpdateChangesText = result.HasUpdate && result.Changes.Count > 0
+                            ? string.Join(
+                                Environment.NewLine,
+                                result.Changes.Select(c =>
+                                    "• " + Helpers.ModPackChangeFormatter.Format(_localizationService, c)))
+                            : string.Empty;
                     }
                 }
 

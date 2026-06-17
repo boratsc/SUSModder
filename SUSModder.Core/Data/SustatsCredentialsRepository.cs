@@ -118,6 +118,22 @@ namespace SUSModder.Core.Data
         }
 
         /// <inheritdoc/>
+        public async Task DeleteAllAsync()
+        {
+            var conn = _db.GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "DELETE FROM sustats_credentials;";
+            await cmd.ExecuteNonQueryAsync();
+
+            lock (_cacheLock)
+            {
+                _cache.Clear();
+            }
+
+            System.Diagnostics.Debug.WriteLine("[SustatsCredentialsRepository] Wszystkie credentials usunięte.");
+        }
+
+        /// <inheritdoc/>
         public async Task<SustatsCredentials?> GetActiveAsync()
         {
             var conn = _db.GetConnection();

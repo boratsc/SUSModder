@@ -421,7 +421,7 @@ UI: Sprawdź aktualizacje
 ## 🛠️ Używane technologie
 
 ### Backend (SUSModder.Core)
-- .NET 8.0
+- .NET 10.0
 - Microsoft.Extensions.Configuration
 - System.Net.Http
 - System.IO.Compression

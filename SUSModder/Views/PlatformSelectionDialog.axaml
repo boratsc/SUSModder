@@ -1,9 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SUSModder.ViewModels"
+        xmlns:loc="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.PlatformSelectionDialog"
         x:DataType="vm:PlatformSelectionViewModel"
-        Title="Wybierz platformę"
+        Title="{loc:Localize Dialogs.PlatformSelection.Title}"
         Width="500"
         Height="350"
         WindowStartupLocation="CenterScreen"
@@ -29,17 +30,12 @@
         <Grid RowDefinitions="Auto,*,Auto" Margin="30">
             <!-- Header with bilingual text -->
             <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,10,0,30">
-                <TextBlock Text="Wybierz platformę"
+                <TextBlock Text="{loc:Localize Dialogs.PlatformSelection.Header}"
                           FontSize="24"
                           FontWeight="Bold"
                           Foreground="White"
                           HorizontalAlignment="Center"
                           Margin="0,0,0,5"/>
-                <TextBlock Text="Choose platform"
-                          FontSize="20"
-                          FontWeight="SemiBold"
-                          Foreground="#CCCCCC"
-                          HorizontalAlignment="Center"/>
             </StackPanel>
 
             <!-- Platform Selection Buttons -->
@@ -82,7 +78,7 @@
                                    Stretch="Uniform"/>
                         </Border>
 
-                        <TextBlock Text="Steam"
+                        <TextBlock Text="{loc:Localize Dialogs.PlatformSelection.SteamLabel}"
                                   FontSize="18"
                                   FontWeight="Bold"
                                   Foreground="White"
@@ -119,7 +115,7 @@
                                    Stretch="Uniform"/>
                         </Border>
 
-                        <TextBlock Text="Epic Games"
+                        <TextBlock Text="{loc:Localize Dialogs.PlatformSelection.EpicLabel}"
                                   FontSize="18"
                                   FontWeight="Bold"
                                   Foreground="White"
@@ -130,7 +126,7 @@
 
             <!-- Footer text -->
             <TextBlock Grid.Row="2"
-                      Text="Możesz zmienić platformę później w ustawieniach / You can change platform later in settings"
+                      Text="{loc:Localize Dialogs.PlatformSelection.Footer}"
                       FontSize="11"
                       Foreground="#888888"
                       HorizontalAlignment="Center"

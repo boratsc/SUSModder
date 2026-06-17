@@ -1,9 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SUSModder.ViewModels"
+        xmlns:loc="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.SteamQrAuthDialog"
         x:DataType="vm:SteamQrAuthDialogViewModel"
-        Title="Logowanie Steam"
+        Title="{loc:Localize Dialogs.SteamQr.Title}"
         Width="560" Height="640"
         MinWidth="480" MinHeight="520"
         WindowStartupLocation="CenterOwner"
@@ -12,11 +13,11 @@
 
 	<Grid RowDefinitions="Auto,*,Auto" Margin="20">
 		<StackPanel Grid.Row="0" Spacing="8">
-			<TextBlock Text="Pobieranie Among Us ze Steam"
+			<TextBlock Text="{loc:Localize Dialogs.SteamQr.Header}"
 			           FontSize="18"
 			           FontWeight="Bold"
 			           Foreground="{DynamicResource TextPrimaryBrush}"/>
-			<TextBlock Text="SUSModder nie prosi o hasło Steam. Zeskanuj kod w aplikacji Steam na telefonie."
+			<TextBlock Text="{loc:Localize Dialogs.SteamQr.Description}"
 			           TextWrapping="Wrap"
 			           Foreground="{DynamicResource TextSecondaryBrush}"/>
 			<TextBlock Text="{Binding StatusText}"
@@ -56,12 +57,12 @@
 				             Margin="0,0,12,0"/>
 
 				<Button Grid.Column="1"
-				        Content="Użyj kopii zapasowej (7z)"
+				        Content="{loc:Localize Dialogs.SteamQr.FallbackButton}"
 				        Command="{Binding FallbackCommand}"
 				        Classes="secondary-button"
 				        Margin="0,0,8,0"/>
 				<Button Grid.Column="2"
-				        Content="Anuluj"
+				        Content="{loc:Localize Dialogs.SteamQr.CancelButton}"
 				        Command="{Binding CancelCommand}"
 				        Classes="secondary-button"/>
 			</Grid>

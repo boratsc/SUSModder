@@ -77,13 +77,28 @@ namespace SUSModder.ViewModels
             }
         }
 
+        private string _packUpdateChangesText = string.Empty;
+
         /// <summary>
         /// Szczegóły aktualizacji paczki (jeśli HasUpdateAvailable = true).
         /// </summary>
         public ModPackUpdateInfo? PackUpdateInfo
         {
             get => _packUpdateInfo;
-            set => this.RaiseAndSetIfChanged(ref _packUpdateInfo, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _packUpdateInfo, value);
+                this.RaisePropertyChanged(nameof(PackUpdateChangesText));
+            }
+        }
+
+        /// <summary>
+        /// Sformatowana lista zmian z ostatniego sprawdzenia aktualizacji paczki (do UI).
+        /// </summary>
+        public string PackUpdateChangesText
+        {
+            get => _packUpdateChangesText;
+            set => this.RaiseAndSetIfChanged(ref _packUpdateChangesText, value);
         }
 
         public bool ShowStatusBusy => IsBusy;

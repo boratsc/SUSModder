@@ -290,8 +290,8 @@ namespace SUSModder.Core.Configuration
                 {
                     System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Błąd SSL: {ex.Message}");
 
-                    // Jeśli to HTTPS i mamy błąd SSL, spróbuj HTTP
-                    if (isHttps)
+                    // Legacy ToU: HTTP fallback tylko w trybie deweloperskim (bezpieczeństwo)
+                    if (isHttps && DeveloperModeSettings.IsEnabled)
                     {
                         System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Próbuję fallback na HTTP...");
                         string httpUrl = serverUrl.Replace("https://", "http://");
@@ -482,8 +482,8 @@ namespace SUSModder.Core.Configuration
             {
                 System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Błąd SSL: {ex.Message}");
 
-                // Jeśli to HTTPS i mamy błąd SSL, spróbuj HTTP
-                if (isHttps)
+                // Legacy ToU: HTTP fallback tylko w trybie deweloperskim (bezpieczeństwo)
+                if (isHttps && DeveloperModeSettings.IsEnabled)
                 {
                     System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Próbuję fallback na HTTP...");
                     string httpUrl = serverUrl.Replace("https://", "http://");

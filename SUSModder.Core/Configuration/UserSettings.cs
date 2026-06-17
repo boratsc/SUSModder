@@ -153,5 +153,11 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         [JsonPropertyName("preferDepotDownloader")]
         public bool PreferDepotDownloader { get; set; } = false;
+
+        /// <summary>
+        /// Tryb deweloperski (dodatkowe opcje diagnostyczne w UI).
+        /// </summary>
+        [JsonPropertyName("developerMode")]
+        public bool DeveloperMode { get; set; } = false;
     }
 }

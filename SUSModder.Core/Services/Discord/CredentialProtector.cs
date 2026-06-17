@@ -66,12 +66,23 @@ public static class CredentialProtector
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private static string UnprotectWindows(string ciphertextBase64)
     {
-        byte[] encrypted = Convert.FromBase64String(ciphertextBase64);
-        byte[] plainBytes = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
-        string result = Encoding.UTF8.GetString(plainBytes);
+        try
+        {
+            byte[] encrypted = Convert.FromBase64String(ciphertextBase64);
+            byte[] plainBytes = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
+            string result = Encoding.UTF8.GetString(plainBytes);
 
-        Debug.WriteLine($"[CredentialProtector] DPAPI Unprotect: ok ({MaskValue(result)})");
-        return result;
+            Debug.WriteLine($"[CredentialProtector] DPAPI Unprotect: ok ({MaskValue(result)})");
+            return result;
+        }
+        catch (CryptographicException ex)
+        {
+            Debug.WriteLine($"[CredentialProtector] DPAPI Unprotect failed: {ex.Message}");
+            throw new CredentialProtectionException(
+                "Nie udało się odszyfrować zapisanych danych logowania (DPAPI). " +
+                "Wyloguj się i zaloguj ponownie przez Discord.",
+                ex);
+        }
     }
 
     // TODO: Add Linux support (AES-256-GCM) when Linux desktop is a target.

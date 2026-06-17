@@ -176,6 +176,13 @@
       "CheckModUpdates": "Sprawdź aktualizacje modów",
       "LobbyBoard": "Tablica Lobby"
     },
+    "LobbyBoard": {
+      "Time": {
+        "JustNow": "Przed chwilą",
+        "MinutesAgo": "{0} min temu",
+        "HoursAgo": "{0}h temu"
+      }
+    },
     "Fab": {
       "UpdatesBadgeTooltip": "{0} dostępnych aktualizacji"
     },
@@ -509,6 +516,55 @@
       "InvalidFileTitle": "Nieprawidłowy plik",
       "InvalidFileMessage": "Wybrany plik musi nazywać się „Among Us.exe” i pochodzić z folderu instalacji gry Among Us w Steam."
     },
+    "EpicLoginRequired": {
+      "Title": "Logowanie Epic Games",
+      "Header": "Wymagane logowanie do Epic Games",
+      "Message": "Nie można potwierdzić zalogowania do konta Epic Games. Bez aktywnej sesji aplikacja nie będzie działać poprawnie w trybie Epic.",
+      "LoginButton": "Zaloguj się",
+      "SwitchToSteamButton": "Zmień na Steam",
+      "CloseButton": "Zamknij"
+    },
+    "PlatformSelection": {
+      "Title": "Wybierz platformę",
+      "Header": "Wybierz platformę",
+      "SteamLabel": "Steam",
+      "EpicLabel": "Epic Games",
+      "Footer": "Możesz zmienić platformę później w ustawieniach"
+    },
+    "SteamQr": {
+      "Title": "Logowanie Steam",
+      "Header": "Pobieranie Among Us ze Steam",
+      "Description": "SUSModder nie prosi o hasło Steam. Zeskanuj kod w aplikacji Steam na telefonie.",
+      "StatusPreparing": "Przygotowywanie logowania Steam...",
+      "FallbackButton": "Użyj kopii zapasowej (7z)",
+      "CancelButton": "Anuluj"
+    },
+    "EpicAuth": {
+      "Title": "Logowanie do Epic Games",
+      "Header": "Logowanie do Epic Games Store",
+      "Subtitle": "Wymagane do uruchomienia gry",
+      "CancelButton": "Anuluj",
+      "OpenInBrowser": "Otwórz w przeglądarce",
+      "LegendaryInfo": "SUSModder używa narzędzia Legendary do zarządzania grami Epic. Legendary to otwartoźródłowy, darmowy launcher dla Epic Games Store.",
+      "LegendaryMoreInfo": "Więcej informacji:",
+      "InstructionsTitle": "Instrukcje",
+      "InstructionsBody": "1. Za chwilę otworzy się przeglądarka z logowaniem Epic Games\n2. Zaloguj się do swojego konta Epic Games\n3. Po zalogowaniu zobaczysz stronę z kodem\n4. Zaznacz cały tekst (Ctrl+A) i skopiuj (Ctrl+C)\n\nKod zostanie automatycznie wykryty i logowanie nastąpi.\nMożesz też ręcznie wkleić kod poniżej (Ctrl+V).",
+      "PasteLabel": "Wklej kod lub cały JSON tutaj:",
+      "PastePlaceholder": "Wklej tutaj JSON lub kod autoryzacji...",
+      "OpenBrowserButton": "Otwórz przeglądarkę",
+      "ConfirmButton": "Zaloguj",
+      "WebViewLoading": "Ładowanie strony logowania Epic Games...",
+      "WebViewCodeCaptured": "Przechwycono kod autoryzacji! Logowanie...",
+      "AutoOpenCountdown": "Przeglądarka otworzy się automatycznie za {0} sekund...",
+      "BrowserOpened": "Przeglądarka została otwarta!",
+      "BrowserOpenFailed": "Błąd podczas otwierania przeglądarki",
+      "ClipboardMonitoring": "Monitorowanie schowka aktywne — skopiuj kod!",
+      "ClipboardCodeDetected": "Wykryto kod autoryzacji! Loguję...",
+      "ClipboardCodeDetectedShort": "Kod autoryzacji wykryty w schowku!"
+    },
+    "Prompt": {
+      "Placeholder": "Wklej JSON, URL lub kod..."
+    },
     "UpdateSuccess": {
       "ChangelogExpander": "Co się zmieniło?"
     }
@@ -741,6 +797,11 @@
     "TestersLabel": "TESTERZY",
     "TestersCommunity": "Społeczność Psychopatyczna",
     "SpecialThanksLabel": "SPECJALNE PODZIĘKOWANIA",
+    "SpecialThanksMessage": "Dzięki za pomoc przy testach, feedbacku i rozwoju projektu.",
+    "CreatorAndGraphicsHeader": "TWÓRCA APLIKACJI I GRAFIKI",
+    "VersionShort": "Wersja v{0}",
+    "Tagline": "Among Us Mod Manager",
+    "Email": "E-mail",
     "Copyright": "© 2026 SUSModder - Oprogramowanie na licencji GPLv3. Wszelkie prawa zastrzeżone."
   },
   "Tools": {
@@ -961,7 +1022,8 @@
     "RefreshGuilds": "Odśwież listę serwerów",
     "SelectGuildPlaceholder": "Wybierz serwer...",
     "NoGuildsHint": "Upewnij się, że posiadasz aktywny SUStats na jednym ze swoich serwerów Discord.",
-    "CredentialsError": "Błąd pobierania danych uwierzytelniających: {0}"
+    "CredentialsError": "Błąd pobierania danych uwierzytelniających: {0}",
+    "DpapiUnprotectFailed": "Nie udało się odczytać zapisanych danych logowania (DPAPI). Wyloguj się i zaloguj ponownie przez Discord."
   },
   "RecommendedDiscords": {
     "WindowTitle": "Polecane Discordy",
@@ -1361,7 +1423,15 @@
     "DllChange": "DLL {0}: {1} → {2}",
     "ExternalDllChange": "Zewnętrzny DLL {0}: zmieniony plik",
     "ConfigMayChange": "Konfiguracja mogła ulec zmianie",
-    "UpdateAvailableCount": "Dostępne aktualizacje dla {0} zestawów"
+    "UpdateAvailableCount": "Dostępne aktualizacje dla {0} zestawów",
+    "Change": {
+      "FullMod": "Mod główny {0}: {1} → {2}",
+      "Dll": "DLL {0}: {1} → {2}",
+      "ExternalDll": "Zewnętrzny DLL {0}: zmieniony plik",
+      "Config": "Konfiguracja {0} mogła ulec zmianie",
+      "Missing": "(brak)",
+      "Generic": "{0}: {1} → {2}"
+    }
   },
   "ModChangelog": {
     "Button": "Lista zmian",
@@ -1416,6 +1486,7 @@
     "Result.SafetyNotice": "Zasady bezpieczeństwa",
     "Actions.Helped": "Pomogło",
     "Actions.NotHelped": "Problem nadal występuje",
+    "Actions.AcceptPrivacy": "Rozumiem i akceptuję",
     "Actions.GenerateReport": "Wygeneruj raport diagnostyczny",
     "Actions.JoinDiscord": "Dołącz do Discorda",
     "Actions.OpenFirewallRepair": "Narzędzie firewalla",

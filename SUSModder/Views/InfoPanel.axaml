@@ -78,7 +78,7 @@
 								   FontWeight="Bold"
 								   Foreground="White"/>
 						<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-							<TextBlock Text="{Binding AppVersion, StringFormat='Wersja v{0}'}"
+							<TextBlock Text="{Binding InfoPanelVersionText}"
 									   FontSize="13"
 									   Foreground="#C7FFFFFF"
 									   VerticalAlignment="Center"/>
@@ -98,7 +98,7 @@
 							CornerRadius="999"
 							Padding="10,6"
 							VerticalAlignment="Center">
-						<TextBlock Text="Among Us Mod Manager"
+						<TextBlock Text="{loc:Localize About.Tagline}"
 								   FontSize="11"
 								   FontWeight="SemiBold"
 								   Foreground="White"/>
@@ -108,7 +108,7 @@
 
 			<Border Classes="info-card">
 				<StackPanel Spacing="12">
-					<TextBlock Text="{loc:Localize About.CreatorLabel} i {loc:Localize About.GraphicsLabel}"
+					<TextBlock Text="{loc:Localize About.CreatorAndGraphicsHeader}"
 							   FontSize="15"
 							   FontWeight="SemiBold"
 							   Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -129,10 +129,10 @@
 								<TextBlock Text="{loc:Localize About.CreatorLabel}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
 							</StackPanel>
 							<StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-								<Button Classes="contact-icon" Click="OpenDiscord_Click" ToolTip.Tip="Discord">
+								<Button Classes="contact-icon" Click="OpenDiscord_Click" ToolTip.Tip="{loc:Localize About.Discord}">
 									<Image Source="avares://SUSModder/Assets/discord.png" Width="14" Height="14"/>
 								</Button>
-								<Button Classes="contact-icon" Click="OpenMail_Click" ToolTip.Tip="Email">
+								<Button Classes="contact-icon" Click="OpenMail_Click" ToolTip.Tip="{loc:Localize About.Email}">
 									<TextBlock Text="@" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 								</Button>
 							</StackPanel>
@@ -166,7 +166,7 @@
 							   FontSize="15"
 							   FontWeight="SemiBold"
 							   Foreground="{DynamicResource TextPrimaryBrush}"/>
-					<TextBlock Text="Dzieki za pomoc przy testach, feedbacku i rozwoju projektu."
+					<TextBlock Text="{loc:Localize About.SpecialThanksMessage}"
 							   FontSize="12"
 							   Foreground="{DynamicResource TextSecondaryBrush}"/>
 					<WrapPanel Orientation="Horizontal">

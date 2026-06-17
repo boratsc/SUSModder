@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using ReactiveUI;
 using SUSModder.Core.GameIntegration.Steam;
 using SUSModder.Core.Models;
+using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.ViewModels;
 
@@ -18,9 +19,10 @@ public class SteamQrAuthDialogViewModel : ViewModelBase
     private readonly Window _window;
     private readonly SteamQrDownloadContext _context;
     private readonly DepotDownloaderRunner _runner = new();
+    private readonly ILocalizationService _localizationService;
     private CancellationTokenSource? _cts;
 
-    private string _statusText = "Przygotowywanie logowania Steam...";
+    private string _statusText;
     private string _qrDisplay = string.Empty;
     private bool _isBusy = true;
     private bool _hasError;
@@ -30,6 +32,8 @@ public class SteamQrAuthDialogViewModel : ViewModelBase
     {
         _window = window;
         _context = context;
+        _localizationService = App.GetService<ILocalizationService>();
+        _statusText = _localizationService.Get("Dialogs.SteamQr.StatusPreparing");
 
         CancelCommand = ReactiveCommand.CreateFromTask(CancelAsync);
         FallbackCommand = ReactiveCommand.CreateFromTask(UseFallbackAsync);

@@ -64,6 +64,198 @@ namespace SUSModder.Core.Services
             return await InstallPackLegacyAsync(pack, platform, progress, modManagerCallbacks, ct);
         }
 
+        /// <summary>
+        /// Aktualizuje istniejącą instancję zgodnie z manifestem zdalnej paczki (wersje z pack, nie latest z katalogu).
+        /// </summary>
+        public async Task<ModPackInstallResult> UpdateExistingInstanceAsync(
+            string instanceId,
+            ModPack pack,
+            string platform,
+            IProgress<(int percent, string message)>? progress = null,
+            ModManagerUserCallbacks? modManagerCallbacks = null,
+            CancellationToken ct = default)
+        {
+            var result = new ModPackInstallResult();
+
+            if (_instanceInstaller == null || _instanceRepository == null)
+            {
+                result.ErrorMessage = "mod_instance_installer_unavailable";
+                return result;
+            }
+
+            var instance = _instanceRepository.GetInstance(instanceId);
+            if (instance == null)
+            {
+                result.ErrorMessage = "mod_instance_not_found";
+                return result;
+            }
+
+            if (!TryResolveFullModConfig(pack, out var fullModConfig, out var resolveError) || fullModConfig == null)
+            {
+                result.ErrorMessage = resolveError ?? "mod_pack_missing_full_mod";
+                return result;
+            }
+
+            var catalog = _configService.LoadConfig();
+            var diag = new SimpleDiagnostics(_log);
+            var callbacks = modManagerCallbacks ?? new ModManagerUserCallbacks();
+            result.InstanceId = instanceId;
+
+            try
+            {
+                var remoteFullVersion = pack.HasCustomFullMod
+                    ? pack.CustomFullMod!.Version ?? string.Empty
+                    : pack.FullMod?.Version ?? string.Empty;
+                var localFullVersion = instance.FullModVersion ?? string.Empty;
+
+                if (!string.IsNullOrWhiteSpace(remoteFullVersion) &&
+                    !string.Equals(remoteFullVersion, localFullVersion, StringComparison.OrdinalIgnoreCase))
+                {
+                    progress?.Report((10, "full_mod"));
+                    var progressReporter = new TupleProgressReporter(progress, 10, 50);
+                    await _instanceInstaller.UpdateInstanceAsync(
+                        instanceId,
+                        fullModConfig,
+                        catalog,
+                        platform,
+                        progressReporter,
+                        diag,
+                        callbacks);
+                    result.InstalledMods.Add(fullModConfig.ModName ?? "full mod");
+                }
+
+                instance = _instanceRepository.GetInstance(instanceId)!;
+                var localDlls = _instanceRepository.GetDlls(instanceId).ToList();
+
+                var dllIndex = 0;
+                var dllCount = pack.DllMods.Count;
+                foreach (var dllEntry in pack.DllMods)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    dllIndex++;
+
+                    var localDll = localDlls.FirstOrDefault(d => d.DllModId == dllEntry.DllModId);
+                    var localVersion = localDll?.DllVersion ?? string.Empty;
+                    var remoteVersion = dllEntry.DllModVersion ?? string.Empty;
+
+                    if (string.Equals(localVersion, remoteVersion, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    var dllMod = catalog.FirstOrDefault(c => c.Id == dllEntry.DllModId);
+                    if (dllMod == null)
+                    {
+                        result.FailedMods.Add($"DLL#{dllEntry.DllModId}");
+                        continue;
+                    }
+
+                    var pinnedDll = CloneForInstall(dllMod, dllEntry.DllModVersion);
+                    var pct = 55 + (dllIndex * 20 / Math.Max(1, dllCount));
+                    progress?.Report((pct, dllMod.ModName ?? $"DLL#{dllEntry.DllModId}"));
+
+                    try
+                    {
+                        await _instanceInstaller.InstallDllToInstanceAsync(pinnedDll, instanceId, platform, diag);
+                        result.InstalledMods.Add(dllMod.ModName ?? $"DLL#{dllEntry.DllModId}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Write($"[ModPackInstaller] DLL update failed: {ex.Message}");
+                        result.FailedMods.Add(dllMod.ModName ?? $"DLL#{dllEntry.DllModId}");
+                    }
+                }
+
+                var targetMod = TargetModFromInstance(instance, fullModConfig);
+                foreach (var ext in EnumerateExternalDlls(pack))
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (!string.Equals(ext.VtStatus, "clean", StringComparison.OrdinalIgnoreCase))
+                    {
+                        result.FailedMods.Add(ext.FileName);
+                        continue;
+                    }
+
+                    var localExtDll = localDlls.FirstOrDefault(d =>
+                        d.Source == "external" &&
+                        string.Equals(
+                            d.InstalledPath?.Split('\\', '/').LastOrDefault(),
+                            ext.FileName,
+                            StringComparison.OrdinalIgnoreCase));
+
+                    if (localExtDll != null &&
+                        !string.IsNullOrEmpty(ext.Sha256) &&
+                        string.Equals(localExtDll.Sha256, ext.Sha256, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    progress?.Report((78, ext.FileName));
+                    var ok = await InstallExternalDllAsync(pack.PackCode, ext, targetMod, ct);
+                    if (ok)
+                        result.InstalledMods.Add(ext.FileName);
+                    else
+                        result.FailedMods.Add(ext.FileName);
+                }
+
+                if (pack.TouConfig.HasValue && pack.TouConfig.Value.ValueKind != JsonValueKind.Undefined)
+                {
+                    progress?.Report((90, "tou_config"));
+                    ModInstanceTouConfigService.ApplyJsonToGlobalFile(pack.TouConfig.Value);
+                    ModInstanceTouConfigService.SaveSnapshot(_instanceRepository, instanceId, pack.TouConfig.Value);
+                    result.InstalledMods.Add("ToU config");
+                }
+
+                result.Success = result.InstalledMods.Count > 0 || result.FailedMods.Count == 0;
+                progress?.Report((100, "done"));
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _log.Write($"[ModPackInstaller] UpdateExistingInstanceAsync: {ex.Message}");
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+                return result;
+            }
+        }
+
+        private bool TryResolveFullModConfig(ModPack pack, out ModConfiguration? fullModConfig, out string? errorMessage)
+        {
+            fullModConfig = null;
+            errorMessage = null;
+
+            var usingCustomFull = pack.HasCustomFullMod;
+            var customFull = pack.CustomFullMod;
+
+            if (!usingCustomFull && pack.FullMod == null)
+            {
+                errorMessage = "mod_pack_missing_full_mod";
+                return false;
+            }
+
+            var allConfigs = _configService.LoadConfig();
+            if (usingCustomFull)
+            {
+                if (string.IsNullOrWhiteSpace(customFull!.DownloadUrl))
+                {
+                    errorMessage = "custom_full_download_missing";
+                    return false;
+                }
+
+                fullModConfig = BuildCustomFullModConfig(customFull);
+                return true;
+            }
+
+            var fullMod = pack.FullMod!;
+            var match = allConfigs.FirstOrDefault(c => c.Id == fullMod.Id);
+            if (match == null)
+            {
+                errorMessage = "mod_pack_full_mod_not_in_catalog";
+                return false;
+            }
+
+            fullModConfig = CloneForInstall(match, fullMod.Version);
+            return true;
+        }
+
         private async Task<ModPackInstallResult> InstallPackAsNewInstanceAsync(
             ModPack pack,
             string platform,

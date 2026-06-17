@@ -107,8 +107,7 @@ namespace SUSModder.Core.Services
                             ChangeType = "fullMod",
                             Name = instance.BaseModName,
                             OldValue = localVersion,
-                            NewValue = remoteVersion,
-                            Description = $"Mod główny: {localVersion} → {remoteVersion}"
+                            NewValue = remoteVersion
                         });
                     }
                 }
@@ -133,9 +132,8 @@ namespace SUSModder.Core.Services
                         {
                             ChangeType = "dll",
                             Name = dllName,
-                            OldValue = string.IsNullOrEmpty(localVersion) ? "(brak)" : localVersion,
-                            NewValue = remoteVersion,
-                            Description = $"DLL {dllName}: {localVersion} → {remoteVersion}"
+                            OldValue = localVersion,
+                            NewValue = remoteVersion
                         });
                     }
                 }
@@ -157,8 +155,7 @@ namespace SUSModder.Core.Services
                                 ChangeType = "externalDll",
                                 Name = remoteExtDll.FileName,
                                 OldValue = localExtDll.Sha256,
-                                NewValue = remoteExtDll.Sha256,
-                                Description = $"Zewnętrzny DLL {remoteExtDll.FileName}: zmieniony plik"
+                                NewValue = remoteExtDll.Sha256
                             });
                         }
                     }
@@ -170,8 +167,7 @@ namespace SUSModder.Core.Services
                     changes.Add(new ModPackChangeItem
                     {
                         ChangeType = "config",
-                        Name = "Konfiguracja Town of Us",
-                        Description = "Konfiguracja mogła ulec zmianie"
+                        Name = "Town of Us"
                     });
                 }
 
