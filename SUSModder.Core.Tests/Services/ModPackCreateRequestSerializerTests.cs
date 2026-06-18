@@ -36,6 +36,11 @@ public class ModPackCreateRequestSerializerTests
         Assert.False(root.TryGetProperty("externalDlls", out _));
         Assert.Equal(10, root.GetProperty("fullModId").GetInt32());
         Assert.Equal("5.4.0", root.GetProperty("fullModVersion").GetString());
+        var dllMods = root.GetProperty("dllMods");
+        Assert.Equal(JsonValueKind.Array, dllMods.ValueKind);
+        Assert.Single(dllMods.EnumerateArray());
+        Assert.Equal(42, dllMods[0].GetProperty("dllModId").GetInt32());
+        Assert.Equal("2.0", dllMods[0].GetProperty("dllModVersion").GetString());
     }
 
 }

@@ -607,6 +607,7 @@ public partial class ModPackCreatorView : UserControl
                 origin: "manual");
 
             var installedDllIds = new List<int>();
+            var installedDlls = new List<ModConfiguration>();
             var failedDllNames = new List<string>();
             foreach (var dll in dllsToInstall)
             {
@@ -614,6 +615,7 @@ public partial class ModPackCreatorView : UserControl
                 {
                     await _instanceInstaller.InstallDllToInstanceAsync(dll, instance.InstanceId, _platform);
                     installedDllIds.Add(dll.Id);
+                    installedDlls.Add(dll);
                 }
                 catch (Exception ex)
                 {
@@ -638,6 +640,7 @@ public partial class ModPackCreatorView : UserControl
                 TryCopyIntegrationDll(instance.InstallPath);
 
             CreateButton.Content = _loc.Get("UI.Packs.CreateAndShare");
+            var installedDllRequests = BuildDllModRequests(installedDlls);
             var request = useCustomFull
                 ? new ModPackCreateRequest
                 {
@@ -648,7 +651,7 @@ public partial class ModPackCreatorView : UserControl
                     DiscordInvite = discordInvite,
                     IncludeIntegrationDll = IncludeIntegrationCheck.IsChecked == true,
                     TtlDays = ttlDays,
-                    DllMods = BuildDllModRequests()
+                    DllMods = installedDllRequests
                 }
                 : _mapper.Map(
                     instance.InstanceId,
@@ -657,6 +660,7 @@ public partial class ModPackCreatorView : UserControl
                     creatorName,
                     discordInvite,
                     IncludeIntegrationCheck.IsChecked == true);
+            request.DllMods = installedDllRequests;
 
             var result = await _modPackService.CreatePackAsync(request, ct);
             if (!result.Success)
@@ -730,6 +734,7 @@ private async Task CreateSharedPackAsync()
                 creatorName,
                 discordInvite,
                 IncludeIntegrationCheck.IsChecked == true);
+            request.DllMods = BuildDllModRequests();
         }
         else
         {
@@ -1228,6 +1233,17 @@ private async Task CreateSharedPackAsync()
         }
 
         return selectedDlls;
+    }
+
+    private static List<ModPackDllModRequest> BuildDllModRequests(IEnumerable<ModConfiguration> dllMods)
+    {
+        return dllMods
+            .Select(dll => new ModPackDllModRequest
+            {
+                DllModId = dll.Id,
+                DllModVersion = dll.ModVersion ?? "latest"
+            })
+            .ToList();
     }
 
     private async Task CreateLocalInstanceAsync()
