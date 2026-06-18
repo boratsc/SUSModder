@@ -1419,6 +1419,7 @@
     "NoUpdateAvailable": "Brak dostępnych aktualizacji paczki",
     "UpdateCheckFailed": "Nie udało się sprawdzić aktualizacji paczki",
     "UpdateChanges": "Zmiany w paczce",
+    "WhatChanged": "Co się zmieniło?",
     "FullModChange": "Mod główny: {0} → {1}",
     "DllChange": "DLL {0}: {1} → {2}",
     "ExternalDllChange": "Zewnętrzny DLL {0}: zmieniony plik",

@@ -1419,6 +1419,7 @@
     "NoUpdateAvailable": "No pack updates available",
     "UpdateCheckFailed": "Failed to check for pack updates",
     "UpdateChanges": "Pack changes",
+    "WhatChanged": "What changed?",
     "FullModChange": "Main mod: {0} → {1}",
     "DllChange": "DLL {0}: {1} → {2}",
     "ExternalDllChange": "External DLL {0}: file changed",
