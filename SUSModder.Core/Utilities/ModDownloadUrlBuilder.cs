@@ -186,7 +186,7 @@ namespace SUSModder.Core.Utilities
 
             if (string.IsNullOrEmpty(sourceUrl))
 
-                return string.Empty;
+                return BuildFallbackDllFileName(dllMod.ModName);
 
 
 
@@ -194,7 +194,9 @@ namespace SUSModder.Core.Utilities
 
             {
 
-                return Path.GetFileName(new Uri(sourceUrl).LocalPath);
+                var fileName = Path.GetFileName(new Uri(sourceUrl).LocalPath);
+                if (IsSafeDllFileName(fileName))
+                    return fileName;
 
             }
 
@@ -202,9 +204,53 @@ namespace SUSModder.Core.Utilities
 
             {
 
-                return string.Empty;
+                // Fall back to a deterministic catalog name below.
 
             }
+
+            return BuildFallbackDllFileName(dllMod.ModName);
+
+        }
+
+
+
+        private static string BuildFallbackDllFileName(string? modName)
+
+        {
+
+            var baseName = string.IsNullOrWhiteSpace(modName) ? "mod" : modName.Trim();
+
+            foreach (var invalid in Path.GetInvalidFileNameChars())
+
+                baseName = baseName.Replace(invalid, '_');
+
+            baseName = baseName.Replace(Path.DirectorySeparatorChar, '_')
+
+                .Replace(Path.AltDirectorySeparatorChar, '_');
+
+            return string.IsNullOrWhiteSpace(baseName) ? "mod.dll" : $"{baseName}.dll";
+
+        }
+
+
+
+        private static bool IsSafeDllFileName(string? fileName)
+
+        {
+
+            if (string.IsNullOrWhiteSpace(fileName))
+
+                return false;
+
+            if (!string.Equals(Path.GetExtension(fileName), ".dll", StringComparison.OrdinalIgnoreCase))
+
+                return false;
+
+            return fileName.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 &&
+
+                   !fileName.Contains(Path.DirectorySeparatorChar) &&
+
+                   !fileName.Contains(Path.AltDirectorySeparatorChar);
 
         }
 
