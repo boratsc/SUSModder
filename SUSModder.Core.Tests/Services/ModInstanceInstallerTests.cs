@@ -11,11 +11,14 @@ namespace SUSModder.Core.Tests.Services;
 public class ModInstanceInstallerTests : IDisposable
 {
     private readonly string _tempDir;
+    private readonly string _previousModsInstallPath;
 
     public ModInstanceInstallerTests()
     {
+        _previousModsInstallPath = PathSettings.ModsInstallPath;
         _tempDir = Path.Combine(Path.GetTempPath(), "SUSModder.Core.Tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDir);
+        PathSettings.SetCustomPath(_tempDir);
     }
 
     [Fact]
@@ -199,6 +202,7 @@ public class ModInstanceInstallerTests : IDisposable
 
     public void Dispose()
     {
+        PathSettings.SetCustomPath(_previousModsInstallPath);
         try
         {
             if (Directory.Exists(_tempDir))
