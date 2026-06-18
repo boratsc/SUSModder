@@ -154,6 +154,26 @@ public class ModPackInstallerTests
         Assert.Equal(@"C:\AmongUs\BepInEx\plugins\Custom", safeDirectory);
     }
 
+    [Fact]
+    public void TryResolveSafeDllDirectory_PluginsAlias_ReturnsPluginsDirectory()
+    {
+        var result = ModPackInstaller.TryResolveSafeDllDirectory(
+            @"C:\AmongUs", "plugins", out var safeDirectory);
+
+        Assert.True(result);
+        Assert.Equal(@"C:\AmongUs\BepInEx\plugins", safeDirectory);
+    }
+
+    [Fact]
+    public void TryResolveSafeDllDirectory_PathWithDllFile_UsesContainingDirectory()
+    {
+        var result = ModPackInstaller.TryResolveSafeDllDirectory(
+            @"C:\AmongUs", @"BepInEx\plugins\AleLuduMod.dll", out var safeDirectory);
+
+        Assert.True(result);
+        Assert.Equal(@"C:\AmongUs\BepInEx\plugins", safeDirectory);
+    }
+
     [Theory]
     [InlineData(@"..\evil")]
     [InlineData(@"C:\Windows")]

@@ -737,6 +737,17 @@ namespace SUSModder.Core.Services
                 ? Path.Combine("BepInEx", "plugins")
                 : dllInstallPath.Trim().Replace('/', Path.DirectorySeparatorChar);
 
+            if (string.Equals(relativePath, "plugins", StringComparison.OrdinalIgnoreCase) ||
+                relativePath.StartsWith("plugins" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                relativePath = Path.Combine("BepInEx", relativePath);
+            }
+
+            if (string.Equals(Path.GetExtension(relativePath), ".dll", StringComparison.OrdinalIgnoreCase))
+            {
+                relativePath = Path.GetDirectoryName(relativePath) ?? Path.Combine("BepInEx", "plugins");
+            }
+
             if (Path.IsPathRooted(relativePath) ||
                 relativePath.Contains("..", StringComparison.Ordinal) ||
                 relativePath.Contains(':', StringComparison.Ordinal))
