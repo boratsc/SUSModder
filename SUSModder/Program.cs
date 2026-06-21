@@ -22,11 +22,6 @@ internal static class Program
         // Handle Velopack activation hooks before any other startup logic
         VelopackApp.Build().Run();
 
-        // Druga instancja (np. klik susmodder://) — przekaż kod do działającej aplikacji i zakończ.
-        // Jeśli nie ma deep linka, wyślij żądanie aktywacji okna do pierwszej instancji.
-        if (DeepLinkIpc.TryForwardToRunningInstance(args))
-            return;
-
         _instanceMutex = DeepLinkIpc.TryAcquirePrimaryInstanceMutex();
         if (_instanceMutex == null)
         {

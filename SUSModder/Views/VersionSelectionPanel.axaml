@@ -3,6 +3,7 @@
              xmlns:vm="using:SUSModder.ViewModels"
              xmlns:models="clr-namespace:SUSModder.Core.Models;assembly=SUSModder.Core"
              xmlns:converters="using:SUSModder.Converters"
+             xmlns:local="using:SUSModder.Views"
              xmlns:loc="using:SUSModder.Services.Localization"
              x:DataType="vm:VersionSelectionViewModel"
              x:Name="Root"
@@ -137,7 +138,7 @@
                                             <Border.IsVisible>
                                                 <MultiBinding Converter="{StaticResource ReferenceEqualsMultiConverter}">
                                                     <Binding/>
-                                                    <Binding ElementName="Root" Path="DataContext.SelectedVersion"/>
+                                                    <Binding Path="$parent[local:VersionSelectionPanel].DataContext.SelectedVersion"/>
                                                 </MultiBinding>
                                             </Border.IsVisible>
                                         </Border>
