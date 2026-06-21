@@ -134,54 +134,17 @@ public class LocalizationService : ReactiveObject, ILocalizationService
     }
 
     /// <summary>
-    /// Pobiera wartość z konkretnego języka, obsługując zagnieżdżone klucze.
+    /// Pobiera wartość z konkretnego języka, delegując nawigację po
+    /// drzewie tłumaczeń do <see cref="LocalizationKeyResolver"/>, który
+    /// obsługuje zarówno zagnieżdżone obiekty JSON, jak i płaskie klucze
+    /// zawierające kropki w nazwie (np. LaunchDiagnostics.Severity.Info).
     /// </summary>
     private string? GetFromCulture(string culture, string key)
     {
-        if (!_translations.ContainsKey(culture))
+        if (!_translations.TryGetValue(culture, out var tree))
             return null;
 
-        var parts = key.Split('.');
-        object? current = _translations[culture];
-
-        foreach (var part in parts)
-        {
-            if (current is Dictionary<string, object> dict)
-            {
-                if (!dict.TryGetValue(part, out var next))
-                    return null;
-
-                current = next;
-            }
-            else if (current is JsonElement element)
-            {
-                // Obsługa JsonElement z System.Text.Json
-                if (element.ValueKind == JsonValueKind.Object)
-                {
-                    if (!element.TryGetProperty(part, out var next))
-                        return null;
-
-                    current = next;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        // Konwersja wyniku do string
-        if (current is string str)
-            return str;
-
-        if (current is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.String)
-            return jsonElement.GetString();
-
-        return current?.ToString();
+        return LocalizationKeyResolver.Resolve(tree, key);
     }
 
     /// <summary>
