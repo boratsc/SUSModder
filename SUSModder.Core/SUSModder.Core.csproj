@@ -10,6 +10,13 @@
     <SelfContained>true</SelfContained>
     <PublishSingleFile>false</PublishSingleFile>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <!--
+      NU1903: SQLitePCLRaw.lib.e_sqlite3 is deprecated upstream (renamed to SourceGear.sqlite3)
+      but is still pulled in transitively by Microsoft.Data.Sqlite 10.0.x. There is no
+      fix available from Microsoft yet, so suppress the warning until the upstream
+      dependency is replaced. Track: https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+    -->
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
   </PropertyGroup>
   <!-- Konfiguracja tylko dla Release/Publish -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
@@ -20,7 +27,7 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.8" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.8" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.8" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.8" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="protobuf-net" Version="3.2.52" />
     <PackageReference Include="SharpCompress" Version="0.48.1" />
