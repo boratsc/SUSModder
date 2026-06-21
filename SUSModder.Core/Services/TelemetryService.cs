@@ -41,8 +41,8 @@ namespace SUSModder.Core.Services
             // Generuj/wczytaj anonimowy hash użytkownika
             _userHash = HardwareIdProvider.GetAnonymousUserHash();
 
-            // Wczytaj wersję z version.json
-            _appVersion = LoadAppVersionFromFile();
+            // Wczytaj wersję aplikacji bez fallbacku do wersji assembly SUSModder.Core (zwykle 1.0.0).
+            _appVersion = AppVersionResolver.Resolve(_userSettingsService);
 
             // Sprawdź czy telemetria jest włączona (z UserSettings)
             var userSettings = _userSettingsService.LoadUserSettings();
@@ -226,42 +226,6 @@ namespace SUSModder.Core.Services
 
             // Zapisz do user-settings.json
             _userSettingsService.UpdateUserSetting(settings => settings.TelemetryEnabled = enabled);
-        }
-
-        /// <summary>
-        /// Wczytuje wersję aplikacji z version.json
-        /// </summary>
-        private string LoadAppVersionFromFile()
-        {
-            try
-            {
-                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                var versionFilePath = Path.Combine(exeDir, "version.json");
-
-                if (File.Exists(versionFilePath))
-                {
-                    var json = File.ReadAllText(versionFilePath);
-                    var versionData = JsonSerializer.Deserialize<Configuration.AppVersion>(json);
-
-                    if (versionData != null && !string.IsNullOrWhiteSpace(versionData.CurrentVersion))
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[Telemetry] Loaded version from version.json: {versionData.CurrentVersion}");
-                        return versionData.CurrentVersion;
-                    }
-                }
-
-                var assemblyVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                if (assemblyVersion is not null)
-                    return assemblyVersion.ToString(3);
-
-                System.Diagnostics.Debug.WriteLine("[Telemetry] version.json not found - using 0.0.0 fallback");
-                return "0.0.0";
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Telemetry] Failed to load version: {ex.Message}");
-                return "0.0.0";
-            }
         }
 
     }
