@@ -307,6 +307,51 @@ public partial class MainWindowViewModel
         AiSupportProblem = string.Empty;
     }
 
+    public void ShowAiSupportForInstallFailure(string modName, string errorMessage, string logText)
+    {
+        IsAiSupportVisible = true;
+        AiSupportResultSummary = string.Empty;
+        AiSupportResultSteps = string.Empty;
+        AiSupportResultWarnings = string.Empty;
+        AiSupportIncludeDiagnostics = false;
+
+        var safeLog = BuildInstallFailureLogSummary(logText);
+        AiSupportProblem = _localizationService.GetFormatted(
+            "AiSupport.InstallFailureProblemTemplate",
+            modName,
+            errorMessage,
+            safeLog);
+    }
+
+    private static string BuildInstallFailureLogSummary(string? logText)
+    {
+        if (string.IsNullOrWhiteSpace(logText))
+            return string.Empty;
+
+        var lines = logText
+            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(RedactInstallFailureLogLine)
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .TakeLast(20);
+
+        var summary = string.Join(Environment.NewLine, lines);
+        const int maxLength = 4000;
+        return summary.Length <= maxLength ? summary : summary[^maxLength..];
+    }
+
+    private static string RedactInstallFailureLogLine(string line)
+    {
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrWhiteSpace(userProfile))
+            line = line.Replace(userProfile, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
+
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        if (!string.IsNullOrWhiteSpace(appData))
+            line = line.Replace(appData, "%APPDATA%", StringComparison.OrdinalIgnoreCase);
+
+        return line;
+    }
+
     public void HideAiSupport()
     {
         IsAiSupportVisible = false;

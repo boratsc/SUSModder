@@ -506,6 +506,9 @@
       "TitleWithName": "❌ Failed to install: {0}",
       "LogLabel": "Installation log",
       "LogEmpty": "No installation log entries available.",
+      "DiagnosticActionsTitle": "What you can do next",
+      "OpenAiSupportButton": "🤖 Analyze with SUSModder Help",
+      "CopyLogButton": "📋 Copy log",
       "CloseButton": "Close"
     },
     "AmongUsNotFound": {
@@ -1479,6 +1482,7 @@
     "IncludeDiagnostics": "Include basic diagnostics",
     "PrivacyNotice": "SUSModder sends: problem description, diagnosis codes, app version, Steam/Epic mode, and limited log summary. We never send: full logs, ZIP files, Discord tokens, user paths, or memory dumps. The backend may use an AI model if enabled.",
     "AnalyzeButton": "Analyze problem",
+    "InstallFailureProblemTemplate": "Mod installation failed.\nMod: {0}\nError: {1}\n\nShort, anonymized installation log:\n{2}",
     "Result.Source": "Source",
     "Result.Confidence": "Confidence",
     "Result.Steps": "Repair steps",

@@ -6,22 +6,16 @@
              Background="{DynamicResource CardBackgroundBrush}">
 
 	<UserControl.Styles>
-		<Style Selector="UserControl">
-			<Style.Animations>
-				<Animation Duration="0:0:0.3" FillMode="Forward">
-					<KeyFrame Cue="0%">
-						<Setter Property="Opacity" Value="0"/>
-					</KeyFrame>
-					<KeyFrame Cue="100%">
-						<Setter Property="Opacity" Value="1"/>
-					</KeyFrame>
-				</Animation>
-			</Style.Animations>
-		</Style>
+		<!-- Animacja fade-in wyłączona: poprzednia wersja używała
+		     Selector="UserControl" bez pseudo-klasy, co powodowało
+		     częściowo przezroczysty stan podczas zmiany IsVisible
+		     i wizualne nachodzenie się dwóch modali w tym samym
+		     kontenerze. Karta jest teraz zawsze w pełni widoczna,
+		     a płynność przejścia zapewnia istniejący wrapper
+		     fade-in-panel w MainWindow.axaml. -->
 
 		<Style Selector="Button.primary-button:pointerover">
 			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
 		</Style>
 	</UserControl.Styles>
 
@@ -67,6 +61,35 @@
 				         MinHeight="120"/>
 			</ScrollViewer>
 		</Border>
+
+		<TextBlock FontSize="12"
+		           FontWeight="SemiBold"
+		           Foreground="{DynamicResource TextSecondaryBrush}"
+		           Text="{Binding DiagnosticActionsTitle}"/>
+
+		<StackPanel Orientation="Horizontal"
+		            HorizontalAlignment="Center"
+		            Spacing="10">
+			<Button Command="{Binding OpenAiSupportCommand}"
+			        Classes="primary-button"
+			        FontSize="14"
+			        FontWeight="SemiBold"
+			        Padding="14,9"
+			        CornerRadius="8"
+			        Background="{DynamicResource AccentBrush}"
+			        Foreground="White"
+			        BorderThickness="0"
+			        Content="{Binding OpenAiSupportButton}"/>
+
+			<Button Command="{Binding CopyLogCommand}"
+			        FontSize="14"
+			        Padding="14,9"
+			        CornerRadius="8"
+			        BorderBrush="{DynamicResource BorderBrush}"
+			        Background="Transparent"
+			        Foreground="{DynamicResource TextPrimaryBrush}"
+			        Content="{Binding CopyLogButton}"/>
+		</StackPanel>
 
 		<Button Command="{Binding CloseCommand}"
 		        Classes="primary-button"

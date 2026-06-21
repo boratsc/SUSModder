@@ -108,7 +108,11 @@ namespace SUSModder.Core.GameIntegration
             }
         }
 
-        private void Write(string line) => _output?.Write(line);
+        private void Write(string line)
+        {
+            _output?.Write(line);
+            LogToFile(line);
+        }
 
         private void ShowError(string msg) => _userInteraction?.ShowError(msg);
 
@@ -325,12 +329,12 @@ namespace SUSModder.Core.GameIntegration
             }
         }
 
-        public async Task ModifyEpicAsync(ModConfiguration modConfig, object? progressBar, object? progressLabel)
+        public async Task<bool> ModifyEpicAsync(ModConfiguration modConfig, object? progressBar, object? progressLabel)
         {
             if (modConfig == null)
             {
                 ShowError("Konfiguracja moda jest nieprawidłowa.");
-                return;
+                return false;
             }
 
             string downloadUrl = await ModDownloadUrlBuilder.ResolveAsync(modConfig, "epic");
@@ -356,7 +360,7 @@ namespace SUSModder.Core.GameIntegration
             {
                 Write($"ERROR: Nie udało się pobrać moda z {downloadUrl}");
                 ShowError($"Nie udało się pobrać moda z {downloadUrl}.");
-                return;
+                return false;
             }
 
             Write($"Pomyślnie pobrano mod do: {modFile}");
@@ -413,7 +417,7 @@ namespace SUSModder.Core.GameIntegration
             {
                 Write($"ERROR podczas rozpakowywania: {ex.Message}");
                 ShowError($"Błąd podczas rozpakowywania archiwum: {ex.Message}");
-                return;
+                return false;
             }
 
             ProgressChanged?.Invoke(70, "Kopiowanie plików...");
@@ -426,7 +430,7 @@ namespace SUSModder.Core.GameIntegration
             {
                 Write("ERROR: Nie znaleziono plików do skopiowania");
                 ShowError("Nie znaleziono plików do skopiowania.");
-                return;
+                return false;
             }
 
             Write($"Kopiuję pliki z {sourcePath} do {gameBasePath}");
@@ -494,6 +498,7 @@ namespace SUSModder.Core.GameIntegration
 
             System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync FULLY COMPLETED for mod: {modConfig.ModName}");
             InstallationCompleted?.Invoke(modConfig);
+            return true;
             }
             finally
             {

@@ -506,6 +506,9 @@
       "TitleWithName": "❌ Nie udało się zainstalować: {0}",
       "LogLabel": "Log instalacji",
       "LogEmpty": "Brak wpisów w logu instalacji.",
+      "DiagnosticActionsTitle": "Co możesz zrobić dalej",
+      "OpenAiSupportButton": "🤖 Analizuj z pomocą SUSModder",
+      "CopyLogButton": "📋 Kopiuj log",
       "CloseButton": "Zamknij"
     },
     "AmongUsNotFound": {
@@ -1479,6 +1482,7 @@
     "IncludeDiagnostics": "Dołącz podstawową diagnostykę",
     "PrivacyNotice": "SUSModder wyśle: opis problemu, kody diagnozy, wersję aplikacji, tryb Steam/Epic i ograniczone podsumowanie logów. Nie wysyłamy: pełnych logów, plików ZIP, tokenów Discord, ścieżek użytkownika ani zrzutów pamięci. Backend może użyć modelu AI, jeśli funkcja jest włączona.",
     "AnalyzeButton": "Analizuj problem",
+    "InstallFailureProblemTemplate": "Instalacja moda nie powiodła się.\nMod: {0}\nBłąd: {1}\n\nSkrócony, zanonimizowany log instalacji:\n{2}",
     "Result.Source": "Źródło",
     "Result.Confidence": "Pewność",
     "Result.Steps": "Kroki naprawy",

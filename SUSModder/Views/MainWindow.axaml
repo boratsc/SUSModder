@@ -719,8 +719,11 @@
 
 						<!-- AI Support Panel -->
 						<Panel IsVisible="{Binding IsAiSupportVisible}" Classes="fade-in-panel">
-							<Border Background="{StaticResource SystemAltMediumLowColor}" CornerRadius="8" Padding="16"
+							<Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="8" Padding="16"
 									Margin="0,0,0,12">
+								<ScrollViewer VerticalScrollBarVisibility="Auto"
+											  HorizontalScrollBarVisibility="Disabled"
+											  MaxHeight="560">
 								<StackPanel Spacing="10">
 									<TextBlock Text="{Binding AiSupportTitle}" FontSize="18" FontWeight="Bold"/>
 									<TextBlock Text="{Binding AiSupportPrivacyNoticeText}"
@@ -731,7 +734,10 @@
 											Click="OnAiSupportAcceptPrivacyClicked" Classes="accent" Padding="12,6"/>
 									<StackPanel IsVisible="{Binding AiSupportPrivacyAccepted}" Spacing="8">
 												<TextBox Text="{Binding AiSupportProblem}" PlaceholderText="{Binding AiSupportProblemPlaceholder}"
-														 AcceptsReturn="True" MinHeight="80"/>
+														 AcceptsReturn="True"
+														 TextWrapping="Wrap"
+														 MinHeight="90"
+														 MaxHeight="180"/>
 										<CheckBox IsChecked="{Binding AiSupportIncludeDiagnostics}"
 												  Content="{Binding AiSupportIncludeDiagnosticsLabel}"/>
 										<Button Content="{Binding AiSupportAnalyzeBtn}" Click="OnAnalyzeAiSupportClicked"
@@ -739,24 +745,29 @@
 												IsEnabled="{Binding !AiSupportIsLoading}"/>
 										<ProgressBar IsVisible="{Binding AiSupportIsLoading}" IsIndeterminate="True"/>
 										<Border IsVisible="{Binding AiSupportResultSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-												Background="{StaticResource SystemAltLowColor}" CornerRadius="4" Padding="10">
+												Background="{DynamicResource PaneBackgroundBrush}" CornerRadius="4" Padding="10"
+												MaxHeight="260">
+											<ScrollViewer VerticalScrollBarVisibility="Auto"
+														  HorizontalScrollBarVisibility="Disabled">
 											<StackPanel Spacing="6">
 												<TextBlock Text="{Binding AiSupportResultSummary}" TextWrapping="Wrap"/>
 												<TextBlock Text="{Binding AiSupportResultWarnings}" TextWrapping="Wrap"
 														   Foreground="#FFB900" IsVisible="{Binding AiSupportResultWarnings, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-												<StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+												<StackPanel Orientation="Vertical" Margin="0,6,0,0" Spacing="6">
 													<Button Content="{Binding AiSupportHelpedBtn}" Click="OnAiSupportHelpedClicked"
-															Classes="accent" Padding="12,6" Margin="0,0,6,0"/>
+															Classes="accent" Padding="12,6" HorizontalAlignment="Left"/>
 													<Button Content="{Binding AiSupportNotHelpedBtn}" Click="OnAiSupportNotHelpedClicked"
-															Classes="secondary" Padding="12,6" Margin="0,0,6,0"/>
+															Classes="secondary" Padding="12,6" HorizontalAlignment="Left"/>
 													<Button Content="{Binding AiSupportGenerateReportBtn}" Click="OnGenerateSupportBundleClicked"
-															Classes="secondary" Padding="12,6"/>
+															Classes="secondary" Padding="12,6" HorizontalAlignment="Left"/>
 												</StackPanel>
 											</StackPanel>
+											</ScrollViewer>
 										</Border>
 									</StackPanel>
 									<Button Content="{Binding AiSupportCloseBtn}" Click="OnCloseAiSupportClicked" Padding="12,6"/>
 								</StackPanel>
+								</ScrollViewer>
 							</Border>
 						</Panel>
 					</Grid>

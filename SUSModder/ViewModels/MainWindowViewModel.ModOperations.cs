@@ -55,6 +55,20 @@ namespace SUSModder.ViewModels
             if (currentSelectedMod.IsInstalling)
                 return false;
 
+            // Zamknij pozostawione wcześniej modale (sukces/błąd) z poprzedniej
+            // instalacji, aby użytkownik nie widział dwóch paneli naraz po
+            // rozpoczęciu nowej instalacji.
+            if (IsPostInstallSuccessVisible || IsPostInstallFailureVisible)
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    IsPostInstallSuccessVisible = false;
+                    PostInstallSuccessViewModel = null;
+                    IsPostInstallFailureVisible = false;
+                    PostInstallFailureViewModel = null;
+                });
+            }
+
             bool success = false;
             ModConfiguration? modConfig = null;
             ModInstallResult? installResult = null;
@@ -124,12 +138,8 @@ namespace SUSModder.ViewModels
 
                 if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
                 {
-                    success = await InstallEpicModAsync(currentSelectedMod, modConfig);
-                    if (!success)
-                    {
-                        installResult = ModInstallResult.Failed(
-                            _localizationService.Get("Dialogs.Error.InstallFailed"));
-                    }
+                    installResult = await InstallEpicModAsync(currentSelectedMod, modConfig);
+                    success = installResult.Success;
                 }
                 else
                 {
@@ -287,12 +297,8 @@ namespace SUSModder.ViewModels
 
                 if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
                 {
-                    success = await InstallEpicModAsync(modItem, tempModConfig);
-                    if (!success)
-                    {
-                        installResult = ModInstallResult.Failed(
-                            _localizationService.Get("Dialogs.Error.InstallFailed"));
-                    }
+                    installResult = await InstallEpicModAsync(modItem, tempModConfig);
+                    success = installResult.Success;
                 }
                 else
                 {
@@ -355,12 +361,12 @@ namespace SUSModder.ViewModels
                 await ShowPostInstallFailureFlowAsync(modItem, installResult);
         }
 
-        private async Task<bool> InstallEpicModAsync(ModItem currentSelectedMod, ModConfiguration modConfig)
+        private async Task<ModInstallResult> InstallEpicModAsync(ModItem currentSelectedMod, ModConfiguration modConfig)
         {
-            var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+            var diagnosticsOutput = new BufferingDiagnosticsOutput(new UIDiagnosticsOutput((message) =>
             {
                 System.Diagnostics.Debug.WriteLine($"[Install Epic] {message}");
-            });
+            }));
 
             var epicUserInteraction = new EpicUserInteractionAdapter(_userInteractionService);
             var epicManager = new EpicVersionManager(diagnosticsOutput, epicUserInteraction);
@@ -402,15 +408,20 @@ namespace SUSModder.ViewModels
             try
             {
                 System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Calling ModifyEpicAsync for {modConfig.ModName}");
-                await epicManager.ModifyEpicAsync(modConfig, null, null);
-                System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync returned successfully");
+                var epicResult = await epicManager.ModifyEpicAsync(modConfig, null, null);
+                System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync returned {epicResult}");
 
-                return true;
+                return epicResult
+                    ? ModInstallResult.Succeeded(diagnosticsOutput.Lines)
+                    : ModInstallResult.Failed(
+                        _localizationService.Get("Dialogs.Error.InstallFailed"),
+                        diagnosticsOutput.Lines);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync threw exception: {ex.Message}");
-                return false;
+                diagnosticsOutput.Write($"[Install Epic] Exception: {ex.Message}");
+                return ModInstallResult.Failed(ex.Message, diagnosticsOutput.Lines);
             }
         }
 
@@ -677,14 +688,29 @@ namespace SUSModder.ViewModels
                 logText,
                 _localizationService);
             vm.CloseRequested += OnPostInstallFailureCloseRequested;
+            vm.AiSupportRequested += OnPostInstallFailureAiSupportRequested;
             PostInstallFailureViewModel = vm;
             IsPostInstallFailureVisible = true;
+        }
+
+        private void OnPostInstallFailureAiSupportRequested(object? sender, EventArgs e)
+        {
+            if (sender is not PostInstallFailureViewModel vm)
+                return;
+
+            vm.AiSupportRequested -= OnPostInstallFailureAiSupportRequested;
+            vm.CloseRequested -= OnPostInstallFailureCloseRequested;
+
+            IsPostInstallFailureVisible = false;
+            PostInstallFailureViewModel = null;
+            ShowAiSupportForInstallFailure(vm.ModName, vm.Message, vm.LogText);
         }
 
         private void OnPostInstallFailureCloseRequested(object? sender, EventArgs e)
         {
             if (sender is PostInstallFailureViewModel vm)
             {
+                vm.AiSupportRequested -= OnPostInstallFailureAiSupportRequested;
                 vm.CloseRequested -= OnPostInstallFailureCloseRequested;
                 IsPostInstallFailureVisible = false;
                 PostInstallFailureViewModel = null;

@@ -6,19 +6,13 @@
              Background="{DynamicResource CardBackgroundBrush}">
 
 	<UserControl.Styles>
-		<!-- Animacja fade-in -->
-		<Style Selector="UserControl">
-			<Style.Animations>
-				<Animation Duration="0:0:0.3" FillMode="Forward">
-					<KeyFrame Cue="0%">
-						<Setter Property="Opacity" Value="0"/>
-					</KeyFrame>
-					<KeyFrame Cue="100%">
-						<Setter Property="Opacity" Value="1"/>
-					</KeyFrame>
-				</Animation>
-			</Style.Animations>
-		</Style>
+		<!-- Animacja fade-in wyłączona: poprzednia wersja używała
+		     Selector="UserControl" bez pseudo-klasy, co powodowało
+		     częściowo przezroczysty stan podczas zmiany IsVisible
+		     i wizualne nachodzenie się dwóch modali w tym samym
+		     kontenerze. Karta jest teraz zawsze w pełni widoczna,
+		     a płynność przejścia zapewnia istniejący wrapper
+		     fade-in-panel w MainWindow.axaml. -->
 
 		<!-- Hover effect dla Launch -->
 		<Style Selector="Button.primary-button:pointerover">

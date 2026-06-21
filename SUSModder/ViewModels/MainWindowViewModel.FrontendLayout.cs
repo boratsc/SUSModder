@@ -43,6 +43,7 @@ namespace SUSModder.ViewModels
             IsModPackCreatorVisible ||
             IsModPackResultVisible ||
             IsModPackPreviewVisible ||
+            IsAiSupportVisible ||
             IsSUStatsConfigVisible ||
             IsAppSettingsVisible ||
             IsRecommendedDiscordsVisible ||
@@ -110,6 +111,11 @@ namespace SUSModder.ViewModels
                 if (IsPostInstallFailureVisible && PostInstallFailureViewModel != null)
                 {
                     return PostInstallFailureViewModel.Title;
+                }
+
+                if (IsAiSupportVisible)
+                {
+                    return AiSupportTitle;
                 }
 
                 if (IsAmongUsNotFoundVisible && AmongUsNotFoundViewModel != null)
@@ -185,6 +191,7 @@ namespace SUSModder.ViewModels
             PostInstallSuccessViewModel = null;
             IsPostInstallFailureVisible = false;
             PostInstallFailureViewModel = null;
+            IsAiSupportVisible = false;
             DismissAmongUsNotFoundModal(AmongUsNotFoundResult.Close);
             DismissActiveModPackModal();
             if (IsVersionSelectionModalVisible)
