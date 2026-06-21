@@ -121,7 +121,7 @@ namespace SUSModder.Core.Utilities
                     {
                         return new ModDownloadResolution
                         {
-                            Url = client.BuildModDownloadUrl(mod.Id, variantVersion, platform),
+                            Url = client.BuildModDownloadUrl(mod.Id, variantVersion, platform, variant.Architecture),
                             ExpectedSha256 = NormalizeSha256(variant.Sha256)
                         };
                     }
@@ -270,22 +270,29 @@ namespace SUSModder.Core.Utilities
 
 
 
-            return variants.FirstOrDefault(v =>
+            // Prefer same-platform variants first (x64 then x86), because Among Us
+            // (Steam & Epic) is a 64-bit application and Epic specifically requires
+            // an x64 build for BepInEx to load.
+            var samePlatform = variants
 
-                       v.Platform.Equals(platform, StringComparison.OrdinalIgnoreCase) &&
+                .Where(v => v.Platform.Equals(platform, StringComparison.OrdinalIgnoreCase))
 
-                       v.Architecture.Equals("x86", StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-                   ?? variants.FirstOrDefault(v =>
+            if (samePlatform.Count > 0)
+            {
+                return samePlatform.FirstOrDefault(v => v.Architecture.Equals("x64", StringComparison.OrdinalIgnoreCase))
+                       ?? samePlatform.FirstOrDefault(v => v.Architecture.Equals("x86", StringComparison.OrdinalIgnoreCase))
+                       ?? samePlatform[0];
+            }
 
-                       v.Platform.Equals(platform, StringComparison.OrdinalIgnoreCase) &&
-
-                       v.Architecture.Equals("x64", StringComparison.OrdinalIgnoreCase))
-
-                   ?? variants.FirstOrDefault(v =>
-
-                       v.Platform.Equals(platform, StringComparison.OrdinalIgnoreCase));
-
+            // Cross-platform fallback: many mods published before April 2025 (when
+            // Epic support was added) ship a single x86 build. Their .dll payload is
+            // platform-agnostic at runtime, so we can serve the steam/x86 variant for
+            // Epic users instead of failing with a generic 404.
+            return variants.FirstOrDefault(v => v.Architecture.Equals("x86", StringComparison.OrdinalIgnoreCase))
+                   ?? variants.FirstOrDefault(v => v.Architecture.Equals("x64", StringComparison.OrdinalIgnoreCase))
+                   ?? variants[0];
         }
 
 

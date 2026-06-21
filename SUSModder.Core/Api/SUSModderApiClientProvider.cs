@@ -18,4 +18,10 @@ public static class SUSModderApiClientProvider
     {
         _default = client ?? throw new ArgumentNullException(nameof(client));
     }
+
+    /// <summary>
+    /// Przywraca stan początkowy (brak domyślnego klienta). Przeznaczone wyłącznie
+    /// dla testów jednostkowych, które muszą odizolować się od siebie.
+    /// </summary>
+    internal static void ResetForTests() => _default = null;
 }
