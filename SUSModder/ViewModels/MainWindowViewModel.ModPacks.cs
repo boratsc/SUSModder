@@ -42,25 +42,49 @@ public partial class MainWindowViewModel
 
         _modPackDeepLinkTarget = this;
 
-        DeepLinkIpc.StartServer((code, auto) =>
+        DeepLinkIpc.StartServer(
 
-        {
-
-            var vm = _modPackDeepLinkTarget;
-
-            if (vm == null) return;
-
-
-
-            Dispatcher.UIThread.Post(async () =>
+            onDeepLinkReceived: (code, auto) =>
 
             {
 
-                await vm.HandlePendingModPackDeepLinkAsync(code, auto);
+                var vm = _modPackDeepLinkTarget;
+
+                if (vm == null) return;
+
+
+
+                Dispatcher.UIThread.Post(async () =>
+
+                {
+
+                    await vm.HandlePendingModPackDeepLinkAsync(code, auto);
+
+                });
+
+            },
+
+            onActivateRequested: () =>
+
+            {
+
+                var vm = _modPackDeepLinkTarget;
+
+                if (vm == null) return;
+
+
+
+                Dispatcher.UIThread.Post(() =>
+
+                {
+
+                    var mainWindow = vm.GetMainWindow() as Views.MainWindow;
+
+                    mainWindow?.RestoreAndActivate();
+
+                });
 
             });
-
-        });
 
     }
 

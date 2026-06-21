@@ -92,6 +92,29 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         // To zdarzenie jest rejestrowane dla ewentualnych dodatkowych działań.
     }
 
+    /// <summary>
+    /// Przywraca okno z tray, taskbar lub tła i ustawia je na pierwszym planie.
+    /// Wywoływana gdy druga instancja aplikacji zażąda aktywacji.
+    /// </summary>
+    public void RestoreAndActivate()
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (_systemTrayService?.IsVisible == true)
+            {
+                _systemTrayService.RestoreWindow();
+                return;
+            }
+
+            if (WindowState == WindowState.Minimized)
+                WindowState = WindowState.Normal;
+
+            Show();
+            Activate();
+            Focus();
+        });
+    }
+
     private void InitializeWindow()
     {
         InitializeComponent();
