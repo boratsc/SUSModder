@@ -89,7 +89,7 @@ public sealed class ModPackPreviewViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> CancelCommand { get; }
     public ReactiveCommand<Unit, Unit> InstallCommand { get; }
 
-    public ModPackPreviewViewModel(ModPack pack, IModPackService modPackService, ILocalizationService loc)
+    public ModPackPreviewViewModel(ModPack pack, IModPackService modPackService, ILocalizationService loc, string platform = "steam")
     {
         _pack = pack;
         _modPackService = modPackService;
@@ -115,7 +115,7 @@ public sealed class ModPackPreviewViewModel : ViewModelBase
             ? displayName
             : $"{displayName} ({pack.PackCode})";
         LocalDisplayName = displayName;
-        DetailsText = BuildDetailsText(catalog, fullModName);
+        DetailsText = BuildDetailsText(catalog, fullModName, platform);
 
         if (pack.HasCustomContent)
         {
@@ -190,7 +190,7 @@ public sealed class ModPackPreviewViewModel : ViewModelBase
         return "ModPacks.VirusTotalClean";
     }
 
-    private string BuildDetailsText(System.Collections.Generic.List<ModConfiguration> catalog, string? fullModName)
+    private string BuildDetailsText(System.Collections.Generic.List<ModConfiguration> catalog, string? fullModName, string platform)
     {
         var sb = new StringBuilder();
         if (!string.IsNullOrWhiteSpace(_pack.CreatorName))
@@ -206,6 +206,8 @@ public sealed class ModPackPreviewViewModel : ViewModelBase
             var name = string.IsNullOrWhiteSpace(cf.DisplayName) ? cf.FileName : cf.DisplayName;
             sb.AppendLine($"{_loc.Get("ModPacks.FullModLabel")}: {name} ({_loc.Get("ModPacks.CustomFull.Title")}, {cf.Status})");
         }
+
+        sb.AppendLine(_loc.GetFormatted("ModPacks.PlatformVariantLabel", platform));
         if (_pack.DllMods.Count > 0)
         {
             sb.AppendLine($"{_loc.Get("ModPacks.DllModsLabel")}:");

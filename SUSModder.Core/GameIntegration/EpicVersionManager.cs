@@ -1030,7 +1030,7 @@ namespace SUSModder.Core.GameIntegration
                     return;
                 }
 
-                installDirectory = modConfig.InstallPath;
+                installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
 
                 try
                 {
@@ -1039,7 +1039,7 @@ namespace SUSModder.Core.GameIntegration
                     _hasLaunchError = false;
 
                     // Weryfikuj czy pliki gry faktycznie istnieją przed importem
-                    string gameExePath = Path.Combine(installDirectory, "Among Us.exe");
+                    string gameExePath = ResolveEpicGameExePath(installDirectory);
                     if (!File.Exists(gameExePath))
                     {
                         Write($"OSTRZEŻENIE: Plik gry nie istnieje w {installDirectory}");
@@ -1050,6 +1050,8 @@ namespace SUSModder.Core.GameIntegration
                         await PerformReinstallationSequence(modConfig);
                         return;
                     }
+
+                    EnsureEpicPayloadInsideGameDirectory(installDirectory);
 
                     await RunLegendaryCommandAsync($"import 963137e4c29d4c79a81323b8fab03a40 \"{installDirectory}\" -y");
                     await LaunchGameAsync();
@@ -1124,11 +1126,11 @@ namespace SUSModder.Core.GameIntegration
                     return;
                 }
 
-                installDirectory = modConfig.InstallPath.Replace("AmongUs", "").TrimEnd(Path.DirectorySeparatorChar);
+                installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
             }
             else
             {
-                installDirectory = Path.Combine(PathSettings.ModsInstallPath, modConfig.ModName);
+                installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
             }
             await RunLegendaryCommandAsync("uninstall 963137e4c29d4c79a81323b8fab03a40 --keep-files -y");
             await RunLegendaryCommandAsync($"import 963137e4c29d4c79a81323b8fab03a40 \"{installDirectory}\" -y");
@@ -1212,14 +1214,14 @@ namespace SUSModder.Core.GameIntegration
                 string installDirectory;
                 if (modConfig.Id == 0)
                 {
-                    installDirectory = modConfig.InstallPath?.Replace("AmongUs", "").TrimEnd(Path.DirectorySeparatorChar) ?? "";
+                    installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
                 }
                 else
                 {
-                    installDirectory = Path.Combine(PathSettings.ModsInstallPath, modConfig.ModName);
+                    installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
                 }
                 
-                string gameExePath = Path.Combine(installDirectory, "AmongUs", "Among Us.exe");
+                string gameExePath = ResolveEpicGameExePath(installDirectory);
                 if (!File.Exists(gameExePath))
                 {
                     Write($"BŁĄD: Instalacja nie powiodła się - brak pliku gry: {gameExePath}");
@@ -1297,6 +1299,98 @@ namespace SUSModder.Core.GameIntegration
             await RunLegendaryCommandAsync(commandArguments);
         }
 
+        private static string ResolveEpicBaseInstallDirectory(ModConfiguration modConfig)
+        {
+            if (!string.IsNullOrWhiteSpace(modConfig.InstallPath))
+            {
+                return TrimEpicGameSubdirectory(modConfig.InstallPath);
+            }
+
+            return Path.Combine(PathSettings.ModsInstallPath, modConfig.ModName ?? string.Empty);
+        }
+
+        private static string TrimEpicGameSubdirectory(string path)
+        {
+            var trimmed = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var directoryName = Path.GetFileName(trimmed);
+
+            return string.Equals(directoryName, "AmongUs", StringComparison.OrdinalIgnoreCase)
+                ? Path.GetDirectoryName(trimmed) ?? trimmed
+                : trimmed;
+        }
+
+        private static string ResolveEpicGameExePath(string baseInstallDirectory)
+        {
+            var epicExePath = Path.Combine(baseInstallDirectory, "AmongUs", "Among Us.exe");
+            if (File.Exists(epicExePath))
+                return epicExePath;
+
+            return Path.Combine(baseInstallDirectory, "Among Us.exe");
+        }
+
+        private void EnsureEpicPayloadInsideGameDirectory(string baseInstallDirectory)
+        {
+            var gameDirectory = Path.Combine(baseInstallDirectory, "AmongUs");
+            if (!Directory.Exists(gameDirectory))
+                return;
+
+            foreach (var directory in Directory.GetDirectories(baseInstallDirectory))
+            {
+                var name = Path.GetFileName(directory);
+                if (string.Equals(name, "AmongUs", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                MoveDirectoryContent(directory, Path.Combine(gameDirectory, name));
+                TryDeleteEmptyDirectory(directory);
+            }
+
+            foreach (var file in Directory.GetFiles(baseInstallDirectory))
+            {
+                var name = Path.GetFileName(file);
+                if (string.Equals(name, ".susmodder-install.json", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var destination = Path.Combine(gameDirectory, name);
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                File.Copy(file, destination, overwrite: true);
+                TryDeleteFile(file);
+            }
+        }
+
+        private static void MoveDirectoryContent(string sourceDirectory, string destinationDirectory)
+        {
+            Directory.CreateDirectory(destinationDirectory);
+
+            foreach (var file in Directory.GetFiles(sourceDirectory))
+            {
+                var destination = Path.Combine(destinationDirectory, Path.GetFileName(file));
+                File.Copy(file, destination, overwrite: true);
+                TryDeleteFile(file);
+            }
+
+            foreach (var directory in Directory.GetDirectories(sourceDirectory))
+            {
+                MoveDirectoryContent(directory, Path.Combine(destinationDirectory, Path.GetFileName(directory)));
+                TryDeleteEmptyDirectory(directory);
+            }
+        }
+
+        private static void TryDeleteFile(string file)
+        {
+            try { File.Delete(file); }
+            catch { /* best effort cleanup */ }
+        }
+
+        private static void TryDeleteEmptyDirectory(string directory)
+        {
+            try
+            {
+                if (!Directory.EnumerateFileSystemEntries(directory).Any())
+                    Directory.Delete(directory);
+            }
+            catch { /* best effort cleanup */ }
+        }
+
         public async Task InstallGameAsync(ModConfiguration modConfig, string amongVersionFormatted)
         {
             string installDirectory;
@@ -1308,11 +1402,11 @@ namespace SUSModder.Core.GameIntegration
                     return;
                 }
 
-                installDirectory = modConfig.InstallPath.Replace("AmongUs", "").TrimEnd(Path.DirectorySeparatorChar);
+                installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
             }
             else
             {
-                installDirectory = Path.Combine(PathSettings.ModsInstallPath, modConfig.ModName);
+                installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
             }
             Directory.CreateDirectory(installDirectory);
             string commandArguments;
@@ -1332,9 +1426,12 @@ namespace SUSModder.Core.GameIntegration
                 commandArguments = $"install {EpicAppId} -y --manifest \"{manifestFilePath}\" --base-path \"{installDirectory}\"";
             }
             await RunLegendaryCommandAsync(commandArguments);
-            
+
+            if (modConfig.Id != 0)
+                EnsureEpicPayloadInsideGameDirectory(installDirectory);
+             
             // Weryfikacja czy instalacja się powiodła
-            string gameExePath = Path.Combine(installDirectory, "AmongUs", "Among Us.exe");
+            string gameExePath = ResolveEpicGameExePath(installDirectory);
             if (!File.Exists(gameExePath))
             {
                 Write($"OSTRZEŻENIE: Plik gry nie został znaleziony po instalacji: {gameExePath}");

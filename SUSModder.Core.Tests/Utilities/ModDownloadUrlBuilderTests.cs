@@ -150,12 +150,13 @@ public class ModDownloadUrlBuilderTests
     {
         // ToU - Wygon scenario: catalog has only a steam/x86 build, but the user
         // is on Epic. The dll payload is platform-agnostic, so we should serve the
-        // steam/x86 URL with platform=epic rather than failing with a 404.
+        // steam/x86 URL rather than failing with a 404 on the missing Epic variant.
         var mod = new ModConfiguration
         {
             Id = 2,
             ModName = "ToU - Wygon",
-            ModVersion = "2.0.0"
+            ModVersion = "2.0.0",
+            ModType = "dll"
         };
 
         var detail = new CatalogModDetailDto
@@ -189,17 +190,185 @@ public class ModDownloadUrlBuilderTests
         {
             var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic");
 
-            // The fallback variant is the only available x86 build, propagated as arch.
+            // The fallback variant is the only available Steam/x86 build.
             Assert.Equal("x86", ExtractQueryParam(result.Url, "arch"));
-            // The query is still addressed as epic (the client is on Epic); the backend
-            // is expected to honor this by serving the shared steam/x86 build.
-            Assert.Equal("epic", ExtractQueryParam(result.Url, "platform"));
+            Assert.Equal("steam", ExtractQueryParam(result.Url, "platform"));
             Assert.Equal("40e7f6ebc732d7124151e2fdaa2e12a6de017308022a818440a0929d2565f976",
                 result.ExpectedSha256);
         }
         finally
         {
             if (previousDefault is not null)
+                SUSModderApiClientProvider.SetDefault(previousDefault);
+        }
+    }
+
+    [Fact]
+    public async Task ResolveWithHashAsync_FullMod_DoesNotCrossFallbackToSteamVariant()
+    {
+        var mod = new ModConfiguration
+        {
+            Id = 8,
+            ModName = "Full Mod",
+            ModVersion = "1.3.0",
+            ModType = "full"
+        };
+
+        var detail = new CatalogModDetailDto
+        {
+            Id = 8,
+            CurrentVersion = "1.3.0",
+            Variants = new List<CatalogModVariantDto>
+            {
+                new() { Platform = "steam", Architecture = "x86", Version = "1.3.0" }
+            }
+        };
+
+        var mockApi = new Mock<ISUSModderApiClient>();
+        mockApi.SetupGet(x => x.BaseUrl).Returns("https://api.example/v2");
+        mockApi
+            .Setup(x => x.GetCatalogModDetailAsync(8, It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SusModderApiResult<CatalogModDetailDto>
+            {
+                StatusCode = 200,
+                Data = detail
+            });
+        mockApi
+            .Setup(x => x.BuildModDownloadUrl(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((int id, string version, string platform, string arch) =>
+                $"https://api.example/v2/downloads/mod/{id}/{version}?platform={platform}&arch={arch}");
+
+        var previousDefault = SUSModderApiClientProvider.TryGetDefault();
+        SUSModderApiClientProvider.SetDefault(mockApi.Object);
+        try
+        {
+            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic");
+
+            Assert.Equal("epic", ExtractQueryParam(result.Url, "platform"));
+            Assert.Equal("x86", ExtractQueryParam(result.Url, "arch"));
+            Assert.Null(result.ExpectedSha256);
+        }
+        finally
+        {
+            if (previousDefault is null)
+                SUSModderApiClientProvider.ResetForTests();
+            else
+                SUSModderApiClientProvider.SetDefault(previousDefault);
+        }
+    }
+
+    [Fact]
+    public async Task ResolveWithHashAsync_PinnedVersion_DoesNotFallBackToDifferentVersionVariant()
+    {
+        // Modpack snapshot pins full mod version to 5.4.0. Catalog also has a Steam 5.5.0
+        // variant. The resolver must pick the Epic 5.4.0 variant, not the latest or Steam one.
+        var mod = new ModConfiguration
+        {
+            Id = 1,
+            ModName = "Town of Us",
+            ModVersion = "5.4.0"
+        };
+
+        var detail = new CatalogModDetailDto
+        {
+            Id = 1,
+            CurrentVersion = "5.5.0",
+            Variants = new List<CatalogModVariantDto>
+            {
+                new() { Platform = "steam", Architecture = "x86", Version = "5.5.0",
+                        Sha256 = "0000000000000000000000000000000000000000000000000000000000000000" },
+                new() { Platform = "epic", Architecture = "x64", Version = "5.4.0",
+                        Sha256 = "bb2fa2516c7b3b1338ce5ca38e445bf122457492c09c30d34b54f5fa02df3108" }
+            }
+        };
+
+        var mockApi = new Mock<ISUSModderApiClient>();
+        mockApi.SetupGet(x => x.BaseUrl).Returns("https://api.example/v2");
+        mockApi
+            .Setup(x => x.GetCatalogModDetailAsync(1, It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SusModderApiResult<CatalogModDetailDto>
+            {
+                StatusCode = 200,
+                Data = detail
+            });
+        mockApi
+            .Setup(x => x.BuildModDownloadUrl(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((int id, string version, string platform, string arch) =>
+                $"https://api.example/v2/downloads/mod/{id}/{version}?platform={platform}&arch={arch}");
+
+        var previousDefault = SUSModderApiClientProvider.TryGetDefault();
+        SUSModderApiClientProvider.SetDefault(mockApi.Object);
+        try
+        {
+            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic");
+
+            Assert.Equal("epic", ExtractQueryParam(result.Url, "platform"));
+            Assert.Equal("x64", ExtractQueryParam(result.Url, "arch"));
+            Assert.Contains("/5.4.0?", result.Url);
+            Assert.Equal("bb2fa2516c7b3b1338ce5ca38e445bf122457492c09c30d34b54f5fa02df3108",
+                result.ExpectedSha256);
+        }
+        finally
+        {
+            if (previousDefault is null)
+                SUSModderApiClientProvider.ResetForTests();
+            else
+                SUSModderApiClientProvider.SetDefault(previousDefault);
+        }
+    }
+
+    [Fact]
+    public async Task ResolveWithHashAsync_PinnedVersion_NoMatchingVariant_FallsBackToBuildUrl()
+    {
+        // Modpack pins 5.4.0, but catalog only knows 5.5.0. Resolver should not pick
+        // 5.5.0 silently; it should fall back to the direct download URL for 5.4.0.
+        var mod = new ModConfiguration
+        {
+            Id = 1,
+            ModName = "Town of Us",
+            ModVersion = "5.4.0"
+        };
+
+        var detail = new CatalogModDetailDto
+        {
+            Id = 1,
+            CurrentVersion = "5.5.0",
+            Variants = new List<CatalogModVariantDto>
+            {
+                new() { Platform = "steam", Architecture = "x86", Version = "5.5.0",
+                        Sha256 = "0000000000000000000000000000000000000000000000000000000000000000" }
+            }
+        };
+
+        var mockApi = new Mock<ISUSModderApiClient>();
+        mockApi.SetupGet(x => x.BaseUrl).Returns("https://api.example/v2");
+        mockApi
+            .Setup(x => x.GetCatalogModDetailAsync(1, It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SusModderApiResult<CatalogModDetailDto>
+            {
+                StatusCode = 200,
+                Data = detail
+            });
+        mockApi
+            .Setup(x => x.BuildModDownloadUrl(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((int id, string version, string platform, string arch) =>
+                $"https://api.example/v2/downloads/mod/{id}/{version}?platform={platform}&arch={arch}");
+
+        var previousDefault = SUSModderApiClientProvider.TryGetDefault();
+        SUSModderApiClientProvider.SetDefault(mockApi.Object);
+        try
+        {
+            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic");
+
+            Assert.Equal("epic", ExtractQueryParam(result.Url, "platform"));
+            Assert.Contains("/5.4.0?", result.Url);
+            Assert.Null(result.ExpectedSha256);
+        }
+        finally
+        {
+            if (previousDefault is null)
+                SUSModderApiClientProvider.ResetForTests();
+            else
                 SUSModderApiClientProvider.SetDefault(previousDefault);
         }
     }

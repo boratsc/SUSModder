@@ -175,7 +175,8 @@ public partial class MainWindowViewModel
         var completionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         _modPackPreviewCompletionSource = completionSource;
 
-        var vm = new ModPackPreviewViewModel(pack, modPackService, _localizationService);
+        var platform = _userSettingsService.LoadUserSettings().Mode ?? "steam";
+        var vm = new ModPackPreviewViewModel(pack, modPackService, _localizationService, platform);
         vm.Completed += OnModPackPreviewCompleted;
         ModPackPreviewViewModel = vm;
         IsModPackPreviewVisible = true;

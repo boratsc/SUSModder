@@ -463,7 +463,7 @@ private async Task ShowModPackCreatorDialogAsync(ModPackCreatorMode mode)
 
         if (!result.Success)
 
-            message = result.ErrorMessage ?? _localizationService.Get("ModPacks.InstallFailed");
+            message = FormatModPackErrorMessage(result.ErrorMessage, pack);
 
         else if (result.IsPartial)
 
@@ -498,6 +498,62 @@ private async Task ShowModPackCreatorDialogAsync(ModPackCreatorMode mode)
     internal void SetPendingModPackDisplayName(string? displayName) =>
 
         _pendingModPackDisplayName = displayName;
+
+
+
+    private string FormatModPackErrorMessage(string? errorCode, ModPack pack)
+
+    {
+
+        if (string.IsNullOrWhiteSpace(errorCode))
+
+            return _localizationService.Get("ModPacks.InstallFailed");
+
+
+
+        var fullModName = pack.FullMod != null
+
+            ? (ConfigManager.LoadConfig().FirstOrDefault(c => c.Id == pack.FullMod.Id)?.ModName ?? $"#{pack.FullMod.Id}")
+
+            : pack.ModName ?? pack.PackCode;
+
+        var fullModVersion = pack.FullMod?.Version ?? "latest";
+
+        var platform = _userSettingsService.LoadUserSettings().Mode;
+
+
+
+        return errorCode switch
+
+        {
+
+            "mod_pack_platform_variant_unavailable" => _localizationService.GetFormatted(
+
+                "ModPacks.PlatformVariantUnavailable",
+
+                fullModName,
+
+                fullModVersion,
+
+                platform),
+
+            "mod_pack_full_mod_download_failed" => _localizationService.Get("ModPacks.FullModDownloadFailed"),
+
+            "mod_pack_full_mod_sha256_mismatch" => _localizationService.Get("ModPacks.FullModSha256Mismatch"),
+
+            "mod_pack_full_mod_no_files" => _localizationService.Get("ModPacks.FullModNoFiles"),
+
+            "mod_pack_epic_install_failed" => _localizationService.Get("ModPacks.EpicInstallFailed"),
+
+            var e when e.StartsWith("mod_instance_platform_not_supported", StringComparison.OrdinalIgnoreCase)
+
+                => _localizationService.GetFormatted("ModPacks.PlatformNotSupported", platform),
+
+            _ => errorCode
+
+        };
+
+    }
 
 
 

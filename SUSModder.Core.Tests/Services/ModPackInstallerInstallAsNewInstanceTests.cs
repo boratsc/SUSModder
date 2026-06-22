@@ -105,6 +105,154 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
     }
 
     [Fact]
+    public async Task InstallPack_SamePack_AsSteamAndEpic_CreatesTwoInstancesWithDifferentPlatforms()
+    {
+        await using var db = await CreateInitializedDatabaseAsync();
+        var testConfig = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2"
+            })
+            .Build();
+        var apiClient = new SUSModderApiClient(testConfig, new TestDiagnosticsOutput());
+        var modRepo = new ModRepository(db, apiClient);
+        ConfigManager.SetRepository(modRepo);
+        modRepo.SaveAllMods(new List<ModConfiguration>
+        {
+            ModInstanceInstallerTestsHelpers.CreateFullMod(),
+            ModInstanceInstallerTestsHelpers.CreateDllMod()
+        });
+
+        var instanceRepo = new ModInstanceRepository(db);
+        var fakeFull = new ModInstanceInstallerTestsHelpers.FakeFullModInstaller();
+        var fakeDll = new ModInstanceInstallerTestsHelpers.FakeDllInstaller();
+        var instanceInstaller = new ModInstanceInstaller(instanceRepo, fakeFull, fakeDll);
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2",
+                ["Configuration:BaseUrl"] = "https://susmodder.app/",
+                ["Configuration:ModPacksEndpoint"] = "/api/mod-packs"
+            })
+            .Build();
+
+        var configService = new ConfigService();
+        var log = new TestDiagnosticsOutput();
+        var dllService = new DllModificationService(configService, log);
+        var installer = new ModPackInstaller(
+            configuration,
+            configService,
+            dllService,
+            log,
+            instanceInstaller,
+            instanceRepo);
+
+        var pack = new ModPack
+        {
+            PackCode = "TEST-SHARED-01",
+            ModName = "ToU - cross platform",
+            FullMod = new ModPackFullMod { Id = 10, Version = "5.5.0" },
+            DllMods = new[]
+            {
+                new ModPackDllMod { DllModId = 20, DllModVersion = "2.0" }
+            }
+        };
+
+        var steamResult = await installer.InstallPackAsync(pack, "steam", displayName: "ToU - steam");
+        var epicResult = await installer.InstallPackAsync(pack, "epic", displayName: "ToU - epic");
+
+        Assert.True(steamResult.Success);
+        Assert.True(epicResult.Success);
+        Assert.False(string.IsNullOrEmpty(steamResult.InstanceId));
+        Assert.False(string.IsNullOrEmpty(epicResult.InstanceId));
+        Assert.NotEqual(steamResult.InstanceId, epicResult.InstanceId);
+
+        var steamInstance = instanceRepo.GetInstance(steamResult.InstanceId!);
+        var epicInstance = instanceRepo.GetInstance(epicResult.InstanceId!);
+
+        Assert.NotNull(steamInstance);
+        Assert.NotNull(epicInstance);
+        Assert.Equal("steam", steamInstance.Platform);
+        Assert.Equal("epic", epicInstance.Platform);
+        Assert.Equal("shared_pack", steamInstance.Origin);
+        Assert.Equal("shared_pack", epicInstance.Origin);
+        Assert.Equal("TEST-SHARED-01", steamInstance.SourcePackCode);
+        Assert.Equal("TEST-SHARED-01", epicInstance.SourcePackCode);
+        Assert.Equal("5.5.0", steamInstance.FullModVersion);
+        Assert.Equal("5.5.0", epicInstance.FullModVersion);
+        Assert.NotEqual(steamInstance.InstallPath, epicInstance.InstallPath);
+    }
+
+    [Fact]
+    public async Task InstallPack_AsNewInstance_Epic_PassesEpicPlatformToInstallerAndStoresPlatform()
+    {
+        await using var db = await CreateInitializedDatabaseAsync();
+        var testConfig = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2"
+            })
+            .Build();
+        var apiClient = new SUSModderApiClient(testConfig, new TestDiagnosticsOutput());
+        var modRepo = new ModRepository(db, apiClient);
+        ConfigManager.SetRepository(modRepo);
+        modRepo.SaveAllMods(new List<ModConfiguration>
+        {
+            ModInstanceInstallerTestsHelpers.CreateFullMod(),
+            ModInstanceInstallerTestsHelpers.CreateDllMod()
+        });
+
+        var instanceRepo = new ModInstanceRepository(db);
+        var fakeFull = new ModInstanceInstallerTestsHelpers.FakeFullModInstaller();
+        var fakeDll = new ModInstanceInstallerTestsHelpers.FakeDllInstaller();
+        var instanceInstaller = new ModInstanceInstaller(instanceRepo, fakeFull, fakeDll);
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2",
+                ["Configuration:BaseUrl"] = "https://susmodder.app/",
+                ["Configuration:ModPacksEndpoint"] = "/api/mod-packs"
+            })
+            .Build();
+
+        var configService = new ConfigService();
+        var log = new TestDiagnosticsOutput();
+        var dllService = new DllModificationService(configService, log);
+        var installer = new ModPackInstaller(
+            configuration,
+            configService,
+            dllService,
+            log,
+            instanceInstaller,
+            instanceRepo);
+
+        var pack = new ModPack
+        {
+            PackCode = "TEST-EPIC-1234",
+            ModName = "ToU - epic pack",
+            FullMod = new ModPackFullMod { Id = 10, Version = "5.5.0" },
+            DllMods = new[]
+            {
+                new ModPackDllMod { DllModId = 20, DllModVersion = "2.0" }
+            }
+        };
+
+        var result = await installer.InstallPackAsync(pack, "epic", displayName: "ToU - epic shared");
+
+        Assert.True(result.Success);
+        Assert.False(string.IsNullOrEmpty(result.InstanceId));
+
+        var stored = instanceRepo.GetInstance(result.InstanceId!);
+        Assert.NotNull(stored);
+        Assert.Equal("epic", stored.Platform);
+        Assert.Equal("shared_pack", stored.Origin);
+        Assert.Equal("TEST-EPIC-1234", stored.SourcePackCode);
+        Assert.Equal("epic", fakeFull.LastPlatform);
+    }
+
+    [Fact]
     public async Task InstallPack_AsNewInstance_InstallsCleanCustomDllArtifactWithSha256Verification()
     {
         await using var db = await CreateInitializedDatabaseAsync();
@@ -278,6 +426,7 @@ internal static class ModInstanceInstallerTestsHelpers
     public sealed class FakeFullModInstaller : IFullModInstanceInstaller
     {
         public string? LastTargetPath { get; private set; }
+        public string? LastPlatform { get; private set; }
 
         public Task<ModInstallResult> InstallAsync(
             ModConfiguration modConfig,
@@ -289,6 +438,7 @@ internal static class ModInstanceInstallerTestsHelpers
             Action<string>? onSpeedUpdate = null)
         {
             LastTargetPath = targetInstallPath;
+            LastPlatform = platform;
             Directory.CreateDirectory(targetInstallPath);
             File.WriteAllText(Path.Combine(targetInstallPath, "Among Us.exe"), string.Empty);
             return Task.FromResult(ModInstallResult.Succeeded());

@@ -151,7 +151,8 @@ public partial class App : Application
         services.AddSingleton<ConfigService>();
         services.AddSingleton<DllModificationService>();
         services.AddSingleton<IDllModInstanceInstaller, DllModificationServiceInstanceInstaller>();
-        services.AddSingleton<IFullModInstanceInstaller, ModManagerFullModInstanceInstaller>();
+        services.AddSingleton<IFullModInstanceInstaller>(sp =>
+            new PlatformFullModInstanceInstaller(sp.GetRequiredService<IConfiguration>()));
         services.AddSingleton<ModInstanceInstaller>(sp => new ModInstanceInstaller(
             sp.GetRequiredService<IModInstanceRepository>(),
             sp.GetRequiredService<IFullModInstanceInstaller>(),

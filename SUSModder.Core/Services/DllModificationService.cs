@@ -144,7 +144,7 @@ namespace SUSModder.Core.Services
                 }
 
                 // Wybierz odpowiedni link do pobrania
-                string downloadUrl = GetDllDownloadUrl(dllMod, platform);
+                string downloadUrl = await GetDllDownloadUrlAsync(dllMod, platform);
                 if (string.IsNullOrEmpty(downloadUrl))
                 {
                     _diagnosticsOutput.Write("No download URL available for this platform");
@@ -430,9 +430,9 @@ namespace SUSModder.Core.Services
             }
         }
 
-        private string GetDllDownloadUrl(ModConfiguration dllMod, string platform)
+        private async Task<string> GetDllDownloadUrlAsync(ModConfiguration dllMod, string platform)
         {
-            return ModDownloadUrlBuilder.Build(dllMod, platform);
+            return await ModDownloadUrlBuilder.ResolveAsync(dllMod, platform);
         }
 
         private string GetDllFileName(ModConfiguration dllMod, string platform)

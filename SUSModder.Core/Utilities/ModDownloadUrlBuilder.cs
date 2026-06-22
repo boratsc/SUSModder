@@ -113,7 +113,16 @@ namespace SUSModder.Core.Utilities
 
             if (detail.IsSuccess && detail.Data is not null)
             {
-                var variant = SelectVariant(detail.Data.Variants, normalizedPlatform);
+                var requestedVersion = !string.IsNullOrWhiteSpace(mod.ModVersion)
+                    && !string.Equals(mod.ModVersion, "latest", StringComparison.OrdinalIgnoreCase)
+                        ? mod.ModVersion
+                        : null;
+
+                var variant = SelectVariant(
+                    detail.Data.Variants,
+                    normalizedPlatform,
+                    requestedVersion,
+                    IsDllMod(mod));
                 if (variant is not null)
                 {
                     var variantVersion = ResolveVariantVersion(variant, detail.Data, mod.Id);
@@ -121,15 +130,22 @@ namespace SUSModder.Core.Utilities
                     {
                         return new ModDownloadResolution
                         {
-                            Url = client.BuildModDownloadUrl(mod.Id, variantVersion, platform, variant.Architecture),
+                            Url = client.BuildModDownloadUrl(
+                                mod.Id,
+                                variantVersion,
+                                NormalizeVariantPlatform(variant.Platform, normalizedPlatform),
+                                variant.Architecture),
                             ExpectedSha256 = NormalizeSha256(variant.Sha256)
                         };
                     }
                 }
 
-                var catalogVersion = !string.IsNullOrWhiteSpace(detail.Data.CurrentVersion)
-                    ? detail.Data.CurrentVersion
-                    : mod.ModVersion;
+                // Prefer the version pinned on the mod configuration (e.g. from a modpack
+                // snapshot) over the catalog's current version. If neither is available,
+                // fall back to the direct Build URL which uses mod.ModVersion.
+                var catalogVersion = !string.IsNullOrWhiteSpace(mod.ModVersion)
+                    ? mod.ModVersion
+                    : detail.Data.CurrentVersion;
 
                 if (!string.IsNullOrWhiteSpace(catalogVersion))
                 {
@@ -168,6 +184,20 @@ namespace SUSModder.Core.Utilities
                 return null;
 
             return sha256.Trim().ToLowerInvariant();
+        }
+
+        private static bool IsDllMod(ModConfiguration mod)
+        {
+            return string.Equals(mod.ModType, "dll", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizeVariantPlatform(string? variantPlatform, string fallbackPlatform)
+        {
+            return string.Equals(variantPlatform, "epic", StringComparison.OrdinalIgnoreCase)
+                ? "epic"
+                : string.Equals(variantPlatform, "steam", StringComparison.OrdinalIgnoreCase)
+                    ? "steam"
+                    : fallbackPlatform;
         }
 
 
@@ -260,7 +290,11 @@ namespace SUSModder.Core.Utilities
 
             IReadOnlyList<CatalogModVariantDto> variants,
 
-            string platform)
+            string platform,
+
+            string? requestedVersion = null,
+
+            bool allowCrossPlatformFallback = false)
 
         {
 
@@ -268,12 +302,29 @@ namespace SUSModder.Core.Utilities
 
                 return null;
 
+            IEnumerable<CatalogModVariantDto> candidates = variants;
 
+            // When a concrete version is requested (e.g. from a modpack snapshot),
+            // never silently fall back to a different version. This keeps shared
+            // modpacks platform-independent: the pack stores mod+version identity,
+            // and the client picks the variant for that exact version on the
+            // installing user's platform.
+            if (!string.IsNullOrWhiteSpace(requestedVersion))
+            {
+                var versionMatches = variants
+                    .Where(v => string.Equals(v.Version, requestedVersion, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (versionMatches.Count > 0)
+                    candidates = versionMatches;
+                else
+                    return null;
+            }
 
             // Prefer same-platform variants first (x64 then x86), because Among Us
             // (Steam & Epic) is a 64-bit application and Epic specifically requires
             // an x64 build for BepInEx to load.
-            var samePlatform = variants
+            var samePlatform = candidates
 
                 .Where(v => v.Platform.Equals(platform, StringComparison.OrdinalIgnoreCase))
 
@@ -286,13 +337,16 @@ namespace SUSModder.Core.Utilities
                        ?? samePlatform[0];
             }
 
-            // Cross-platform fallback: many mods published before April 2025 (when
-            // Epic support was added) ship a single x86 build. Their .dll payload is
-            // platform-agnostic at runtime, so we can serve the steam/x86 variant for
-            // Epic users instead of failing with a generic 404.
-            return variants.FirstOrDefault(v => v.Architecture.Equals("x86", StringComparison.OrdinalIgnoreCase))
-                   ?? variants.FirstOrDefault(v => v.Architecture.Equals("x64", StringComparison.OrdinalIgnoreCase))
-                   ?? variants[0];
+            if (!allowCrossPlatformFallback)
+                return null;
+
+            // Cross-platform fallback is allowed only for DLL mods. Many DLL mods
+            // published before April 2025 (when Epic support was added) ship a single
+            // Steam/x86 build. Their payload is platform-agnostic at runtime, so Epic
+            // users can download the Steam variant instead of hitting an Epic 404.
+            return candidates.FirstOrDefault(v => v.Architecture.Equals("x86", StringComparison.OrdinalIgnoreCase))
+                   ?? candidates.FirstOrDefault(v => v.Architecture.Equals("x64", StringComparison.OrdinalIgnoreCase))
+                   ?? candidates.FirstOrDefault();
         }
 
 
