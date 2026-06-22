@@ -32,6 +32,9 @@ namespace SUSModder.Views
                     await mainVM.RefreshAfterSettingsChangeAsync();
                 });
             }
+
+            // Zsynchronizuj widoczność ikony tray z nowym ustawieniem MinimizeToTray
+            mainWindow?.ApplyTrayVisibility();
         }
         
         private void OnUpdateChannelChanged(string newChannel)

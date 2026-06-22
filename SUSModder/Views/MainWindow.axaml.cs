@@ -72,6 +72,37 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 }
             };
         }
+
+        ApplyTrayVisibility();
+    }
+
+    /// <summary>
+    /// Aktualizuje widoczność ikony tray na podstawie bieżącego ustawienia MinimizeToTray.
+    /// Gdy opcja jest włączona, ikona jest zawsze widoczna; gdy wyłączona — ukryta.
+    /// </summary>
+    public void ApplyTrayVisibility()
+    {
+        if (_systemTrayService == null)
+            return;
+
+        var settings = new UserSettingsService().LoadUserSettings();
+        if (settings.MinimizeToTray)
+        {
+            _systemTrayService.Show();
+        }
+        else
+        {
+            _systemTrayService.Hide();
+            // Jeśli okno było ukryte w tray, a użytkownik wyłączył tę opcję,
+            // przywróć okno, aby nie pozostawić aplikacji niedostępnej.
+            if (!IsVisible)
+            {
+                Show();
+                WindowState = WindowState.Normal;
+                Activate();
+                Focus();
+            }
+        }
     }
 
     /// <summary>

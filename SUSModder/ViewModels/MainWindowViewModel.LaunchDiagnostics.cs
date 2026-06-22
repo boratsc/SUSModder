@@ -205,6 +205,11 @@ public partial class MainWindowViewModel
     {
         _lastLaunchResult = result;
 
+        IsPostInstallSuccessVisible = false;
+        PostInstallSuccessViewModel = null;
+        IsPostInstallFailureVisible = false;
+        PostInstallFailureViewModel = null;
+
         LaunchDiagnosticsTitle = result.IsSuccessful
             ? _localizationService.Get("LaunchDiagnostics.TitleSuccess")
             : _localizationService.Get("LaunchDiagnostics.TitleFailure");

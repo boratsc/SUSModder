@@ -193,6 +193,7 @@ namespace SUSModder.Services
 
         /// <summary>
         /// Przywraca główne okno.
+        /// Ikona w zasobniku pozostaje widoczna, jeśli użytkownik włączył minimalizowanie do tray.
         /// </summary>
         public void RestoreWindow()
         {
@@ -206,7 +207,6 @@ namespace SUSModder.Services
                 _mainWindow.Activate();
                 _mainWindow.Focus();
 
-                Hide();
                 RestoreRequested?.Invoke();
             });
         }

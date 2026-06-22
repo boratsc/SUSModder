@@ -55,10 +55,9 @@ namespace SUSModder.ViewModels
             if (currentSelectedMod.IsInstalling)
                 return false;
 
-            // Zamknij pozostawione wcześniej modale (sukces/błąd) z poprzedniej
-            // instalacji, aby użytkownik nie widział dwóch paneli naraz po
-            // rozpoczęciu nowej instalacji.
-            if (IsPostInstallSuccessVisible || IsPostInstallFailureVisible)
+            // Zamknij pozostawione wcześniej panele z poprzedniej akcji, aby
+            // użytkownik nie widział dwóch nakładających się modalnych paneli.
+            if (IsPostInstallSuccessVisible || IsPostInstallFailureVisible || IsLaunchDiagnosticsVisible)
             {
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
@@ -66,6 +65,7 @@ namespace SUSModder.ViewModels
                     PostInstallSuccessViewModel = null;
                     IsPostInstallFailureVisible = false;
                     PostInstallFailureViewModel = null;
+                    IsLaunchDiagnosticsVisible = false;
                 });
             }
 
@@ -667,6 +667,9 @@ namespace SUSModder.ViewModels
                 showAutoUpdateCheckbox: !isPinnedVersion);
             vm.CloseRequested += OnPostInstallSuccessCloseRequested;
             vm.ChangelogRequested += OnPostInstallChangelogRequested;
+            IsLaunchDiagnosticsVisible = false;
+            IsPostInstallFailureVisible = false;
+            PostInstallFailureViewModel = null;
             PostInstallSuccessViewModel = vm;
             IsPostInstallSuccessVisible = true;
         }
@@ -689,6 +692,9 @@ namespace SUSModder.ViewModels
                 _localizationService);
             vm.CloseRequested += OnPostInstallFailureCloseRequested;
             vm.AiSupportRequested += OnPostInstallFailureAiSupportRequested;
+            IsLaunchDiagnosticsVisible = false;
+            IsPostInstallSuccessVisible = false;
+            PostInstallSuccessViewModel = null;
             PostInstallFailureViewModel = vm;
             IsPostInstallFailureVisible = true;
         }

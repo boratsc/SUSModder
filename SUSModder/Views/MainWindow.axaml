@@ -701,18 +701,18 @@
 									<TextBlock Text="{Binding LaunchDiagnosticsSeverity}" FontSize="14"/>
 									<TextBlock Text="{Binding LaunchDiagnosticsSummary}" TextWrapping="Wrap"/>
 									<TextBlock Text="{Binding LaunchDiagnosticsCodes}" TextWrapping="Wrap" Opacity="0.7" FontSize="12"/>
-									<StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+									<WrapPanel Orientation="Horizontal" Margin="0,8,0,0">
 										<Button Content="{Binding LaunchDiagBtnOpenModFolder}" Click="OnOpenModFolderClicked"
-												Classes="secondary" Padding="12,6" Margin="0,0,6,0"/>
+												Classes="secondary" Padding="12,6" Margin="0,0,6,6"/>
 										<Button Content="{Binding LaunchDiagBtnOpenLogs}" Click="OnOpenBepInExLogsClicked"
-												Classes="secondary" Padding="12,6" Margin="0,0,6,0"/>
+												Classes="secondary" Padding="12,6" Margin="0,0,6,6"/>
 										<Button Content="{Binding LaunchDiagBtnSupportBundle}" Click="OnGenerateSupportBundleClicked"
-												Classes="secondary" Padding="12,6" Margin="0,0,6,0"/>
+												Classes="secondary" Padding="12,6" Margin="0,0,6,6"/>
 										<Button Content="{Binding LaunchDiagBtnAiSupport}" Click="OnOpenAiSupportClicked"
-												Classes="accent" Padding="12,6" Margin="0,0,6,0"/>
+												Classes="accent" Padding="12,6" Margin="0,0,6,6"/>
 										<Button Content="{Binding LaunchDiagBtnClose}" Click="OnCloseLaunchDiagnosticsClicked"
-												Padding="12,6"/>
-									</StackPanel>
+												Padding="12,6" Margin="0,0,6,6"/>
+									</WrapPanel>
 								</StackPanel>
 							</Border>
 						</Panel>
