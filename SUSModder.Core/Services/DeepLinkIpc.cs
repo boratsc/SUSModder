@@ -22,6 +22,13 @@ namespace SUSModder.Core.Services
         private const string ActivateCommand = "activate";
         private const string PackCommand = "pack";
 
+        /// <summary>
+        /// Plik fallback: jeśli IPC pipe nie odpowiada, druga instancja zapisuje tutaj kod paczki.
+        /// Pierwsza instancja sprawdza ten plik po uruchomieniu pipe servera.
+        /// </summary>
+        internal static string FallbackFilePath =>
+            Path.Combine(Path.GetTempPath(), "susmodder_pending_deeplink.txt");
+
         public static Mutex? TryAcquirePrimaryInstanceMutex()
         {
             try
@@ -65,7 +72,64 @@ namespace SUSModder.Core.Services
 
         private static bool TryForwardPack(string packCode, bool autoInstall, int maxAttempts)
         {
-            return SendMessage(PackCommand, packCode, maxAttempts, autoInstall ? "1" : "0");
+            var forwarded = SendMessage(PackCommand, packCode, maxAttempts, autoInstall ? "1" : "0");
+            if (forwarded)
+                return true;
+
+            // Fallback: zapisz do pliku gdy IPC pipe nie odpowiada
+            WriteFallbackFile(packCode, autoInstall);
+            return false;
+        }
+
+        private static void WriteFallbackFile(string packCode, bool autoInstall)
+        {
+            try
+            {
+                var normalized = ModPackCodeValidator.Normalize(packCode);
+                var line = autoInstall ? $"{normalized}|1" : normalized;
+                File.WriteAllText(FallbackFilePath, line, Encoding.UTF8);
+                System.Diagnostics.Debug.WriteLine($"[DeepLinkIpc] Zapisano fallback: {line} -> {FallbackFilePath}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DeepLinkIpc] Błąd zapisu fallback: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Odczytuje i czyści plik fallback. Zwraca (packCode, autoInstall) lub (null, false).
+        /// </summary>
+        public static (string? PackCode, bool AutoInstall) ReadAndClearFallbackFile()
+        {
+            try
+            {
+                if (!File.Exists(FallbackFilePath))
+                    return (null, false);
+
+                var content = File.ReadAllText(FallbackFilePath, Encoding.UTF8).Trim();
+                File.Delete(FallbackFilePath);
+
+                if (string.IsNullOrEmpty(content))
+                    return (null, false);
+
+                var parts = content.Split('|');
+                var code = parts[0];
+                var auto = parts.Length > 1 && parts[1] == "1";
+
+                if (ModPackCodeValidator.IsValid(code))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DeepLinkIpc] Odczytano fallback: {code} (auto={auto})");
+                    return (ModPackCodeValidator.Normalize(code), auto);
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[DeepLinkIpc] Fallback zawiera nieprawidłowy kod: {code}");
+                return (null, false);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DeepLinkIpc] Błąd odczytu fallback: {ex.Message}");
+                return (null, false);
+            }
         }
 
         private static bool SendMessage(string command, string payload, int maxAttempts, params string[] extraLines)
@@ -109,12 +173,24 @@ namespace SUSModder.Core.Services
 
         public static void StartServer(Action<string, bool> onDeepLinkReceived, Action? onActivateRequested = null, CancellationToken ct = default)
         {
+            // Sprawdź plik fallback zanim pipe server wystartuje (druga instancja mogła zapisać zanim serwer był gotowy)
+            CheckAndProcessFallback(onDeepLinkReceived);
+
             _ = Task.Run(async () =>
             {
+                var lastFallbackCheck = Environment.TickCount64;
                 while (!ct.IsCancellationRequested)
                 {
                     try
                     {
+                        // Co 2 sekundy sprawdzaj plik fallback (na wypadek gdyby pipe nie był gotowy)
+                        var now = Environment.TickCount64;
+                        if (now - lastFallbackCheck > 2000)
+                        {
+                            lastFallbackCheck = now;
+                            CheckAndProcessFallback(onDeepLinkReceived);
+                        }
+
                         await using var server = new NamedPipeServerStream(
                             PipeName,
                             PipeDirection.In,
@@ -122,7 +198,18 @@ namespace SUSModder.Core.Services
                             PipeTransmissionMode.Byte,
                             PipeOptions.Asynchronous);
 
-                        await server.WaitForConnectionAsync(ct);
+                        // Czekaj na połączenie z timeoutem 2s (żeby nie blokować pollingu fallback)
+                        using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                        connectCts.CancelAfter(2000);
+                        try
+                        {
+                            await server.WaitForConnectionAsync(connectCts.Token);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            continue; // timeout — sprawdź fallback w następnej iteracji
+                        }
+
                         using var reader = new StreamReader(server, Encoding.UTF8);
                         var command = await reader.ReadLineAsync(ct);
                         var payload = await reader.ReadLineAsync(ct);
@@ -154,6 +241,16 @@ namespace SUSModder.Core.Services
                     }
                 }
             }, ct);
+        }
+
+        private static void CheckAndProcessFallback(Action<string, bool> onDeepLinkReceived)
+        {
+            var (fallbackCode, fallbackAuto) = ReadAndClearFallbackFile();
+            if (!string.IsNullOrEmpty(fallbackCode))
+            {
+                System.Diagnostics.Debug.WriteLine($"[DeepLinkIpc] Przetwarzam fallback: {fallbackCode} (auto={fallbackAuto})");
+                onDeepLinkReceived(fallbackCode, fallbackAuto);
+            }
         }
     }
 }

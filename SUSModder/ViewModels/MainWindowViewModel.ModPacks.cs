@@ -48,9 +48,15 @@ public partial class MainWindowViewModel
 
             {
 
+                System.Diagnostics.Debug.WriteLine($"[ModPacks-IPC] Odebrano deep link przez pipe: {code} (autoInstall={auto})");
+
                 var vm = _modPackDeepLinkTarget;
 
-                if (vm == null) return;
+                if (vm == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("[ModPacks-IPC] _modPackDeepLinkTarget jest null!");
+                    return;
+                }
 
 
 
@@ -91,35 +97,27 @@ public partial class MainWindowViewModel
 
 
     public async Task HandlePendingModPackDeepLinkAsync(string packCode, bool autoInstall = false)
-
     {
+        System.Diagnostics.Debug.WriteLine($"[DeepLink-Handler] Otrzymano kod paczki: {packCode}, autoInstall={autoInstall}");
 
         for (var i = 0; i < 50; i++)
-
         {
-
             if (GetMainWindow()?.IsVisible == true && Mods.Count > 0)
-
                 break;
 
+            if (i == 0)
+                System.Diagnostics.Debug.WriteLine("[DeepLink-Handler] Oczekiwanie na gotowość UI...");
             await Task.Delay(100);
-
         }
 
-
+        System.Diagnostics.Debug.WriteLine($"[DeepLink-Handler] UI gotowe (window visible={GetMainWindow()?.IsVisible}, mods={Mods.Count}), otwieram flow...");
 
         await Dispatcher.UIThread.InvokeAsync(async () =>
-
         {
-
             IsPaneOpen = false;
-
             GetMainWindow()?.Activate();
-
             await OpenModPackFlowAsync(packCode, autoInstall);
-
         });
-
     }
 
 
@@ -558,39 +556,40 @@ private async Task ShowModPackCreatorDialogAsync(ModPackCreatorMode mode)
 
 
     private static async Task EnsureModPackProtocolRegisteredAsync()
-
     {
-
-        if (!OperatingSystem.IsWindows() || DeepLinkService.IsProtocolRegistered())
-
+        if (!OperatingSystem.IsWindows())
             return;
 
+        var currentExe = System.IO.Path.Combine(
+            SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory(),
+            "SUSModder.exe");
 
+        if (!System.IO.File.Exists(currentExe))
+        {
+            System.Diagnostics.Debug.WriteLine("[ModPacks] Bieżąca ścieżka EXE nie istnieje, pomijam rejestrację protokołu.");
+            return;
+        }
 
+        // Zawsze weryfikuj i napraw rejestrację — nie tylko gdy jej brak.
+        var needsRegistration = !DeepLinkService.IsProtocolRegistered()
+            || !DeepLinkService.IsProtocolUpToDate();
+
+        if (!needsRegistration)
+        {
+            System.Diagnostics.Debug.WriteLine("[ModPacks] Protokół susmodder:// jest aktualny.");
+            return;
+        }
+
+        System.Diagnostics.Debug.WriteLine("[ModPacks] Protokół susmodder:// wymaga rejestracji lub aktualizacji...");
         try
-
         {
-
-            var exe = System.IO.Path.Combine(
-
-                SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory(),
-
-                "SUSModder.exe");
-
-            if (System.IO.File.Exists(exe))
-
-                await new DeepLinkService().RegisterProtocolHandlerAsync(exe);
-
+            await new DeepLinkService(m => System.Diagnostics.Debug.WriteLine($"[ModPacks] {m}"))
+                .RegisterProtocolHandlerAsync(currentExe);
         }
-
-        catch
-
+        catch (Exception ex)
         {
-
-            // Rejestracja HKCU jest opcjonalna
-
+            System.Diagnostics.Debug.WriteLine($"[ModPacks] Błąd rejestracji protokołu: {ex.Message}");
         }
-
     }
 
 

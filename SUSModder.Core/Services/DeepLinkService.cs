@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using Microsoft.Win32;
@@ -19,6 +21,15 @@ namespace SUSModder.Core.Services
             public bool IsValid { get; init; }
             public string? PackCode { get; init; }
             public bool AutoInstall { get; init; }
+        }
+
+        private readonly Action<string>? _log;
+        public DeepLinkService(Action<string>? log = null) => _log = log;
+
+        private void Log(string message)
+        {
+            _log?.Invoke(message);
+            Debug.WriteLine($"[DeepLink] {message}");
         }
 
         /// <summary>
@@ -83,21 +94,75 @@ namespace SUSModder.Core.Services
             return Task.Run(() =>
             {
                 if (string.IsNullOrWhiteSpace(executablePath))
+                {
+                    Log("RegisterProtocolHandler: executablePath jest pusty, pomijam.");
                     return;
+                }
 
-                var exe = executablePath.Contains(' ') ? $"\"{executablePath}\"" : executablePath;
-                var command = $"{exe} \"%1\"";
+                if (!File.Exists(executablePath))
+                {
+                    Log($"RegisterProtocolHandler: EXE nie istnieje: {executablePath}");
+                    return;
+                }
 
-                using var schemeKey = Registry.CurrentUser.CreateSubKey($@"Software\Classes\{ProtocolScheme}");
-                schemeKey?.SetValue("", $"URL:{ProtocolScheme} Protocol");
-                schemeKey?.SetValue("URL Protocol", "");
+                try
+                {
+                    var exe = executablePath.Contains(' ') ? $"\"{executablePath}\"" : executablePath;
+                    var command = $"{exe} \"%1\"";
 
-                using var iconKey = schemeKey?.CreateSubKey("DefaultIcon");
-                iconKey?.SetValue("", $"{exe},0");
+                    using var schemeKey = Registry.CurrentUser.CreateSubKey($@"Software\Classes\{ProtocolScheme}");
+                    if (schemeKey == null)
+                    {
+                        Log("RegisterProtocolHandler: Nie można utworzyć klucza rejestru.");
+                        return;
+                    }
+                    schemeKey.SetValue("", $"URL:{ProtocolScheme} Protocol");
+                    schemeKey.SetValue("URL Protocol", "");
 
-                using var shellKey = schemeKey?.CreateSubKey(@"shell\open\command");
-                shellKey?.SetValue("", command);
+                    using var iconKey = schemeKey.CreateSubKey("DefaultIcon");
+                    iconKey?.SetValue("", $"{exe},0");
+
+                    using var shellKey = schemeKey.CreateSubKey(@"shell\open\command");
+                    shellKey?.SetValue("", command);
+
+                    Log($"RegisterProtocolHandler: Zarejestrowano handler: {command}");
+                }
+                catch (Exception ex)
+                {
+                    Log($"RegisterProtocolHandler: Błąd rejestracji: {ex.Message}");
+                }
             });
+        }
+
+        /// <summary>
+        /// Wyciąga ścieżkę EXE z zarejestrowanego polecenia (usuwa cudzysłowy i %1).
+        /// Zwraca null jeśli nie można odczytać.
+        /// </summary>
+        public static string? GetRegisteredExePath()
+        {
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey($@"Software\Classes\{ProtocolScheme}\shell\open\command");
+                var raw = key?.GetValue("") as string;
+                if (string.IsNullOrWhiteSpace(raw))
+                    return null;
+
+                // Oczyść polecenie: usuń %1 i cudzysłowy
+                var cleaned = raw
+                    .Replace("\"%1\"", "")
+                    .Replace("%1", "")
+                    .Trim()
+                    .Trim('"');
+
+                if (string.IsNullOrWhiteSpace(cleaned))
+                    return null;
+
+                return cleaned;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         /// <summary>
@@ -130,11 +195,44 @@ namespace SUSModder.Core.Services
 
         /// <summary>
         /// Sprawdza czy protokół susmodder jest już zarejestrowany.
+        /// Od wersji 2.9.x weryfikuje również czy zarejestrowana ścieżka EXE istnieje.
         /// </summary>
         public static bool IsProtocolRegistered()
         {
             using var key = Registry.CurrentUser.OpenSubKey($@"Software\Classes\{ProtocolScheme}\shell\open\command");
-            return key?.GetValue("") is string cmd && !string.IsNullOrWhiteSpace(cmd);
+            if (key?.GetValue("") is not string cmd || string.IsNullOrWhiteSpace(cmd))
+                return false;
+
+            // Zweryfikuj, czy zarejestrowana ścieżka EXE istnieje
+            var exePath = GetRegisteredExePath();
+            if (string.IsNullOrEmpty(exePath) || !File.Exists(exePath))
+            {
+                Debug.WriteLine($"[DeepLink] IsProtocolRegistered: zarejestrowana ścieżka EXE nie istnieje: {exePath}");
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Sprawdza czy zarejestrowana ścieżka EXE jest tożsama z bieżącą ścieżką aplikacji.
+        /// Używa ApplicationPaths.GetApplicationDirectory() zamiast Environment.ProcessPath
+        /// aby obsłużyć tryb debug (dotnet.exe).
+        /// </summary>
+        public static bool IsProtocolUpToDate()
+        {
+            var registered = GetRegisteredExePath();
+            if (string.IsNullOrEmpty(registered))
+                return false;
+
+            var currentExe = Path.Combine(ApplicationPaths.GetApplicationDirectory(), "SUSModder.exe");
+            if (!File.Exists(currentExe))
+                return false;
+
+            return string.Equals(
+                Path.GetFullPath(registered),
+                Path.GetFullPath(currentExe),
+                StringComparison.OrdinalIgnoreCase);
         }
     }
 }
