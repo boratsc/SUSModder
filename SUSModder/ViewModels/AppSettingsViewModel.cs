@@ -76,20 +76,7 @@ namespace SUSModder.ViewModels
             // Pobierz serwis lokalizacji
             _localizationService = App.GetService<ILocalizationService>();
 
-            // Załaduj listę kanałów aktualizacji z tłumaczeniami
-            _availableUpdateChannels = new List<UpdateChannelOption>
-            {
-                new UpdateChannelOption
-                {
-                    Code = "release",
-                    DisplayName = _localizationService?.Get("Settings.UpdateChannel.Channels.Release") ?? "Release (Stabilne wydania)"
-                },
-                new UpdateChannelOption
-                {
-                    Code = "beta",
-                    DisplayName = _localizationService?.Get("Settings.UpdateChannel.Channels.Beta") ?? "Beta (Wersje testowe)"
-                }
-            };
+            _availableUpdateChannels = BuildUpdateChannelOptions();
 
             // Załaduj obecne ustawienia
             LoadCurrentSettings();
@@ -173,6 +160,8 @@ namespace SUSModder.ViewModels
             set
             {
                 this.RaiseAndSetIfChanged(ref _updateChannel, value);
+                this.RaisePropertyChanged(nameof(CurrentUpdateChannelDisplayName));
+                this.RaisePropertyChanged(nameof(CurrentUpdateChannelSummary));
                 CheckForChanges();
             }
         }
@@ -195,9 +184,19 @@ namespace SUSModder.ViewModels
                 if (oldValue != value && value != null)
                 {
                     UpdateChannel = value.Code;
+                    this.RaisePropertyChanged(nameof(CurrentUpdateChannelDisplayName));
+                    this.RaisePropertyChanged(nameof(CurrentUpdateChannelSummary));
                 }
             }
         }
+
+        public string CurrentUpdateChannelDisplayName =>
+            AvailableUpdateChannels.FirstOrDefault(channel => channel.Code == UpdateChannel)?.DisplayName
+            ?? UpdateChannel;
+
+        public string CurrentUpdateChannelSummary => _localizationService?.GetFormatted(
+            "Settings.UpdateChannel.CurrentSummary",
+            CurrentUpdateChannelDisplayName) ?? $"Current update channel: {CurrentUpdateChannelDisplayName}";
 
         public string GameMode
         {
@@ -336,6 +335,23 @@ namespace SUSModder.ViewModels
         }
 
         public string WindowTitle => HasUnsavedChanges ? "Ustawienia aplikacji *" : "Ustawienia aplikacji";
+
+        private List<UpdateChannelOption> BuildUpdateChannelOptions()
+        {
+            return new List<UpdateChannelOption>
+            {
+                new UpdateChannelOption
+                {
+                    Code = "release",
+                    DisplayName = _localizationService?.Get("Settings.UpdateChannel.Channels.Release") ?? "Stable"
+                },
+                new UpdateChannelOption
+                {
+                    Code = "beta",
+                    DisplayName = _localizationService?.Get("Settings.UpdateChannel.Channels.Beta") ?? "Beta"
+                }
+            };
+        }
 
         public ReactiveCommand<Unit, Unit> BrowseFolderCommand { get; }
         public ReactiveCommand<Unit, Unit> SaveCommand { get; }

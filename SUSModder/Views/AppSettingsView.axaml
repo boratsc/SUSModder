@@ -15,6 +15,26 @@
 		<ScrollViewer Grid.Row="0" Padding="0,0,10,0">
 			<StackPanel Spacing="15">
 
+				<!-- Bieżący kanał aktualizacji -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource AccentBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="6">
+						<TextBlock Text="{local:Localize Settings.UpdateChannel.CurrentTitle}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="{Binding CurrentUpdateChannelSummary}"
+								   FontSize="13"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.UpdateChannel.CurrentDescription}"
+								   FontSize="12"
+								   TextWrapping="Wrap"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+					</StackPanel>
+				</Border>
+
 				<!-- Sekcja wyboru trybu gry -->
 				<Border Background="{DynamicResource ModCardBackgroundBrush}"
 						BorderBrush="{DynamicResource ModCardBorderBrush}"

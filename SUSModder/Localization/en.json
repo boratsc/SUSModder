@@ -1,4 +1,9 @@
 {
+  "App": {
+    "WindowTitle": {
+      "BetaVersion": "beta version {0}"
+    }
+  },
   "UI": {
     "Buttons": {
       "Install": "Install",
@@ -655,9 +660,12 @@
     "UpdateChannel": {
       "Title": "Update channel",
       "Description": "Choose the channel from which application updates will be downloaded",
+      "CurrentTitle": "Current update channel",
+      "CurrentSummary": "Channel: {0}",
+      "CurrentDescription": "This setting controls whether the app downloads stable releases or beta builds.",
       "Channels": {
-        "Release": "Release (Stable releases)",
-        "Beta": "Beta (Test versions)"
+        "Release": "Stable",
+        "Beta": "Beta"
       }
     },
     "SteamVanilla": {
@@ -1347,6 +1355,13 @@
     "Disabled": "Mod pack sharing is disabled in settings.",
     "SelectFullMod": "Select a main mod.",
     "CreateFailed": "Failed to create pack.",
+    "PlatformVariantUnavailable": "The {modName} ({version}) variant for {platform} is not available.",
+    "EpicInstallFailed": "Failed to install the pack for Epic.",
+    "FullModDownloadFailed": "Failed to download the main mod.",
+    "FullModSha256Mismatch": "The downloaded main mod checksum does not match.",
+    "FullModNoFiles": "The downloaded main mod contains no files.",
+    "PlatformNotSupported": "Platform {platform} is not supported for this pack.",
+    "PlatformVariantLabel": "Variant for your platform: {platform}",
     "TouConfigNotSupportedYet": "Including ToU config from this dialog is coming soon — create the pack without config for now.",
     "CustomDlls": {
       "Title": "Custom DLL files",

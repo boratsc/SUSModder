@@ -326,7 +326,9 @@ namespace SUSModder.ViewModels
             {
                 var userSettings = _userSettingsService.LoadUserSettings();
                 string platform = userSettings.Mode;
-                WindowTitle = $"SUSModder | {platform}";
+                WindowTitle = string.Equals(userSettings.UpdateChannel, "beta", StringComparison.OrdinalIgnoreCase)
+                    ? $"SUSModder | {platform} | {_localizationService.GetFormatted("App.WindowTitle.BetaVersion", AppVersion)}"
+                    : $"SUSModder | {platform}";
                 System.Diagnostics.Debug.WriteLine($"Window title set to: {WindowTitle}");
             }
             catch (Exception ex)

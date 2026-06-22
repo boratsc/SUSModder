@@ -1,4 +1,9 @@
 {
+  "App": {
+    "WindowTitle": {
+      "BetaVersion": "wersja testowa {0}"
+    }
+  },
   "UI": {
     "Buttons": {
       "Install": "Instaluj",
@@ -655,9 +660,12 @@
     "UpdateChannel": {
       "Title": "Kanał aktualizacji",
       "Description": "Wybierz kanał z którego mają być pobierane aktualizacje aplikacji",
+      "CurrentTitle": "Bieżący kanał aktualizacji",
+      "CurrentSummary": "Kanał: {0}",
+      "CurrentDescription": "To ustawienie decyduje, czy aplikacja pobiera stabilne wydania czy wersje testowe.",
       "Channels": {
-        "Release": "Release (Stabilne wydania)",
-        "Beta": "Beta (Wersje testowe)"
+        "Release": "Stabilna",
+        "Beta": "Testowa"
       }
     },
     "SteamVanilla": {
@@ -1347,6 +1355,13 @@
     "Disabled": "Udostępnianie zestawów modów jest wyłączone w ustawieniach.",
     "SelectFullMod": "Wybierz mod główny.",
     "CreateFailed": "Nie udało się utworzyć zestawu.",
+    "PlatformVariantUnavailable": "Wariant moda {modName} ({version}) dla platformy {platform} nie jest dostępny.",
+    "EpicInstallFailed": "Nie udało się zainstalować zestawu dla Epic.",
+    "FullModDownloadFailed": "Nie udało się pobrać moda głównego.",
+    "FullModSha256Mismatch": "Suma kontrolna pobranego moda głównego nie zgadza się.",
+    "FullModNoFiles": "Pobrany mod główny nie zawiera plików.",
+    "PlatformNotSupported": "Platforma {platform} nie jest obsługiwana przez ten zestaw.",
+    "PlatformVariantLabel": "Wariant dla Twojej platformy: {platform}",
     "TouConfigNotSupportedYet": "Dołączanie configu ToU z tego okna będzie dostępne wkrótce — na razie utwórz paczkę bez configu.",
     "CustomDlls": {
       "Title": "Własne pliki DLL",
