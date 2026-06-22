@@ -280,8 +280,22 @@ namespace SUSModder.Core.Services
                     };
                 }
 
-                if (element.TryGetProperty("error", out _))
+                if (element.TryGetProperty("error", out var errorElement))
+                {
+                    // Extract error code from backend error envelope (e.g. {"error":{"code":"INTERNAL_ERROR","message":"..."}})
+                    if (typeof(T) == typeof(PostLobbyEntryResponse)
+                        && errorElement.TryGetProperty("code", out var codeElement))
+                    {
+                        var errorCode = codeElement.GetString();
+                        return (T)(object)new PostLobbyEntryResponse
+                        {
+                            Success = false,
+                            ErrorCode = errorCode
+                        };
+                    }
+
                     return null;
+                }
 
                 if (element.TryGetProperty("data", out var dataElement))
                 {

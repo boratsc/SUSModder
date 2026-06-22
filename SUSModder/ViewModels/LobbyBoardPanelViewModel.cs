@@ -435,6 +435,9 @@ namespace SUSModder.ViewModels
             "TOO_MANY_LINKS" => _loc.Get("Lobby.Message.TooManyLinks") ?? "Maksymalnie 1 link Discord",
             "CONTENT_BLOCKED" => _loc.Get("Lobby.Message.ContentBlocked") ?? "Treść nie przeszła moderacji",
             "USER_BANNED" => _loc.Get("Lobby.Message.UserBanned") ?? "Konto tymczasowo zablokowane",
+            "INTERNAL_ERROR" => _loc.Get("Lobby.Error.Internal") ?? "Błąd serwera — spróbuj ponownie później",
+            "UNKNOWN_ERROR" => _loc.Get("Lobby.Error.Unknown") ?? "Nieznany błąd — spróbuj ponownie",
+            "NETWORK_ERROR" => _loc.Get("Lobby.Error.Network") ?? "Błąd sieci — sprawdź połączenie",
             _ => errorCode
         };
 

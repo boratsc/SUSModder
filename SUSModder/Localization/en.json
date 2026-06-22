@@ -1301,6 +1301,11 @@
       "ModdedEU": "Modded EU",
       "ModdedNA": "Modded NA",
       "ModdedAsia": "Modded Asia"
+    },
+    "Error": {
+      "Internal": "Server error — please try again later",
+      "Unknown": "Unknown error — please try again",
+      "Network": "Network error — check your connection"
     }
   },
   "ModPacks": {
