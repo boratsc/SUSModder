@@ -43,15 +43,18 @@ namespace SUSModder.Core.GameIntegration
                 userMode = "steam";
 
             var normalizedPath = Path.GetFullPath(installDirectory.TrimEnd('\\', '/'));
-            var existing = modConfigs.FirstOrDefault(x =>
-                x.ModName == "AmongUs" &&
-                x.Id == 0 &&
-                !string.IsNullOrEmpty(x.InstallPath));
+            var existing = modConfigs.FirstOrDefault(IsVanillaConfig);
 
             if (existing != null)
             {
+                existing.Id = 0;
+                existing.ModName = "AmongUs";
+                existing.ModType = "Vanilla";
+                existing.PngFileName = "Vanilla.png";
                 existing.InstallPath = normalizedPath;
                 existing.AmongVersion = GetGameVersion(normalizedPath);
+                existing.ModVersion = "Vanilla";
+                existing.Description = $"Platform: {userMode}";
                 existing.LastUpdated = DateTime.Now;
                 ConfigManager.SaveConfig(modConfigs);
                 userSettingsService.UpdateUserSetting(settings => settings.VanillaInstallPath = normalizedPath);
@@ -78,11 +81,9 @@ namespace SUSModder.Core.GameIntegration
             IConfiguration configuration,
             IUserInteraction? userInteraction = null)
         {
-            var existingConfig = modConfigs.FirstOrDefault(x => x.ModName == "AmongUs" &&
-                                                                x.Id == 0 &&
-                                                                !string.IsNullOrEmpty(x.InstallPath));
+            var existingConfig = modConfigs.FirstOrDefault(IsVanillaConfig);
 
-            if (existingConfig != null)
+            if (existingConfig != null && !string.IsNullOrEmpty(existingConfig.InstallPath))
             {
                 Console.WriteLine("Among Us już zainstalowano z wersją Vanilla.");
                 return null; // już istnieje
@@ -190,6 +191,7 @@ namespace SUSModder.Core.GameIntegration
         {
             var vanillaMod = new ModConfiguration
             {
+                Id = 0,
                 ModName = "AmongUs",
                 PngFileName = "Vanilla.png",
                 InstallPath = installPath,
@@ -216,6 +218,13 @@ namespace SUSModder.Core.GameIntegration
             Console.WriteLine($"Among Us Vanilla ({userMode}) został dodany do listy modów. InstallPath: {installPath}");
 
             return vanillaMod;
+        }
+
+        private static bool IsVanillaConfig(ModConfiguration config)
+        {
+            return config.Id == 0 ||
+                   string.Equals(config.ModName, "AmongUs", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(config.ModType, "Vanilla", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string GetGameVersion(string path)

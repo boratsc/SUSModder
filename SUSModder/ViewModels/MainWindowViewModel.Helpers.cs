@@ -84,12 +84,32 @@ namespace SUSModder.ViewModels
                 }
             }
 
-            return fullMods
+            return DeduplicateConfigsById(fullMods)
                 .OrderBy(c => !c.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
                 .ThenBy(c => string.IsNullOrEmpty(c.InstallPath) ? 1 : 0)
                 .ThenBy(c => c.ModName)
                 .ToList();
         }
+
+        private static List<ModConfiguration> DeduplicateConfigsById(IEnumerable<ModConfiguration> configs)
+        {
+            return configs
+                .GroupBy(c => c.Id)
+                .Select(group => group
+                    .OrderByDescending(HasUsableInstallPath)
+                    .ThenByDescending(IsVanillaConfig)
+                    .ThenByDescending(c => c.LastUpdated ?? DateTime.MinValue)
+                    .First())
+                .ToList();
+        }
+
+        private static bool HasUsableInstallPath(ModConfiguration config) =>
+            !string.IsNullOrWhiteSpace(config.InstallPath);
+
+        private static bool IsVanillaConfig(ModConfiguration config) =>
+            config.Id == 0 ||
+            string.Equals(config.ModName, "AmongUs", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(config.ModType, "Vanilla", StringComparison.OrdinalIgnoreCase);
 
         private void RefreshModsSortingKeepSelection(ModItem selectedMod)
         {
@@ -126,8 +146,17 @@ namespace SUSModder.ViewModels
             var bulkCheckedIds = Mods.Where(m => m.IsCheckedForBulk).Select(m => m.Id).ToHashSet();
             var updateBadges = Mods.Where(m => m.HasUpdateAvailable).Select(m => m.Id).ToHashSet();
 
-            var configById = sortedConfigs.ToDictionary(c => c.Id);
-            var existingById = Mods.ToDictionary(m => m.Id);
+            var configById = sortedConfigs
+                .GroupBy(c => c.Id)
+                .ToDictionary(g => g.Key, g => g.First());
+            var existingById = Mods
+                .GroupBy(m => m.Id)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            foreach (var duplicate in Mods.GroupBy(m => m.Id).SelectMany(g => g.Skip(1)).ToList())
+            {
+                Mods.Remove(duplicate);
+            }
 
             foreach (var mod in Mods.ToList())
             {
