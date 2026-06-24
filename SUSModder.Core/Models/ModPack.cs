@@ -132,6 +132,33 @@ namespace SUSModder.Core.Models
     }
 
     /// <summary>
+    /// Rozszerzony wynik listowania paczek użytkownika (GET /api/v2/modpacks?creatorHash=...).
+    /// Zawiera listę paczek oraz metadane limitu (activeCount / maxAllowed) zwracane przez API.
+    /// </summary>
+    public sealed class ModPackListResult
+    {
+        public bool Success { get; set; }
+        public IReadOnlyList<ModPackListEntry> Packs { get; set; } = Array.Empty<ModPackListEntry>();
+        public int ActiveCount { get; set; }
+        public int MaxAllowed { get; set; } = 10;
+        public string? ErrorCode { get; set; }
+        public string? ErrorMessage { get; set; }
+        public int StatusCode { get; set; }
+    }
+
+    /// <summary>
+    /// Wynik operacji usunięcia paczki (DELETE /api/v2/modpacks/:packCode).
+    /// Pozwala UI odróżnić brak paczki, brak autoryzacji i błąd sieci.
+    /// </summary>
+    public sealed class ModPackDeleteResult
+    {
+        public bool Success { get; set; }
+        public string? ErrorCode { get; set; }
+        public string? ErrorMessage { get; set; }
+        public int StatusCode { get; set; }
+    }
+
+    /// <summary>
     /// Żądanie utworzenia paczki wysyłane do API.
     /// </summary>
     public sealed class ModPackCreateRequest

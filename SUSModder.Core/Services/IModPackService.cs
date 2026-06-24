@@ -10,7 +10,9 @@ namespace SUSModder.Core.Services
         Task<ModPackCreateResult> CreatePackAsync(ModPackCreateRequest request, CancellationToken ct = default);
         Task<ModPack?> GetPackAsync(string packCode, CancellationToken ct = default);
         Task<IReadOnlyList<ModPackListEntry>> ListOwnPacksAsync(CancellationToken ct = default);
+        Task<ModPackListResult> ListOwnPacksDetailedAsync(CancellationToken ct = default);
         Task<bool> DeletePackAsync(string packCode, CancellationToken ct = default);
+        Task<ModPackDeleteResult> DeletePackDetailedAsync(string packCode, CancellationToken ct = default);
         Task<ModPackExternalDll?> UploadExternalDllAsync(string packCode, string filePath, CancellationToken ct = default);
         Task<ModPackCustomArtifact?> UploadCustomDllAsync(string packCode, string filePath, CancellationToken ct = default);
         Task<ModPackArtifactStatusResult> GetExternalDllStatusAsync(string packCode, string sha256, CancellationToken ct = default);

@@ -9,7 +9,11 @@
 
 ## Authentication
 
-| Endpoint | Auth | Uwagi |
+**v1 (legacy, `/mod-packs` z myślnikiem):** wymaga `Authorization: Bearer {HTTP_TOKEN}` na write/read własnych endpointach.
+
+**v2 (zalecane, `/api/v2/modpacks` bez myślnika):** używa **soft identity** – `creatorHash` w body/query, bez Bearer tokena. Publiczne endpointy GET są bez autoryzacji.
+
+| Endpoint (v1) | Auth | Uwagi |
 |----------|------|-------|
 | `POST /mod-packs` | `Authorization: Bearer {HTTP_TOKEN}` | Tworzenie paczki |
 | `GET /mod-packs` | `Authorization: Bearer {HTTP_TOKEN}` | Lista własnych paczek |
@@ -521,13 +525,30 @@ location /pack/ {
 
 ## API v2 – Custom Content (GitHub DLL/FULL)
 
-**Base path:** `/api/v2/modpacks/:code`  
+**Base path:** `/api/v2/modpacks`  
 **Status:** ✅ Production (2026-06-14)  
-**Auth:** Soft identity (`creatorHash` w body) – brak `Authorization: Bearer` na write endpointach  
+**Auth:** Soft identity (`creatorHash` w body lub query) – brak `Authorization: Bearer`  
 
 ### Authentication
 
-Endpointy v2 custom content używają **soft identity** przez `creatorHash` w body requestu – ten sam mechanizm co `POST /api/v2/modpacks` (tworzenie paczki). Żaden z nowych endpointów nie wymaga `Authorization: Bearer`. Weryfikacja: `creatorHash` z body musi być zgodny z `creator_hash` właściciela paczki.
+Endpointy v2 używają **soft identity** przez `creatorHash`. Żaden z endpointów v2 nie wymaga `Authorization: Bearer`. Weryfikacja: `creatorHash` z body/query musi być zgodny z `creator_hash` właściciela paczki.
+
+**Uwaga:** v1 ścieżki (`/mod-packs` z myślnikiem) dalej istnieją i wymagają `Authorization: Bearer HTTP_TOKEN`. Nowe klienty powinny używać v2 (`/api/v2/modpacks` bez myślnika).
+
+### Przegląd endpointów v2
+
+| Endpoint | Auth | Opis |
+|----------|------|------|
+| `POST /api/v2/modpacks` | `creatorHash` w body | Tworzenie paczki |
+| `GET /api/v2/modpacks?creatorHash=…` | `creatorHash` w query | Lista paczek użytkownika |
+| `GET /api/v2/modpacks/:code` | Brak (publiczny) | Podgląd paczki |
+| `DELETE /api/v2/modpacks/:code` | `creatorHash` w body | Usunięcie paczki |
+| `POST /api/v2/modpacks/:code/dlls` | `creatorHash` w body | Upload DLL (multipart) |
+| `POST /api/v2/modpacks/:code/custom-github-mods` | `creatorHash` w body | Deklaracja GitHub artifactu |
+| `POST /api/v2/modpacks/:code/finalize` | `creatorHash` w body | Finalizacja paczki |
+| `GET /api/v2/modpacks/:code/custom-artifacts/:artifactId/status` | Brak (publiczny) | Status artefaktu |
+| `GET /api/v2/modpacks/:code/custom-artifacts/:artifactId/download` | Brak (publiczny) | Download artefaktu |
+| `GET /api/v2/modpacks/:code/web` | Brak (publiczny) | Web fallback (JSON/HTML) |
 
 ### Modele danych
 
@@ -556,7 +577,51 @@ Paczki **bez custom content** mają domyślnie `status: ready`, `installable: tr
 
 ---
 
-### 8. POST /api/v2/modpacks/:code/custom-github-mods – deklaracja GitHub artifactu
+### 8. GET /api/v2/modpacks – lista paczek użytkownika (v2)
+
+Zwraca listę wszystkich aktywnych paczek dla danego `creatorHash`. **Soft identity** – w query param, bez Bearer tokena.
+
+**Query params:**
+| Param | Typ | Wymagane | Opis |
+|-------|-----|----------|------|
+| `creatorHash` | string (64 hex) | Tak | SHA256 HWID twórcy |
+
+**Response 200:**
+```json
+{
+  "data": {
+    "packs": [
+      {
+        "packId": "uuid",
+        "packCode": "ABCD-EFGH-IJKL",
+        "modName": "Town of Us",
+        "fullModId": 1,
+        "fullModVersion": "latest",
+        "ttlDays": 30,
+        "vtStatus": "clean",
+        "status": "ready",
+        "installable": true,
+        "dllCount": 3,
+        "externalDllCount": 1,
+        "createdAt": "2026-05-29T12:00:00.000Z",
+        "expiresAt": "2026-06-28T12:00:00.000Z",
+        "active": true
+      }
+    ],
+    "activeCount": 5,
+    "maxAllowed": 10
+  }
+}
+```
+
+**Error codes:**
+| HTTP | code | Opis |
+|------|------|------|
+| 400 | `VALIDATION_ERROR` | Brak lub nieprawidłowy creatorHash |
+
+---
+
+### 9. POST /api/v2/modpacks/:code/custom-github-mods – deklaracja GitHub artifactu
 
 Deklaruje custom DLL lub FULL mod z publicznego linku GitHub release asset. Backend tworzy rekord `pending` i worker asynchronicznie pobiera, waliduje i skanuje artefakt.
 
@@ -627,7 +692,7 @@ Deklaruje custom DLL lub FULL mod z publicznego linku GitHub release asset. Back
 
 ---
 
-### 9. GET /api/v2/modpacks/:code/custom-artifacts/:artifactId/status – status artefaktu
+### 10. GET /api/v2/modpacks/:code/custom-artifacts/:artifactId/status – status artefaktu
 
 Publiczny endpoint do pollingu statusu walidacji/skanu artefaktu.
 
@@ -668,7 +733,7 @@ Publiczny endpoint do pollingu statusu walidacji/skanu artefaktu.
 
 ---
 
-### 10. POST /api/v2/modpacks/:code/finalize – finalizacja paczki
+### 11. POST /api/v2/modpacks/:code/finalize – finalizacja paczki
 
 Ustawia status paczki na podstawie stanu wszystkich custom artefaktów.
 
@@ -729,7 +794,7 @@ Ustawia status paczki na podstawie stanu wszystkich custom artefaktów.
 
 ---
 
-### 11. GET /api/v2/modpacks/:code/custom-artifacts/:artifactId/download – download artefaktu
+### 12. GET /api/v2/modpacks/:code/custom-artifacts/:artifactId/download – download artefaktu
 
 Przekierowuje (302) na CDN. Dozwolone tylko dla `status: clean`.
 
@@ -745,7 +810,7 @@ Przekierowuje (302) na CDN. Dozwolone tylko dla `status: clean`.
 
 ---
 
-### 12. GET /api/v2/modpacks/:code – rozszerzona odpowiedź
+### 13. GET /api/v2/modpacks/:code – rozszerzona odpowiedź
 
 Endpoint `GET /api/v2/modpacks/:code` (opisany wcześniej dla v2) został rozszerzony o nowe pola:
 
@@ -914,6 +979,11 @@ docker exec -i susadmin-db psql -U susadmin -d susmodder < migrations/019_create
 SUSModder Core ma przygotowane metody do integracji z powyższym API:
 
 ```csharp
+// Lista paczek użytkownika (v2, soft identity)
+await ListMyPacksAsync(creatorHash, ct);
+// → GET /api/v2/modpacks?creatorHash={hash}
+// Odpowiedź: { data: { packs: [...], activeCount: N, maxAllowed: 10 } }
+
 // Deklaracja GitHub custom moda
 await DeclareGitHubCustomModAsync(packCode, request, ct);
 

@@ -153,38 +153,27 @@ namespace SUSModder.Core.Services
 
         public async Task<IReadOnlyList<ModPackListEntry>> ListOwnPacksAsync(CancellationToken ct = default)
         {
-            try
-            {
-                var response = await _apiClient.SendAsync(new SusModderApiRequest
-                {
-                    Method = HttpMethod.Get,
-                    RelativePath = PackPath(),
-                    Query = new Dictionary<string, string?> { ["creatorHash"] = CreatorHash },
-                    UserHash = CreatorHash,
-                    IncludeAuthToken = true
-                }, ct);
-                var body = await response.Content.ReadAsStringAsync(ct);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _log.Write($"[ModPack] LIST failed ({response.StatusCode}): {body}");
-                    return Array.Empty<ModPackListEntry>();
-                }
-
-                var result = TryDeserialize<ListPacksApiResponse>(body);
-                return (IReadOnlyList<ModPackListEntry>?)result?.Packs ?? Array.Empty<ModPackListEntry>();
-            }
-            catch (Exception ex)
-            {
-                _log.Write($"[ModPack] LIST exception: {ex.Message}");
-                return Array.Empty<ModPackListEntry>();
-            }
+            var detailed = await ListOwnPacksDetailedInternalAsync(ct);
+            return detailed.Packs;
         }
 
         public async Task<bool> DeletePackAsync(string packCode, CancellationToken ct = default)
         {
+            var result = await DeletePackDetailedAsync(packCode, ct);
+            return result.Success;
+        }
+
+        public async Task<ModPackDeleteResult> DeletePackDetailedAsync(string packCode, CancellationToken ct = default)
+        {
             if (!ModPackCodeValidator.IsValid(packCode))
-                return false;
+            {
+                return new ModPackDeleteResult
+                {
+                    Success = false,
+                    ErrorCode = "INVALID_PACK_CODE",
+                    ErrorMessage = "Nieprawidłowy kod paczki."
+                };
+            }
 
             try
             {
@@ -199,13 +188,183 @@ namespace SUSModder.Core.Services
                     UserHash = CreatorHash,
                     IncludeAuthToken = true
                 }, ct);
-                return response.IsSuccessStatusCode;
+                var body = await response.Content.ReadAsStringAsync(ct);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _log.Write($"[ModPack] DELETE {normalized}: ok");
+                    return new ModPackDeleteResult
+                    {
+                        Success = true,
+                        StatusCode = (int)response.StatusCode
+                    };
+                }
+
+                var err = ParseApiError(body);
+                _log.Write($"[ModPack] DELETE {normalized} failed ({response.StatusCode}): {body}");
+                return new ModPackDeleteResult
+                {
+                    Success = false,
+                    ErrorCode = err?.Code ?? ((int)response.StatusCode).ToString(),
+                    ErrorMessage = err?.Message,
+                    StatusCode = (int)response.StatusCode
+                };
             }
             catch (Exception ex)
             {
                 _log.Write($"[ModPack] DELETE exception: {ex.Message}");
-                return false;
+                return new ModPackDeleteResult
+                {
+                    Success = false,
+                    ErrorCode = "NETWORK_ERROR",
+                    ErrorMessage = ex.Message
+                };
             }
+        }
+
+        public Task<ModPackListResult> ListOwnPacksDetailedAsync(CancellationToken ct = default)
+        {
+            // Domyślnie używamy tego samego endpointu co ListOwnPacksAsync (GET /modpacks?creatorHash=...),
+            // ale zwracamy rozszerzony wynik z activeCount/maxAllowed, jeśli API je zwróci.
+            return ListOwnPacksDetailedInternalAsync(ct);
+        }
+
+        private async Task<ModPackListResult> ListOwnPacksDetailedInternalAsync(CancellationToken ct)
+        {
+            try
+            {
+                var response = await _apiClient.SendAsync(new SusModderApiRequest
+                {
+                    Method = HttpMethod.Get,
+                    RelativePath = PackPath(),
+                    Query = new Dictionary<string, string?> { ["creatorHash"] = CreatorHash },
+                    UserHash = CreatorHash,
+                    IncludeAuthToken = true
+                }, ct);
+                var body = await response.Content.ReadAsStringAsync(ct);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _log.Write($"[ModPack] LIST detailed failed ({response.StatusCode}): {body}");
+                    var err = ParseApiError(body);
+                    return new ModPackListResult
+                    {
+                        Success = false,
+                        StatusCode = (int)response.StatusCode,
+                        ErrorCode = err?.Code ?? ((int)response.StatusCode).ToString(),
+                        ErrorMessage = err?.Message ?? body,
+                        Packs = Array.Empty<ModPackListEntry>()
+                    };
+                }
+
+                return ParseListPacksResponse(body, (int)response.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _log.Write($"[ModPack] LIST detailed exception: {ex.Message}");
+                return new ModPackListResult
+                {
+                    Success = false,
+                    ErrorCode = "NETWORK_ERROR",
+                    ErrorMessage = ex.Message,
+                    Packs = Array.Empty<ModPackListEntry>()
+                };
+            }
+        }
+
+        private ModPackListResult ParseListPacksResponse(string body, int statusCode)
+        {
+            var result = new ModPackListResult { StatusCode = statusCode };
+
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                var root = doc.RootElement;
+
+                JsonElement listContainer = root;
+                if (root.ValueKind == JsonValueKind.Object &&
+                    root.TryGetProperty("data", out var dataEl) &&
+                    dataEl.ValueKind == JsonValueKind.Object)
+                {
+                    listContainer = dataEl;
+                }
+
+                if (listContainer.TryGetProperty("packs", out var packsEl) &&
+                    packsEl.ValueKind == JsonValueKind.Array)
+                {
+                    var list = new List<ModPackListEntry>();
+                    foreach (var el in packsEl.EnumerateArray())
+                    {
+                        var entry = ParseListEntryElement(el);
+                        if (entry != null)
+                            list.Add(entry);
+                    }
+                    result.Packs = list;
+                }
+
+                if (listContainer.TryGetProperty("activeCount", out var ac) &&
+                    ac.ValueKind == JsonValueKind.Number && ac.TryGetInt32(out var active))
+                {
+                    result.ActiveCount = active;
+                }
+
+                if (listContainer.TryGetProperty("maxAllowed", out var mx) &&
+                    mx.ValueKind == JsonValueKind.Number && mx.TryGetInt32(out var max))
+                {
+                    result.MaxAllowed = max;
+                }
+
+                result.Success = true;
+
+                // Fallback: jeśli API nie zwróciło activeCount, wylicz z listy.
+                if (result.ActiveCount == 0)
+                    result.ActiveCount = result.Packs.Count(p => p.Active);
+            }
+            catch (Exception ex)
+            {
+                _log.Write($"[ModPack] LIST parse exception: {ex.Message}");
+                result.Success = false;
+                result.ErrorCode = "INVALID_RESPONSE";
+                result.ErrorMessage = ex.Message;
+            }
+
+            return result;
+        }
+
+        private static ModPackListEntry? ParseListEntryElement(JsonElement el)
+        {
+            if (el.ValueKind != JsonValueKind.Object)
+                return null;
+
+            DateTimeOffset? createdAt = null;
+            DateTimeOffset? expiresAt = null;
+
+            if (el.TryGetProperty("createdAt", out var ca) && ca.ValueKind == JsonValueKind.String &&
+                DateTimeOffset.TryParse(ca.GetString(), out var parsedCreated))
+            {
+                createdAt = parsedCreated;
+            }
+            if (el.TryGetProperty("expiresAt", out var ea) && ea.ValueKind == JsonValueKind.String &&
+                DateTimeOffset.TryParse(ea.GetString(), out var parsedExpires))
+            {
+                expiresAt = parsedExpires;
+            }
+
+            return new ModPackListEntry
+            {
+                PackId = GetString(el, "id", "packId", "pack_id") ?? string.Empty,
+                PackCode = GetString(el, "packCode", "pack_code") ?? string.Empty,
+                ModName = GetString(el, "modName", "mod_name"),
+                FullModId = GetInt(el, "fullModId", "full_mod_id"),
+                FullModVersion = GetString(el, "fullModVersion", "full_mod_version") ?? string.Empty,
+                TtlDays = GetInt(el, "ttlDays", "ttl_days"),
+                VtStatus = GetString(el, "vtStatus", "vt_status") ?? "unknown",
+                DllCount = GetInt(el, "dllCount", "dll_count"),
+                ExternalDllCount = GetInt(el, "externalDllCount", "external_dll_count"),
+                CreatedAt = createdAt,
+                ExpiresAt = expiresAt,
+                Active = GetBool(el, "active") || GetBool(el, "is_active")
+            };
         }
 
         public async Task<ModPackExternalDll?> UploadExternalDllAsync(
