@@ -43,6 +43,7 @@ namespace SUSModder.ViewModels
             IsModPackCreatorVisible ||
             IsModPackResultVisible ||
             IsModPackPreviewVisible ||
+            IsModPackManagerVisible ||
             IsAiSupportVisible ||
             IsSUStatsConfigVisible ||
             IsAppSettingsVisible ||

@@ -46,6 +46,10 @@ public partial class ModPackCreatorView : UserControl
     public string ModalTitle { get; private set; } = string.Empty;
     public event Action<ModPackCreatorDialogResult?>? Completed;
 
+    /// <summary>Emitowany, gdy CreatePackAsync zwrócił PACK_LIMIT_REACHED.
+    /// UI nadrzędne może podpiąć się, by otworzyć widok zarządzania paczkami.</summary>
+    public event Action? PackLimitReached;
+
     /// <summary>Konstruktor wymagany przez loader XAML (design-time / AVLN3001).</summary>
     public ModPackCreatorView()
     {
@@ -671,6 +675,8 @@ public partial class ModPackCreatorView : UserControl
                     _ => result.ErrorMessage ?? _loc.Get("ModPacks.CreateFailed")
                 };
                 ShowError(msg);
+                if (result.ErrorCode == "PACK_LIMIT_REACHED")
+                    PackLimitReached?.Invoke();
                 return;
             }
 
@@ -768,6 +774,8 @@ private async Task CreateSharedPackAsync()
                     _ => result.ErrorMessage ?? _loc.Get("ModPacks.CreateFailed")
                 };
                 ShowError(msg);
+                if (result.ErrorCode == "PACK_LIMIT_REACHED")
+                    PackLimitReached?.Invoke();
                 return;
             }
 

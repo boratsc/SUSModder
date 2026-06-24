@@ -399,8 +399,13 @@
 								</Grid>
 
 								<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+									<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.OfficialBadge}"
+										   FontSize="10"
+										   FontWeight="SemiBold"
+										   Foreground="{DynamicResource AccentBrush}"
+										   IsVisible="{Binding CurrentPromotedDiscordIsOfficial}"/>
 									<TextBlock Text="{Binding CurrentPromotedDiscordName}"
-											   FontSize="13"
+										   FontSize="13"
 											   FontWeight="SemiBold"
 											   TextTrimming="CharacterEllipsis"
 											   Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -678,6 +683,16 @@
 							<ContentControl.DataTemplates>
 								<DataTemplate DataType="vm:ModPackPreviewViewModel">
 									<local:ModPackPreviewView/>
+								</DataTemplate>
+							</ContentControl.DataTemplates>
+						</ContentControl>
+
+						<ContentControl Content="{Binding ModPackManagerContent}"
+										IsVisible="{Binding IsModPackManagerVisible}"
+										Classes="fade-in-panel">
+							<ContentControl.DataTemplates>
+								<DataTemplate DataType="vm:SharedModPacksViewModel">
+									<local:SharedPacksListView/>
 								</DataTemplate>
 							</ContentControl.DataTemplates>
 						</ContentControl>
@@ -1067,6 +1082,13 @@
 									<StackPanel Orientation="Horizontal" Spacing="8">
 										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ClipboardPaste}" FontSize="16" Foreground="#00BCD4"/>
 										<TextBlock Text="{loc:Localize ModPacks.EnterCodeMenu}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="190"/>
+									</StackPanel>
+								</Button>
+								<Button Classes="fab-menu-subitem"
+										Command="{Binding ShowModPackManagerCommand}">
+									<StackPanel Orientation="Horizontal" Spacing="8">
+										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.CloudArrowUp}" FontSize="16" Foreground="#00BCD4"/>
+										<TextBlock Text="{loc:Localize ModPacks.Shared.ManageFromLimit}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="190"/>
 									</StackPanel>
 								</Button>
 							</StackPanel>

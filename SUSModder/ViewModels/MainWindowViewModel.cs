@@ -379,6 +379,8 @@ namespace SUSModder.ViewModels
             set => this.RaiseAndSetIfChanged(ref _dllMods, value);
         }
 
+        public SharedModPacksViewModel SharedPacks { get; private set; } = null!;
+
         public ModItem? SelectedDllMod
         {
             get => _selectedDllMod;
@@ -702,6 +704,7 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> CreateAndSharePackCommand { get; }
 public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
         public ReactiveCommand<Unit, Unit> EnterModPackCodeCommand { get; }
+        public ReactiveCommand<Unit, Unit> ShowModPackManagerCommand { get; }
         public ReactiveCommand<Unit, Unit> ToggleFabModPackActionsCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowDllSelectionCommand { get; }
     public ReactiveCommand<Unit, Unit> CheckForAppUpdatesCommand { get; }
@@ -727,6 +730,16 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
 
             // Inicjalizuj serwis powiadomień toast (singleton z DI)
             ToastService = App.GetService<ToastService>();
+
+            // Inicjalizuj VM do zarządzania paczkami udostępnionymi przez użytkownika
+            SharedPacks = new SharedModPacksViewModel(
+                App.GetService<IModPackService>(),
+                _localizationService,
+                (msg, title, yes, no, _) => ShowConfirmDialogAsync(msg, title, yes, no),
+                (title, msg) => ShowMessageAsync(title, msg),
+                (msg, title) => ShowErrorDialogAsync(msg, title),
+                action => Avalonia.Threading.Dispatcher.UIThread.Post(action),
+                onClose: CloseModPackManager);
 
             // Inicjalizuj UserSettingsService
             _userSettingsService = new UserSettingsService();
@@ -790,6 +803,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             CreateLocalPackCommand = ReactiveCommand.CreateFromTask(ShowCreateLocalPackAsync);
             CreateAndSharePackCommand = ReactiveCommand.CreateFromTask(ShowCreateAndSharePackAsync);
             EnterModPackCodeCommand = ReactiveCommand.CreateFromTask(ShowModPackCodeEntryAsync);
+            ShowModPackManagerCommand = ReactiveCommand.CreateFromTask(ShowModPackManagerModalAsync);
             ShowSUStatsConfigCommand = ReactiveCommand.Create(ShowSUStatsConfig);
             ExecuteRepairOptionCommand = ReactiveCommand.CreateFromTask<string>(ExecuteRepairOptionFromModalAsync);
             InitializeFrontendLayout();
@@ -809,6 +823,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
                 {
                     this.RaisePropertyChanged(nameof(ThemeButtonText));
                     this.RaisePropertyChanged(nameof(ToolModalTitle));
+                    RaisePromotedDiscordDerivedProperties();
                     RefreshLaunchDiagnosticsPanelStrings();
                 };
             }

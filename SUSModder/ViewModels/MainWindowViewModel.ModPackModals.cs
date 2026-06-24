@@ -14,6 +14,37 @@ namespace SUSModder.ViewModels;
 
 public partial class MainWindowViewModel
 {
+    private bool _isModPackManagerVisible;
+    private object? _modPackManagerContent;
+
+    public bool IsModPackManagerVisible
+    {
+        get => _isModPackManagerVisible;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isModPackManagerVisible, value);
+            NotifyToolModalStateChanged();
+        }
+    }
+
+    public object? ModPackManagerContent
+    {
+        get => _modPackManagerContent;
+        private set => this.RaiseAndSetIfChanged(ref _modPackManagerContent, value);
+    }
+
+    private async Task ShowModPackManagerModalAsync()
+    {
+        await SharedPacks.RefreshAsync();
+        ModPackManagerContent = SharedPacks;
+        IsModPackManagerVisible = true;
+    }
+
+    public void CloseModPackManager()
+    {
+        IsModPackManagerVisible = false;
+        ModPackManagerContent = null;
+    }
     private bool _isModPackCodeEntryVisible;
     private ModPackCodeEntryViewModel? _modPackCodeEntryViewModel;
     private TaskCompletionSource<string?>? _modPackCodeEntryCompletionSource;
@@ -236,6 +267,7 @@ public partial class MainWindowViewModel
             preselectedCatalogMod);
 
         view.Completed += OnModPackCreatorCompleted;
+        view.PackLimitReached += OnModPackCreatorLimitReached;
         ModPackCreatorTitle = view.ModalTitle;
         ModPackCreatorContent = view;
         IsModPackCreatorVisible = true;
@@ -243,10 +275,29 @@ public partial class MainWindowViewModel
         return await completionSource.Task;
     }
 
+    private void OnModPackCreatorLimitReached()
+    {
+        // Zamknij kreator i otwórz modal zarządzania udostępnionymi paczkami.
+        if (ModPackCreatorContent is ModPackCreatorView view)
+        {
+            view.Completed -= OnModPackCreatorCompleted;
+            view.PackLimitReached -= OnModPackCreatorLimitReached;
+        }
+        ModPackCreatorContent = null;
+        ModPackCreatorTitle = string.Empty;
+        IsModPackCreatorVisible = false;
+        _modPackCreatorCompletionSource?.TrySetResult(null);
+
+        _ = ShowModPackManagerModalAsync();
+    }
+
     private void OnModPackCreatorCompleted(ModPackCreatorDialogResult? result)
     {
         if (ModPackCreatorContent is ModPackCreatorView view)
+        {
             view.Completed -= OnModPackCreatorCompleted;
+            view.PackLimitReached -= OnModPackCreatorLimitReached;
+        }
 
         ModPackCreatorContent = null;
         ModPackCreatorTitle = string.Empty;
@@ -265,5 +316,7 @@ public partial class MainWindowViewModel
             OnModPackPreviewCompleted(null, false);
         if (IsModPackCreatorVisible)
             OnModPackCreatorCompleted(null);
+        if (IsModPackManagerVisible)
+            CloseModPackManager();
     }
 }
