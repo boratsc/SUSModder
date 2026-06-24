@@ -38,6 +38,7 @@ namespace SUSModder.ViewModels
             IsVersionSelectionModalVisible ||
             IsPostInstallSuccessVisible ||
             IsPostInstallFailureVisible ||
+            IsLaunchDiagnosticsVisible ||
             IsAmongUsNotFoundVisible ||
             IsModPackCodeEntryVisible ||
             IsModPackCreatorVisible ||
@@ -112,6 +113,11 @@ namespace SUSModder.ViewModels
                 if (IsPostInstallFailureVisible && PostInstallFailureViewModel != null)
                 {
                     return PostInstallFailureViewModel.Title;
+                }
+
+                if (IsLaunchDiagnosticsVisible)
+                {
+                    return LaunchDiagnosticsTitle;
                 }
 
                 if (IsAiSupportVisible)
@@ -192,6 +198,7 @@ namespace SUSModder.ViewModels
             PostInstallSuccessViewModel = null;
             IsPostInstallFailureVisible = false;
             PostInstallFailureViewModel = null;
+            IsLaunchDiagnosticsVisible = false;
             IsAiSupportVisible = false;
             DismissAmongUsNotFoundModal(AmongUsNotFoundResult.Close);
             DismissActiveModPackModal();
@@ -227,10 +234,37 @@ namespace SUSModder.ViewModels
 
         private void NotifyToolModalStateChanged()
         {
+            if (_isAiSupportVisible && IsAnyNonAiSupportToolModalOpen())
+            {
+                _isAiSupportVisible = false;
+                this.RaisePropertyChanged(nameof(IsAiSupportVisible));
+            }
+
             this.RaisePropertyChanged(nameof(IsDllModalVisible));
             this.RaisePropertyChanged(nameof(IsAnyToolModalOpen));
             this.RaisePropertyChanged(nameof(ToolModalTitle));
             NotifyModDetailPanelLayoutChanged();
         }
+
+        private bool IsAnyNonAiSupportToolModalOpen() =>
+            IsInfoPanelVisible ||
+            IsAdditionalActionsVisible ||
+            IsLobbyBoardVisible ||
+            IsDllModalVisible ||
+            IsDllSelectionModalVisible ||
+            IsVersionSelectionModalVisible ||
+            IsPostInstallSuccessVisible ||
+            IsPostInstallFailureVisible ||
+            IsLaunchDiagnosticsVisible ||
+            IsAmongUsNotFoundVisible ||
+            IsModPackCodeEntryVisible ||
+            IsModPackCreatorVisible ||
+            IsModPackResultVisible ||
+            IsModPackPreviewVisible ||
+            IsModPackManagerVisible ||
+            IsSUStatsConfigVisible ||
+            IsAppSettingsVisible ||
+            IsRecommendedDiscordsVisible ||
+            IsRepairOptionsVisible;
     }
 }

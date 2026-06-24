@@ -174,7 +174,11 @@ public partial class MainWindowViewModel
     public bool IsLaunchDiagnosticsVisible
     {
         get => _isLaunchDiagnosticsVisible;
-        set => this.RaiseAndSetIfChanged(ref _isLaunchDiagnosticsVisible, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _isLaunchDiagnosticsVisible, value);
+            NotifyToolModalStateChanged();
+        }
     }
 
     public string LaunchDiagnosticsTitle
