@@ -52,6 +52,38 @@
 			           Margin="0,0,0,10"
 			           Text="{Binding Message}"/>
 
+		<Border Background="{DynamicResource ModCardBackgroundBrush}"
+				BorderBrush="{DynamicResource AccentBrush}"
+				BorderThickness="1"
+				CornerRadius="10"
+				Padding="14"
+				MaxWidth="520"
+				HorizontalAlignment="Center">
+			<Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+				<StackPanel Spacing="3" VerticalAlignment="Center">
+					<TextBlock Text="{Binding DiscordHubCtaTitle}"
+							   FontSize="14"
+							   FontWeight="SemiBold"
+							   Foreground="{DynamicResource TextPrimaryBrush}"
+							   TextWrapping="Wrap"/>
+					<TextBlock Text="{Binding DiscordHubCtaDescription}"
+							   FontSize="12"
+							   Foreground="{DynamicResource TextSecondaryBrush}"
+							   TextWrapping="Wrap"/>
+				</StackPanel>
+
+				<Button Grid.Column="1"
+						Content="{Binding DiscordHubCtaButton}"
+						Command="{Binding OpenDiscordHubCommand}"
+						Padding="12,8"
+						CornerRadius="7"
+						Background="{DynamicResource AccentBrush}"
+						Foreground="White"
+						FontWeight="SemiBold"
+						VerticalAlignment="Center"/>
+			</Grid>
+		</Border>
+
 			<!-- Przyciski -->
 			<StackPanel Orientation="Horizontal"
 			            HorizontalAlignment="Center"

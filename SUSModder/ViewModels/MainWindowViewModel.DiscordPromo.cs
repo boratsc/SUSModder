@@ -54,11 +54,19 @@ namespace SUSModder.ViewModels
         }
 
         public bool HasPromotedDiscord => CurrentPromotedDiscord != null;
+        public bool CurrentPromotedDiscordIsOfficial => IsOfficialDiscordHub(CurrentPromotedDiscord);
         public bool CurrentPromotedDiscordHasIcon => CurrentPromotedDiscord?.HasIcon == true;
         public Bitmap? CurrentPromotedDiscordIconBitmap => CurrentPromotedDiscord?.IconBitmap;
-        public string CurrentPromotedDiscordName => CurrentPromotedDiscord?.Name ?? string.Empty;
-        public string CurrentPromotedDiscordDescription => CurrentPromotedDiscord?.Description ?? string.Empty;
+        public string CurrentPromotedDiscordName => CurrentPromotedDiscordIsOfficial
+            ? _localizationService.Get("RecommendedDiscords.OfficialHub.Title")
+            : CurrentPromotedDiscord?.Name ?? string.Empty;
+        public string CurrentPromotedDiscordDescription => CurrentPromotedDiscordIsOfficial
+            ? _localizationService.Get("RecommendedDiscords.OfficialHub.PromoDescription")
+            : CurrentPromotedDiscord?.Description ?? string.Empty;
         public string CurrentPromotedDiscordInviteLink => CurrentPromotedDiscord?.InviteLink ?? string.Empty;
+
+        public ReactiveCommand<Unit, Unit> OpenOfficialDiscordHubCommand { get; private set; } =
+            ReactiveCommand.Create(() => { });
 
         public bool IsFloatingPromoSpaceAvailable
         {
@@ -72,6 +80,7 @@ namespace SUSModder.ViewModels
         private void InitializeDiscordPromo()
         {
             OpenPromotedDiscordInviteCommand = ReactiveCommand.Create<string>(OpenPromotedDiscordInvite);
+            OpenOfficialDiscordHubCommand = ReactiveCommand.Create(OfficialDiscordHub.Open);
 
             _discordPromoRotationTimer.Interval = TimeSpan.FromSeconds(DiscordPromoRotationSeconds);
             _discordPromoRotationTimer.Tick += (_, _) => RotateDiscordPromo();
@@ -172,8 +181,11 @@ namespace SUSModder.ViewModels
         {
             _discordPromoServers = servers
                 .Where(server => !string.IsNullOrWhiteSpace(server.InviteLink))
+                .Where(server => !IsOfficialDiscordHub(server))
                 .OrderBy(_ => Random.Shared.Next())
                 .ToList();
+
+            _discordPromoServers.Insert(0, CreateOfficialDiscordHubPromo());
 
             _discordPromoIndex = -1;
 
@@ -206,6 +218,24 @@ namespace SUSModder.ViewModels
 
             _discordPromoIndex = (_discordPromoIndex + 1) % _discordPromoServers.Count;
             CurrentPromotedDiscord = _discordPromoServers[_discordPromoIndex];
+        }
+
+        private DiscordServerViewModel CreateOfficialDiscordHubPromo()
+        {
+            return new DiscordServerViewModel(new SUSModder.Core.Models.DiscordServer
+            {
+                Id = -1,
+                Name = _localizationService.Get("RecommendedDiscords.OfficialHub.Title"),
+                InviteLink = OfficialDiscordHub.Url,
+                Description = _localizationService.Get("RecommendedDiscords.OfficialHub.PromoDescription"),
+                IconPath = null,
+                MemberCount = 0
+            });
+        }
+
+        private static bool IsOfficialDiscordHub(DiscordServerViewModel? server)
+        {
+            return string.Equals(server?.InviteLink, OfficialDiscordHub.Url, StringComparison.OrdinalIgnoreCase);
         }
 
         private void OpenPromotedDiscordInvite(string inviteLink)
@@ -241,6 +271,7 @@ namespace SUSModder.ViewModels
         private void RaisePromotedDiscordDerivedProperties()
         {
             this.RaisePropertyChanged(nameof(CurrentPromotedDiscordHasIcon));
+            this.RaisePropertyChanged(nameof(CurrentPromotedDiscordIsOfficial));
             this.RaisePropertyChanged(nameof(CurrentPromotedDiscordIconBitmap));
             this.RaisePropertyChanged(nameof(CurrentPromotedDiscordName));
             this.RaisePropertyChanged(nameof(CurrentPromotedDiscordDescription));

@@ -13,6 +13,30 @@
 					CornerRadius="8"
 					Padding="15"
 					Margin="0,0,0,8">
+				<StackPanel Spacing="8">
+					<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.HelpTitle}"
+							   FontSize="18"
+							   FontWeight="Bold"
+							   Foreground="{DynamicResource TextPrimaryBrush}"/>
+					<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.HelpDescription}"
+							   FontSize="12"
+							   Foreground="{DynamicResource TextSecondaryBrush}"
+							   TextWrapping="Wrap"/>
+					<Button Content="{loc:Localize RecommendedDiscords.OfficialHub.JoinButton}"
+							HorizontalAlignment="Stretch"
+							Padding="10"
+							Background="{DynamicResource AccentBrush}"
+							Foreground="White"
+							Command="{Binding OpenOfficialDiscordHubCommand}"/>
+				</StackPanel>
+			</Border>
+
+			<Border Background="{DynamicResource ModCardBackgroundBrush}"
+					BorderBrush="{DynamicResource ModCardBorderBrush}"
+					BorderThickness="1"
+					CornerRadius="8"
+					Padding="15"
+					Margin="0,0,0,8">
 				<TextBlock Text="{loc:Localize Tools.TownOfUsDescription}"
 						   FontSize="12" FontStyle="Italic"
 						   Foreground="{DynamicResource TextSecondaryBrush}"

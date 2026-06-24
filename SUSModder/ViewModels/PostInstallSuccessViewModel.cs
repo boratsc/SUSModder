@@ -2,6 +2,7 @@ using System;
 using System.Reactive;
 using ReactiveUI;
 using SUSModder.Core.Services.Localization;
+using SUSModder.Services;
 
 namespace SUSModder.ViewModels
 {
@@ -79,12 +80,16 @@ namespace SUSModder.ViewModels
         public string DontShowAgainCheckbox { get; }
         public string AutoUpdateCheckbox { get; }
         public string ShowChangelogButton { get; }
+        public string DiscordHubCtaTitle { get; }
+        public string DiscordHubCtaDescription { get; }
+        public string DiscordHubCtaButton { get; }
 
         // Komendy
         public ReactiveCommand<Unit, Unit> LaunchCommand { get; }
         public ReactiveCommand<Unit, Unit> AddDllCommand { get; }
         public ReactiveCommand<Unit, Unit> DismissCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowChangelogCommand { get; }
+        public ReactiveCommand<Unit, Unit> OpenDiscordHubCommand { get; }
 
         public PostInstallSuccessViewModel(
             string modName,
@@ -112,6 +117,9 @@ namespace SUSModder.ViewModels
             DontShowAgainCheckbox = localizationService.Get("Dialogs.PostInstallSuccess.DontShowAgain");
             AutoUpdateCheckbox = localizationService.Get("Dialogs.PostInstallSuccess.AutoUpdate");
             ShowChangelogButton = localizationService.Get("Dialogs.PostInstallSuccess.ShowChangelogButton");
+            DiscordHubCtaTitle = localizationService.Get("RecommendedDiscords.OfficialHub.PostInstallCtaTitle");
+            DiscordHubCtaDescription = localizationService.Get("RecommendedDiscords.OfficialHub.PostInstallCtaDescription");
+            DiscordHubCtaButton = localizationService.Get("RecommendedDiscords.OfficialHub.JoinButton");
 
             LaunchCommand = ReactiveCommand.Create(() =>
             {
@@ -135,6 +143,8 @@ namespace SUSModder.ViewModels
             {
                 ChangelogRequested?.Invoke(this, EventArgs.Empty);
             });
+
+            OpenDiscordHubCommand = ReactiveCommand.Create(OfficialDiscordHub.Open);
         }
     }
 }

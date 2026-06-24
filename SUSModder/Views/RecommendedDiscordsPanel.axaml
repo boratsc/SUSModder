@@ -12,6 +12,81 @@
 					   Foreground="{DynamicResource TextSecondaryBrush}"/>
 
 			<ScrollViewer Grid.Row="1" Padding="0,0,10,0">
+				<StackPanel Spacing="12">
+					<Border Background="{DynamicResource ModCardBackgroundBrush}"
+							BorderBrush="{DynamicResource AccentBrush}"
+							BorderThickness="1"
+							CornerRadius="14"
+							ClipToBounds="True"
+							MaxWidth="760"
+							HorizontalAlignment="Left">
+						<Grid RowDefinitions="Auto,Auto">
+							<Grid Grid.Row="0" Height="125">
+								<Image Source="avares://SUSModder/Assets/susmodder-hub-banner.png"
+									   Stretch="UniformToFill"
+									   Opacity="0.85"/>
+								<Border Background="#AA101018"/>
+
+								<Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" Margin="16">
+									<Border Width="70" Height="70"
+											CornerRadius="35"
+											ClipToBounds="True"
+											BorderBrush="White"
+											BorderThickness="2"
+											VerticalAlignment="Center">
+										<Image Source="avares://SUSModder/Assets/susmodder-hub-logo.png"
+											   Stretch="UniformToFill"/>
+									</Border>
+
+									<StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Eyebrow}"
+											   FontSize="12"
+											   FontWeight="SemiBold"
+											   Foreground="{DynamicResource AccentBrush}"/>
+										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Title}"
+											   FontSize="24"
+											   FontWeight="Bold"
+											   Foreground="White"/>
+										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Description}"
+											   FontSize="13"
+											   TextWrapping="Wrap"
+											   MaxLines="2"
+											   Foreground="#E0E0E0"/>
+									</StackPanel>
+								</Grid>
+							</Grid>
+
+							<Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="16,14,16,16">
+								<WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+									<Border Background="{DynamicResource AccentBrush}" Opacity="0.95" CornerRadius="12" Padding="10,4" Margin="0,0,8,8">
+										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Tags.Support}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
+									</Border>
+									<Border Background="{DynamicResource AccentBrush}" Opacity="0.95" CornerRadius="12" Padding="10,4" Margin="0,0,8,8">
+										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Tags.Lobby}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
+									</Border>
+									<Border Background="{DynamicResource AccentBrush}" Opacity="0.95" CornerRadius="12" Padding="10,4" Margin="0,0,8,8">
+										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Tags.ModdingChat}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
+									</Border>
+								</WrapPanel>
+
+								<Button Grid.Column="1"
+										Content="{loc:Localize RecommendedDiscords.OfficialHub.JoinButton}"
+										Padding="18,8"
+										CornerRadius="8"
+										Background="{DynamicResource AccentBrush}"
+										Foreground="White"
+										FontWeight="SemiBold"
+										Command="{Binding OpenOfficialDiscordHubCommand}"/>
+							</Grid>
+						</Grid>
+					</Border>
+
+					<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.RecommendedServersHeading}"
+							   FontSize="16"
+							   FontWeight="SemiBold"
+							   Foreground="{DynamicResource TextPrimaryBrush}"
+							   Margin="0,4,0,0"/>
+
 				<ItemsControl ItemsSource="{Binding DiscordServers}">
 					<ItemsControl.ItemsPanel>
 						<ItemsPanelTemplate>
@@ -103,6 +178,7 @@
 						</DataTemplate>
 					</ItemsControl.ItemTemplate>
 				</ItemsControl>
+				</StackPanel>
 			</ScrollViewer>
 		</Grid>
 	</Grid>
