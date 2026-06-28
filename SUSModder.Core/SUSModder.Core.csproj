@@ -44,5 +44,8 @@
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>SUSModder.Core.Tests</_Parameter1>
     </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>SUSModder.E2E.Tests</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 </Project>
