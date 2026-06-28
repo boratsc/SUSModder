@@ -51,4 +51,30 @@
         <Setter Property="Background" Value="#40FFFFFF"/>
     </Style>
 
+    <!-- Bulk action bar (bazowy styl; glass nadpisuje w GlassSurfaceStyles) -->
+    <Style Selector="Border.glass-flyout-tip">
+        <Setter Property="Padding" Value="12"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Background" Value="{DynamicResource PaneBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BoxShadow" Value="0 4 16 0 #40000000"/>
+    </Style>
+
+    <Style Selector="Border.glass-bulk-bar">
+        <Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentMutedBrush}"/>
+        <Setter Property="BorderThickness" Value="0,1,0,0"/>
+        <Setter Property="Padding" Value="12,8"/>
+    </Style>
+
+    <Style Selector="Panel.glass-browser-panel">
+        <Setter Property="Background" Value="Transparent"/>
+    </Style>
+
+    <Style Selector="Border.glass-empty-state">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
 </Styles>

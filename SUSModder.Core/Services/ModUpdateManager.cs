@@ -8,6 +8,7 @@ using SUSModder.Core.Repositories;
 using System.IO;
 using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Models;
+using SUSModder.Core.Utilities;
 
 namespace SUSModder.Core.Services
 {
@@ -19,10 +20,7 @@ namespace SUSModder.Core.Services
         public ModUpdateManager()
         {
             _configService = new ConfigService();
-
-            // Inicjalizuj ConfigRepository
-            string exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-            _configRepository = new ConfigRepository(exeDir);
+            _configRepository = new ConfigRepository();
         }
 
         public async Task<ModUpdateResult> CheckForUpdatesAsync()
@@ -63,15 +61,21 @@ namespace SUSModder.Core.Services
             var availableUpdates = new List<ModUpdateInfo>();
             bool configChanged = false;
 
-            var remoteConfigs = await _configRepository.LoadConfigFromApiAsync();
+            List<ModConfiguration>? remoteConfigs;
+            // ZAWSZE pobieramy świeże dane z API do porównania wersji.
+            // EnsureRemoteConfigCachedAsync zwraca scalone dane z bazy (z InstallPath, lokalną wersją),
+            // co zafałszowuje porównanie wersji. LoadConfigFromApiAsync daje czyste dane katalogowe.
+            remoteConfigs = await _configRepository.LoadConfigFromApiAsync();
 
-            if (remoteConfigs == null)
+            if (remoteConfigs == null || remoteConfigs.Count == 0)
             {
-                System.Diagnostics.Debug.WriteLine("❌ remoteConfigs is NULL!");
+                System.Diagnostics.Debug.WriteLine("❌ remoteConfigs is NULL or empty!");
                 return availableUpdates;
             }
 
-            foreach (var config in currentConfigs.Where(c => !string.IsNullOrEmpty(c.InstallPath)))
+            foreach (var config in currentConfigs.Where(c =>
+                         string.Equals(c.ModType, "full", StringComparison.OrdinalIgnoreCase) &&
+                         !string.IsNullOrEmpty(c.InstallPath)))
             {
                 ModConfiguration? updatedConfig = remoteConfigs.FirstOrDefault(r => r.Id == config.Id);
                 if (updatedConfig != null)
@@ -107,6 +111,12 @@ namespace SUSModder.Core.Services
                         var installMap = await InstallationMapManager.LoadInstallationMapAsync(config.InstallPath);
                         if (installMap?.FullMod != null && !string.IsNullOrEmpty(installMap.FullMod.ModVersion))
                         {
+                            if (!InstallationMapMatchesMod(installMap.FullMod, config))
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[ModUpdateManager] Pomijam niespójny wpis instalacji dla {config.ModName}: mapa wskazuje {installMap.FullMod.ModName} (ID: {installMap.FullMod.ModId})");
+                                continue;
+                            }
+
                             installedVersion = installMap.FullMod.ModVersion;
                             disableAutoUpdatePrompt = installMap.FullMod.DisableAutoUpdatePrompt;
                             pinnedInstallVersion = installMap.FullMod.PinnedInstallVersion;
@@ -169,6 +179,21 @@ namespace SUSModder.Core.Services
             return availableUpdates;
         }
 
+        private static bool InstallationMapMatchesMod(FullModInstallation fullMod, ModConfiguration config)
+        {
+            if (fullMod.ModId > 0 && config.Id > 0 && fullMod.ModId != config.Id)
+                return false;
+
+            if (!string.IsNullOrWhiteSpace(fullMod.ModName) &&
+                !string.IsNullOrWhiteSpace(config.ModName) &&
+                !string.Equals(fullMod.ModName.Trim(), config.ModName.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         private async Task<bool> UpdateUninstalledModsConfigAsync(List<ModConfiguration> uninstalledConfigs)
         {
             try
@@ -226,7 +251,7 @@ namespace SUSModder.Core.Services
                 if (configChanged)
                 {
                     System.Diagnostics.Debug.WriteLine($"💾 Saving config changes...");
-                    ConfigManager.SaveConfig(currentConfigs);
+                    ConfigManager.SaveConfig(DeduplicateConfigsById(currentConfigs));
                     System.Diagnostics.Debug.WriteLine($"✅ Config saved: {updatedCount} updated, {removedCount} removed, {addedCount} added");
 
                     System.Diagnostics.Debug.WriteLine($"Config updated: {updatedCount} updated, {removedCount} removed, {addedCount} added");
@@ -279,8 +304,11 @@ namespace SUSModder.Core.Services
             bool nameChanged = !string.Equals(local.ModName, remote.ModName, StringComparison.OrdinalIgnoreCase);
             bool versionChanged = !string.Equals(local.ModVersion, remote.ModVersion, StringComparison.OrdinalIgnoreCase);
             bool descChanged = !string.Equals(local.Description, remote.Description, StringComparison.OrdinalIgnoreCase);
-            bool githubChanged = !string.Equals(local.GitHubRepoOrLink, remote.GitHubRepoOrLink, StringComparison.OrdinalIgnoreCase);
-            bool epicChanged = !string.Equals(local.EpicGitHubRepoOrLink, remote.EpicGitHubRepoOrLink, StringComparison.OrdinalIgnoreCase);
+            // Uzupełniaj linki tylko gdy lokalnie puste — API v2 zwraca URL-e pobierania zamiast linków GitHub.
+            bool githubChanged = string.IsNullOrEmpty(local.GitHubRepoOrLink) &&
+                !string.IsNullOrEmpty(remote.GitHubRepoOrLink);
+            bool epicChanged = string.IsNullOrEmpty(local.EpicGitHubRepoOrLink) &&
+                !string.IsNullOrEmpty(remote.EpicGitHubRepoOrLink);
 
             // Nowe: sprawdź czy są puste pola do uzupełnienia
             bool pngChanged = string.IsNullOrEmpty(local.PngFileName) && !string.IsNullOrEmpty(remote.PngFileName);
@@ -315,8 +343,10 @@ namespace SUSModder.Core.Services
             target.ModName = source.ModName;
             target.ModVersion = source.ModVersion;
             target.Description = source.Description;
-            target.GitHubRepoOrLink = source.GitHubRepoOrLink;
-            target.EpicGitHubRepoOrLink = source.EpicGitHubRepoOrLink;
+            if (string.IsNullOrEmpty(target.GitHubRepoOrLink))
+                target.GitHubRepoOrLink = source.GitHubRepoOrLink;
+            if (string.IsNullOrEmpty(target.EpicGitHubRepoOrLink))
+                target.EpicGitHubRepoOrLink = source.EpicGitHubRepoOrLink;
             target.AmongVersion = source.AmongVersion;
             target.ModType = source.ModType;
 
@@ -338,29 +368,25 @@ namespace SUSModder.Core.Services
         private int RemoveObsoleteMods(List<ModConfiguration> uninstalledConfigs,
             List<ModConfiguration> remoteConfigs, List<ModConfiguration> currentConfigs)
         {
-            int removedCount = 0;
-            var modsToRemove = new List<ModConfiguration>();
+            // API v2 zwraca mniejszy katalog niż legacy — nie usuwaj lokalnych wpisów katalogowych.
+            _ = uninstalledConfigs;
+            _ = remoteConfigs;
+            _ = currentConfigs;
+            return 0;
+        }
 
-            foreach (var localMod in uninstalledConfigs)
+        private static List<ModConfiguration> DeduplicateConfigsById(List<ModConfiguration> configs)
+        {
+            var result = new List<ModConfiguration>(configs.Count);
+            var seen = new HashSet<int>();
+
+            foreach (var config in configs)
             {
-                // Nie usuwaj Vanilla (ID = 0)
-                if (localMod.Id == 0) continue;
-
-                var remoteMod = remoteConfigs.FirstOrDefault(r => r.Id == localMod.Id);
-                if (remoteMod == null)
-                {
-                    modsToRemove.Add(localMod);
-                    System.Diagnostics.Debug.WriteLine($"Marking for removal: {localMod.ModName} (ID: {localMod.Id}) - not found on server");
-                }
+                if (seen.Add(config.Id))
+                    result.Add(config);
             }
 
-            foreach (var modToRemove in modsToRemove)
-            {
-                currentConfigs.RemoveAll(c => c.Id == modToRemove.Id);
-                removedCount++;
-            }
-
-            return removedCount;
+            return result;
         }
 
         private int AddNewMods(List<ModConfiguration> remoteConfigs, List<ModConfiguration> currentConfigs)

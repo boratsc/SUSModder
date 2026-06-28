@@ -1,0 +1,133 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:local="using:SUSModder.Views"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             xmlns:converters="using:SUSModder.Converters"
+             x:Class="SUSModder.Views.PackInstanceDetailDrawer"
+             x:DataType="vm:MainWindowViewModel">
+    <UserControl.Resources>
+        <converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
+    </UserControl.Resources>
+
+    <Border Classes="mod-detail-panel">
+        <Grid DataContext="{Binding SelectedPackInstance}"
+              x:DataType="vm:ModInstanceItem">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Classes="mod-detail-header" Margin="0,0,0,8">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Button Grid.Column="0"
+                            Content="✕"
+                            Classes="close-button"
+                            Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.ClosePackInstanceDetailCommand}"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="8,0,0,0">
+                        <Image Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
+                               Width="56" Height="56"/>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="{Binding DisplayName}"
+                                       FontSize="18" FontWeight="Bold"
+                                       TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding Subtitle}" FontSize="11" Opacity="0.8"/>
+                            <TextBlock Text="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.SelectedPackOriginLabel}"
+                                       FontSize="10" Opacity="0.65"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="1" Classes="mod-detail-sticky-cta" Margin="0,0,0,8">
+                <Button Content="{loc:Localize UI.Buttons.Launch}"
+                        Classes="mod-detail-btn"
+                        Background="{DynamicResource SuccessBrush}"
+                        Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.LaunchPackInstanceCommand}"/>
+            </Border>
+
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="10">
+                    <Border Classes="mod-detail-section" IsVisible="{Binding HasUpdateAvailable}">
+                        <StackPanel Spacing="8">
+                            <TextBlock Classes="inspector-section-title"
+                                       Text="{loc:Localize UI.Inspector.Details}"/>
+                            <TextBlock Text="{loc:Localize UI.ModStatus.UpdateAvailable}"
+                                       Foreground="{DynamicResource StatusUpdateBrush}"
+                                       FontWeight="SemiBold"/>
+                            <TextBlock Text="{loc:Localize ModPacks.WhatChanged}"
+                                       FontWeight="SemiBold"
+                                       FontSize="12"
+                                       Opacity="0.9"/>
+                            <TextBlock Text="{Binding PackUpdateChangesText}"
+                                       TextWrapping="Wrap"
+                                       FontSize="12"
+                                       Opacity="0.85"
+                                       IsVisible="{Binding PackUpdateChangesText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                            <Button Content="{loc:Localize UI.Packs.Update}"
+                                    Classes="mod-detail-btn"
+                                    Background="{DynamicResource StatusUpdateBrush}"
+                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.UpdatePackInstanceCommand}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Classes="mod-detail-section">
+                        <StackPanel Spacing="6">
+                            <TextBlock Classes="inspector-section-title"
+                                       Text="{loc:Localize UI.Inspector.Contents}"/>
+                            <TextBlock Text="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.SelectedPackContentsText}"
+                                       TextWrapping="Wrap"
+                                       FontSize="12"
+                                       Opacity="0.85"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Classes="mod-detail-section">
+                        <StackPanel Spacing="8">
+                            <TextBlock Classes="inspector-section-title"
+                                       Text="{loc:Localize UI.Inspector.Configuration}"/>
+                            <Button Content="{loc:Localize UI.Packs.Rename}"
+                                    Classes="mod-detail-btn"
+                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.RenamePackInstanceCommand}"/>
+                            <Button Content="{loc:Localize UI.Packs.Clone}"
+                                    Classes="mod-detail-btn"
+                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.ClonePackInstanceCommand}"/>
+                            <Button Content="{loc:Localize UI.Packs.ApplyTouConfig}"
+                                    Classes="mod-detail-btn"
+                                    IsVisible="{Binding HasTouConfig}"
+                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.ApplyPackTouConfigCommand}"/>
+                            <Button Content="{loc:Localize UI.Packs.SaveTouConfig}"
+                                    Classes="mod-detail-btn"
+                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.CapturePackTouConfigCommand}"/>
+                            <Button Content="{loc:Localize UI.Buttons.OpenFolder}"
+                                    Classes="mod-detail-btn"
+                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.OpenPackInstanceFolderCommand}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Classes="mod-detail-section">
+                        <StackPanel Spacing="8">
+                            <TextBlock Classes="inspector-section-title"
+                                       Text="{loc:Localize UI.Inspector.Sharing}"/>
+                            <Button Content="{loc:Localize UI.Packs.Share}"
+                                    Classes="mod-detail-btn"
+                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.SharePackInstanceCommand}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Classes="mod-detail-section">
+                        <StackPanel Spacing="8">
+                            <TextBlock Classes="inspector-section-title"
+                                       Text="{loc:Localize UI.Inspector.DangerZone}"/>
+                            <Button Content="{loc:Localize UI.Packs.DeleteTitle}"
+                                    Classes="mod-detail-btn"
+                                    Foreground="{DynamicResource DangerBrush}"
+                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.DeletePackInstanceCommand}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>

@@ -12,8 +12,40 @@
     
     <Grid RowDefinitions="*,Auto">
         <!-- Lista modów DLL -->
-        <Grid Grid.Row="0">
-			<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
+        <Grid Grid.Row="0" RowDefinitions="Auto,*,Auto">
+			            <!-- PODTYTUŁ + LEGENDA -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,12" Spacing="6">
+                <TextBlock Text="{localize:Localize DllManager.WhatAreDlls}"
+                           FontSize="12"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           TextWrapping="Wrap"/>
+                
+                <Border Background="{DynamicResource SecondaryBackgroundBrush}"
+                        CornerRadius="6" Padding="10,8">
+                    <StackPanel Orientation="Horizontal" Spacing="20">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="⭐" FontSize="14"/>
+                            <TextBlock Text="{localize:Localize DllManager.LegendFavorite}"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="✅" FontSize="14"/>
+                            <TextBlock Text="{localize:Localize DllManager.LegendWorks}"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="❓" FontSize="14"/>
+                            <TextBlock Text="{localize:Localize DllManager.LegendNotTested}"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+			<ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
                 <ItemsControl ItemsSource="{Binding DllMods}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="models:ModConfiguration">
@@ -46,7 +78,7 @@
                                                            Foreground="{DynamicResource TextPrimaryBrush}"/>
                                                 <TextBlock Text="{localize:Localize DllManager.StatusInstalled}"
                                                            FontSize="12" FontWeight="SemiBold"
-                                                           Foreground="#4CAF50"
+                                                           Foreground="{DynamicResource SuccessBrush}"
                                                            VerticalAlignment="Center"
                                                            Margin="8,0,0,0"
                                                            IsVisible="{Binding IsInstalled}"/>
@@ -63,7 +95,7 @@
                                             <!-- Ostrzeżenie o kompatybilności -->
                                             <TextBlock Text="{Binding CompatibilityWarning}"
                                                        FontSize="11"
-                                                       Foreground="#FF9800"
+                                                       Foreground="{DynamicResource WarningBrush}"
                                                        FontStyle="Italic"
                                                        TextWrapping="Wrap"
                                                        Margin="0,4,0,0"
@@ -88,7 +120,7 @@
             </ScrollViewer>
 
             <!-- Komunikat gdy brak modów -->
-            <Border Background="{DynamicResource ModCardBackgroundBrush}"
+            <Border Grid.Row="1" Background="{DynamicResource ModCardBackgroundBrush}"
                     BorderBrush="{DynamicResource ModCardBorderBrush}"
                     BorderThickness="1"
                     CornerRadius="8"
@@ -114,18 +146,38 @@
             </Border>
         </Grid>
 
-        <!-- Stopka z przyciskiem instalacji -->
+                    <!-- Licznik ukrytych niekompatybilnych -->
+            <TextBlock Grid.Row="2" IsVisible="{Binding HasHiddenIncompatible}"
+                       FontSize="11"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Margin="0,8,0,0">
+                <Run Text="⚠️ "/>
+                <Run Text="{Binding HiddenIncompatibleCount}"/>
+                <Run Text="{localize:Localize DllManager.HiddenIncompatible}"/>
+            </TextBlock>
+
+		
         <Border Grid.Row="1"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0"
                 Padding="0,15,0,0"
                 Margin="0,8,0,0">
-            <Grid ColumnDefinitions="*,Auto">
+            <Grid ColumnDefinitions="*,Auto,Auto">
                 <TextBlock Grid.Column="0"
                            Text="{localize:Localize DllManager.ApplyChangesHint}"
                            VerticalAlignment="Center"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <Button Grid.Column="1"
+                        Content="{localize:Localize DllManager.SkipAll}"
+                        Command="{Binding CloseCommand}"
+                        Background="Transparent"
+                        Foreground="{DynamicResource TextSecondaryBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        Padding="15,10"
+                        CornerRadius="6"
+                        Margin="0,0,10,0"/>
+                <Button Grid.Column="2"
                         Content="{Binding ActionButtonText}"
                         Command="{Binding ApplyChangesCommand}"
                         Background="{DynamicResource AccentBrush}"
@@ -163,7 +215,8 @@
                             BorderThickness="1"
                             CornerRadius="8"
                             Padding="15">
-                        <ScrollViewer>
+                        
+			<ScrollViewer>
                             <TextBlock Text="{Binding InstallationSummary}"
                                        TextWrapping="Wrap"
                                        Foreground="{DynamicResource TextPrimaryBrush}"/>

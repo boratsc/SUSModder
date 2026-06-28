@@ -12,20 +12,40 @@ using SUSModder.ViewModels;
 using SUSModder.Views;
 using SUSModder.Services;
 using SUSModder.Services.Localization;
+using SUSModder.Core.Api;
 using SUSModder.Core.Services;
 using SUSModder.Core.Services.Localization;
 using SUSModder.Core.Configuration;
+using SUSModder.Core.Data;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.GameIntegration;
+using SUSModder.Core.Lobby;
+using SUSModder.Core.Services.Discord;
 using SUSModder.Core.Utilities;
 
 namespace SUSModder;
 
+/// <summary>
+/// Prosta implementacja IDiagnosticsOutput dla startu aplikacji (przed inicjalizacją UI).
+/// Przekierowuje komunikaty do Debug.WriteLine.
+/// </summary>
+internal class DebugDiagnosticsOutput : IDiagnosticsOutput
+{
+    public static readonly DebugDiagnosticsOutput Instance = new();
+    public void Write(string message) => System.Diagnostics.Debug.WriteLine($"[App/Diag] {message}");
+}
+
 public partial class App : Application
 {
+    /// <summary>Deep link susmodder://pack/... przekazany przy starcie (Program.Main).</summary>
+    public static string? PendingModPackCode { get; set; }
+    public static bool PendingModPackAutoInstall { get; set; }
+
     private SplashWindow? _splashWindow;
     private static ServiceProvider? _serviceProvider;
     private TelemetryService? _telemetryService;
+    private DatabaseService? _databaseService;
+    private UserSettingsService? _dbUserSettingsService;
 
     public override void Initialize()
     {
@@ -38,19 +58,64 @@ public partial class App : Application
         var services = new ServiceCollection();
 
         // Zbuduj IConfiguration raz i zarejestruj jako singleton
-        var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+        var exeDir = SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory();
         var appSettingsPath = Path.Combine(exeDir, "appsettings.json");
         var configuration = new ConfigurationBuilder()
             .AddJsonFile(appSettingsPath, optional: false, reloadOnChange: true)
             .Build();
         services.AddSingleton<IConfiguration>(configuration);
 
+        // Rejestracja serwisu powiadomień toast
+        services.AddSingleton<ToastService>();
+
+        // Rejestracja DatabaseService i repozytoriów SQLite
+        services.AddSingleton<DatabaseService>();
+        services.AddSingleton<IUserSettingsRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new UserSettingsRepository(db);
+        });
+        services.AddSingleton<IModRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            var api = sp.GetRequiredService<ISUSModderApiClient>();
+            return new ModRepository(db, api);
+        });
+        services.AddSingleton<ICatalogSyncStateRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new CatalogSyncStateRepository(db);
+        });
+        services.AddSingleton<ICompatibilityCacheRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new CompatibilityCacheRepository(db);
+        });
+        services.AddSingleton<CatalogSyncService>();
+        services.AddSingleton<CompatibilityService>(sp =>
+        {
+            var api = sp.GetRequiredService<ISUSModderApiClient>();
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            var cache = sp.GetRequiredService<ICompatibilityCacheRepository>();
+            return new CompatibilityService(diag, api, cache);
+        });
+        services.AddSingleton<ITouConfigRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new TouConfigRepository(db);
+        });
+        services.AddSingleton<IModInstanceRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new ModInstanceRepository(db);
+        });
+
         // Rejestracja serwisu lokalizacji
         services.AddSingleton<ILocalizationService>(sp =>
         {
             var locService = new LocalizationService();
 
-            // Odczytaj zapisany język z user settings
+            // Odczytaj zapisany język z user settings (JSON fallback przed inicjalizacją bazy)
             var userSettingsService = new UserSettingsService();
             var userSettings = userSettingsService.LoadUserSettings();
             var savedLanguage = userSettings.Language;
@@ -65,7 +130,95 @@ public partial class App : Application
             return locService;
         });
 
+        // Rejestracja diagnostyki
+        services.AddSingleton<IDiagnosticsOutput>(_ => DebugDiagnosticsOutput.Instance);
+
+        services.AddSingleton<ISUSModderApiClient>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            return new SUSModderApiClient(config, diag);
+        });
+
+        services.AddSingleton<ModSecurityScanService>(sp =>
+        {
+            var api = sp.GetRequiredService<ISUSModderApiClient>();
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            var modRepo = sp.GetRequiredService<IModRepository>();
+            return new ModSecurityScanService(api, diag, modRepo);
+        });
+
+        services.AddSingleton<ConfigService>();
+        services.AddSingleton<DllModificationService>();
+        services.AddSingleton<IDllModInstanceInstaller, DllModificationServiceInstanceInstaller>();
+        services.AddSingleton<IFullModInstanceInstaller>(sp =>
+            new PlatformFullModInstanceInstaller(sp.GetRequiredService<IConfiguration>()));
+        services.AddSingleton<ModInstanceInstaller>(sp => new ModInstanceInstaller(
+            sp.GetRequiredService<IModInstanceRepository>(),
+            sp.GetRequiredService<IFullModInstanceInstaller>(),
+            sp.GetRequiredService<IDllModInstanceInstaller>()));
+
+        // Rejestracja IHardwareIdProvider
+        services.AddSingleton<IHardwareIdProvider, WindowsHardwareIdProvider>();
+
+        // Rejestracja Lobby Board serwisu
+        services.AddSingleton<ILobbyBoardService>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            var hwid = sp.GetRequiredService<IHardwareIdProvider>();
+            var api = sp.GetRequiredService<ISUSModderApiClient>();
+            return new LobbyBoardService(config, diag, hwid, api);
+        });
+
+        // Rejestracja Lobby Bridge File Reader (FileSystemWatcher na lobby-bridge.json)
+        services.AddSingleton<LobbyBridgeFileReader>(sp =>
+        {
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            return new LobbyBridgeFileReader(diag);
+        });
+
+        // Mod Pack Sharing
+        services.AddSingleton<IModPackService>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            var hwid = sp.GetRequiredService<IHardwareIdProvider>();
+            var api = sp.GetRequiredService<ISUSModderApiClient>();
+            return new ModPackService(config, diag, hwid, api);
+        });
+
+        // Rejestracja OAuthLoopbackListener dla Discord OAuth2 flow
+        services.AddSingleton<OAuthLoopbackListener>();
+
+        // Rejestracja serwisów Discord OAuth2 (Core)
+        services.AddSingleton<IDiscordAuthRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new DiscordAuthRepository(db);
+        });
+        services.AddSingleton<ISustatsCredentialsRepository>(sp =>
+        {
+            var db = sp.GetRequiredService<DatabaseService>();
+            return new SustatsCredentialsRepository(db);
+        });
+        services.AddSingleton<IDiscordOAuthService>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var authRepo = sp.GetRequiredService<IDiscordAuthRepository>();
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            return new DiscordOAuthService(config, authRepo, diag);
+        });
+        services.AddSingleton<IClairDiscordService>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
+            return new ClairDiscordService(config, diag);
+        });
+
         _serviceProvider = services.BuildServiceProvider();
+        SUSModderApiClientProvider.SetDefault(_serviceProvider.GetRequiredService<ISUSModderApiClient>());
+        CatalogSyncServiceProvider.SetDefault(_serviceProvider.GetRequiredService<CatalogSyncService>());
     }
 
     /// <summary>
@@ -95,22 +248,56 @@ public partial class App : Application
 
     private async Task InitializeApplicationAsync(IClassicDesktopStyleApplicationLifetime desktop)
     {
+        _ = Task.Run(() => ModsStorageCleanupService.RunCleanup(DebugDiagnosticsOutput.Instance.Write));
+
         try
         {
-            var forceOnboardingFlagPath = Path.Combine(UserSettingsService.GetAppDataFolder(), "force-onboarding.flag");
+            ApplicationFactoryResetService.CompletePendingApplicationDataResetIfNeeded();
+
+            var forceOnboardingFlagPath = ApplicationFactoryResetService.ForceOnboardingFlagPath;
             var forceOnboarding = File.Exists(forceOnboardingFlagPath);
 
-            // KROK 1: Inicjalizacja ustawień (10%)
-            _splashWindow?.UpdateProgress(0.0, "Inicjalizacja...");
-            await Task.Run(() =>
+            // KROK 0: Inicjalizacja bazy danych SQLite (przed ustawieniami)
+            _splashWindow?.UpdateProgress(0.0, "Inicjalizacja bazy danych...");
+            _databaseService = _serviceProvider?.GetService<DatabaseService>();
+            if (_databaseService != null)
             {
-                // Upewnij się, że TelemetryEnabled istnieje w appsettings.json
-                ConfigManager.EnsureTelemetryEnabledExists();
-            });
+                await _databaseService.InitializeAsync();
+                System.Diagnostics.Debug.WriteLine("[App] Baza danych SQLite zainicjalizowana.");
+
+                // Ustaw repozytoria w ConfigManager (migracja z JSON na SQLite)
+                var modRepo = _serviceProvider?.GetService<IModRepository>();
+                if (modRepo != null)
+                {
+                    ConfigManager.SetRepository(modRepo);
+                    System.Diagnostics.Debug.WriteLine("[App] ConfigManager -> SQLite repository set.");
+                }
+
+                var touRepo = _serviceProvider?.GetService<ITouConfigRepository>();
+                if (touRepo != null)
+                {
+                    ConfigManager.SetTouConfigRepository(touRepo);
+                    System.Diagnostics.Debug.WriteLine("[App] ConfigManager -> TouConfig repository set.");
+                }
+            }
+
+            // Utwórz UserSettingsService z repozytorium SQLite (po inicjalizacji bazy)
+            var userSettingsRepo = _serviceProvider?.GetService<IUserSettingsRepository>();
+            _dbUserSettingsService = userSettingsRepo != null
+                ? new UserSettingsService(userSettingsRepo)
+                : new UserSettingsService();
+
+            // Ustaw domyślne repozytorium, aby wszystkie nowe UserSettingsService() używały SQLite
+            if (userSettingsRepo != null)
+            {
+                UserSettingsService.SetDefaultRepository(userSettingsRepo);
+                System.Diagnostics.Debug.WriteLine("[App] UserSettingsService default repository set (SQLite).");
+            }
+
             await _splashWindow?.AnimateProgressAsync(0.1)!;
 
             // KROK 1.5: Sprawdź czy język jest ustawiony, jeśli nie - pokaż dialog wyboru języka
-            var userSettingsService = new UserSettingsService();
+            var userSettingsService = _dbUserSettingsService;
             if (forceOnboarding)
             {
                 userSettingsService.UpdateUserSetting(settings => settings.Language = string.Empty);
@@ -234,6 +421,10 @@ public partial class App : Application
             });
             await _splashWindow?.AnimateProgressAsync(0.9)!;
 
+            // KROK 4.5: Uruchom Lobby Bridge File Reader (monitorowanie lobby-bridge.json)
+            var bridgeReader = _serviceProvider?.GetService<LobbyBridgeFileReader>();
+            bridgeReader?.Start();
+
             // KROK 5: Zamiana okien (100%)
             _splashWindow?.UpdateProgress(0.9, "Finalizacja...");
             await _splashWindow?.AnimateProgressAsync(1.0)!;
@@ -249,8 +440,26 @@ public partial class App : Application
                     await _splashWindow.CloseWithFadeAsync();
                 }
 
+                // Inicjalizuj SystemTrayService po pokazaniu MainWindow
+                mainWindow.InitializeSystemTray();
+                // Podepnij podpięcie aktualizacji modów w tray
+                mainWindow.UpdateTrayModsList();
+
                 // Po załadowaniu głównego okna uruchom zadania post-startowe.
                 _ = RunPostStartupTasksAsync(mainWindow, viewModel, userSettingsService);
+
+                // IPC: druga instancja może przekazać susmodder://pack/...
+                viewModel.StartModPackDeepLinkServer();
+
+                // Deep link mod pack (susmodder://pack/CODE) z argumentów startowych
+                if (!string.IsNullOrEmpty(PendingModPackCode))
+                {
+                    var code = PendingModPackCode;
+                    var auto = PendingModPackAutoInstall;
+                    PendingModPackCode = null;
+                    PendingModPackAutoInstall = false;
+                    _ = viewModel.HandlePendingModPackDeepLinkAsync(code, auto);
+                }
 
                 // Inicjalizuj telemetrię i wyślij heartbeat w tle (tylko Windows)
                 // Przeniesione z KROK 2 - WMI queries w HardwareIdProvider trwają 1-5s
@@ -308,6 +517,15 @@ public partial class App : Application
     {
         try
         {
+            await viewModel.PromptAmongUsPathOnStartupIfNeededAsync();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[App] Błąd podczas monitu Among Us: {ex.Message}");
+        }
+
+        try
+        {
             await ShowAntivirusWarningIfNeededAsync(mainWindow, userSettingsService);
         }
         catch (Exception ex)
@@ -361,11 +579,12 @@ public partial class App : Application
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private async void OnShutdownRequested(object? sender, ShutdownRequestedEventArgs e)
     {
+        _ = Task.Run(() => ModsStorageCleanupService.RunCleanup(DebugDiagnosticsOutput.Instance.Write));
+
         // Wyślij końcowy heartbeat przed zamknięciem
         if (_telemetryService != null)
         {
             await _telemetryService.SendShutdownHeartbeatAsync();
-            _telemetryService.Dispose();
         }
     }
 

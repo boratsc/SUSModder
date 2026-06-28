@@ -1,103 +1,97 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<OutputType>WinExe</OutputType>
-		<TargetFramework>net10.0-windows</TargetFramework>
-		<Nullable>enable</Nullable>
-		<ApplicationIcon>Assets\icon.ico</ApplicationIcon>
-		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-		<ApplicationManifest>app.manifest</ApplicationManifest>
-		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-		<PublishDir>..\publish\</PublishDir>
-		<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
-	</PropertyGroup>
-
-	<!-- Konfiguracja tylko dla Release/Publish -->
-	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
-		<SelfContained>true</SelfContained>
-		<PublishSingleFile>true</PublishSingleFile>
-		<PublishReadyToRun>true</PublishReadyToRun>
-		<EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
-		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-		<PublishTrimmed>false</PublishTrimmed>
-		<DebugType>none</DebugType>
-		<DebugSymbols>false</DebugSymbols>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<AvaloniaResource Include="Assets\**" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<AvaloniaResource Include="Themes\*.axaml" />
-		<AvaloniaResource Include="Styles\*.axaml" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Avalonia" Version="11.3.12" />
-		<PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
-		<PackageReference Include="Avalonia.Labs.Panels" Version="11.3.1" />
-		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
-		<PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.12" />
-		<PackageReference Include="Avalonia.Diagnostics" Version="11.3.12">
-			<IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
-			<PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
-		</PackageReference>
-		<PackageReference Include="Avalonia.ReactiveUI" Version="11.3.8" />
-		<PackageReference Include="FluentIcons.Avalonia" Version="2.0.319" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.3" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
-		<PackageReference Include="WebView2.Avalonia" Version="1.0.3240.44-preview.250526.1" />
-		<PackageReference Include="Xaml.Behaviors.Avalonia" Version="11.3.9.5" />
-		<PackageReference Include="Velopack" Version="0.0.1298" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<AvaloniaXaml Remove="styles\*.axaml" />
-		<AvaloniaXaml Remove="themes\*.axaml" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Content Include="tools\7z.exe">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-		</Content>
-		<Content Include="tools\7z.dll">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-		</Content>
-	</ItemGroup>
-
-	<ItemGroup>
-		<Content Include="appsettings.json">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-		</Content>
-		<Content Include="version.json">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-		</Content>
-	</ItemGroup>
-
-	<ItemGroup>
-		<EmbeddedResource Include="Localization\*.json" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\SUSModder.Core\SUSModder.Core.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<AvaloniaResource Update="Styles\LinkButtonStyle.axaml">
-			<SubType>Designer</SubType>
-		</AvaloniaResource>
-		<AvaloniaResource Update="Themes\PinkTheme.axaml">
-		  <SubType>Designer</SubType>
-		</AvaloniaResource>
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Compile Update="Views\VelopackUpdateDialog.axaml.cs">
-	    <DependentUpon>VelopackUpdateDialog.axaml</DependentUpon>
-	  </Compile>
-	</ItemGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <PublishDir>..\publish\</PublishDir>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <PlatformTarget>x64</PlatformTarget>
+    <!--
+      NU1903: SQLitePCLRaw.lib.e_sqlite3 is deprecated upstream (renamed to SourceGear.sqlite3)
+      but is still pulled in transitively by Microsoft.Data.Sqlite 10.0.x. There is no
+      fix available from Microsoft yet, so suppress the warning until the upstream
+      dependency is replaced. Track: https://github.com/advisories/GHSA-2m69-gcr7-jv3q
+    -->
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+  <!-- Konfiguracja tylko dla Release/Publish -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishTrimmed>false</PublishTrimmed>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Themes\*.axaml" />
+    <AvaloniaResource Include="Styles\*.axaml" />
+    <!-- SkeletonCard.axaml to Styles; UserControl ModCard kompilowany jako AvaloniaXaml -->
+    <AvaloniaResource Include="Controls\SkeletonCard.axaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.0.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.0.3" />
+    <PackageReference Include="Avalonia.Labs.Panels" Version="12.0.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.3" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.3" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.3.16">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.8" />
+    <PackageReference Include="FluentIcons.Avalonia" Version="2.1.328" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.8" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
+    <PackageReference Include="Xaml.Behaviors.Avalonia" Version="12.0.0.1" />
+    <PackageReference Include="Velopack" Version="0.0.1298" />
+    <PackageReference Include="Avalonia.Controls.WebView" Version="12.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaXaml Remove="styles\*.axaml" />
+    <AvaloniaXaml Remove="themes\*.axaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="version.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="Assets\icon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Localization\*.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SUSModder.Core\SUSModder.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Update="Styles\LinkButtonStyle.axaml">
+      <SubType>Designer</SubType>
+    </AvaloniaResource>
+    <AvaloniaResource Update="Themes\PinkTheme.axaml">
+      <SubType>Designer</SubType>
+    </AvaloniaResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Views\VelopackUpdateDialog.axaml.cs">
+      <DependentUpon>VelopackUpdateDialog.axaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
 </Project>

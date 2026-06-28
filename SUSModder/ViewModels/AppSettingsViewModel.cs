@@ -39,6 +39,16 @@ namespace SUSModder.ViewModels
         private bool _telemetryEnabled = true;
         private bool _originalTelemetryEnabled = true;
 
+        // Ustawienia system tray (domyślnie włączone od v2.4.0)
+        private bool _minimizeToTray = true;
+        private bool _originalMinimizeToTray = true;
+        private bool _glassReduceTransparency;
+        private bool _originalGlassReduceTransparency;
+        private bool _showQuickLaunchInTray = true;
+        private bool _originalShowQuickLaunchInTray = true;
+        private bool _preferDepotDownloader;
+        private bool _originalPreferDepotDownloader;
+
         // Stała lista dostępnych języków (aby uniknąć problemów z referencjami)
         private static readonly List<LanguageOption> _availableLanguages = new()
         {
@@ -66,20 +76,7 @@ namespace SUSModder.ViewModels
             // Pobierz serwis lokalizacji
             _localizationService = App.GetService<ILocalizationService>();
 
-            // Załaduj listę kanałów aktualizacji z tłumaczeniami
-            _availableUpdateChannels = new List<UpdateChannelOption>
-            {
-                new UpdateChannelOption
-                {
-                    Code = "release",
-                    DisplayName = _localizationService?.Get("Settings.UpdateChannel.Channels.Release") ?? "Release (Stabilne wydania)"
-                },
-                new UpdateChannelOption
-                {
-                    Code = "beta",
-                    DisplayName = _localizationService?.Get("Settings.UpdateChannel.Channels.Beta") ?? "Beta (Wersje testowe)"
-                }
-            };
+            _availableUpdateChannels = BuildUpdateChannelOptions();
 
             // Załaduj obecne ustawienia
             LoadCurrentSettings();
@@ -163,6 +160,8 @@ namespace SUSModder.ViewModels
             set
             {
                 this.RaiseAndSetIfChanged(ref _updateChannel, value);
+                this.RaisePropertyChanged(nameof(CurrentUpdateChannelDisplayName));
+                this.RaisePropertyChanged(nameof(CurrentUpdateChannelSummary));
                 CheckForChanges();
             }
         }
@@ -185,9 +184,19 @@ namespace SUSModder.ViewModels
                 if (oldValue != value && value != null)
                 {
                     UpdateChannel = value.Code;
+                    this.RaisePropertyChanged(nameof(CurrentUpdateChannelDisplayName));
+                    this.RaisePropertyChanged(nameof(CurrentUpdateChannelSummary));
                 }
             }
         }
+
+        public string CurrentUpdateChannelDisplayName =>
+            AvailableUpdateChannels.FirstOrDefault(channel => channel.Code == UpdateChannel)?.DisplayName
+            ?? UpdateChannel;
+
+        public string CurrentUpdateChannelSummary => _localizationService?.GetFormatted(
+            "Settings.UpdateChannel.CurrentSummary",
+            CurrentUpdateChannelDisplayName) ?? $"Current update channel: {CurrentUpdateChannelDisplayName}";
 
         public string GameMode
         {
@@ -195,6 +204,7 @@ namespace SUSModder.ViewModels
             set
             {
                 this.RaiseAndSetIfChanged(ref _gameMode, value);
+                this.RaisePropertyChanged(nameof(IsSteamDepotDownloaderSectionVisible));
                 CheckForChanges();
             }
         }
@@ -238,6 +248,52 @@ namespace SUSModder.ViewModels
             }
         }
 
+        public bool MinimizeToTray
+        {
+            get => _minimizeToTray;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _minimizeToTray, value);
+                CheckForChanges();
+            }
+        }
+
+        public bool ShowQuickLaunchInTray
+        {
+            get => _showQuickLaunchInTray;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _showQuickLaunchInTray, value);
+                CheckForChanges();
+            }
+        }
+
+        public bool GlassReduceTransparency
+        {
+            get => _glassReduceTransparency;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _glassReduceTransparency, value);
+                CheckForChanges();
+            }
+        }
+
+        public bool PreferDepotDownloader
+        {
+            get => _preferDepotDownloader;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _preferDepotDownloader, value);
+                CheckForChanges();
+            }
+        }
+
+        public bool IsGlassAppearanceSectionVisible => _currentTheme == "glass";
+
+        public bool IsSteamDepotDownloaderSectionVisible => IsSteamMode;
+
+        private string _currentTheme = "dark";
+
         public LanguageOption? SelectedLanguage
         {
             get
@@ -280,6 +336,23 @@ namespace SUSModder.ViewModels
 
         public string WindowTitle => HasUnsavedChanges ? "Ustawienia aplikacji *" : "Ustawienia aplikacji";
 
+        private List<UpdateChannelOption> BuildUpdateChannelOptions()
+        {
+            return new List<UpdateChannelOption>
+            {
+                new UpdateChannelOption
+                {
+                    Code = "release",
+                    DisplayName = _localizationService?.Get("Settings.UpdateChannel.Channels.Release") ?? "Stable"
+                },
+                new UpdateChannelOption
+                {
+                    Code = "beta",
+                    DisplayName = _localizationService?.Get("Settings.UpdateChannel.Channels.Beta") ?? "Beta"
+                }
+            };
+        }
+
         public ReactiveCommand<Unit, Unit> BrowseFolderCommand { get; }
         public ReactiveCommand<Unit, Unit> SaveCommand { get; }
         public ReactiveCommand<Unit, Unit> CancelCommand { get; }
@@ -302,6 +375,22 @@ namespace SUSModder.ViewModels
                 _developerMode = DeveloperModeSettings.IsEnabled;
                 _originalDeveloperMode = _developerMode;
 
+                // Załaduj ustawienia system tray
+                _minimizeToTray = userSettings.MinimizeToTray;
+                _originalMinimizeToTray = _minimizeToTray;
+                _showQuickLaunchInTray = userSettings.ShowQuickLaunchInTray;
+                _originalShowQuickLaunchInTray = _showQuickLaunchInTray;
+
+                _currentTheme = userSettings.Theme ?? "dark";
+                _glassReduceTransparency = userSettings.GlassReduceTransparency;
+                _originalGlassReduceTransparency = _glassReduceTransparency;
+                _preferDepotDownloader = userSettings.PreferDepotDownloader;
+                _originalPreferDepotDownloader = _preferDepotDownloader;
+                this.RaisePropertyChanged(nameof(IsGlassAppearanceSectionVisible));
+                this.RaisePropertyChanged(nameof(GlassReduceTransparency));
+                this.RaisePropertyChanged(nameof(PreferDepotDownloader));
+                this.RaisePropertyChanged(nameof(IsSteamDepotDownloaderSectionVisible));
+
                 // Załaduj GameMode z user settings
                 _gameMode = userSettings.Mode;
                 _originalGameMode = _gameMode;
@@ -317,6 +406,10 @@ namespace SUSModder.ViewModels
                 _originalDeveloperMode = false;
                 _gameMode = "steam";
                 _originalGameMode = "steam";
+                _minimizeToTray = true;
+                _originalMinimizeToTray = true;
+                _showQuickLaunchInTray = true;
+                _originalShowQuickLaunchInTray = true;
             }
         }
 
@@ -350,7 +443,11 @@ namespace SUSModder.ViewModels
                                _updateChannel != _originalUpdateChannel ||
                                _gameMode != _originalGameMode ||
                                (_selectedLanguage?.Code ?? "pl") != _originalLanguage ||
-                               _telemetryEnabled != _originalTelemetryEnabled;
+                               _telemetryEnabled != _originalTelemetryEnabled ||
+                               _minimizeToTray != _originalMinimizeToTray ||
+                               _showQuickLaunchInTray != _originalShowQuickLaunchInTray ||
+                               _glassReduceTransparency != _originalGlassReduceTransparency ||
+                               _preferDepotDownloader != _originalPreferDepotDownloader;
             this.RaisePropertyChanged(nameof(WindowTitle));
         }
 
@@ -504,6 +601,10 @@ namespace SUSModder.ViewModels
                     settings.ModsInstallPath = ModsInstallPath;
                     settings.TelemetryEnabled = TelemetryEnabled;
                     settings.UpdateChannel = UpdateChannel;
+                    settings.MinimizeToTray = MinimizeToTray;
+                    settings.ShowQuickLaunchInTray = ShowQuickLaunchInTray;
+                    settings.GlassReduceTransparency = GlassReduceTransparency;
+                    settings.PreferDepotDownloader = PreferDepotDownloader;
                     if (_selectedLanguage != null)
                     {
                         settings.Language = _selectedLanguage.Code;
@@ -518,6 +619,10 @@ namespace SUSModder.ViewModels
                 _originalUpdateChannel = UpdateChannel;
                 _originalGameMode = GameMode;
                 _originalTelemetryEnabled = TelemetryEnabled;
+                _originalMinimizeToTray = MinimizeToTray;
+                _originalShowQuickLaunchInTray = ShowQuickLaunchInTray;
+                _originalGlassReduceTransparency = GlassReduceTransparency;
+                _originalPreferDepotDownloader = PreferDepotDownloader;
                 HasUnsavedChanges = false;
 
                 // Powiadom o zapisaniu ustawień
@@ -726,29 +831,12 @@ namespace SUSModder.ViewModels
         {
             try
             {
-                // Pobierz ścieżki z appsettings.json
-                string exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                string appSettingsPath = Path.Combine(exeDir, "appsettings.json");
-                string configPath = Path.Combine(exeDir, "config.json");
-
-                string modsInstallPath = string.Empty;
-                string defaultModsPath = string.Empty;
-
-                if (File.Exists(appSettingsPath))
-                {
-                    var json = await File.ReadAllTextAsync(appSettingsPath);
-                    using var doc = JsonDocument.Parse(json);
-                    if (doc.RootElement.TryGetProperty("AppSettings", out var appSettings))
-                    {
-                        if (appSettings.TryGetProperty("ModsInstallPath", out var modsPathElem))
-                            modsInstallPath = modsPathElem.GetString() ?? string.Empty;
-                        if (appSettings.TryGetProperty("DefaultModsPath", out var defPathElem))
-                            defaultModsPath = defPathElem.GetString() ?? string.Empty;
-                    }
-                }
+                string appSettingsPath = ApplicationPaths.AppSettingsPath;
+                var factoryResetService = new ApplicationFactoryResetService();
+                var directoriesToDelete = factoryResetService.CollectDataPathsToDelete();
 
                 // Pokaż dedykowany dialog potwierdzenia
-                var dialog = new FactoryResetConfirmDialog(modsInstallPath, defaultModsPath);
+                var dialog = new FactoryResetConfirmDialog(directoriesToDelete);
                 var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
 
                 if (mainWindow != null)
@@ -763,76 +851,9 @@ namespace SUSModder.ViewModels
                     return;
                 }
 
-                void ForceDeleteDirectory(string path)
-                {
-                    if (!Directory.Exists(path))
-                        return;
-
-                    foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
-                    {
-                        try
-                        {
-                            var attr = File.GetAttributes(file);
-                            if ((attr & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
-                                File.SetAttributes(file, attr & ~FileAttributes.ReadOnly);
-                        }
-                        catch { /* ignoruj pojedyncze błędy */ }
-                    }
-                    Directory.Delete(path, true);
-                }
-
-                // Usuń katalogi modów
-                if (!string.IsNullOrWhiteSpace(modsInstallPath) && Directory.Exists(modsInstallPath))
-                {
-                    ForceDeleteDirectory(modsInstallPath);
-                }
-                if (!string.IsNullOrWhiteSpace(defaultModsPath))
-                {
-                    string expandedDefault = Environment.ExpandEnvironmentVariables(defaultModsPath);
-                    if (Directory.Exists(expandedDefault))
-                    {
-                        ForceDeleteDirectory(expandedDefault);
-                    }
-                }
-
-                // Usuń config.json
-                if (File.Exists(configPath))
-                {
-                    File.Delete(configPath);
-                }
-
-                // Nadpisz user-settings.json z pustym Mode i Language,
-                // aby przy kolejnym starcie WYMUSIĆ dialogi wyboru.
-                // Samo usuwanie pliku bywało niewystarczające (race z innymi zapisami).
-                var resetUserSettings = new UserSettings
-                {
-                    Mode = string.Empty,
-                    Language = string.Empty,
-                    TelemetryEnabled = true,
-                    Theme = "dark",
-                    ModsInstallPath = string.Empty,
-                    UpdateChannel = "release",
-                    LastLaunchId = 0,
-                    LicenseAccepted = false,
-                    FirstRunDate = string.Empty,
-                    VanillaInstallPath = string.Empty,
-                    AntivirusWarningAcknowledgedSignature = string.Empty
-                };
-                _userSettingsService.SaveUserSettings(resetUserSettings);
-
-                // Ustaw flagę wymuszającą ponowny onboarding (język + platforma)
-                // przy następnym uruchomieniu, nawet jeśli inne procesy chwilowo nadpiszą settings.
-                try
-                {
-                    var appDataFolder = UserSettingsService.GetAppDataFolder();
-                    Directory.CreateDirectory(appDataFolder);
-                    var forceOnboardingFlagPath = Path.Combine(appDataFolder, "force-onboarding.flag");
-                    await File.WriteAllTextAsync(forceOnboardingFlagPath, "factory-reset");
-                }
-                catch
-                {
-                    // Nie blokuj resetu jeśli nie udało się zapisać flagi.
-                }
+                await factoryResetService.DeleteModsDirectoriesAsync(directoriesToDelete);
+                factoryResetService.DeleteRuntimeConfigFile();
+                factoryResetService.ScheduleApplicationDataResetOnNextStartup();
 
                 // Wyczyść Configuration:Mode z appsettings.json - dzięki temu migracja
                 // przy starcie nie odczyta starego trybu i wymusi dialog wyboru platformy

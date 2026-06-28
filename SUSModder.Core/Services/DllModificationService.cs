@@ -144,7 +144,7 @@ namespace SUSModder.Core.Services
                 }
 
                 // Wybierz odpowiedni link do pobrania
-                string downloadUrl = GetDllDownloadUrl(dllMod, platform);
+                string downloadUrl = await GetDllDownloadUrlAsync(dllMod, platform);
                 if (string.IsNullOrEmpty(downloadUrl))
                 {
                     _diagnosticsOutput.Write("No download URL available for this platform");
@@ -164,7 +164,13 @@ namespace SUSModder.Core.Services
                 string actualModPath = PathSettings.GetActualModPath(targetMod.InstallPath);
                 _diagnosticsOutput.Write($"Base install path: {targetMod.InstallPath}");
                 _diagnosticsOutput.Write($"Actual mod path (with Epic AmongUs check): {actualModPath}");
-                string targetPath = Path.Combine(actualModPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
+                if (!ModPackInstaller.TryResolveSafeDllDirectory(actualModPath, dllMod.DllInstallPath, out var targetDirectory) ||
+                    !ModPackInstaller.TryResolveSafeDllPath(targetDirectory, fileName, out var targetPath))
+                {
+                    _diagnosticsOutput.Write("Unsafe DLL target path blocked");
+                    return null;
+                }
+
                 string? targetDirectoryNullable = Path.GetDirectoryName(targetPath);
 
                 // Sprawdź czy GetDirectoryName zwróciło null
@@ -173,8 +179,6 @@ namespace SUSModder.Core.Services
                     _diagnosticsOutput.Write("Could not determine target directory");
                     return null;
                 }
-
-                string targetDirectory = targetDirectoryNullable;
 
                 _diagnosticsOutput.Write($"Target path: {targetPath}");
 
@@ -191,15 +195,62 @@ namespace SUSModder.Core.Services
                     _diagnosticsOutput.Write($"Created directory: {targetDirectory}");
                 }
 
-                // Pobierz i zapisz plik
+                // Pobierz i zapisz plik (safe replace: temp → atomic overwrite)
                 _diagnosticsOutput.Write($"Downloading from: {downloadUrl}");
                 var response = await _httpClient.GetAsync(downloadUrl);
                 response.EnsureSuccessStatusCode();
 
                 var content = await response.Content.ReadAsByteArrayAsync();
-                await File.WriteAllBytesAsync(targetPath, content);
 
-                _diagnosticsOutput.Write($"DLL installation completed successfully");
+                // Zapisz do pliku tymczasowego (w tym samym katalogu co docelowy, żeby
+                // rename był atomowy – na tym samym wolumenie)
+                string tempPath = targetPath + ".tmp";
+                string? backupPath = null;
+                try
+                {
+                    await File.WriteAllBytesAsync(tempPath, content);
+
+                    // Jeśli plik docelowy istnieje, zrób backup przed nadpisaniem
+                    if (File.Exists(targetPath))
+                    {
+                        backupPath = targetPath + ".bak";
+                        File.Move(targetPath, backupPath, overwrite: true);
+                    }
+
+                    // Atomowe zastąpienie: rename temp → target
+                    File.Move(tempPath, targetPath, overwrite: true);
+                    _diagnosticsOutput.Write($"DLL installation completed successfully");
+
+                    // Jeśli backup istniał i wszystko się udało, usuń go
+                    if (backupPath != null && File.Exists(backupPath))
+                    {
+                        try { File.Delete(backupPath); }
+                        catch { /* backup może zostać */ }
+                    }
+                }
+                catch (Exception writeEx)
+                {
+                    _diagnosticsOutput.Write($"[ERROR] DLL write failed, preserving old DLL: {writeEx.Message}");
+
+                    // Przywróć backup jeśli operacja się nie udała
+                    if (backupPath != null && File.Exists(backupPath) && !File.Exists(targetPath))
+                    {
+                        try { File.Move(backupPath, targetPath); }
+                        catch { /* najlepsza próba przywrócenia */ }
+                    }
+
+                    // Posprzątaj plik tymczasowy
+                    try { if (File.Exists(tempPath)) File.Delete(tempPath); }
+                    catch { /* nic nie robimy */ }
+
+                    return null;
+                }
+                finally
+                {
+                    // Posprzątaj plik tymczasowy (na wypadek gdyby został)
+                    try { if (File.Exists(tempPath)) File.Delete(tempPath); }
+                    catch { /* nic nie robimy */ }
+                }
 
                 // === NOWY KOD: Zaktualizuj Installation Map ===
                 try
@@ -287,7 +338,12 @@ namespace SUSModder.Core.Services
 
                 // Ścieżka do pliku - uwzględnij strukturę Epic (podkatalog AmongUs)
                 string actualModPath = PathSettings.GetActualModPath(targetMod.InstallPath);
-                string filePath = Path.Combine(actualModPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
+                if (!ModPackInstaller.TryResolveSafeDllDirectory(actualModPath, dllMod.DllInstallPath, out var targetDirectory) ||
+                    !ModPackInstaller.TryResolveSafeDllPath(targetDirectory, fileName, out var filePath))
+                {
+                    _diagnosticsOutput.Write("Unsafe DLL target path blocked");
+                    return false;
+                }
                 _diagnosticsOutput.Write($"File path to remove: {filePath}");
 
                 if (!File.Exists(filePath))
@@ -358,7 +414,12 @@ namespace SUSModder.Core.Services
                 
                 // Uwzględnij strukturę Epic (podkatalog AmongUs)
                 string actualModPath = PathSettings.GetActualModPath(targetMod.InstallPath);
-                string filePath = Path.Combine(actualModPath, dllMod.DllInstallPath ?? "BepInEx\\plugins", fileName);
+                if (!ModPackInstaller.TryResolveSafeDllDirectory(actualModPath, dllMod.DllInstallPath, out var targetDirectory) ||
+                    !ModPackInstaller.TryResolveSafeDllPath(targetDirectory, fileName, out var filePath))
+                {
+                    _diagnosticsOutput.Write("Unsafe DLL target path blocked while checking installation status");
+                    return false;
+                }
 
                 return File.Exists(filePath);
             }
@@ -369,9 +430,9 @@ namespace SUSModder.Core.Services
             }
         }
 
-        private string GetDllDownloadUrl(ModConfiguration dllMod, string platform)
+        private async Task<string> GetDllDownloadUrlAsync(ModConfiguration dllMod, string platform)
         {
-            return ModDownloadUrlBuilder.Build(dllMod, platform);
+            return await ModDownloadUrlBuilder.ResolveAsync(dllMod, platform);
         }
 
         private string GetDllFileName(ModConfiguration dllMod, string platform)

@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using System.Runtime.Versioning;
-using System.Text;
+using SUSModder.Core.Api;
+using SUSModder.Core.Diagnostics;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
@@ -18,10 +18,9 @@ namespace SUSModder.Core.Services
     /// Serwis telemetrii - zbieranie anonimowych statystyk użytkowania
     /// </summary>
     [SupportedOSPlatform("windows")]
-    public class TelemetryService : IDisposable
+    public class TelemetryService
     {
-        private readonly IConfiguration _configuration;
-        private readonly HttpClient _httpClient;
+        private readonly ISUSModderApiClient _apiClient;
         private readonly SessionTracker _sessionTracker;
         private readonly UserSettingsService _userSettingsService;
         private readonly string _userHash;
@@ -32,21 +31,18 @@ namespace SUSModder.Core.Services
         private DateTimeOffset _nextAllowedHeartbeatUtc = DateTimeOffset.MinValue;
         private static readonly TimeSpan MinHeartbeatInterval = TimeSpan.FromSeconds(30);
 
-        public TelemetryService(IConfiguration configuration)
+        public TelemetryService(IConfiguration configuration, ISUSModderApiClient? apiClient = null)
         {
-            _configuration = configuration;
-            _httpClient = new HttpClient
-            {
-                Timeout = TimeSpan.FromSeconds(2) // Krótki timeout - nie blokujemy UI
-            };
+            _apiClient = apiClient ?? SUSModderApiClientProvider.TryGetDefault()
+                ?? new SUSModderApiClient(configuration, new NullDiagnosticsOutput());
             _sessionTracker = new SessionTracker();
             _userSettingsService = new UserSettingsService();
 
             // Generuj/wczytaj anonimowy hash użytkownika
             _userHash = HardwareIdProvider.GetAnonymousUserHash();
 
-            // Wczytaj wersję z version.json
-            _appVersion = LoadAppVersionFromFile();
+            // Wczytaj wersję aplikacji bez fallbacku do wersji assembly SUSModder.Core (zwykle 1.0.0).
+            _appVersion = AppVersionResolver.Resolve(_userSettingsService);
 
             // Sprawdź czy telemetria jest włączona (z UserSettings)
             var userSettings = _userSettingsService.LoadUserSettings();
@@ -86,24 +82,15 @@ namespace SUSModder.Core.Services
 
             try
             {
-                var baseUrl = _configuration["Configuration:BaseUrl"]?.TrimEnd('/');
-                if (string.IsNullOrEmpty(baseUrl))
-                {
-                    System.Diagnostics.Debug.WriteLine("BaseUrl not configured - skipping telemetry");
-                    return;
-                }
-
-                var telemetryUrl = $"{baseUrl}/api/telemetry/heartbeat";
-
                 // Zbierz dane do wysłania z UserSettings
                 var userSettings = _userSettingsService.LoadUserSettings();
 
                 var language = userSettings.Language;
                 if (string.IsNullOrWhiteSpace(language))
                 {
-                    // Fallback do system locale jeśli nie ustawiono
                     language = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
                 }
+                language = SUSModder.Core.Api.Support.SupportDiagnosticContextBuilder.NormalizeLanguage(language);
 
                 var data = new
                 {
@@ -116,57 +103,13 @@ namespace SUSModder.Core.Services
                     timestamp = DateTime.UtcNow.ToString("O") // ISO 8601
                 };
 
-                var json = JsonSerializer.Serialize(data);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                System.Diagnostics.Debug.WriteLine($"Sending telemetry heartbeat: {JsonSerializer.Serialize(data)}");
 
-                System.Diagnostics.Debug.WriteLine($"Sending telemetry heartbeat to {telemetryUrl}: {json}");
-
-                // Fire-and-forget - nie czekamy na odpowiedź
-                _ = _httpClient.PostAsync(telemetryUrl, content).ContinueWith(task =>
+                _ = _apiClient.SendHeartbeatAsync(data).ContinueWith(task =>
                 {
                     if (task.IsFaulted)
-                    {
                         System.Diagnostics.Debug.WriteLine($"Telemetry heartbeat failed: {task.Exception?.GetBaseException().Message}");
-                    }
-                    else if (task.IsCompletedSuccessfully)
-                    {
-                        try
-                        {
-                            var resp = task.Result;
-                            if (resp == null)
-                            {
-                                System.Diagnostics.Debug.WriteLine("Telemetry heartbeat: no response object");
-                                return;
-                            }
-
-                            if (!resp.IsSuccessStatusCode)
-                            {
-                                if ((int)resp.StatusCode == 429)
-                                {
-                                    var retryAfter = resp.Headers.RetryAfter?.Delta ?? TimeSpan.FromMinutes(1);
-                                    lock (_heartbeatLock)
-                                    {
-                                        _nextAllowedHeartbeatUtc = DateTimeOffset.UtcNow.Add(retryAfter);
-                                    }
-                                    System.Diagnostics.Debug.WriteLine($"Telemetry heartbeat rate-limited (429). Next attempt after {retryAfter.TotalSeconds:0}s");
-                                }
-                                else
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"Telemetry heartbeat HTTP {(int)resp.StatusCode} {resp.ReasonPhrase}");
-                                }
-                            }
-                            else
-                            {
-                                System.Diagnostics.Debug.WriteLine("Telemetry heartbeat sent (HTTP 2xx)");
-                            }
-                            resp.Dispose();
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Telemetry post-processing error: {ex.Message}");
-                        }
-                    }
-                });
+                }, TaskScheduler.Default);
 
                 await Task.CompletedTask;
             }
@@ -265,7 +208,7 @@ namespace SUSModder.Core.Services
 
                 System.Diagnostics.Debug.WriteLine($"[Telemetry] Found {installedIds.Count} installed mods: [{string.Join(", ", installedIds)}]");
                 
-                return installedIds;
+                return installedIds.Where(id => id > 0).Distinct().ToList();
             }
             catch (Exception ex)
             {
@@ -285,41 +228,10 @@ namespace SUSModder.Core.Services
             _userSettingsService.UpdateUserSetting(settings => settings.TelemetryEnabled = enabled);
         }
 
-        /// <summary>
-        /// Wczytuje wersję aplikacji z version.json
-        /// </summary>
-        private string LoadAppVersionFromFile()
-        {
-            try
-            {
-                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                var versionFilePath = Path.Combine(exeDir, "version.json");
+    }
 
-                if (File.Exists(versionFilePath))
-                {
-                    var json = File.ReadAllText(versionFilePath);
-                    var versionData = JsonSerializer.Deserialize<Configuration.AppVersion>(json);
-
-                    if (versionData != null && !string.IsNullOrWhiteSpace(versionData.CurrentVersion))
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[Telemetry] Loaded version from version.json: {versionData.CurrentVersion}");
-                        return versionData.CurrentVersion;
-                    }
-                }
-
-                System.Diagnostics.Debug.WriteLine("[Telemetry] version.json not found or invalid - using fallback");
-                return "unknown";
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[Telemetry] Failed to load version: {ex.Message}");
-                return "unknown";
-            }
-        }
-
-        public void Dispose()
-        {
-            _httpClient?.Dispose();
-        }
+    internal sealed class NullDiagnosticsOutput : IDiagnosticsOutput
+    {
+        public void Write(string message) { }
     }
 }

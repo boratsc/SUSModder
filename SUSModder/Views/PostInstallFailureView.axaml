@@ -1,0 +1,107 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             x:Class="SUSModder.Views.PostInstallFailureView"
+             x:DataType="vm:PostInstallFailureViewModel"
+             Background="{DynamicResource CardBackgroundBrush}">
+
+	<UserControl.Styles>
+		<!-- Animacja fade-in wyłączona: poprzednia wersja używała
+		     Selector="UserControl" bez pseudo-klasy, co powodowało
+		     częściowo przezroczysty stan podczas zmiany IsVisible
+		     i wizualne nachodzenie się dwóch modali w tym samym
+		     kontenerze. Karta jest teraz zawsze w pełni widoczna,
+		     a płynność przejścia zapewnia istniejący wrapper
+		     fade-in-panel w MainWindow.axaml. -->
+
+		<Style Selector="Button.primary-button:pointerover">
+			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+	</UserControl.Styles>
+
+	<StackPanel Spacing="16" VerticalAlignment="Center" Margin="30">
+
+		<Border HorizontalAlignment="Center">
+			<TextBlock Text="❌" FontSize="48"/>
+		</Border>
+
+		<TextBlock FontSize="22"
+		           FontWeight="Bold"
+		           Foreground="{DynamicResource TextPrimaryBrush}"
+		           TextAlignment="Center"
+		           TextWrapping="Wrap"
+		           Text="{Binding TitleWithName}"/>
+
+		<TextBlock FontSize="14"
+		           Foreground="{DynamicResource TextSecondaryBrush}"
+		           TextAlignment="Center"
+		           TextWrapping="Wrap"
+		           Text="{Binding Message}"/>
+
+		<TextBlock FontSize="12"
+		           FontWeight="SemiBold"
+		           Foreground="{DynamicResource TextSecondaryBrush}"
+		           Text="{Binding LogLabel}"/>
+
+		<Border BorderBrush="{DynamicResource BorderBrush}"
+		        BorderThickness="1"
+		        CornerRadius="8"
+		        Padding="8"
+		        MaxHeight="220">
+			<ScrollViewer HorizontalScrollBarVisibility="Auto"
+			              VerticalScrollBarVisibility="Auto">
+				<TextBox Text="{Binding LogText}"
+				         IsReadOnly="True"
+				         AcceptsReturn="True"
+				         TextWrapping="Wrap"
+				         FontFamily="Consolas,Courier New,monospace"
+				         FontSize="11"
+				         Background="Transparent"
+				         BorderThickness="0"
+				         MinHeight="120"/>
+			</ScrollViewer>
+		</Border>
+
+		<TextBlock FontSize="12"
+		           FontWeight="SemiBold"
+		           Foreground="{DynamicResource TextSecondaryBrush}"
+		           Text="{Binding DiagnosticActionsTitle}"/>
+
+		<StackPanel Orientation="Horizontal"
+		            HorizontalAlignment="Center"
+		            Spacing="10">
+			<Button Command="{Binding OpenAiSupportCommand}"
+			        Classes="primary-button"
+			        FontSize="14"
+			        FontWeight="SemiBold"
+			        Padding="14,9"
+			        CornerRadius="8"
+			        Background="{DynamicResource AccentBrush}"
+			        Foreground="White"
+			        BorderThickness="0"
+			        Content="{Binding OpenAiSupportButton}"/>
+
+			<Button Command="{Binding CopyLogCommand}"
+			        FontSize="14"
+			        Padding="14,9"
+			        CornerRadius="8"
+			        BorderBrush="{DynamicResource BorderBrush}"
+			        Background="Transparent"
+			        Foreground="{DynamicResource TextPrimaryBrush}"
+			        Content="{Binding CopyLogButton}"/>
+		</StackPanel>
+
+		<Button Command="{Binding CloseCommand}"
+		        Classes="primary-button"
+		        HorizontalAlignment="Center"
+		        FontSize="16"
+		        FontWeight="SemiBold"
+		        Padding="20,12"
+		        CornerRadius="8"
+		        Background="{DynamicResource AccentBrush}"
+		        Foreground="White"
+		        BorderThickness="0"
+		        Content="{Binding CloseButton}"/>
+
+	</StackPanel>
+</UserControl>

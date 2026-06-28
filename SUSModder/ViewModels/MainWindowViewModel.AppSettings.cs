@@ -52,6 +52,8 @@ namespace SUSModder.ViewModels
                     // Wymuś przeładowanie ustawień deweloperskich
                     DeveloperModeSettings.RefreshSettings();
 
+                    LoadGlassAccessibilitySettings();
+
                     // Przeładuj listę modów
                     await RefreshModsListAsync();
                     this.RaisePropertyChanged(nameof(IsDeveloperMode));
@@ -102,6 +104,7 @@ namespace SUSModder.ViewModels
             if (IsAdditionalActionsVisible)
             {
                 IsInfoPanelVisible = false;
+                IsLobbyBoardVisible = false;
                 IsDllModificationsVisible = false;
                 IsSUStatsConfigVisible = false;
                 IsAppSettingsVisible = false;
@@ -123,6 +126,7 @@ namespace SUSModder.ViewModels
             if (IsInfoPanelVisible)
             {
                 IsAdditionalActionsVisible = false;
+                IsLobbyBoardVisible = false;
                 IsDllModificationsVisible = false;
                 IsSUStatsConfigVisible = false;
                 IsAppSettingsVisible = false;

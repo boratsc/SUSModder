@@ -1,4 +1,9 @@
-﻿{
+{
+  "App": {
+    "WindowTitle": {
+      "BetaVersion": "wersja testowa {0}"
+    }
+  },
   "UI": {
     "Buttons": {
       "Install": "Instaluj",
@@ -24,12 +29,128 @@
       "AddDll": "Dodaj DLL",
       "Roles": "Role"
     },
+    "Bulk": {
+      "SelectMode": "Zaznacz",
+      "SelectModeHint": "Zaznacz wiele modów do instalacji, aktualizacji lub odinstalowania",
+      "Done": "Gotowe",
+      "CancelSelection": "Anuluj",
+      "SelectedCount": "Zaznaczono: {0}",
+      "InstallSelected": "Zainstaluj ({0})",
+      "UpdateSelected": "Aktualizuj ({0})",
+      "UninstallSelected": "Odinstaluj ({0})",
+      "QueueProgress": "Kolejka: {0}/{1} — {2}",
+      "UninstallTitle": "Odinstaluj zaznaczone",
+      "UninstallConfirm": "Odinstalować {0} zaznaczonych modów?",
+      "Packs": {
+        "SelectedCount": "Zaznaczono zestawów: {0}",
+        "UpdateSelected": "Aktualizuj zestawy ({0})",
+        "DeleteSelected": "Usuń zestawy ({0})",
+        "DeleteConfirm": "Usunąć {0} zaznaczonych zestawów z listy?"
+      },
+      "SelectedDlls": "Zaznaczono DLL: {0}"
+    },
+    "Tabs": {
+      "MyPacks": "Moje zestawy",
+      "Catalog": "Katalog modów",
+      "DllAddons": "Dodatki DLL"
+    },
+    "Browser": {
+      "SearchPlaceholder": "Szukaj…",
+      "SelectMode": "Zaznacz",
+      "ExitSelectMode": "Gotowe",
+      "NoResults": "Brak wyników dla podanego filtra"
+    },
+    "Inspector": {
+      "Details": "Szczegóły",
+      "Contents": "Zawartość",
+      "Compatibility": "Kompatybilność",
+      "InstalledIn": "Zainstalowany w",
+      "CompatibleDlls": "Kompatybilne DLL",
+      "AddToTargets": "Dodaj / usuń z",
+      "QuickActions": "Szybkie akcje",
+      "Configuration": "Konfiguracja",
+      "Sharing": "Udostępnianie",
+      "DangerZone": "Niebezpieczne",
+      "Tools": "Narzędzia",
+      "ShowMore": "Pokaż więcej ({0})",
+      "ShowLess": "Pokaż mniej",
+      "MoreActions": "Dodatkowe akcje",
+      "LobbyChat": "Chat lobby",
+      "Compat": {
+        "Loading": "Ładowanie kompatybilności…"
+      }
+    },
+    "Actions": {
+      "CreatePack": "Utwórz zestaw",
+      "InstallClassic": "Instaluj klasycznie",
+      "AddTo": "Dodaj do…",
+      "ApplyChanges": "Zastosuj zmiany"
+    },
+    "Packs": {
+      "CreateLocal": "Utwórz nowy zestaw",
+      "CreateAndShare": "Utwórz i udostępnij",
+      "CreateAndShareTitle": "Utwórz i udostępnij zestaw",
+      "CreateLocalTitle": "Nowy lokalny zestaw",
+      "CreateLocalButton": "Utwórz i zainstaluj",
+      "CreateLocalSuccess": "Zestaw został utworzony w „Moje zestawy”.",
+      "CreateLocalPartial": "Zestaw został utworzony w „Moje zestawy”, ale nie udało się zainstalować części DLL: {0}",
+      "LocalDisplayNameLabel": "Nazwa lokalnego zestawu",
+      "DisplayNameRequired": "Podaj nazwę lokalnego zestawu.",
+      "ShareSourceLabel": "Źródło zestawu (Moje zestawy)",
+      "SelectShareSource": "Wybierz zestaw do udostępnienia.",
+      "NoShareSources": "Brak zainstalowanych zestawów do udostępnienia.",
+      "InstallerUnavailable": "Instalator instancji jest niedostępny.",
+      "Clone": "Klonuj zestaw",
+      "CloneTitle": "Klonuj zestaw",
+      "CloneDescription": "Utworzy się osobny folder i nowy wpis w Moje zestawy. Wybierz, co skopiować z oryginału.",
+      "CloneOptionsLabel": "Kopiuj",
+      "CloneCopyDlls": "Mody DLL",
+      "CloneCopyTouConfig": "Config Town of Us (z bazy instancji)",
+      "CloneCopyIntegration": "susmodder-integration.dll",
+      "CloneCopyPinnedVersion": "Przypiętą wersję i ustawienia auto-aktualizacji",
+      "CloneSuggestedName": "{0} (kopia)",
+      "CloneSuccess": "Zestaw został sklonowany.",
+      "EditTouConfig": "Config Town of Us",
+      "ApplyTouConfig": "Wczytaj config ToU zestawu do gry",
+      "SaveTouConfig": "Zapisz bieżący config ToU do zestawu",
+      "TouConfigApplied": "Config ToU zestawu zapisano w pliku gry (settings.amogus_TOU).",
+      "TouConfigCaptured": "Bieżący config ToU zapisano w tym zestawie.",
+      "TouConfigMissing": "Ten zestaw nie ma zapisanego configu ToU.",
+      "TouConfigGlobalMissing": "Nie znaleziono pliku settings.amogus_TOU — uruchom grę z modem ToU lub zapisz config lokalnie.",
+      "Update": "Aktualizuj zestaw",
+      "UpdateProgress": "Aktualizuję zestaw…",
+      "UpdateSuccess": "Zestaw „{0}” zaktualizowany do wersji {1}.",
+      "NoUpdateAvailable": "Ten zestaw jest już w najnowszej wersji.",
+      "Rename": "Zmień nazwę",
+      "RenamePrompt": "Nowa nazwa zestawu:",
+      "Share": "Udostępnij zestaw",
+      "InstallAsNew": "Zainstaluj jako nowy zestaw",
+      "InstallAsNewButton": "Zainstaluj jako nowy zestaw",
+      "LocalNamePlaceholder": "Nazwa lokalna, np. ToU - znajomi",
+      "Contents": "Zawartość",
+      "ContentsEmpty": "Brak dodatków DLL w tym zestawie.",
+      "NoPacksTitle": "Brak lokalnych zestawów",
+      "NoPacksDescription": "Zaimportuj kod modpacka lub zainstaluj mod z katalogu jako nowy zestaw.",
+      "MorePacksTitle": "Dodaj kolejny zestaw",
+      "MorePacksDescription": "Zaimportuj kod modpacka albo utwórz nowy lokalny zestaw z modu w katalogu.",
+      "DeleteTitle": "Odinstaluj zestaw",
+      "DeleteConfirmation": "Usunąć zestaw „{0}”?\n\nFolder:\n{1}",
+      "DeleteFilesConfirmation": "Usunąć także folder instalacji z dysku? Tej operacji nie można cofnąć.",
+      "LaunchCatalogMissing": "Nie znaleziono moda w katalogu — nie można uruchomić zestawu.",
+      "Origin": {
+        "Manual": "Utworzony ręcznie",
+        "SharedPack": "Z kodu modpacka",
+        "Clone": "Sklonowany",
+        "Legacy": "Migracja legacy"
+      }
+    },
     "Labels": {
       "InstalledMods": "Zainstalowanych modów",
       "InstalledIn": "Zainstalowano w",
       "Version": "Wersja",
       "ModVersion": "Wersja moda",
       "PinnedVersionInfo": "📌 Wersja przypięta",
+      "AutoUpdate": "Auto-aktualizacja",
       "GameVersion": "Wersja gry",
       "ModVersionFormat": "Wersja moda: {0}",
       "GameVersionFormat": "Wersja AmongUs: {0}",
@@ -55,8 +176,20 @@
       "About": "O programie",
       "Help": "Pomoc",
       "Exit": "Wyjdź",
-      "RecommendedDiscords": "Polecane Discordy",
-      "Info": "Informacje"
+      "RecommendedDiscords": "Discord / społeczność",
+      "Info": "Informacje",
+      "CheckModUpdates": "Sprawdź aktualizacje modów",
+      "LobbyBoard": "Tablica Lobby"
+    },
+    "LobbyBoard": {
+      "Time": {
+        "JustNow": "Przed chwilą",
+        "MinutesAgo": "{0} min temu",
+        "HoursAgo": "{0}h temu"
+      }
+    },
+    "Fab": {
+      "UpdatesBadgeTooltip": "{0} dostępnych aktualizacji"
     },
     "ModDetails": {
       "Header": "Szczegóły moda:",
@@ -120,7 +253,10 @@
     "Theme": {
       "SwitchToLight": "Motyw jasny",
       "SwitchToPink": "Motyw różowy",
-      "SwitchToDark": "Motyw ciemny"
+      "SwitchToGlass": "Motyw szklany",
+      "SwitchToDark": "Motyw ciemny",
+      "Glass": "Szklany",
+      "GlassDescription": "Półprzezroczysty motyw z rozmyciem tła systemowego (Windows Mica/Acrylic)"
     },
     "DeveloperMenu": {
       "RemoveSingleInstance": "Usuń SingleInstance",
@@ -139,7 +275,24 @@
       "ViewTitle": "Modyfikacje DLL",
       "ViewSubtitle": "Wybierz modyfikacje DLL (zaznaczone = zainstalowane)",
       "StatusInstalled": "[ZAINSTALOWANY]",
-      "VersionLabel": "Wersja: {0}"
+      "VersionLabel": "Wersja: {0}",
+      "NotInstalledAnywhere": "Nie zainstalowany w żadnym zestawie",
+      "InstalledInCount": "Zainstalowany w {0} zestawach",
+      "InstallTitle": "Instalacja DLL",
+      "InstallFailed": "Nie udało się zainstalować modyfikacji DLL.",
+      "InstallError": "Błąd podczas instalacji: {0}",
+      "UninstallTitle": "Usuwanie DLL",
+      "UninstallConfirm": "Czy na pewno chcesz usunąć „{0}” z „{1}”?",
+      "UninstallFailed": "Nie udało się usunąć modyfikacji DLL.",
+      "UninstallError": "Błąd podczas usuwania: {0}",
+      "InstallBlockedIncompatible": "Nie można zainstalować w „{0}” — ten dodatek DLL jest oznaczony jako niekompatybilny (nie działa).",
+      "AutoUpdateEnable": "Włącz auto-update",
+      "AutoUpdateEnabled": "✓ Auto-update: ON",
+      "AutoUpdateDisabled": "Auto-update: OFF",
+      "AutoUpdateMixed": "⚠ Auto-update: mieszany",
+      "AutoUpdateNotInstalled": "Zainstaluj DLL, aby włączyć auto-update",
+      "AutoUpdateFailedOldPreserved": "Nie udało się zaktualizować {0} — stara wersja zachowana",
+      "AutoUpdateNextRetry": "Ponowna próba przy następnym sprawdzeniu"
     },
     "Repair": {
       "DialogTitle": "Napraw grę",
@@ -195,6 +348,9 @@
       },
       "Cancelled": "Operacja anulowana przez użytkownika.",
       "Error": "Wystąpił błąd podczas naprawy: {0}"
+    },
+    "Fab": {
+      "UpdatesBadgeTooltip": "{0} dostępnych aktualizacji"
     }
   },
   "DllManager": {
@@ -238,7 +394,18 @@
       "LocationCountSingular": "1 lokalizacja",
       "UpdateAllButton": "Aktualizuj wszystkie",
       "CancelButton": "Anuluj"
-    }
+    },
+    "ViewTitleForMod": "Modyfikacje DLL dla {0}",
+    "WhatAreDlls": "Dodatkowe pluginy rozszerzające funkcje moda. Możesz pominąć.",
+    "LegendFavorite": "⭐ Polecane",
+    "LegendWorks": "✅ Działa",
+    "LegendNotTested": "❓ Nieprzetestowane",
+    "CompatFavorite": "Polecane",
+    "CompatWorks": "Działa",
+    "CompatNotTested": "Nieprzetestowane",
+    "SkipAll": "Pomiń wszystko",
+    "HiddenIncompatible": "modyfikacji ukryto (niekompatybilne)",
+    "HiddenIncompatibleTargets": "zestawów ukryto (niekompatybilne)"
   },
   "Dialogs": {
     "Success": {
@@ -327,7 +494,107 @@
       "SingleRecommendation": "Zalecamy odinstalowanie tego programu lub dodanie wyjątku dla katalogu modów:\n{0}",
       "MultipleRecommendation": "Wykryto więcej niż jedno oprogramowanie antywirusowe. Warto odinstalować zbędne programy, ponieważ mogą dodatkowo powodować konflikty z modami.",
       "Acknowledge": "Zapoznałem się z informacją"
+    },
+    "PostInstallSuccess": {
+      "Title": "Mod zainstalowany",
+      "TitleWithName": "✅ {0} zainstalowany pomyślnie! 🎉",
+      "Message": "Ten mod obsługuje modyfikacje DLL.\nCzy chcesz dodać dodatkowe pluginy?",
+      "MessageNoDll": "Mod został zainstalowany pomyślnie. Czy chcesz uruchomić grę?",
+      "LaunchButton": "🚀 Uruchom",
+      "AddDllButton": "🔧 Dodaj DLL...",
+      "AutoUpdate": "Automatyczne aktualizacje",
+      "DontShowAgain": "Nie pokazuj więcej",
+      "ShowChangelogButton": "📋 Zobacz listę zmian"
+    },
+    "PostInstallFailure": {
+      "Title": "Instalacja nieudana",
+      "TitleWithName": "❌ Nie udało się zainstalować: {0}",
+      "LogLabel": "Log instalacji",
+      "LogEmpty": "Brak wpisów w logu instalacji.",
+      "DiagnosticActionsTitle": "Co możesz zrobić dalej",
+      "OpenAiSupportButton": "🤖 Analizuj z pomocą SUSModder",
+      "CopyLogButton": "📋 Kopiuj log",
+      "CloseButton": "Zamknij"
+    },
+    "AmongUsNotFound": {
+      "Title": "Nie wykryto Among Us",
+      "Message": "SUSModder nie znalazł instalacji gry Among Us w systemie.\n\nAby wskazać grę ręcznie, kliknij „Przeglądaj” i wybierz plik Among Us.exe z folderu gry Steam (zwykle: …\\steamapps\\common\\Among Us\\Among Us.exe).\n\nUpewnij się, że Among Us jest zainstalowany w bibliotece Steam.",
+      "BrowseButton": "Przeglądaj",
+      "CloseButton": "Zamknij",
+      "InvalidFileTitle": "Nieprawidłowy plik",
+      "InvalidFileMessage": "Wybrany plik musi nazywać się „Among Us.exe” i pochodzić z folderu instalacji gry Among Us w Steam."
+    },
+    "EpicLoginRequired": {
+      "Title": "Logowanie Epic Games",
+      "Header": "Wymagane logowanie do Epic Games",
+      "Message": "Nie można potwierdzić zalogowania do konta Epic Games. Bez aktywnej sesji aplikacja nie będzie działać poprawnie w trybie Epic.",
+      "LoginButton": "Zaloguj się",
+      "SwitchToSteamButton": "Zmień na Steam",
+      "CloseButton": "Zamknij"
+    },
+    "PlatformSelection": {
+      "Title": "Wybierz platformę",
+      "Header": "Wybierz platformę",
+      "SteamLabel": "Steam",
+      "EpicLabel": "Epic Games",
+      "Footer": "Możesz zmienić platformę później w ustawieniach"
+    },
+    "SteamQr": {
+      "Title": "Logowanie Steam",
+      "Header": "Pobieranie Among Us ze Steam",
+      "Description": "SUSModder nie prosi o hasło Steam. Zeskanuj kod w aplikacji Steam na telefonie.",
+      "StatusPreparing": "Przygotowywanie logowania Steam...",
+      "FallbackButton": "Użyj kopii zapasowej (7z)",
+      "CancelButton": "Anuluj"
+    },
+    "EpicAuth": {
+      "Title": "Logowanie do Epic Games",
+      "Header": "Logowanie do Epic Games Store",
+      "Subtitle": "Wymagane do uruchomienia gry",
+      "CancelButton": "Anuluj",
+      "OpenInBrowser": "Otwórz w przeglądarce",
+      "LegendaryInfo": "SUSModder używa narzędzia Legendary do zarządzania grami Epic. Legendary to otwartoźródłowy, darmowy launcher dla Epic Games Store.",
+      "LegendaryMoreInfo": "Więcej informacji:",
+      "InstructionsTitle": "Instrukcje",
+      "InstructionsBody": "1. Za chwilę otworzy się przeglądarka z logowaniem Epic Games\n2. Zaloguj się do swojego konta Epic Games\n3. Po zalogowaniu zobaczysz stronę z kodem\n4. Zaznacz cały tekst (Ctrl+A) i skopiuj (Ctrl+C)\n\nKod zostanie automatycznie wykryty i logowanie nastąpi.\nMożesz też ręcznie wkleić kod poniżej (Ctrl+V).",
+      "PasteLabel": "Wklej kod lub cały JSON tutaj:",
+      "PastePlaceholder": "Wklej tutaj JSON lub kod autoryzacji...",
+      "OpenBrowserButton": "Otwórz przeglądarkę",
+      "ConfirmButton": "Zaloguj",
+      "WebViewLoading": "Ładowanie strony logowania Epic Games...",
+      "WebViewCodeCaptured": "Przechwycono kod autoryzacji! Logowanie...",
+      "AutoOpenCountdown": "Przeglądarka otworzy się automatycznie za {0} sekund...",
+      "BrowserOpened": "Przeglądarka została otwarta!",
+      "BrowserOpenFailed": "Błąd podczas otwierania przeglądarki",
+      "ClipboardMonitoring": "Monitorowanie schowka aktywne — skopiuj kod!",
+      "ClipboardCodeDetected": "Wykryto kod autoryzacji! Loguję...",
+      "ClipboardCodeDetectedShort": "Kod autoryzacji wykryty w schowku!"
+    },
+    "Prompt": {
+      "Placeholder": "Wklej JSON, URL lub kod..."
+    },
+    "UpdateSuccess": {
+      "ChangelogExpander": "Co się zmieniło?"
     }
+  },
+  "Toast": {
+    "ModInstalled": "{0} zainstalowany pomyślnie",
+    "ModInstalledDesc": "Wersja: {0}",
+    "ModUpdated": "{0} zaktualizowany do wersji {1}",
+    "ModUpdateStarted": "Aktualizuję {0}...",
+    "ModDeleted": "{0} został usunięty",
+    "UpdateAvailable": "Dostępna aktualizacja: {0}",
+    "DownloadError": "Błąd pobierania – sprawdź połączenie",
+    "GameLaunchError": "Nie udało się uruchomić gry",
+    "DllInstalled": "DLL {0} zainstalowany",
+    "DllInstalledIn": "Zainstalowano w: {0}",
+    "DllRemoved": "DLL {0} usunięty",
+    "DllRemovedFrom": "Usunięto z: {0}",
+    "GenericInfo": "{0}",
+    "ModUpdatesFound": "Znaleziono {0} aktualizacji modów",
+    "ModUpdatesAutoUpdated": "Auto-zaktualizowano {0} modów",
+    "AllModsUpToDate": "Wszystkie mody są aktualne",
+    "AppUpdated": "🆕 Zaktualizowano do {0}! Kliknij, aby zobaczyć co nowego."
   },
   "Settings": {
     "WindowTitle": "Ustawienia aplikacji",
@@ -344,7 +611,15 @@
         "Label": "Motyw",
         "Description": "Wybierz motyw kolorystyczny aplikacji",
         "Dark": "Ciemny",
-        "Pink": "Różowy"
+        "Pink": "Różowy",
+        "Glass": "Szklany"
+      },
+      "Appearance": {
+        "Label": "Motyw Szklany",
+        "Description": "Ustawienia wyglądu motywu Szklany",
+        "ReduceTransparency": "Wyłącz przezroczystość",
+        "ReduceTransparencyDescription": "Używa nieprzezroczystego tła zamiast efektu Mica/Acrylic — lepsza czytelność i dostępność.",
+        "TransparencyWarning": "Efekt szkła może być automatycznie ograniczony, gdy Windows ma wyłączone efekty przezroczystości lub włączony wysoki kontrast."
       },
       "GameMode": {
         "Label": "Tryb gry",
@@ -385,9 +660,21 @@
     "UpdateChannel": {
       "Title": "Kanał aktualizacji",
       "Description": "Wybierz kanał z którego mają być pobierane aktualizacje aplikacji",
+      "CurrentTitle": "Bieżący kanał aktualizacji",
+      "CurrentSummary": "Kanał: {0}",
+      "CurrentDescription": "To ustawienie decyduje, czy aplikacja pobiera stabilne wydania czy wersje testowe.",
       "Channels": {
-        "Release": "Release (Stabilne wydania)",
-        "Beta": "Beta (Wersje testowe)"
+        "Release": "Stabilna",
+        "Beta": "Testowa"
+      }
+    },
+    "SteamVanilla": {
+      "Title": "Pobieranie Among Us (Steam)",
+      "Description": "Domyślnie SUSModder pobiera grę vanilla z własnych paczek 7z. Możesz włączyć bezpośrednie pobieranie ze Steam.",
+      "ExperimentalWarning": "Pobieranie przez DepotDownloader jest funkcją eksperymentalną — wymaga logowania QR w aplikacji Steam na telefonie.",
+      "DepotDownloader": {
+        "Label": "Pobieraj vanilla bezpośrednio ze Steam (DepotDownloader)",
+        "Description": "Wyłączone: paczki 7z SUSModder (domyślnie). Włączone: pobieranie plików gry z konta Steam po zeskanowaniu kodu QR."
       }
     },
     "Advanced": {
@@ -412,6 +699,17 @@
         "Label": "Wyczyść cache",
         "Button": "Wyczyść teraz",
         "Success": "Cache został wyczyszczony"
+      }
+    },
+    "SystemTray": {
+      "Title": "Zachowanie okna",
+      "MinimizeToTray": {
+        "Label": "Minimalizuj do zasobnika zamiast zamykania aplikacji",
+        "Description": "Po kliknięciu ✕ okno zostanie ukryte, a aplikacja będzie działać w zasobniku systemowym"
+      },
+      "QuickLaunch": {
+        "Label": "Pokaż szybkie uruchamianie w menu zasobnika",
+        "Description": "Wyświetla 3 ostatnio używane mody w menu kontekstowym ikonki"
       }
     },
     "FactoryReset": {
@@ -510,6 +808,11 @@
     "TestersLabel": "TESTERZY",
     "TestersCommunity": "Społeczność Psychopatyczna",
     "SpecialThanksLabel": "SPECJALNE PODZIĘKOWANIA",
+    "SpecialThanksMessage": "Dzięki za pomoc przy testach, feedbacku i rozwoju projektu.",
+    "CreatorAndGraphicsHeader": "TWÓRCA APLIKACJI I GRAFIKI",
+    "VersionShort": "Wersja v{0}",
+    "Tagline": "Among Us Mod Manager",
+    "Email": "E-mail",
     "Copyright": "© 2026 SUSModder - Oprogramowanie na licencji GPLv3. Wszelkie prawa zastrzeżone."
   },
   "Tools": {
@@ -711,6 +1014,27 @@
     "SettingsChangeError": "Błąd podczas zmiany ustawień",
     "TestServerName": "Testowy serwer SUStats",
     "TestServerOffline": "Serwer testowy (offline)"
+    },
+  "DiscordAuth": {
+    "LoginButton": "Zaloguj przez Discord",
+    "LoggedInAs": "Zalogowano jako: {0}",
+    "LogoutButton": "Wyloguj",
+    "SelectGuild": "Wybierz serwer Discord",
+    "NoGuilds": "Brak serwerów z aktywnym SUStats",
+    "NoPermission": "Nie masz uprawnień na tym serwerze",
+    "LoadingGuilds": "Pobieranie serwerów...",
+    "LoginError": "Błąd logowania: {0}",
+    "BrowserOpened": "Otworzono przeglądarkę — zaloguj się przez Discord",
+    "SessionExpired": "Sesja Discord wygasła. Zaloguj się ponownie.",
+    "LoginPrompt": "Aby korzystać ze statystyk, zaloguj się przez Discord.",
+    "LoginDescription": "SUSModder uzyska dostęp do Twojego identyfikatora Discord i listy serwerów, aby pobrać dane logowania SUStats.",
+    "StatsEnabled": "Statystyki włączone",
+    "SavedServer": "Zapisane dla serwera: {0}",
+    "RefreshGuilds": "Odśwież listę serwerów",
+    "SelectGuildPlaceholder": "Wybierz serwer...",
+    "NoGuildsHint": "Upewnij się, że posiadasz aktywny SUStats na jednym ze swoich serwerów Discord.",
+    "CredentialsError": "Błąd pobierania danych uwierzytelniających: {0}",
+    "DpapiUnprotectFailed": "Nie udało się odczytać zapisanych danych logowania (DPAPI). Wyloguj się i zaloguj ponownie przez Discord."
   },
   "RecommendedDiscords": {
     "WindowTitle": "Polecane Discordy",
@@ -724,6 +1048,24 @@
     "FetchingServers": "Pobieranie listy serwerów Discord...",
     "UsingSampleData": "Używam danych przykładowych (problem z połączeniem)",
     "ConnectionError": "Błąd połączenia - używam danych przykładowych",
+    "OfficialHub": {
+      "Eyebrow": "Oficjalna społeczność",
+      "Title": "SUSModder Hub",
+      "Description": "Wsparcie, lobby, wspólna gra i rozmowy o modach.",
+      "PromoDescription": "Oficjalny Discord: wsparcie, lobby i rozmowy o modach.",
+      "JoinButton": "Dołącz",
+      "OfficialBadge": "Oficjalny Hub",
+      "Tags": {
+        "Support": "Support",
+        "Lobby": "Lobby",
+        "ModdingChat": "Modding chat"
+      },
+      "RecommendedServersHeading": "Polecane serwery do gry",
+      "PostInstallCtaTitle": "Szukasz ludzi do gry?",
+      "PostInstallCtaDescription": "Dołącz do SUSModder Hub po wsparcie, lobby i rozmowy o modach.",
+      "HelpTitle": "Pomoc i społeczność",
+      "HelpDescription": "SUSModder Hub to oficjalny Discord aplikacji: support, feedback, lobby i modding chat."
+    },
     "SampleServers": {
       "AmongUsPolska": {
         "Name": "Among Us Polska",
@@ -783,6 +1125,13 @@
     "DeveloperMenu": {
       "RemoveSingleInstance": "Usuń SingleInstance",
       "LaunchMultipleInstances": "Uruchom wybraną ilość instancji"
+    },
+    "UpdateSuccess": {
+      "Title": "Aktualizacja zakończona",
+      "SuccessCount": "✅ Pomyślnie zaktualizowano ({0}):",
+      "FailCount": "❌ Nie udało się zaktualizować ({0}):",
+      "SkipCount": "⏭️ Pominięto ({0}):",
+      "ChangelogHint": "Listę zmian dla każdego moda możesz sprawdzić w panelu szczegółów."
     }
   },
   "ModOperations": {
@@ -895,11 +1244,375 @@
     "CurrentVersionExample": "2.1.4",
     "NewVersionExample": "2.1.5"
   },
+  "Changelog": {
+    "WindowTitle": "Co nowego w SUSModder?",
+    "Subtitle": "Co nowego w SUSModder {version}?",
+    "CloseButton": "Zamknij",
+    "GitHubButton": "Pełny changelog na GitHub →",
+    "VersionDate": "Wersja {version} — {date}",
+    "SectionFeatures": "Nowe funkcje",
+    "SectionFixes": "Poprawki",
+    "SectionImprovements": "Usprawnienia"
+  },
   "StringFormats": {
     "CurrentVersion": "Obecna: {0}",
     "NewVersion": "Nowa: {0}",
     "UpdatingMod": "Aktualizowanie: {0}",
     "DllModVersion": "Wersja: {0}",
     "ServerNamePlaceholder": "[Nazwa serwera]"
+  },
+  "SystemTray": {
+    "ContextMenu": {
+      "Restore": "Przywróć SUSModder",
+      "Exit": "Zamknij"
+    },
+    "FirstMinimize": {
+      "Title": "SUSModder",
+      "Message": "Aplikacja została zminimalizowana do zasobnika systemowego.\n\nKliknij ikonkę w zasobniku, aby przywrócić okno.\nMożesz zmienić to zachowanie w Ustawieniach → Zachowanie okna.",
+      "DontShowAgain": "Nie pokazuj więcej"
+    }
+  },
+  "Lobby": {
+    "Panel": {
+      "Title": "Lobby",
+      "TabCodes": "Kody ({0})",
+      "TabMessages": "Ogłoszenia ({0})",
+      "Refresh": "Odśwież",
+      "NoCodes": "Brak aktywnych kodów",
+      "NoMessages": "Brak ogłoszeń",
+      "Loading": "Ładowanie...",
+      "ServiceUnavailable": "Usługa niedostępna. Spróbuj ponownie później.",
+      "SelectModFirst": "Wybierz najpierw moda z listy"
+    },
+    "Code": {
+      "CopyButton": "Kopiuj",
+      "PublishButton": "Udostępnij kod",
+      "DeleteButton": "Usuń mój kod",
+      "InvalidFormat": "Nieprawidłowy format kodu lobby (4-6 znaków A-Z, 0-9)",
+      "RateLimited": "Poczekaj przed kolejnym udostępnieniem (limit 5 min)",
+      "PublishSuccess": "Kod udostępniony!",
+      "Copied": "Skopiowano!"
+    },
+    "Message": {
+      "Placeholder": "Szukam graczy, reklamuję serwer... (max 280 znaków)",
+      "PublishButton": "Opublikuj ogłoszenie",
+      "DeleteButton": "Usuń moje ogłoszenie",
+      "TooShort": "Wiadomość za krótka (minimum 10 znaków)",
+      "TooLong": "Wiadomość za długa (maksimum 280 znaków)",
+      "DisallowedUrl": "Dozwolone tylko linki discord.gg",
+      "TooManyLinks": "Maksymalnie 1 link Discord",
+      "ContentBlocked": "Treść nie przeszła moderacji",
+      "Duplicate": "Identyczna treść już istnieje",
+      "DailyLimitReached": "Osiągnięto dzienny limit wpisów (20)",
+      "UserBanned": "Konto tymczasowo zablokowane",
+      "PublishSuccess": "Ogłoszenie opublikowane!",
+      "ModerationWarning": "Uwaga: kolejne naruszenia zablokują konto."
+    },
+    "Report": {
+      "Button": "Zgłoś",
+      "Spam": "Spam",
+      "Inappropriate": "Nieodpowiednia treść",
+      "Scam": "Oszustwo",
+      "Done": "Zgłoszono"
+    },
+    "Region": {
+      "ModdedEU": "Modded EU",
+      "ModdedNA": "Modded NA",
+      "ModdedAsia": "Modded Asia"
+    },
+    "Error": {
+      "Internal": "Błąd serwera — spróbuj ponownie później",
+      "Unknown": "Nieznany błąd — spróbuj ponownie",
+      "Network": "Błąd sieci — sprawdź połączenie"
+    }
+  },
+  "ModPacks": {
+    "MenuGroup": "Zestawy modów",
+    "ShareMenu": "Udostępnij zestaw modów",
+    "EnterCodeMenu": "Wklej kod zestawu",
+    "CreatorTitle": "Udostępnij zestaw modów",
+    "CreatorNameLabel": "Twój nick",
+    "CreatorNameOptional": "(opcjonalnie — anonimowa paczka)",
+    "PackNameLabel": "Nazwa zestawu",
+    "FullModLabel": "Mod główny",
+    "VersionLabel": "Wersja",
+    "DllModsLabel": "Mody DLL",
+    "TouConfigLabel": "Dołącz config Town of Us",
+    "IntegrationLabel": "Dołącz susmodder-integration.dll",
+    "DiscordLabel": "Serwer Discord",
+    "CreateButton": "Utwórz zestaw",
+    "CreatedTitle": "Zestaw utworzony!",
+    "CopyCode": "Kopiuj kod",
+    "CopyLink": "Kopiuj link",
+    "ShareDiscord": "Udostępnij na Discord",
+    "PreviewTitle": "Podgląd zestawu",
+    "InstallButton": "Zainstaluj zestaw",
+    "ExternalDllWarning": "Ten zestaw zawiera zewnętrzne mody DLL, które mogą być niebezpieczne!",
+    "ExternalDllCaution": "Zachowaj szczególną ostrożność. Instalujesz na własne ryzyko.",
+    "RiskConsent": "Rozumiem ryzyko i chcę kontynuować",
+    "VirusTotalClean": "Przeskanowano przez VirusTotal: Bezpieczny",
+    "VirusTotalSuspicious": "Przeskanowano przez VirusTotal: Podejrzany — instalacja zablokowana",
+    "VirusTotalUnknown": "Nie przeskanowano przez VirusTotal",
+    "CodeEntryTitle": "Kod zestawu modów",
+    "CodeEntryPrompt": "Wklej kod otrzymany od znajomego:",
+    "CodeEntryPlaceholder": "XXXX-XXXX-XXXX",
+    "PackNotFound": "Zestaw nie istnieje lub wygasł",
+    "InstallSuccess": "Zestaw zainstalowany pomyślnie!",
+    "InstallPartial": "Zestaw zainstalowany częściowo (niektóre elementy pominięte)",
+    "InstallFailed": "Nie udało się zainstalować zestawu",
+    "InstallProgress": "Trwa instalacja zestawu modów…",
+    "InstallProgressTitle": "Instalacja zestawu modów",
+    "PreviewEmptyFallback": "Brak szczegółowych metadanych — zestaw zawiera tylko kod paczki.",
+    "TtlDaysSuffix": "dni",
+    "TtlLabel": "Czas trwania",
+    "Ttl7Days": "7 dni",
+    "Ttl30Days": "30 dni (domyślnie)",
+    "Ttl90Days": "90 dni",
+    "VersionLatest": "latest lub np. 5.4.0",
+    "VersionLatestOption": "Najnowsza wersja (latest)",
+    "PackLimitReached": "Osiągnięto limit 10 aktywnych paczek. Usuń starą paczkę, aby utworzyć nową.",
+    "PackCodeLabel": "Kod zestawu",
+    "ShareLinkLabel": "Link do udostępnienia",
+    "Author": "Autor",
+    "ExpiresAt": "Wygasa",
+    "Disabled": "Udostępnianie zestawów modów jest wyłączone w ustawieniach.",
+    "SelectFullMod": "Wybierz mod główny.",
+    "CreateFailed": "Nie udało się utworzyć zestawu.",
+    "Shared": {
+      "TabTitle": "Udostępnione",
+      "HeaderCount": "Aktywne paczki: {0}/{1}",
+      "Empty": "Nie udostępniasz jeszcze żadnych paczek.",
+      "EmptyHint": "Kliknij „Udostępnij zestaw modów” aby utworzyć pierwszą paczkę.",
+      "Refresh": "Odśwież",
+      "CopyCode": "Kopiuj kod",
+      "CopyLink": "Kopiuj link",
+      "Delete": "Usuń paczkę",
+      "DeleteTitle": "Usuń paczkę",
+      "DeleteConfirm": "Usunąć paczkę {0} ({1})? Tej operacji nie można cofnąć.",
+      "DeleteSuccess": "Paczka została usunięta.",
+      "DeleteFailed": "Nie udało się usunąć paczki: {0}",
+      "DeleteNotOwner": "Nie jesteś właścicielem tej paczki.",
+      "DeleteNotFound": "Paczka nie istnieje lub została już usunięta.",
+      "LoadFailed": "Nie udało się pobrać listy paczek: {0}",
+      "ListNotAvailable": "Serwer nie udostępnia jeszcze listy paczek. Spróbuj ponownie później.",
+      "NetworkError": "Brak połączenia z serwerem paczek.",
+      "UnknownError": "nieznany błąd",
+      "UnnamedPack": "(bez nazwy)",
+      "UnknownExpiry": "—",
+      "VtClean": "VT: bezpieczna",
+      "VtPending": "VT: skanowanie",
+      "VtSuspicious": "VT: podejrzana",
+      "VtUnknown": "VT: brak danych",
+      "ModVersionLabel": "Wersja: {0}",
+      "DllsLabel": "DLL: {0}",
+      "ExternalDllsLabel": "Zewnętrzne DLL: {0}",
+      "ManageFromLimitTitle": "Limit paczek osiągnięty",
+      "ManageFromLimit": "Zarządzaj paczkami"
+    },
+    "PlatformVariantUnavailable": "Wariant moda {modName} ({version}) dla platformy {platform} nie jest dostępny.",
+    "EpicInstallFailed": "Nie udało się zainstalować zestawu dla Epic.",
+    "FullModDownloadFailed": "Nie udało się pobrać moda głównego.",
+    "FullModSha256Mismatch": "Suma kontrolna pobranego moda głównego nie zgadza się.",
+    "FullModNoFiles": "Pobrany mod główny nie zawiera plików.",
+    "PlatformNotSupported": "Platforma {platform} nie jest obsługiwana przez ten zestaw.",
+    "PlatformVariantLabel": "Wariant dla Twojej platformy: {platform}",
+    "TouConfigNotSupportedYet": "Dołączanie configu ToU z tego okna będzie dostępne wkrótce — na razie utwórz paczkę bez configu.",
+    "CustomDlls": {
+      "Title": "Własne pliki DLL",
+      "AddFiles": "Dodaj pliki DLL",
+      "RemoveFile": "Usuń",
+      "ServerScanNotice": "Pliki zostaną przesłane na serwer SUSModder i sprawdzone przez VirusTotal przed udostępnieniem zestawu.",
+      "LocalNotice": "Własne pliki DLL zostaną skopiowane do folderu BepInEx/plugins. Po przetestowaniu zestawu możesz go udostępnić online — pliki zostaną wtedy przesłane na serwer.",
+      "CreateAndShareNotice": "Własne pliki DLL zostaną skopiowane do lokalnego zestawu, a następnie przesłane na serwer SUSModder i sprawdzone przez VirusTotal przed udostępnieniem.",
+      "FilePickerUnavailable": "Wybór plików jest niedostępny w tym oknie.",
+      "FileTypeDll": "Pliki DLL",
+      "SelectedCount": "Wybrano plików DLL: {0}",
+      "Uploading": "Przesyłanie…",
+      "Scanning": "Skanowanie…",
+      "Finalizing": "Finalizacja zestawu…",
+      "ScanPending": "oczekuje",
+      "ScanClean": "bezpieczny",
+      "ScanSuspicious": "podejrzany",
+      "ScanRejected": "odrzucony",
+      "ScanExpired": "wygasł",
+      "UploadFailed": "błąd uploadu",
+      "UploadFailedForFile": "Nie udało się przesłać pliku DLL: {0}",
+      "BlockedForFile": "Plik DLL {0} został zablokowany: {1}"
+    },
+    "CustomGitHub": {
+      "Title": "Własny DLL z GitHuba",
+      "Toggle": "Dodaj własny DLL z GitHuba",
+      "AddDll": "Dodaj DLL z GitHuba",
+      "SelectedCount": "Wybrano DLL z GitHuba: {0}",
+      "NameLabel": "Nazwa DLL",
+      "NamePlaceholder": "np. MyCustomRoles",
+      "NameRequired": "Podaj nazwę własnego DLL z GitHuba.",
+      "NameRequiredFor": "GitHub DLL #{0}: podaj nazwę.",
+      "VersionLabel": "Wersja/tag",
+      "VersionPlaceholder": "np. v1.2.3",
+      "UrlLabel": "URL GitHub release asset",
+      "UrlPlaceholder": "https://github.com/owner/repo/releases/download/tag/mod.dll",
+      "UrlRequiredFor": "GitHub DLL #{0}: podaj URL release asset.",
+      "DllInstallPathLabel": "Ścieżka instalacji DLL",
+      "GitHubOnlyWarning": "Podaj publiczny link do GitHub release asset. SUSModder nie pobiera go bezpośrednio u użytkownika — backend pobierze artefakt, sprawdzi strukturę i uruchomi skan VirusTotal.",
+      "ReleaseAssetRequired": "Link musi wskazywać publiczny GitHub release asset (`/releases/download/...`).",
+      "DllInstallPathInvalid": "Ścieżka instalacji DLL musi znajdować się pod BepInEx/plugins.",
+      "Declaring": "Zgłaszanie artefaktu GitHub do walidacji…",
+      "DeclareFailed": "Nie udało się zgłosić artefaktu GitHub do walidacji.",
+      "StatusFailed": "Nie udało się pobrać statusu artefaktu GitHub.",
+      "Blocked": "Artefakt GitHub {0} został zablokowany: {1}"
+    },
+    "CustomFull": {
+      "Toggle": "Użyj własnego moda głównego z GitHuba",
+      "Title": "Własny mod główny z GitHuba",
+      "NameLabel": "Nazwa moda",
+      "NamePlaceholder": "np. MyCustomAmongUsMod",
+      "NameRequired": "Podaj nazwę własnego moda głównego z GitHuba.",
+      "VersionLabel": "Wersja/tag",
+      "VersionPlaceholder": "np. v5.5.0",
+      "UrlLabel": "URL GitHub release asset (ZIP overlay)",
+      "UrlPlaceholder": "https://github.com/owner/repo/releases/download/tag/ModOverlay.zip",
+      "GitHubOnlyWarning": "Podaj publiczny link do GitHub release asset z ZIP overlayem moda. SUSModder nie pobiera go bezpośrednio u użytkownika — backend pobierze artefakt, sprawdzi strukturę (BepInEx, doorstop) i uruchomi skan VirusTotal.",
+      "ReleaseAssetRequired": "Link musi wskazywać publiczny GitHub release asset (`/releases/download/...`).",
+      "UrlRequired": "Podaj URL GitHub release asset dla własnego moda głównego.",
+      "Declaring": "Zgłaszanie moda głównego z GitHuba do walidacji…",
+      "DeclareFailed": "Nie udało się zgłosić moda głównego z GitHuba do walidacji."
+    },
+    "CustomContent": {
+      "ArtifactsLabel": "Zawartość customowa",
+      "SourceUploadedDll": "przesłany DLL",
+      "InstallConsent": "Rozumiem, że ten zestaw zawiera custom content spoza oficjalnego katalogu SUSModder.",
+      "InstallBlockedPendingScan": "Instalacja zablokowana — custom content nadal czeka na skan lub finalizację.",
+      "InstallBlockedSuspicious": "Instalacja zablokowana — custom content został oznaczony jako podejrzany lub odrzucony."
+    },
+    "UpdateAvailable": "Dostępna aktualizacja paczki",
+    "CheckUpdates": "Sprawdź aktualizacje",
+    "UpdateManualOnly": "Aktualizacje paczek wymagają ręcznego potwierdzenia",
+    "NoUpdateAvailable": "Brak dostępnych aktualizacji paczki",
+    "UpdateCheckFailed": "Nie udało się sprawdzić aktualizacji paczki",
+    "UpdateChanges": "Zmiany w paczce",
+    "WhatChanged": "Co się zmieniło?",
+    "FullModChange": "Mod główny: {0} → {1}",
+    "DllChange": "DLL {0}: {1} → {2}",
+    "ExternalDllChange": "Zewnętrzny DLL {0}: zmieniony plik",
+    "ConfigMayChange": "Konfiguracja mogła ulec zmianie",
+    "UpdateAvailableCount": "Dostępne aktualizacje dla {0} zestawów",
+    "Change": {
+      "FullMod": "Mod główny {0}: {1} → {2}",
+      "Dll": "DLL {0}: {1} → {2}",
+      "ExternalDll": "Zewnętrzny DLL {0}: zmieniony plik",
+      "Config": "Konfiguracja {0} mogła ulec zmianie",
+      "Missing": "(brak)",
+      "Generic": "{0}: {1} → {2}"
+    }
+  },
+  "ModChangelog": {
+    "Button": "Lista zmian",
+    "WindowTitle": "Lista zmian: {0}",
+    "Loading": "Ładowanie listy zmian...",
+    "Empty": "Brak changeloga dla tego moda.",
+    "Error": "Nie udało się pobrać changeloga. Spróbuj ponownie później.",
+    "OpenRelease": "Otwórz release na GitHub",
+    "FallbackLanguageNotice": "Tłumaczenie po polsku nie jest jeszcze gotowe — pokazujemy wersję angielską.",
+    "WhatChanged": "Co się zmieniło?"
+  },
+  "LaunchDiagnostics": {
+    "TitleSuccess": "Diagnostyka uruchomienia",
+    "TitleFailure": "Diagnostyka uruchomienia – wykryto problem",
+    "Progress.Starting": "Uruchamianie...",
+    "Progress.Observing": "Obserwacja procesu...",
+    "Summary.ProcessStartFailed": "Nie udało się uruchomić procesu gry.",
+    "Summary.ExitedEarly": "Gra zamknęła się przedwcześnie.",
+    "Summary.BepInExMissing": "Nie znaleziono logów BepInEx – mod mógł się nie załadować.",
+    "Summary.BepInExStale": "Logi BepInEx nie zostały zaktualizowane po starcie.",
+    "Summary.PluginLoadFailed": "BepInEx zgłosił błąd ładowania pluginu moda.",
+    "Summary.AccessDenied": "Odmowa dostępu do plików moda – możliwa blokada antywirusa.",
+    "Summary.DefenderPossible": "Windows Defender mógł zablokować pliki moda.",
+    "Summary.DefenderCfaBlocked": "Kontrolowany dostęp do folderów mógł zablokować moda.",
+    "Summary.DefenderEventsUnavailable": "Nie można odczytać dziennika Windows Defender.",
+    "Summary.FirewallPossible": "Zapora Windows może blokować połączenie sieciowe gry.",
+    "Summary.Unknown": "Nie możemy określić przyczyny problemu. Wygeneruj raport diagnostyczny.",
+    "Severity.Critical": "Krytyczny",
+    "Severity.Warning": "Ostrzeżenie",
+    "Severity.Info": "Informacja",
+    "Actions.OpenModFolder": "Otwórz folder moda",
+    "Actions.OpenLogs": "Otwórz logi BepInEx",
+    "Actions.CopyDiagnosis": "Kopiuj diagnozę",
+    "Actions.CreateSupportBundle": "Utwórz pakiet wsparcia",
+    "Actions.ReinstallMod": "Przeinstaluj moda",
+    "Actions.OpenAiSupport": "Pomoc SUSModder",
+    "Actions.Close": "Zamknij",
+    "Privacy.SupportBundleNotice": "Pakiet wsparcia zawiera zanonimizowane logi i metadane. Nie wysyłamy go automatycznie.",
+    "AdminConsent.Explanation": "Ta operacja wymaga uprawnień administratora. Zostaniesz poproszony o zgodę przez kontrolę konta użytkownika (UAC)."
+  },
+  "AiSupport": {
+    "Title": "Pomoc SUSModder",
+    "ProblemPlaceholder": "Opisz swój problem (min. 20 znaków)...",
+    "IncludeDiagnostics": "Dołącz podstawową diagnostykę",
+    "PrivacyNotice": "SUSModder wyśle: opis problemu, kody diagnozy, wersję aplikacji, tryb Steam/Epic i ograniczone podsumowanie logów. Nie wysyłamy: pełnych logów, plików ZIP, tokenów Discord, ścieżek użytkownika ani zrzutów pamięci. Backend może użyć modelu AI, jeśli funkcja jest włączona.",
+    "AnalyzeButton": "Analizuj problem",
+    "InstallFailureProblemTemplate": "Instalacja moda nie powiodła się.\nMod: {0}\nBłąd: {1}\n\nSkrócony, zanonimizowany log instalacji:\n{2}",
+    "Result.Source": "Źródło",
+    "Result.Confidence": "Pewność",
+    "Result.Steps": "Kroki naprawy",
+    "Result.RequiresAdmin": "Wymaga administratora",
+    "Result.Warnings": "Ostrzeżenia",
+    "Result.SafetyNotice": "Zasady bezpieczeństwa",
+    "Actions.Helped": "Pomogło",
+    "Actions.NotHelped": "Problem nadal występuje",
+    "Actions.AcceptPrivacy": "Rozumiem i akceptuję",
+    "Actions.GenerateReport": "Wygeneruj raport diagnostyczny",
+    "Actions.JoinDiscord": "Dołącz do Discorda",
+    "Actions.OpenFirewallRepair": "Narzędzie firewalla",
+    "Actions.OpenDefenderInstructions": "Instrukcja Defender",
+    "Actions.Dismiss": "Zamknij",
+    "Errors.Validation": "Opis problemu musi mieć co najmniej 20 znaków.",
+    "Errors.RateLimited": "Zbyt wiele zapytań. Spróbuj ponownie za minutę.",
+    "Errors.ServiceUnavailable": "Usługa pomocy jest niedostępna. Spróbuj ponownie później lub wygeneruj raport diagnostyczny.",
+    "Errors.Timeout": "Zapytanie przekroczyło limit czasu. Sprawdź połączenie internetowe.",
+    "Errors.UnknownActionIgnored": "Nieznana akcja pominięta."
+  },
+  "GameLaunch": {
+    "NoInstallPath": "Brak ścieżki instalacji moda.",
+    "GameStarted": "Gra uruchomiona",
+    "AmongUsExeNotFound": "Nie znaleziono pliku Among Us.exe w folderze moda.",
+    "LaunchErrorTitle": "Błąd uruchamiania"
+  },
+  "SecurityScan": {
+    "ScannedByVirusTotal": "Bezpieczeństwo – VirusTotal",
+    "Clean": "Czysty",
+    "Suspicious": "Podejrzany",
+    "Malicious": "Złośliwy",
+    "Pending": "Oczekuje na skan",
+    "Unknown": "Brak danych",
+    "Error": "Błąd skanowania",
+    "DetectionStats": "Wykrycia",
+    "AiReview": "Dodatkowa analiza AI",
+    "LastChecked": "Ostatnie sprawdzenie",
+    "OpenReport": "Otwórz raport VirusTotal",
+    "NoReportAvailable": "Raport bezpieczeństwa nie jest dostępny dla tego moda.",
+    "OpenReportError": "Nie udało się otworzyć raportu: {0}",
+    "InstallWarningTitle": "Ostrzeżenie bezpieczeństwa",
+    "WarningIntro": "Mod \"{0}\" (wersja {1}) został oznaczony jako podejrzany przez VirusTotal.\n\nPrzed instalacją zapoznaj się z poniższymi informacjami:",
+    "WarningStatus": "Status skanu: {0}",
+    "WarningAiReview": "Analiza AI: {0}",
+    "WarningAiReviewStatus": "Status analizy AI: {0}",
+    "WarningPermalink": "Pełny raport: {0}",
+    "BulkWarningTitle": "Ostrzeżenie bezpieczeństwa – wiele modów",
+    "BulkWarningIntro": "Następujące mody mają ostrzeżenia bezpieczeństwa od VirusTotal:",
+    "BulkWarningFooter": "Czy mimo to chcesz kontynuować instalację wszystkich wybranych modów?",
+    "Tooltip": {
+      "NoData": "Brak danych VirusTotal – mod nie został jeszcze przeskanowany.",
+      "Clean": "Nie wykryto żadnych zagrożeń – przeskanowano przez {0} silników VirusTotal.",
+      "CleanNoCount": "Nie wykryto żadnych zagrożeń – wynik czysty.",
+      "LowDetection": "Wykryto przez {0} z {1} silników. To najprawdopodobniej fałszywy alarm (false positive) – częsty przypadek przy modach do gier. Zachowaj ostrożność.",
+      "ModerateDetection": "Wykryto przez {0} z {1} silników. Mod może zawierać podejrzany kod. Sprawdź pełny raport przed instalacją.",
+      "HighDetection": "Wykryto przez {0} z {1} silników. Wysokie ryzyko – mod może być złośliwy. Zdecydowanie odradzamy instalację.",
+      "AiFalsePositive": "AI potwierdza: to prawdopodobnie fałszywy alarm.",
+      "AiRiskConfirmed": "AI potwierdza: ryzyko jest realne. Zachowaj szczególną ostrożność.",
+      "AiInconclusive": "AI: brak jednoznacznej oceny.",
+      "AiPending": "AI: analiza w toku…",
+      "ClickToOpen": "Kliknij, aby otworzyć pełny raport."
+    }
   }
 }

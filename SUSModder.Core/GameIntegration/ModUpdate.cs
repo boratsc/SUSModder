@@ -39,10 +39,11 @@ namespace SUSModder.Core.GameIntegration
                     {
                         ConfirmAsync = userInteraction.ShowConfirmAsync,
                         ShowErrorAsync = userInteraction.ShowErrorAsync,
-                        ShowInfoAsync = userInteraction.ShowInfoAsync
+                        ShowInfoAsync = userInteraction.ShowInfoAsync,
+                        RunSteamQrDownloadAsync = userInteraction.RunSteamQrDownloadAsync
                     };
 
-                    await modManager.ModifyAsync(
+                    var installResult = await modManager.ModifyAsync(
                         modConfig,
                         modConfigs,
                         progress,
@@ -51,9 +52,17 @@ namespace SUSModder.Core.GameIntegration
                         mode
                     );
 
+                    if (!installResult.Success)
+                    {
+                        var error = installResult.ErrorMessage ?? "Nie udało się zaktualizować moda.";
+                        log.Write($"[Aktualizacja] Błąd: {error}");
+                        if (callbacks.ShowErrorAsync != null)
+                            await callbacks.ShowErrorAsync(error, "Błąd aktualizacji");
+                        return;
+                    }
+
                     progress.Report(100, "Mod zaktualizowany.");
 
-                    // Pokazanie info przez callback (asynchronicznie)
                     if (callbacks.ShowInfoAsync != null)
                         await callbacks.ShowInfoAsync($"Mod '{modConfig.ModName}' został pomyślnie zaktualizowany.", "Sukces");
 

@@ -24,6 +24,11 @@ namespace SUSModder.ViewModels
     /// </summary>
     public partial class MainWindowViewModel
     {
+        private sealed record CompletedModUpdate(
+            int ModId,
+            string ModName,
+            string CurrentVersion,
+            string NewVersion);
         private DateTime _lastInteractiveModUpdateCheckUtc = DateTime.MinValue;
         private static readonly TimeSpan InteractiveModUpdateCheckCooldown = TimeSpan.FromMinutes(2);
 
@@ -47,12 +52,16 @@ namespace SUSModder.ViewModels
                 // Jeśli config został zaktualizowany, odśwież listę modów
                 if (result.ConfigWasUpdated)
                 {
-                    await RefreshModsListAsync();
+                    await RefreshModsListAsync(deferIfToolModalOpen: true);
                 }
 
                 // Pokaż dialogi aktualizacji dla każdego moda z dostępną aktualizacją
                 if (result.InstalledModUpdates.Any())
                 {
+                    // Powiadomienie toast o znalezionych aktualizacjach
+                    ToastService.ShowInfo(
+                        _localizationService.GetFormatted("Toast.ModUpdatesFound", result.InstalledModUpdates.Count));
+
                     await ProcessUpdatesWithIndividualDialogsAsync(result.InstalledModUpdates);
                 }
             }
@@ -61,6 +70,118 @@ namespace SUSModder.ViewModels
                 System.Diagnostics.Debug.WriteLine($"Error during update check: {ex.Message}");
                 await ShowErrorDialogAsync($"Błąd podczas sprawdzania aktualizacji: {ex.Message}", "Błąd");
             }
+        }
+
+        /// <summary>
+        /// Automatycznie aktualizuje mody z włączoną auto-aktualizacją — w tle, bez dialogów.
+        /// Wywoływane z okresowego odświeżania (timer co 5 minut) oraz po sprawdzeniu ręcznym.
+        /// Ładuje AutoUpdateEnabled bezpośrednio z Installation Map, aby uniknąć
+        /// problemów z timingiem (flaga jest ustawiana asynchronicznie w tle podczas RefreshModsListAsync).
+        /// </summary>
+        private async Task ProcessAutoUpdatesSilentlyAsync(List<ModUpdateInfo> availableUpdates)
+        {
+            try
+            {
+                int updatedCount = 0;
+
+                foreach (var modUpdate in availableUpdates)
+                {
+                    try
+                    {
+                        // Ładujemy AutoUpdateEnabled bezpośrednio z Installation Map,
+                        // aby uniknąć race condition z fire-and-forget taskiem w RefreshModsListAsync
+                        bool isAutoUpdateEnabled = await IsModAutoUpdateEnabledAsync(modUpdate.ModName, modUpdate.LocalMod?.InstallPath);
+
+                        if (!isAutoUpdateEnabled)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[AutoUpdate] {modUpdate.ModName}: auto-aktualizacja wyłączona - pomijam");
+                            continue;
+                        }
+
+                        // Znajdź ModItem dla aktualizacji (może być null jeśli nie załadowany)
+                        var modItem = Mods.FirstOrDefault(m => m.Name == modUpdate.ModName);
+                        if (modItem == null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[AutoUpdate] {modUpdate.ModName}: ModItem nie znaleziony w kolekcji - pomijam");
+                            continue;
+                        }
+
+                        // Cicha aktualizacja — bez żadnych dialogów
+                        System.Diagnostics.Debug.WriteLine($"[AutoUpdate] {modUpdate.ModName}: rozpoczynam cichą aktualizację ({modUpdate.CurrentVersion} → {modUpdate.NewVersion})");
+
+                        // Toast informacyjny na start (użytkownik widzi co się dzieje)
+                        await Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            ToastService.ShowInfo(
+                                _localizationService.GetFormatted("Toast.ModUpdateStarted", modUpdate.ModName));
+                        });
+
+                        bool success = await UpdateSingleModWithDialogAsync(modItem, modUpdate, progressDialog: null);
+
+                        if (success)
+                        {
+                            updatedCount++;
+
+                            await Dispatcher.UIThread.InvokeAsync(() =>
+                            {
+                                ToastService.ShowInfo(
+                                    _localizationService.GetFormatted("Toast.ModUpdated", modUpdate.ModName, modUpdate.NewVersion));
+                            });
+
+                            System.Diagnostics.Debug.WriteLine($"[AutoUpdate] {modUpdate.ModName}: aktualizacja zakończona sukcesem");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[AutoUpdate] {modUpdate.ModName}: aktualizacja nie powiodła się");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[AutoUpdate] Błąd auto-aktualizacji {modUpdate.ModName}: {ex.Message}");
+                    }
+                }
+
+                if (updatedCount > 0)
+                {
+                    // Odśwież listę i status (cicho — bez skeletonu i bez zamykania paneli)
+                    await RefreshModsListAsync(deferIfToolModalOpen: true);
+                    AvailableUpdatesCount = 0;
+                    await CheckForModUpdatesForStatusBarAsync(force: true);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AutoUpdate] Błąd w ProcessAutoUpdatesSilentlyAsync: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sprawdza czy mod ma włączoną auto-aktualizację, ładując ustawienie
+        /// bezpośrednio z Installation Map (omija asynchroniczne ładowanie w RefreshModsListAsync).
+        /// </summary>
+        private async Task<bool> IsModAutoUpdateEnabledAsync(string modName, string? installPath)
+        {
+            // 1. Najpierw sprawdź w Mods (szybka ścieżka jeśli już załadowane)
+            var modItem = Mods.FirstOrDefault(m => m.Name == modName);
+            if (modItem != null)
+                return modItem.AutoUpdateEnabled;
+
+            // 2. Jeśli nie ma w Mods, spróbuj załadować z Installation Map
+            if (!string.IsNullOrWhiteSpace(installPath))
+            {
+                try
+                {
+                    var installMap = await InstallationMapManager.LoadInstallationMapAsync(installPath);
+                    if (installMap?.FullMod != null)
+                        return installMap.FullMod.AutoUpdateEnabled;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AutoUpdate] Błąd ładowania Installation Map dla {modName}: {ex.Message}");
+                }
+            }
+
+            return false;
         }
 
         private async Task<bool> ShowUpdateModConfirmDialogAsync(ModUpdateInfo updateInfo)
@@ -82,57 +203,92 @@ namespace SUSModder.ViewModels
 
         private async Task ProcessUpdatesWithIndividualDialogsAsync(List<ModUpdateInfo> availableUpdates)
         {
-            var successfulUpdates = new List<string>();
+            var successfulUpdates = new List<CompletedModUpdate>();
             var failedUpdates = new List<string>();
             var skippedUpdates = new List<string>();
+            var autoUpdatedMods = new List<string>();
 
             foreach (var modUpdate in availableUpdates)
             {
                 try
                 {
-                    // Pokaż dialog potwierdzenia dla każdego moda
-                    bool confirmed = await ShowUpdateModConfirmDialogAsync(modUpdate);
-                    
-                    if (!confirmed)
-                    {
-                        skippedUpdates.Add(modUpdate.ModName);
-                        continue;
-                    }
-
-                    // Stwórz lub znajdź ModItem
+                    // Stwórz lub znajdź ModItem (potrzebny do sprawdzenia auto-update)
                     var modItem = await GetOrCreateModItemAsync(modUpdate);
 
-                    // Pokaż dialog postępu aktualizacji
-                    UpdateProgressDialog? progressDialog = null;
-                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    // Sprawdź czy auto-aktualizacja jest włączona (skip dialog potwierdzenia)
+                    bool isAutoUpdate = modItem.AutoUpdateEnabled;
+
+                    if (!isAutoUpdate)
                     {
-                        progressDialog = new UpdateProgressDialog(modUpdate.ModName);
-                        var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-                        if (mainWindow != null)
+                        // Pokaż dialog potwierdzenia tylko gdy auto-update jest wyłączone
+                        bool confirmed = await ShowUpdateModConfirmDialogAsync(modUpdate);
+
+                        if (!confirmed)
                         {
-                            progressDialog.Show(mainWindow);
+                            skippedUpdates.Add(modUpdate.ModName);
+                            continue;
                         }
-                    });
-
-                    // Wykonaj aktualizację z przekazaniem dialogu do aktualizacji postępu
-                    bool success = await UpdateSingleModWithDialogAsync(modItem, modUpdate, progressDialog);
-
-                    // Zamknij dialog postępu
-                    if (progressDialog != null && progressDialog.IsVisible)
-                    {
-                        await Dispatcher.UIThread.InvokeAsync(() =>
-                        {
-                            progressDialog.Close();
-                        });
                     }
 
-                    if (success)
+                    if (isAutoUpdate)
                     {
-                        successfulUpdates.Add($"{modUpdate.ModName} ({modUpdate.CurrentVersion} → {modUpdate.NewVersion})");
+                        // AUTO-UPDATE: cicha aktualizacja w tle (bez dialogów)
+                        bool success = await UpdateSingleModWithDialogAsync(modItem, modUpdate, progressDialog: null);
+
+                        if (success)
+                        {
+                            autoUpdatedMods.Add(modUpdate.ModName);
+
+                            // Toast z informacją o zaktualizowanym modzie
+                            await Dispatcher.UIThread.InvokeAsync(() =>
+                            {
+                                ToastService.ShowInfo(
+                                    _localizationService.GetFormatted("Toast.ModUpdated", modUpdate.ModName, modUpdate.NewVersion));
+                            });
+                        }
+                        else
+                        {
+                            failedUpdates.Add(modUpdate.ModName);
+                        }
                     }
                     else
                     {
-                        failedUpdates.Add(modUpdate.ModName);
+                        // INTERAKTYWNA AKTUALIZACJA: pokaż dialog postępu
+                        UpdateProgressDialog? progressDialog = null;
+                        await Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            progressDialog = new UpdateProgressDialog(modUpdate.ModName);
+                            var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+                            if (mainWindow != null)
+                            {
+                                progressDialog.Show(mainWindow);
+                            }
+                        });
+
+                        // Wykonaj aktualizację z przekazaniem dialogu do aktualizacji postępu
+                        bool success = await UpdateSingleModWithDialogAsync(modItem, modUpdate, progressDialog);
+
+                        // Zamknij dialog postępu
+                        if (progressDialog != null && progressDialog.IsVisible)
+                        {
+                            await Dispatcher.UIThread.InvokeAsync(() =>
+                            {
+                                progressDialog.Close();
+                            });
+                        }
+
+                        if (success)
+                        {
+                            successfulUpdates.Add(new CompletedModUpdate(
+                                modUpdate.LocalMod?.Id ?? 0,
+                                modUpdate.ModName,
+                                modUpdate.CurrentVersion,
+                                modUpdate.NewVersion));
+                        }
+                        else
+                        {
+                            failedUpdates.Add(modUpdate.ModName);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -145,31 +301,61 @@ namespace SUSModder.ViewModels
             // Odśwież listę modów
             await RefreshModsListAsync();
 
-            // Pokaż podsumowanie
-            await ShowUpdateSummaryAsync(successfulUpdates, failedUpdates, skippedUpdates);
+            // Natychmiast wyzeruj licznik dostępnych aktualizacji po udanej aktualizacji
+            AvailableUpdatesCount = 0;
+            await CheckForModUpdatesForStatusBarAsync(force: true);
+
+            // Pokaż podsumowanie dla interaktywnych aktualizacji
+            if (successfulUpdates.Any() || failedUpdates.Any() || skippedUpdates.Any())
+            {
+                await ShowUpdateSummaryAsync(successfulUpdates, failedUpdates, skippedUpdates);
+            }
+
+            // Toast podsumowujący auto-aktualizacje
+            if (autoUpdatedMods.Any())
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    ToastService.ShowInfo(
+                        _localizationService.GetFormatted("Toast.ModUpdatesAutoUpdated", autoUpdatedMods.Count));
+                });
+            }
         }
 
-        private async Task ShowUpdateSummaryAsync(List<string> successful, List<string> failed, List<string> skipped)
+        private async Task ShowUpdateSummaryAsync(
+            List<CompletedModUpdate> successful, List<string> failed, List<string> skipped)
         {
             if (successful.Count == 0 && failed.Count == 0 && skipped.Count == 0)
                 return;
 
+            var title = _localizationService.Get("MainWindow.UpdateSuccess.Title");
             var messageBuilder = new System.Text.StringBuilder();
-            messageBuilder.AppendLine("🎉 Podsumowanie aktualizacji\n");
 
             if (successful.Any())
             {
-                messageBuilder.AppendLine($"✅ Pomyślnie zaktualizowano ({successful.Count}):");
+                var successLine = _localizationService.GetFormatted(
+                    "MainWindow.UpdateSuccess.SuccessCount", successful.Count);
+                messageBuilder.AppendLine(successLine);
                 foreach (var update in successful)
                 {
-                    messageBuilder.AppendLine($"   • {update}");
+                    messageBuilder.AppendLine(
+                        $"   • {update.ModName} ({update.CurrentVersion} → {update.NewVersion})");
                 }
+                messageBuilder.AppendLine();
+
+                // Dodaj informację o changelogu
+                var changelogHint = _localizationService.Get(
+                    "ModChangelog.Button") + " — " +
+                    _localizationService.Get("MainWindow.UpdateSuccess.ChangelogHint");
+                messageBuilder.AppendLine(changelogHint);
                 messageBuilder.AppendLine();
             }
 
             if (failed.Any())
             {
-                messageBuilder.AppendLine($"❌ Nie udało się zaktualizować ({failed.Count}):");
+                var failLine = _localizationService.GetFormatted(
+                    "MainWindow.UpdateSuccess.FailCount", failed.Count);
+                messageBuilder.AppendLine(failLine);
                 foreach (var failure in failed)
                 {
                     messageBuilder.AppendLine($"   • {failure}");
@@ -179,14 +365,16 @@ namespace SUSModder.ViewModels
 
             if (skipped.Any())
             {
-                messageBuilder.AppendLine($"⏭️ Pominięto ({skipped.Count}):");
-                foreach (var skipped_mod in skipped)
+                var skipLine = _localizationService.GetFormatted(
+                    "MainWindow.UpdateSuccess.SkipCount", skipped.Count);
+                messageBuilder.AppendLine(skipLine);
+                foreach (var skippedMod in skipped)
                 {
-                    messageBuilder.AppendLine($"   • {skipped_mod}");
+                    messageBuilder.AppendLine($"   • {skippedMod}");
                 }
             }
 
-            await ShowMessageAsync("Aktualizacja zakończona", messageBuilder.ToString());
+            await ShowMessageAsync(title, messageBuilder.ToString());
         }
 
         private async Task<ModItem> GetOrCreateModItemAsync(ModUpdateInfo modUpdate)
@@ -217,18 +405,33 @@ namespace SUSModder.ViewModels
 
         private async Task<bool> UpdateSingleModWithDialogAsync(ModItem modItem, ModUpdateInfo updateInfo, UpdateProgressDialog? progressDialog)
         {
+            _activeInstallationsCount++;
+            SyncIsAnyModInstalling();
+            string backupPath = "";
+            bool hasBackup = false;
+            var configService = new ConfigService();
             try
             {
-                var configService = new ConfigService();
+                // Pokaż postęp na karcie moda (dla auto-aktualizacji bez dialogu)
+                if (progressDialog == null)
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        modItem.IsInstalling = true;
+                        modItem.ShowProgress = true;
+                        modItem.InstallStatusMessage = "Pobieranie nowej konfiguracji...";
+                        modItem.InstallProgress = 5;
+                    });
+                }
 
                 // 1. Pobierz zaktualizowaną konfigurację
-                progressDialog?.UpdateProgress(10, "Pobieranie nowej konfiguracji...");
+                UpdateModProgress(modItem, progressDialog, 10, "Pobieranie nowej konfiguracji...");
                 
                 var updatedModConfig = await configService.CheckSingleModUpdateAsync(modItem.Name);
                 if (updatedModConfig == null) return false;
 
                 // 2. Aktualizuj konfigurację w pliku
-                progressDialog?.UpdateProgress(20, "Aktualizowanie konfiguracji...");
+                UpdateModProgress(modItem, progressDialog, 20, "Aktualizowanie konfiguracji...");
                 await configService.UpdateSingleModConfigAsync(updatedModConfig);
 
                 // 3. Zaktualizuj właściwości ModItem
@@ -241,13 +444,14 @@ namespace SUSModder.ViewModels
                     modItem.EpicGitHubRepoOrLink = updatedModConfig.EpicGitHubRepoOrLink;
                 });
 
-                progressDialog?.UpdateProgress(30, "Przygotowywanie do reinstalacji...");
+                UpdateModProgress(modItem, progressDialog, 30, "Przygotowywanie do reinstalacji...");
 
                 // 4. Jeżeli mod jest zainstalowany - wykonaj reinstalację
                 if (!string.IsNullOrEmpty(modItem.InstallPath))
                 {
                     // KROK 0: Zapisz listę zainstalowanych DLL PRZED usunięciem
                     List<DllModInstallation> installedDlls = new List<DllModInstallation>();
+                    bool oldAutoUpdateEnabled = false;
 
                     try
                     {
@@ -257,25 +461,41 @@ namespace SUSModder.ViewModels
                             installedDlls = new List<DllModInstallation>(installMap.InstalledDlls);
                             System.Diagnostics.Debug.WriteLine($"[Update] Zachowuję {installedDlls.Count} zainstalowanych DLL: {string.Join(", ", installedDlls.Select(d => d.ModName))}");
                         }
+
+                        // Zachowaj ustawienie auto-aktualizacji PRZED usunięciem
+                        if (installMap?.FullMod != null)
+                        {
+                            oldAutoUpdateEnabled = installMap.FullMod.AutoUpdateEnabled;
+                            System.Diagnostics.Debug.WriteLine($"[Update] Zachowuję AutoUpdateEnabled={oldAutoUpdateEnabled} dla {modItem.Name}");
+                        }
                     }
                     catch (Exception ex)
                     {
                         System.Diagnostics.Debug.WriteLine($"[Update] Nie udało się odczytać Installation Map: {ex.Message}");
                     }
 
-                    // UNINSTALL
-                    progressDialog?.UpdateProgress(40, "Odinstalowywanie starej wersji...");
+                    // ATOMIC UPDATE: zamiast usuwać stary mod PRZED instalacją,
+                    // przenosimy go do backupu. Jeśli instalacja się nie powiedzie,
+                    // przywracamy backup — stara wersja pozostaje nienaruszona.
+                    UpdateModProgress(modItem, progressDialog, 40, "Przygotowywanie backupu starej wersji...");
+
+                    backupPath = modItem.InstallPath + ".backup";
 
                     if (Directory.Exists(modItem.InstallPath))
                     {
-                        bool deleteSuccess = await SafeDeleteDirectoryAsync(modItem.InstallPath, modItem.Name);
-                        if (!deleteSuccess)
+                        // Usuń stary backup jeśli istnieje (pozostałość po poprzedniej nieudanej aktualizacji)
+                        if (Directory.Exists(backupPath))
                         {
-                            throw new InvalidOperationException($"Nie udało się usunąć starej wersji moda '{modItem.Name}'. Aktualizacja została przerwana.");
+                            await SafeDeleteDirectoryAsync(backupPath, modItem.Name + " (stary backup)");
                         }
+
+                        // Przenieś aktualną instalację do backupu (atomowe rename, szybkie)
+                        Directory.Move(modItem.InstallPath, backupPath);
+                        hasBackup = true;
+                        System.Diagnostics.Debug.WriteLine($"[Update] Backup utworzony: {backupPath}");
                     }
 
-                    // Aktualizuj konfigurację - usuń ścieżkę instalacji
+                    // Aktualizuj konfigurację - usuń ścieżkę instalacji przed reinstalacją
                     var configs = configService.LoadConfig();
                     var modConfig = configs.FirstOrDefault(c => c.ModName == modItem.Name);
                     if (modConfig != null)
@@ -284,9 +504,12 @@ namespace SUSModder.ViewModels
                         ConfigManager.SaveConfig(configs);
                     }
 
-                    modItem.InstallPath = string.Empty;
-                    
-                    progressDialog?.UpdateProgress(50, "Rozpoczynanie instalacji nowej wersji...");
+                    // NIE czyścimy modItem.InstallPath - dzięki temu IsInstalled pozostaje true
+                    // podczas aktualizacji, UI nie przełącza się na "Nie zainstalowano",
+                    // a pasek postępu (ShowProgress) jest widoczny.
+                    // Nowa ścieżka zostanie przypisana po zakończeniu instalacji.
+
+                    UpdateModProgress(modItem, progressDialog, 50, "Rozpoczynanie instalacji nowej wersji...");
 
                     // INSTALL
                     var updatedConfigs = configService.LoadConfig();
@@ -298,7 +521,7 @@ namespace SUSModder.ViewModels
                         var progressReporter = new UIProgressReporter((percentage, message) =>
                         {
                             int mappedProgress = 50 + (percentage * 50 / 100);
-                            progressDialog?.UpdateProgress(mappedProgress, $"Instalowanie: {message}");
+                            UpdateModProgress(modItem, progressDialog, mappedProgress, $"Instalowanie: {message}");
                         });
 
                         var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
@@ -321,12 +544,19 @@ namespace SUSModder.ViewModels
 
                             var epicUserInteraction = new EpicUserInteractionAdapter(_userInteractionService);
                             var epicManager = new EpicVersionManager(diagnosticsOutput, epicUserInteraction);
+                            epicManager.SpeedChanged += (speed) =>
+                            {
+                                Dispatcher.UIThread.Post(() =>
+                                {
+                                    modItem.DownloadSpeed = speed;
+                                });
+                            };
                             await epicManager.ModifyEpicAsync(updatedConfig, new object(), new object());
                         }
                         else
                         {
                             var configBuilder = new ConfigurationBuilder()
-                                .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                                .SetBasePath(SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory())
                                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
                             var configuration = configBuilder.Build();
                             
@@ -335,17 +565,28 @@ namespace SUSModder.ViewModels
                             {
                                 ConfirmAsync = silentUserInteraction.ShowConfirmAsync,
                                 ShowErrorAsync = silentUserInteraction.ShowErrorAsync,
-                                ShowInfoAsync = silentUserInteraction.ShowInfoAsync
+                                ShowInfoAsync = silentUserInteraction.ShowInfoAsync,
+                                RunSteamQrDownloadAsync = _userInteractionService.RunSteamQrDownloadAsync
                             };
 
-                            await modManager.ModifyAsync(
+                            var installResult = await modManager.ModifyAsync(
                                 updatedConfig,
                                 updatedConfigs,
                                 progressReporter,
                                 diagnosticsOutput,
                                 callbacks,
-                                "steam"
+                                "steam",
+                                onSpeedUpdate: (speed) =>
+                                {
+                                    Dispatcher.UIThread.Post(() =>
+                                    {
+                                        modItem.DownloadSpeed = speed;
+                                    });
+                                }
                             );
+
+                            if (!installResult.Success)
+                                throw new InvalidOperationException(installResult.ErrorMessage ?? "Update failed");
                         }
 
                         await Dispatcher.UIThread.InvokeAsync(() =>
@@ -353,10 +594,31 @@ namespace SUSModder.ViewModels
                             modItem.InstallPath = updatedConfig.InstallPath;
                         });
 
+                        // KROK 3.5: Przywróć ustawienie auto-aktualizacji (nowa Installation Map
+                        // tworzona przez ModManager/EpicVersionManager ma domyślnie false)
+                        if (oldAutoUpdateEnabled && !string.IsNullOrEmpty(updatedConfig.InstallPath))
+                        {
+                            try
+                            {
+                                var newInstallMap = await InstallationMapManager.LoadInstallationMapAsync(updatedConfig.InstallPath);
+                                if (newInstallMap?.FullMod != null)
+                                {
+                                    newInstallMap.FullMod.AutoUpdateEnabled = true;
+                                    newInstallMap.FullMod.LastUpdated = DateTime.Now;
+                                    await InstallationMapManager.SaveInstallationMapAsync(updatedConfig.InstallPath, newInstallMap);
+                                    System.Diagnostics.Debug.WriteLine($"[Update] Przywrócono AutoUpdateEnabled=true dla {modItem.Name}");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[Update] Nie udało się przywrócić AutoUpdateEnabled dla {modItem.Name}: {ex.Message}");
+                            }
+                        }
+
                         // KROK 4: Przywróć zainstalowane DLL (jeśli były)
                         if (installedDlls.Any())
                         {
-                            progressDialog?.UpdateProgress(90, $"Przywracanie {installedDlls.Count} modów DLL...");
+                            UpdateModProgress(modItem, progressDialog, 90, $"Przywracanie {installedDlls.Count} modów DLL...");
                             System.Diagnostics.Debug.WriteLine($"[Update] Przywracanie {installedDlls.Count} modów DLL...");
 
                             await RestoreDllModsAfterUpdateAsync(updatedConfig, installedDlls, platform, diagnosticsOutput);
@@ -364,21 +626,112 @@ namespace SUSModder.ViewModels
                     }
                 }
 
-                progressDialog?.UpdateProgress(100, "Aktualizacja zakończona");
+                UpdateModProgress(modItem, progressDialog, 100, "Aktualizacja zakończona");
                 await Task.Delay(500);
+
+                // Posprzątaj backup po udanej aktualizacji
+                if (hasBackup && Directory.Exists(backupPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Update] Usuwam backup po udanej aktualizacji: {backupPath}");
+                    await SafeDeleteDirectoryAsync(backupPath, modItem.Name + " (backup)");
+                }
+
                 return true;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error updating single mod {modItem.Name}: {ex.Message}");
-                progressDialog?.UpdateProgress(100, $"Błąd: {ex.Message}");
+                UpdateModProgress(modItem, progressDialog, 100, $"Błąd: {ex.Message}");
+
+                // Przywróć backup jeśli instalacja się nie powiodła
+                if (hasBackup && Directory.Exists(backupPath))
+                {
+                    try
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Update] Przywracam backup po nieudanej aktualizacji: {backupPath}");
+                        // Usuń nieudaną instalację (jeśli cokolwiek powstało)
+                        if (!string.IsNullOrEmpty(modItem.InstallPath) && Directory.Exists(modItem.InstallPath))
+                        {
+                            await SafeDeleteDirectoryAsync(modItem.InstallPath, modItem.Name + " (failed)");
+                        }
+                        // Przywróć backup
+                        if (!string.IsNullOrEmpty(modItem.InstallPath))
+                        {
+                            Directory.Move(backupPath, modItem.InstallPath);
+                            System.Diagnostics.Debug.WriteLine($"[Update] Backup przywrócony: {modItem.InstallPath}");
+                        }
+
+                        // Przywróć ścieżkę instalacji w konfiguracji
+                        try
+                        {
+                            var restoredConfigs = configService.LoadConfig();
+                            var restoredConfig = restoredConfigs.FirstOrDefault(c => c.ModName == modItem.Name);
+                            if (restoredConfig != null)
+                            {
+                                restoredConfig.InstallPath = modItem.InstallPath;
+                                ConfigManager.SaveConfig(restoredConfigs);
+                            }
+                        }
+                        catch (Exception restoreEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[Update] Nie udało się przywrócić ścieżki w konfiguracji: {restoreEx.Message}");
+                        }
+                    }
+                    catch (Exception restoreEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Update] CRITICAL: Nie udało się przywrócić backupu! {restoreEx.Message}");
+                    }
+                }
+
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    modItem.DownloadSpeed = null;
+                });
                 await Task.Delay(1500);
                 return false;
             }
+            finally
+            {
+                _activeInstallationsCount--;
+                SyncIsAnyModInstalling();
+
+                // Resetuj stan instalacji na karcie moda (dla auto-aktualizacji)
+                if (progressDialog == null)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        modItem.ShowProgress = false;
+                        modItem.IsInstalling = false;
+                        modItem.InstallStatusMessage = string.Empty;
+                        modItem.InstallProgress = 0;
+                    });
+                }
+            }
         }
 
+        /// <summary>
+        /// Aktualizuje postęp zarówno na dialogu (jeśli istnieje), jak i na karcie moda.
+        /// Gdy progressDialog jest null (auto-aktualizacja), postęp widoczny jest na modItem.
+        /// </summary>
+        private void UpdateModProgress(ModItem modItem, UpdateProgressDialog? progressDialog, int progress, string message)
+        {
+            progressDialog?.UpdateProgress(progress, message);
+
+            if (progressDialog == null)
+            {
+                // Auto-aktualizacja: pokaż postęp na karcie moda
+                Dispatcher.UIThread.Post(() =>
+                {
+                    modItem.ShowProgress = true;
+                    modItem.InstallProgress = progress;
+                    modItem.InstallStatusMessage = message;
+                });
+            }
+        }
+    
         private async Task<bool> UpdateSingleModAsync(ModItem modItem, ModUpdateInfo updateInfo)
         {
+            IsAnyModInstalling = true;
             try
             {
                 var configService = new ConfigService();
@@ -491,12 +844,19 @@ namespace SUSModder.ViewModels
 
                             var epicUserInteraction = new EpicUserInteractionAdapter(_userInteractionService);
                             var epicManager = new EpicVersionManager(diagnosticsOutput, epicUserInteraction);
+                            epicManager.SpeedChanged += (speed) =>
+                            {
+                                Dispatcher.UIThread.Post(() =>
+                                {
+                                    modItem.DownloadSpeed = speed;
+                                });
+                            };
                             await epicManager.ModifyEpicAsync(updatedConfig, new object(), new object());
                         }
                         else
                         {
                             var configBuilder = new ConfigurationBuilder()
-                                .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                                .SetBasePath(SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory())
                                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
                             var configuration = configBuilder.Build();
                             
@@ -505,17 +865,28 @@ namespace SUSModder.ViewModels
                             {
                                 ConfirmAsync = silentUserInteraction.ShowConfirmAsync,
                                 ShowErrorAsync = silentUserInteraction.ShowErrorAsync,
-                                ShowInfoAsync = silentUserInteraction.ShowInfoAsync
+                                ShowInfoAsync = silentUserInteraction.ShowInfoAsync,
+                                RunSteamQrDownloadAsync = _userInteractionService.RunSteamQrDownloadAsync
                             };
 
-                            await modManager.ModifyAsync(
+                            var installResult = await modManager.ModifyAsync(
                                 updatedConfig,
                                 updatedConfigs,
                                 progressReporter,
                                 diagnosticsOutput,
                                 callbacks,
-                                "steam"
+                                "steam",
+                                onSpeedUpdate: (speed) =>
+                                {
+                                    Dispatcher.UIThread.Post(() =>
+                                    {
+                                        modItem.DownloadSpeed = speed;
+                                    });
+                                }
                             );
+
+                            if (!installResult.Success)
+                                throw new InvalidOperationException(installResult.ErrorMessage ?? "Update failed");
                         }
 
                         await Dispatcher.UIThread.InvokeAsync(() =>
@@ -529,6 +900,7 @@ namespace SUSModder.ViewModels
                 {
                     modItem.InstallProgress = 100;
                     modItem.InstallStatusMessage = "Aktualizacja zakończona";
+                    modItem.DownloadSpeed = null;
                 });
                 
                 await Task.Delay(500);
@@ -540,8 +912,13 @@ namespace SUSModder.ViewModels
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     modItem.InstallStatusMessage = $"Błąd: {ex.Message}";
+                    modItem.DownloadSpeed = null;
                 });
                 return false;
+            }
+            finally
+            {
+                IsAnyModInstalling = false;
             }
         }
 
@@ -587,8 +964,50 @@ namespace SUSModder.ViewModels
 
                 _diagnosticsOutput?.Write($"[CheckDllUpdates] Znaleziono {updates.Count} aktualizacji");
 
-                // Dla każdego DLL pokazujemy osobny dialog (jak dla modów FULL)
-                foreach (var updateInfo in updates)
+                // ── Podziel na auto-update i manualne ──
+                var installedFullMods = configService.LoadConfig()
+                    .Where(c => c.ModType == "full" && !string.IsNullOrEmpty(c.InstallPath))
+                    .ToList();
+
+                var (autoUpdates, manualUpdates) = await dllUpdateManager.FilterAutoUpdateDllsAsync(updates, installedFullMods);
+
+                // ── Wykonaj ciche auto-update ──
+                if (autoUpdates.Any())
+                {
+                    _diagnosticsOutput?.Write($"[CheckDllUpdates] Uruchamiam ciche auto-update {autoUpdates.Count} DLL...");
+                    var autoResults = await dllUpdateManager.RunAutoUpdatesAsync(autoUpdates, platform);
+
+                    int autoSuccess = autoResults.Sum(r => r.SuccessfulUpdates);
+                    int autoFailed = autoResults.Sum(r => r.FailedUpdates);
+
+                    if (autoSuccess > 0)
+                    {
+                        // Użyj klucza i18n dla auto-aktualizacji
+                        var msg = _localizationService.GetFormatted("Dialogs.ModUpdatesAutoUpdated", autoSuccess);
+                        ToastService.ShowInfo(msg);
+                    }
+                    else if (autoFailed > 0)
+                    {
+                        _diagnosticsOutput?.Write($"[CheckDllUpdates] ⚠ Wszystkie auto-update DLL nieudane ({autoFailed}), ponowna próba przy następnym sprawdzeniu");
+                    }
+
+                    _diagnosticsOutput?.Write($"[CheckDllUpdates] Auto-update zakończone: {autoSuccess} OK, {autoFailed} FAIL");
+                }
+
+                // Jeśli nie ma ręcznych aktualizacji, zakończ
+                if (!manualUpdates.Any())
+                {
+                    if (autoUpdates.Any())
+                    {
+                        // Odśwież listę modów po auto-update
+                        await RefreshModsListAsync();
+                    }
+                    _diagnosticsOutput?.Write("[CheckDllUpdates] Brak ręcznych aktualizacji DLL do pokazania");
+                    return;
+                }
+
+                // ── Pokaż dialogi dla ręcznych aktualizacji ──
+                foreach (var updateInfo in manualUpdates)
                 {
                     try
                     {
@@ -629,28 +1048,39 @@ namespace SUSModder.ViewModels
                         // Pokaż wynik
                         if (result.SuccessfulUpdates > 0)
                         {
-                            var successMessage = $"✅ Pomyślnie zaktualizowano {updateInfo.DllMod.ModName} w {result.SuccessfulUpdates} lokalizacjach";
+                            var successMessage = _localizationService.GetFormatted(
+                                "Updates.DllUpdateSuccess",
+                                updateInfo.DllMod.ModName,
+                                result.SuccessfulUpdates);
                             if (result.FailedUpdates > 0)
                             {
-                                successMessage += $"\n\n❌ Nieudane aktualizacje: {result.FailedUpdates}\n• " + 
+                                successMessage += "\n\n" + _localizationService.GetFormatted(
+                                    "Updates.FailedUpdates", result.FailedUpdates) + "\n• " +
                                     string.Join("\n• ", result.FailedLocations);
                             }
-                            await ShowMessageAsync("Aktualizacja zakończona", successMessage);
+                            await ShowMessageAsync(
+                                _localizationService.Get("Updates.UpdateCompleted"),
+                                successMessage);
                         }
                         else
                         {
                             await ShowErrorDialogAsync(
-                                $"Nie udało się zaktualizować {updateInfo.DllMod.ModName} w żadnej lokalizacji.\n\n" +
-                                $"Nieudane lokalizacje:\n• " + string.Join("\n• ", result.FailedLocations),
-                                "Błąd aktualizacji");
+                                _localizationService.GetFormatted(
+                                    "Updates.DllUpdateFailed",
+                                    updateInfo.DllMod.ModName,
+                                    string.Join("\n• ", result.FailedLocations)),
+                                _localizationService.Get("Updates.DllUpdateFailedTitle"));
                         }
                     }
                     catch (Exception ex)
                     {
                         _diagnosticsOutput?.Write($"[CheckDllUpdates ERROR] Błąd dla {updateInfo.DllMod.ModName}: {ex.Message}");
                         await ShowErrorDialogAsync(
-                            $"Błąd podczas aktualizacji {updateInfo.DllMod.ModName}: {ex.Message}",
-                            "Błąd");
+                            _localizationService.GetFormatted(
+                                "Updates.DllUpdateError",
+                                updateInfo.DllMod.ModName,
+                                ex.Message),
+                            _localizationService.Get("Updates.DllUpdateFailedTitle"));
                     }
                 }
 
@@ -661,7 +1091,9 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 _diagnosticsOutput?.Write($"[CheckDllUpdates ERROR] {ex.Message}");
-                await ShowErrorDialogAsync($"Błąd podczas sprawdzania aktualizacji DLL: {ex.Message}", "Błąd");
+                await ShowErrorDialogAsync(
+                    _localizationService.GetFormatted("Updates.DllCheckError", ex.Message),
+                    _localizationService.Get("Updates.DllUpdateFailedTitle"));
             }
         }
 

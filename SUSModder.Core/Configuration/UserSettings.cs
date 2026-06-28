@@ -21,10 +21,16 @@ namespace SUSModder.Core.Configuration
         public int LastLaunchId { get; set; } = 0;
 
         /// <summary>
-        /// Motyw aplikacji: "dark", "light", "pink"
+        /// Motyw aplikacji: "dark", "light", "pink", "glass"
         /// </summary>
         [JsonPropertyName("theme")]
         public string Theme { get; set; } = "dark";
+
+        /// <summary>
+        /// Wymusza nieprzezroczysty fallback w motywie Szklany (lepsza czytelność / dostępność).
+        /// </summary>
+        [JsonPropertyName("glassReduceTransparency")]
+        public bool GlassReduceTransparency { get; set; } = false;
 
         /// <summary>
         /// Język aplikacji (jeśli pusty - automatyczna detekcja)
@@ -74,5 +80,84 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         [JsonPropertyName("antivirusWarningAcknowledgedSignature")]
         public string AntivirusWarningAcknowledgedSignature { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Ostatnia wersja aplikacji, którą użytkownik widział w changelogu.
+        /// Puste = nigdy nie pokazano. Służy do wyświetlania "Co nowego" po aktualizacji.
+        /// </summary>
+        [JsonPropertyName("lastSeenVersion")]
+        public string LastSeenVersion { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Czy minimalizować do zasobnika systemowego zamiast zamykania aplikacji.
+        /// Domyślnie włączone od wersji 2.4.0 (migracja: UserSettingsService.RunMigrations).
+        /// </summary>
+        [JsonPropertyName("minimizeToTray")]
+        public bool MinimizeToTray { get; set; } = true;
+
+        /// <summary>
+        /// Czy pokazywać szybkie uruchamianie (3 ostatnie mody) w menu zasobnika.
+        /// Domyślnie włączone od wersji 2.4.0 (migracja: UserSettingsService.RunMigrations).
+        /// </summary>
+        [JsonPropertyName("showQuickLaunchInTray")]
+        public bool ShowQuickLaunchInTray { get; set; } = true;
+
+        /// <summary>
+        /// Czy dymek informacyjny przy pierwszym minimalizowaniu został już pokazany.
+        /// </summary>
+        [JsonPropertyName("trayFirstMinimizeShown")]
+        public bool TrayFirstMinimizeShown { get; set; } = false;
+
+        /// <summary>
+        /// Wersja schematu ustawień. Używana do migracji przy aktualizacjach.
+        /// 0 = brak/niewersjonowany, 1 = pierwsza wersjonowana migracja (v2.4.0: domyślnie włączone tray).
+        /// </summary>
+        [JsonPropertyName("settingsVersion")]
+        public int SettingsVersion { get; set; } = 0;
+
+        /// <summary>
+        /// ID aktywnego serwera Discord dla SUSTATS (GuildId).
+        /// Ustawiane po wyborze serwera w UI. Null = brak wybranego serwera.
+        /// Mapowane na kolumnę active_sustats_guild_id w SQLite.
+        /// </summary>
+        [JsonPropertyName("activeSustatsGuildId")]
+        public string? ActiveSustatsGuildId { get; set; }
+
+        /// <summary>
+        /// Czy pokazywać opcje udostępniania zestawów modów.
+        /// </summary>
+        [JsonPropertyName("modPacksEnabled")]
+        public bool ModPacksEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Czy po deep linku od razu pokazywać instalację (bez dodatkowego kroku — nadal wymaga potwierdzenia w preview).
+        /// </summary>
+        [JsonPropertyName("modPacksAutoInstall")]
+        public bool ModPacksAutoInstall { get; set; } = false;
+
+        /// <summary>
+        /// Ostatnio użyty nick autora przy udostępnianiu zestawu modów.
+        /// </summary>
+        [JsonPropertyName("modPackShareCreatorName")]
+        public string ModPackShareCreatorName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Ostatnio użyty link Discord przy udostępnianiu zestawu modów.
+        /// </summary>
+        [JsonPropertyName("modPackShareDiscordInvite")]
+        public string ModPackShareDiscordInvite { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Czy pobierać Among Us vanilla przez DepotDownloader (Steam) zamiast paczek 7z SUSModder.
+        /// Domyślnie wyłączone — funkcja eksperymentalna.
+        /// </summary>
+        [JsonPropertyName("preferDepotDownloader")]
+        public bool PreferDepotDownloader { get; set; } = false;
+
+        /// <summary>
+        /// Tryb deweloperski (dodatkowe opcje diagnostyczne w UI).
+        /// </summary>
+        [JsonPropertyName("developerMode")]
+        public bool DeveloperMode { get; set; } = false;
     }
 }

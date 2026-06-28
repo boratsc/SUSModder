@@ -39,8 +39,7 @@ namespace SUSModder.Views
             try
             {
                 // Inicjalizuj ConfigRepository
-                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                _configRepository = new ConfigRepository(exeDir);
+                _configRepository = new ConfigRepository();
 
                 // Inicjalizuj UserInteractionService
                 _userInteractionService = new UserInteractionService(
@@ -471,6 +470,24 @@ namespace SUSModder.Views
         private Window? GetMainWindow()
         {
             return (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+        }
+
+        private void OnLobbyBoardClick(object? sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainWindowViewModel vm && vm.SelectedMod != null)
+            {
+                // Toggle lobby board
+                if (vm.IsLobbyBoardVisible)
+                {
+                    vm.IsLobbyBoardVisible = false;
+                }
+                else
+                {
+                    vm.IsInfoPanelVisible = false;
+                    vm.IsAdditionalActionsVisible = false;
+                    vm.ShowLobbyBoard();
+                }
+            }
         }
     }
 }

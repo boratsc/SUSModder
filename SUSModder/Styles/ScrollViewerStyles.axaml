@@ -1,0 +1,28 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<!-- Domyślnie zostaw miejsce na pionowy pasek przewijania, żeby nie nachodził na pola i przyciski. -->
+	<Style Selector="ScrollViewer">
+		<Setter Property="Padding" Value="0,0,14,0"/>
+	</Style>
+
+	<!-- Bez dodatkowego odstępu (np. pełna szerokość siatki kart). -->
+	<Style Selector="ScrollViewer.scroll-flush">
+		<Setter Property="Padding" Value="0"/>
+	</Style>
+
+	<Style Selector="ScrollBar:vertical">
+		<Setter Property="Width" Value="10"/>
+		<Setter Property="Margin" Value="0,4,2,4"/>
+	</Style>
+
+	<Style Selector="ScrollBar:horizontal">
+		<Setter Property="Height" Value="10"/>
+		<Setter Property="Margin" Value="4,0,4,2"/>
+	</Style>
+
+	<Style Selector="ScrollBar /template/ Thumb">
+		<Setter Property="CornerRadius" Value="4"/>
+	</Style>
+
+</Styles>

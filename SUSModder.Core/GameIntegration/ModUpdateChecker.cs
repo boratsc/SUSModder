@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using SUSModder.Core.Api;
 using SUSModder.Core.Utilities;
 using SUSModder.Core.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -133,28 +134,9 @@ namespace SUSModder.Core.GameIntegration
         {
             try
             {
-                var tempFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.temp.json");
-
-                using (HttpClient client = new HttpClient())
-                {
-                    string downloadToken = SecretProvider.GetDownloadToken();
-                    client.DefaultRequestHeaders.Add("Authorization", downloadToken);
-
-                    HttpResponseMessage response = await client.GetAsync(configuration["Configuration:UpdateServerUrl"]);
-                    response.EnsureSuccessStatusCode();
-
-                    using (FileStream fs = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write))
-                    {
-                        await response.Content.CopyToAsync(fs);
-                    }
-                }
-
-                var jsonContent = await File.ReadAllTextAsync(tempFilePath);
-                var remoteConfigs = JsonSerializer.Deserialize<List<ModConfiguration>>(jsonContent) ?? new List<ModConfiguration>();
-
-                File.Delete(tempFilePath);
-
-                return remoteConfigs;
+                var apiClient = SUSModderApiClientProvider.TryGetDefault()
+                    ?? new SUSModderApiClient(configuration, log);
+                return await apiClient.GetCatalogAsModConfigurationsAsync();
             }
             catch (Exception ex)
             {
@@ -169,8 +151,9 @@ namespace SUSModder.Core.GameIntegration
 
             foreach (var localMod in localConfigs)
             {
-                // Sprawdź tylko zainstalowane mody typu "full" i "dll"
-                if ((localMod.ModType != "full" && localMod.ModType != "dll") ||
+                // Sprawdź tylko zainstalowane mody typu "full".
+                // DLL mają osobną logikę aktualizacji per pełny mod (InstallationMap/InstalledDlls).
+                if (!string.Equals(localMod.ModType, "full", StringComparison.OrdinalIgnoreCase) ||
                     string.IsNullOrEmpty(localMod.InstallPath) ||
                     !Directory.Exists(localMod.InstallPath))
                     continue;
@@ -189,6 +172,9 @@ namespace SUSModder.Core.GameIntegration
                     var installMap = InstallationMapManager.LoadInstallationMapAsync(localMod.InstallPath).GetAwaiter().GetResult();
                     if (installMap?.FullMod != null && !string.IsNullOrEmpty(installMap.FullMod.ModVersion))
                     {
+                        if (!InstallationMapMatchesMod(installMap.FullMod, localMod))
+                            continue;
+
                         installedVersion = installMap.FullMod.ModVersion;
                         disableAutoUpdatePrompt = installMap.FullMod.DisableAutoUpdatePrompt;
                         pinnedInstallVersion = installMap.FullMod.PinnedInstallVersion;
@@ -255,6 +241,21 @@ namespace SUSModder.Core.GameIntegration
                 return true;
             }
             return false;
+        }
+
+        private static bool InstallationMapMatchesMod(FullModInstallation fullMod, ModConfiguration localMod)
+        {
+            if (fullMod.ModId > 0 && localMod.Id > 0 && fullMod.ModId != localMod.Id)
+                return false;
+
+            if (!string.IsNullOrWhiteSpace(fullMod.ModName) &&
+                !string.IsNullOrWhiteSpace(localMod.ModName) &&
+                !string.Equals(fullMod.ModName.Trim(), localMod.ModName.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private static void ProposeUpdatesToUser(
@@ -361,7 +362,7 @@ namespace SUSModder.Core.GameIntegration
                     };
 
                     // KROK 3: Zainstaluj nową wersję moda FULL
-                    await modManager.ModifyAsync(
+                    var installResult = await modManager.ModifyAsync(
                         modToInstall,
                         updatedConfigs,
                         progress,
@@ -369,6 +370,12 @@ namespace SUSModder.Core.GameIntegration
                         callbacks,
                         configuration["Configuration:Mode"] ?? "steam"
                     );
+
+                    if (!installResult.Success)
+                    {
+                        log.Write($"[Aktualizacje] Błąd instalacji moda: {installResult.ErrorMessage}");
+                        return;
+                    }
 
                     // KROK 4: Przywróć zainstalowane DLL (jeśli były)
                     if (installedDlls.Any())

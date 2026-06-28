@@ -26,54 +26,125 @@ namespace SUSModder.ViewModels
     /// </summary>
     public partial class MainWindowViewModel
     {
+        private ModManagerUserCallbacks CreateModManagerCallbacks() => new()
+        {
+            ConfirmAsync = _userInteractionService.ShowConfirmAsync,
+            ShowErrorAsync = _userInteractionService.ShowErrorAsync,
+            ShowInfoAsync = _userInteractionService.ShowInfoAsync,
+            RunSteamQrDownloadAsync = _userInteractionService.RunSteamQrDownloadAsync
+        };
+
         #region Install
 
         private async void Install()
         {
+            if (_isInitializing)
+                return;
+
             if (SelectedMod == null || SelectedMod.IsInstalling)
                 return;
 
-            var currentSelectedMod = SelectedMod;
+            await InstallModItemAsync(SelectedMod, showPostInstallFlow: true);
+        }
 
-            // Zwiększ licznik aktywnych instalacji
+        /// <summary>
+        /// Instalacja pojedynczego moda (używane także przez kolejkę bulk).
+        /// </summary>
+        internal async Task<bool> InstallModItemAsync(ModItem currentSelectedMod, bool showPostInstallFlow = true)
+        {
+            if (currentSelectedMod.IsInstalling)
+                return false;
+
+            // Zamknij pozostawione wcześniej panele z poprzedniej akcji, aby
+            // użytkownik nie widział dwóch nakładających się modalnych paneli.
+            if (IsPostInstallSuccessVisible || IsPostInstallFailureVisible || IsLaunchDiagnosticsVisible)
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    IsPostInstallSuccessVisible = false;
+                    PostInstallSuccessViewModel = null;
+                    IsPostInstallFailureVisible = false;
+                    PostInstallFailureViewModel = null;
+                    IsLaunchDiagnosticsVisible = false;
+                });
+            }
+
+            bool success = false;
+            ModConfiguration? modConfig = null;
+            ModInstallResult? installResult = null;
+
             lock (_installationLock)
             {
                 _activeInstallationsCount++;
                 System.Diagnostics.Debug.WriteLine($"[Install] Rozpoczęto instalację {currentSelectedMod.Name}. Aktywnych instalacji: {_activeInstallationsCount}");
             }
+            SyncIsAnyModInstalling();
 
             try
             {
-                // Ustaw flagę instalacji
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     currentSelectedMod.IsInstalling = true;
                     currentSelectedMod.ShowProgress = true;
                 });
 
-                // Pobierz konfigurację moda
                 var configService = new ConfigService();
                 var allConfigs = configService.LoadConfig();
-                var modConfig = allConfigs.FirstOrDefault(c => c.ModName == currentSelectedMod.Name);
+                modConfig = allConfigs.FirstOrDefault(c => c.ModName == currentSelectedMod.Name);
 
                 if (modConfig == null)
                 {
                     await _userInteractionService.ShowErrorAsync(
                         _localizationService.Get("ModOperations.ConfigNotFound"),
                         _localizationService.Get("MainWindow.ErrorTitle"));
-                    return;
+                    return false;
                 }
 
                 string platform = DeterminePlatform();
-                bool success = false;
+
+                // ── VirusTotal security gate (czyta z DB, nie woła API) ──
+                if (!currentSelectedMod.IsVanilla && currentSelectedMod.IsVtRisky)
+                {
+                    string warningTitle = _localizationService.Get("SecurityScan.InstallWarningTitle");
+                    string warningMessage = string.Format(
+                        _localizationService.Get("SecurityScan.WarningIntro"),
+                        currentSelectedMod.Name, modConfig.ModVersion);
+                    warningMessage += "\n\n";
+                    warningMessage += string.Format(
+                        _localizationService.Get("SecurityScan.WarningStatus"),
+                        currentSelectedMod.VtScanStatus ?? "unknown");
+                    if (!string.IsNullOrWhiteSpace(currentSelectedMod.VtAiReviewSummary))
+                    {
+                        warningMessage += "\n" + string.Format(
+                            _localizationService.Get("SecurityScan.WarningAiReview"),
+                            currentSelectedMod.VtAiReviewSummary);
+                    }
+                    if (!string.IsNullOrWhiteSpace(currentSelectedMod.VtPermalink))
+                    {
+                        warningMessage += "\n\n" + string.Format(
+                            _localizationService.Get("SecurityScan.WarningPermalink"),
+                            currentSelectedMod.VtPermalink);
+                    }
+
+                    bool proceed = await ShowConfirmDialogAsync(warningMessage, warningTitle);
+                    if (!proceed)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[Install] Użytkownik anulował instalację moda {currentSelectedMod.Name} z powodu ostrzeżenia VT.");
+                        return false;
+                    }
+                }
+                // ── Koniec security gate ──
 
                 if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
                 {
-                    success = await InstallEpicModAsync(currentSelectedMod, modConfig);
+                    installResult = await InstallEpicModAsync(currentSelectedMod, modConfig);
+                    success = installResult.Success;
                 }
                 else
                 {
-                    success = await InstallSteamModAsync(currentSelectedMod, modConfig, allConfigs);
+                    installResult = await InstallSteamModAsync(currentSelectedMod, modConfig, allConfigs);
+                    success = installResult.Success;
                 }
 
                 if (success)
@@ -83,39 +154,42 @@ namespace SUSModder.ViewModels
                         modConfig.ModVersion,
                         disableAutoUpdatePrompt: false,
                         pinnedInstallVersion: null);
-
-                    await RefreshModsListAsync(checkUpdates: false);
-                    SelectedMod = Mods.FirstOrDefault(m => m.Id == currentSelectedMod.Id);
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Install] Exception: {ex.Message}");
+                installResult = ModInstallResult.Failed(ex.Message);
+                success = false;
             }
             finally
             {
-                // Ukryj progress bar
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     currentSelectedMod.ShowProgress = false;
                     currentSelectedMod.InstallProgress = 0;
                     currentSelectedMod.InstallStatusMessage = string.Empty;
+                    currentSelectedMod.DownloadSpeed = null;
                     currentSelectedMod.IsInstalling = false;
                 });
 
-                // Zmniejsz licznik aktywnych instalacji
                 lock (_installationLock)
                 {
                     _activeInstallationsCount--;
                     System.Diagnostics.Debug.WriteLine($"[Install] Zakończono instalację {currentSelectedMod.Name}. Aktywnych instalacji: {_activeInstallationsCount}");
                 }
+                SyncIsAnyModInstalling();
 
-                // Jeśli to była ostatnia instalacja, pokaż wszystkie oczekujące dialogi DLL
                 await ShowPendingDllDialogsIfNeeded();
-
-                // Odśwież statystyki status bara
                 await RefreshStatusBarAsync();
             }
+
+            if (success && showPostInstallFlow && modConfig != null)
+                await ShowPostInstallFlowAsync(currentSelectedMod, modConfig);
+            else if (!success)
+                await ShowPostInstallFailureFlowAsync(currentSelectedMod, installResult);
+
+            return success;
         }
 
         /// <summary>
@@ -123,6 +197,9 @@ namespace SUSModder.ViewModels
         /// </summary>
         private async Task InstallWithVersionSelection()
         {
+            if (_isInitializing)
+                return;
+
             if (SelectedMod == null || SelectedMod.IsInstalling)
                 return;
 
@@ -143,7 +220,7 @@ namespace SUSModder.ViewModels
 
                 // Pobierz konfigurację aplikacji
                 var configBuilder = new ConfigurationBuilder()
-                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                    .SetBasePath(SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory())
                     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
                 var configuration = configBuilder.Build();
 
@@ -187,6 +264,10 @@ namespace SUSModder.ViewModels
                 _activeInstallationsCount++;
                 System.Diagnostics.Debug.WriteLine($"[InstallSpecificVersion] Rozpoczęto instalację {modItem.Name} v{selectedVersion.ModVersion}. Aktywnych instalacji: {_activeInstallationsCount}");
             }
+            SyncIsAnyModInstalling();
+
+            bool success = false;
+            ModInstallResult? installResult = null;
 
             try
             {
@@ -213,15 +294,16 @@ namespace SUSModder.ViewModels
                 };
 
                 string platform = DeterminePlatform();
-                bool success = false;
 
                 if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
                 {
-                    success = await InstallEpicModAsync(modItem, tempModConfig);
+                    installResult = await InstallEpicModAsync(modItem, tempModConfig);
+                    success = installResult.Success;
                 }
                 else
                 {
-                    success = await InstallSteamModAsync(modItem, tempModConfig, allConfigs);
+                    installResult = await InstallSteamModAsync(modItem, tempModConfig, allConfigs);
+                    success = installResult.Success;
                 }
 
                 if (success)
@@ -244,9 +326,8 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[InstallSpecificVersion] Exception: {ex.Message}");
-                await _userInteractionService.ShowErrorAsync(
-                    _localizationService.GetFormatted("ModOperations.InstallError", ex.Message),
-                    _localizationService.Get("MainWindow.ErrorTitle"));
+                installResult = ModInstallResult.Failed(ex.Message);
+                success = false;
             }
             finally
             {
@@ -265,6 +346,7 @@ namespace SUSModder.ViewModels
                     _activeInstallationsCount--;
                     System.Diagnostics.Debug.WriteLine($"[InstallSpecificVersion] Zakończono instalację {modItem.Name}. Aktywnych instalacji: {_activeInstallationsCount}");
                 }
+                SyncIsAnyModInstalling();
 
                 // Jeśli to była ostatnia instalacja, pokaż wszystkie oczekujące dialogi DLL
                 await ShowPendingDllDialogsIfNeeded();
@@ -272,14 +354,19 @@ namespace SUSModder.ViewModels
                 // Odśwież statystyki status bara
                 await RefreshStatusBarAsync();
             }
+
+            if (success)
+                await ShowPostInstallFlowAsync(modItem, modConfig);
+            else
+                await ShowPostInstallFailureFlowAsync(modItem, installResult);
         }
 
-        private async Task<bool> InstallEpicModAsync(ModItem currentSelectedMod, ModConfiguration modConfig)
+        private async Task<ModInstallResult> InstallEpicModAsync(ModItem currentSelectedMod, ModConfiguration modConfig)
         {
-            var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+            var diagnosticsOutput = new BufferingDiagnosticsOutput(new UIDiagnosticsOutput((message) =>
             {
                 System.Diagnostics.Debug.WriteLine($"[Install Epic] {message}");
-            });
+            }));
 
             var epicUserInteraction = new EpicUserInteractionAdapter(_userInteractionService);
             var epicManager = new EpicVersionManager(diagnosticsOutput, epicUserInteraction);
@@ -298,6 +385,15 @@ namespace SUSModder.ViewModels
                 });
             };
 
+            // Subskrybuj prędkość pobierania z legendary
+            epicManager.SpeedChanged += (speed) =>
+            {
+                Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    currentSelectedMod.DownloadSpeed = speed;
+                });
+            };
+
             // Subskrybuj zakończenie instalacji
             epicManager.InstallationCompleted += (completedModConfig) =>
             {
@@ -312,20 +408,27 @@ namespace SUSModder.ViewModels
             try
             {
                 System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: Calling ModifyEpicAsync for {modConfig.ModName}");
-                await epicManager.ModifyEpicAsync(modConfig, null, null);
-                System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync returned successfully");
+                var epicResult = await epicManager.ModifyEpicAsync(modConfig, null, null);
+                System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync returned {epicResult}");
 
-                ShowDllSelectionWindow(currentSelectedMod, "epic");
-                return true;
+                return epicResult
+                    ? ModInstallResult.Succeeded(diagnosticsOutput.Lines)
+                    : ModInstallResult.Failed(
+                        _localizationService.Get("Dialogs.Error.InstallFailed"),
+                        diagnosticsOutput.Lines);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync threw exception: {ex.Message}");
-                return false;
+                diagnosticsOutput.Write($"[Install Epic] Exception: {ex.Message}");
+                return ModInstallResult.Failed(ex.Message, diagnosticsOutput.Lines);
             }
         }
 
-        private async Task<bool> InstallSteamModAsync(ModItem currentSelectedMod, ModConfiguration modConfig, System.Collections.Generic.List<ModConfiguration> allConfigs)
+        private async Task<ModInstallResult> InstallSteamModAsync(
+            ModItem currentSelectedMod,
+            ModConfiguration modConfig,
+            System.Collections.Generic.List<ModConfiguration> allConfigs)
         {
             var progressReporter = new UIProgressReporter((percentage, message) =>
             {
@@ -333,13 +436,13 @@ namespace SUSModder.ViewModels
                 currentSelectedMod.InstallStatusMessage = message;
             });
 
-            var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
+            var logCollector = new BufferingDiagnosticsOutput(new UIDiagnosticsOutput(message =>
             {
                 System.Diagnostics.Debug.WriteLine($"[Install Steam] {message}");
-            });
+            }));
 
             var configBuilder = new ConfigurationBuilder()
-                .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                .SetBasePath(SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory())
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
             var configuration = configBuilder.Build();
 
@@ -347,39 +450,44 @@ namespace SUSModder.ViewModels
 
             try
             {
-                var callbacks = new ModManagerUserCallbacks
-                {
-                    ConfirmAsync = _userInteractionService.ShowConfirmAsync,
-                    ShowErrorAsync = _userInteractionService.ShowErrorAsync,
-                    ShowInfoAsync = _userInteractionService.ShowInfoAsync
-                };
+                var callbacks = CreateModManagerCallbacks();
 
-                await modManager.ModifyAsync(
+                var result = await modManager.ModifyAsync(
                     modConfig,
                     allConfigs,
                     progressReporter,
-                    diagnosticsOutput,
+                    logCollector,
                     callbacks,
-                    "steam"
-                );
+                    "steam",
+                    onSpeedUpdate: (speed) =>
+                    {
+                        Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            currentSelectedMod.DownloadSpeed = speed;
+                        });
+                    });
+
+                if (!result.Success)
+                {
+                    return ModInstallResult.Failed(
+                        result.ErrorMessage ?? _localizationService.Get("Dialogs.Error.InstallFailed"),
+                        logCollector.Lines);
+                }
 
                 var installedConfig = allConfigs.FirstOrDefault(c => c.Id == modConfig.Id);
 
-                // Aktualizuj ścieżkę instalacji w UI
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     currentSelectedMod.InstallPath = installedConfig?.InstallPath ?? modConfig.InstallPath;
                 });
 
                 RefreshModsSortingKeepSelection(currentSelectedMod);
-                ShowDllSelectionWindow(currentSelectedMod, "steam");
-
-                return true;
+                return ModInstallResult.Succeeded(logCollector.Lines);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Install Steam] Exception: {ex.Message}");
-                return false;
+                logCollector.Write($"[Install Steam] Exception: {ex.Message}");
+                return ModInstallResult.Failed(ex.Message, logCollector.Lines);
             }
         }
 
@@ -471,8 +579,13 @@ namespace SUSModder.ViewModels
             }
             
             System.Diagnostics.Debug.WriteLine($"[DLL Dialog] Załadowano konfigurację: InstallPath = {targetModConfig.InstallPath}");
-            
-            CloseDllSelectionModal();
+
+            // Uwaga: nie wołamy CloseDllSelectionModal() tutaj, ponieważ
+            // modal nie jest widoczny w momencie wywołania — ShowDllSelectionWindowInternal
+            // jest zawsze wołane gdy IsDllSelectionModalVisible == false
+            // (z queue lub z ShowDllSelectionWindow z guardem). Wywołanie
+            // CloseDllSelectionModal() powodowało flashowanie UI (najpierw false, potem true)
+            // i w niektórych przypadkach dialog zamykał się natychmiast.
 
             var dllSelectionVm = new DllModSelectionViewModel(
                 _dllModificationService,
@@ -497,6 +610,189 @@ namespace SUSModder.ViewModels
 
             this.RaisePropertyChanged(nameof(IsModPanelVisible));
             System.Diagnostics.Debug.WriteLine($"DEBUG {platform} Path: {targetModConfig.InstallPath}");
+        }
+
+        /// <summary>
+        /// Sprawdza czy dialog poinstalacyjny ma być pominięty (flag DontShowPostInstallDialog).
+        /// </summary>
+        private async Task<bool> IsPostInstallDialogSuppressedAsync(ModItem modItem)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(modItem.InstallPath))
+                    return false;
+
+                var installMap = await InstallationMapManager.LoadInstallationMapAsync(modItem.InstallPath);
+                return installMap?.FullMod?.DontShowPostInstallDialog ?? false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Współdzielony flow poinstalacyjny: odświeża listę, pokazuje modal sukcesu i opcjonalnie toast.
+        /// Toast pokazywany TYLKO gdy dialog jest pominięty (DontShowAgain).
+        /// </summary>
+        private async Task ShowPostInstallFlowAsync(ModItem modItem, ModConfiguration? modConfig)
+        {
+            await RefreshModsListAsync(checkUpdates: false);
+            SelectedMod = Mods.FirstOrDefault(m => m.Id == modItem.Id);
+            if (SelectedMod != null)
+                IsModContentVisible = true;
+
+            string platform = DeterminePlatform();
+            bool supportsDll = !string.IsNullOrEmpty(modConfig?.DllInstallPath);
+            bool dialogSuppressed = await IsPostInstallDialogSuppressedAsync(modItem);
+
+            if (dialogSuppressed)
+            {
+                // Toast tylko gdy dialog pominięty — bo modal sam w sobie jest powiadomieniem
+                ToastService.ShowSuccess(
+                    _localizationService.GetFormatted("Toast.ModInstalled", modItem.Name),
+                    _localizationService.GetFormatted("Toast.ModInstalledDesc", modItem.ModVersion));
+                return;
+            }
+
+            // Pokaż modal inline (jak DLL selection, a nie osobne okienko)
+            bool isPinnedVersion = SelectedMod?.IsPinnedVersionInstall == true;
+            var vm = new PostInstallSuccessViewModel(
+                modItem.Name,
+                modItem.Id,
+                modItem.ModVersion,
+                supportsDll,
+                _localizationService,
+                defaultAutoUpdateEnabled: !isPinnedVersion,
+                showAutoUpdateCheckbox: !isPinnedVersion);
+            vm.CloseRequested += OnPostInstallSuccessCloseRequested;
+            vm.ChangelogRequested += OnPostInstallChangelogRequested;
+            IsLaunchDiagnosticsVisible = false;
+            IsPostInstallFailureVisible = false;
+            PostInstallFailureViewModel = null;
+            PostInstallSuccessViewModel = vm;
+            IsPostInstallSuccessVisible = true;
+        }
+
+        private async Task ShowPostInstallFailureFlowAsync(ModItem modItem, ModInstallResult? installResult)
+        {
+            await RefreshModsListAsync(checkUpdates: false);
+            SelectedMod = Mods.FirstOrDefault(m => m.Id == modItem.Id) ?? modItem;
+            if (SelectedMod != null)
+                IsModContentVisible = true;
+
+            var errorMessage = installResult?.ErrorMessage
+                ?? _localizationService.Get("Dialogs.Error.InstallFailed");
+            var logText = installResult?.GetLogText() ?? string.Empty;
+
+            var vm = new PostInstallFailureViewModel(
+                modItem.Name,
+                errorMessage,
+                logText,
+                _localizationService);
+            vm.CloseRequested += OnPostInstallFailureCloseRequested;
+            vm.AiSupportRequested += OnPostInstallFailureAiSupportRequested;
+            IsLaunchDiagnosticsVisible = false;
+            IsPostInstallSuccessVisible = false;
+            PostInstallSuccessViewModel = null;
+            PostInstallFailureViewModel = vm;
+            IsPostInstallFailureVisible = true;
+        }
+
+        private void OnPostInstallFailureAiSupportRequested(object? sender, EventArgs e)
+        {
+            if (sender is not PostInstallFailureViewModel vm)
+                return;
+
+            vm.AiSupportRequested -= OnPostInstallFailureAiSupportRequested;
+            vm.CloseRequested -= OnPostInstallFailureCloseRequested;
+
+            IsPostInstallFailureVisible = false;
+            PostInstallFailureViewModel = null;
+            ShowAiSupportForInstallFailure(vm.ModName, vm.Message, vm.LogText);
+        }
+
+        private void OnPostInstallFailureCloseRequested(object? sender, EventArgs e)
+        {
+            if (sender is PostInstallFailureViewModel vm)
+            {
+                vm.AiSupportRequested -= OnPostInstallFailureAiSupportRequested;
+                vm.CloseRequested -= OnPostInstallFailureCloseRequested;
+                IsPostInstallFailureVisible = false;
+                PostInstallFailureViewModel = null;
+
+                if (SelectedMod != null)
+                    IsModContentVisible = true;
+            }
+        }
+
+        private void OnPostInstallChangelogRequested(object? sender, EventArgs e)
+        {
+            if (sender is PostInstallSuccessViewModel vm)
+            {
+                // Otw�rz modal changeloga dla zainstalowanego moda
+                _ = OpenModChangelogAsync();
+            }
+        }
+
+        private void OnPostInstallSuccessCloseRequested(object? sender, EventArgs e)
+        {
+            if (sender is PostInstallSuccessViewModel vm)
+            {
+                vm.CloseRequested -= OnPostInstallSuccessCloseRequested;
+                vm.ChangelogRequested -= OnPostInstallChangelogRequested;
+
+                // Zapisz flag� "Nie pokazuj wi�cej" jeśli zaznaczona
+                if (vm.DontShowAgain && SelectedMod != null && !string.IsNullOrWhiteSpace(SelectedMod.InstallPath))
+                {
+                    _ = SaveDontShowPostInstallDialogAsync(SelectedMod.InstallPath);
+                }
+
+                if (vm.IsAutoUpdateCheckboxVisible && SelectedMod != null)
+                {
+                    _ = ToggleAutoUpdateAsync(SelectedMod, vm.AutoUpdateEnabled);
+                }
+
+                // Ukryj modal
+                IsPostInstallSuccessVisible = false;
+                PostInstallSuccessViewModel = null;
+
+                // Wykonaj wybraną akcję
+                if (vm.Result == PostInstallAction.Launch)
+                {
+                    _ = LaunchAsync();
+                }
+                else if (vm.Result == PostInstallAction.AddDll)
+                {
+                    string platform = DeterminePlatform();
+                    ShowDllSelectionWindowInternal(SelectedMod!, platform);
+                }
+                else if (SelectedMod != null)
+                {
+                    IsModContentVisible = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Zapisuje flagę DontShowPostInstallDialog w installation-map.json.
+        /// </summary>
+        private async Task SaveDontShowPostInstallDialogAsync(string installPath)
+        {
+            try
+            {
+                var installMap = await InstallationMapManager.LoadInstallationMapAsync(installPath);
+                if (installMap?.FullMod != null)
+                {
+                    installMap.FullMod.DontShowPostInstallDialog = true;
+                    installMap.FullMod.LastUpdated = DateTime.Now;
+                    await InstallationMapManager.SaveInstallationMapAsync(installPath, installMap);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PostInstall] Błąd podczas zapisywania flagi: {ex.Message}");
+            }
         }
 
         private async Task PersistInstalledVersionStateAsync(
@@ -529,6 +825,7 @@ namespace SUSModder.ViewModels
 
                 installMap.FullMod.DisableAutoUpdatePrompt = disableAutoUpdatePrompt;
                 installMap.FullMod.PinnedInstallVersion = disableAutoUpdatePrompt ? pinnedInstallVersion : null;
+                installMap.FullMod.AutoUpdateEnabled = !disableAutoUpdatePrompt;
                 installMap.FullMod.LastUpdated = DateTime.Now;
 
                 await InstallationMapManager.SaveInstallationMapAsync(targetConfig.InstallPath, installMap);
@@ -554,6 +851,7 @@ namespace SUSModder.ViewModels
             }
 
             IsDllSelectionModalVisible = false;
+            RestoreModDetailPanelAfterToolModal();
         }
 
         private void ShowNextQueuedDllSelectionIfNeeded()
@@ -585,6 +883,9 @@ namespace SUSModder.ViewModels
 
         private async void Update()
         {
+            if (_isInitializing)
+                return;
+
             if (SelectedMod == null || SelectedMod.IsInstalling)
                 return;
 
@@ -611,6 +912,10 @@ namespace SUSModder.ViewModels
                     currentSelectedMod.InstallProgress = 100;
                     await Task.Delay(1500);
                     showNoUpdateMessage = true;
+
+                    // Powiadomienie toast
+                    ToastService.ShowInfo(
+                        _localizationService.Get("Toast.AllModsUpToDate"));
                     return;
                 }
 
@@ -667,6 +972,10 @@ namespace SUSModder.ViewModels
                 await Task.Delay(1500);
                 updateSuccessful = true;
                 successMessage = _localizationService.GetFormatted("ModOperations.ModUpdatedSuccess", currentSelectedMod.Name, updatedModConfig.ModVersion);
+
+                // Powiadomienie toast
+                ToastService.ShowSuccess(
+                    _localizationService.GetFormatted("Toast.ModUpdated", currentSelectedMod.Name, updatedModConfig.ModVersion));
             }
             catch (Exception ex)
             {
@@ -685,9 +994,13 @@ namespace SUSModder.ViewModels
 
                 // Odśwież statystyki status bara
                 await RefreshStatusBarAsync();
+
+                // Natychmiast wyzeruj licznik dostępnych aktualizacji – mod został zaktualizowany
+                System.Diagnostics.Debug.WriteLine("[FAB-DEBUG] UpdateMod finally: setting AvailableUpdatesCount = 0");
+                AvailableUpdatesCount = 0;
                 
-                // Odśwież natychmiastowo status dostępnych aktualizacji w status barze
-                await CheckForModUpdatesForStatusBarAsync();
+                // Odśwież natychmiastowo status dostępnych aktualizacji w status barze (force = true, pomija rate-limit)
+                await CheckForModUpdatesForStatusBarAsync(force: true);
             }
 
             // Pokaż komunikaty po zakończeniu finally (poza blokiem try-finally)
@@ -768,7 +1081,7 @@ namespace SUSModder.ViewModels
                 {
                     // Steam installation
                     var configBuilder = new ConfigurationBuilder()
-                        .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                        .SetBasePath(SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory())
                         .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
                     var configuration = configBuilder.Build();
                     
@@ -777,10 +1090,11 @@ namespace SUSModder.ViewModels
                     {
                         ConfirmAsync = silentUserInteraction.ShowConfirmAsync,
                         ShowErrorAsync = silentUserInteraction.ShowErrorAsync,
-                        ShowInfoAsync = silentUserInteraction.ShowInfoAsync
+                        ShowInfoAsync = silentUserInteraction.ShowInfoAsync,
+                        RunSteamQrDownloadAsync = _userInteractionService.RunSteamQrDownloadAsync
                     };
 
-                    await modManager.ModifyAsync(
+                    var installResult = await modManager.ModifyAsync(
                         updatedConfig,
                         updatedConfigs,
                         progressReporter,
@@ -788,6 +1102,9 @@ namespace SUSModder.ViewModels
                         callbacks,
                         "steam"
                     );
+
+                    if (!installResult.Success)
+                        throw new InvalidOperationException(installResult.ErrorMessage ?? "Update failed");
                 }
 
                 // Aktualizuj ścieżkę instalacji w UI
@@ -804,6 +1121,9 @@ namespace SUSModder.ViewModels
 
         private async void Uninstall()
         {
+            if (_isInitializing)
+                return;
+
             if (SelectedMod == null || SelectedMod.IsInstalling)
                 return;
 
@@ -918,6 +1238,10 @@ namespace SUSModder.ViewModels
                 RefreshModsSortingKeepSelection(currentSelectedMod);
 
                 System.Diagnostics.Debug.WriteLine($"[Uninstall] SUCCESS: Odinstalowanie moda '{currentSelectedMod.Name}' zakończone pomyślnie");
+
+                // Powiadomienie toast
+                ToastService.ShowInfo(
+                    _localizationService.GetFormatted("Toast.ModDeleted", currentSelectedMod.Name));
             }
             catch (Exception ex)
             {
@@ -934,6 +1258,32 @@ namespace SUSModder.ViewModels
 
                 // Odśwież statystyki status bara
                 await RefreshStatusBarAsync();
+            }
+        }
+
+        /// <summary>
+        /// Przełącza auto-aktualizację dla wybranego moda i zapisuje stan.
+        /// </summary>
+        public async Task ToggleAutoUpdateAsync(ModItem modItem, bool enabled)
+        {
+            try
+            {
+                if (modItem == null || string.IsNullOrWhiteSpace(modItem.InstallPath))
+                    return;
+
+                modItem.AutoUpdateEnabled = enabled;
+
+                var installMap = await InstallationMapManager.LoadInstallationMapAsync(modItem.InstallPath);
+                if (installMap?.FullMod != null)
+                {
+                    installMap.FullMod.AutoUpdateEnabled = enabled;
+                    installMap.FullMod.LastUpdated = DateTime.Now;
+                    await InstallationMapManager.SaveInstallationMapAsync(modItem.InstallPath, installMap);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AutoUpdate] Błąd podczas zapisywania ustawienia: {ex.Message}");
             }
         }
 

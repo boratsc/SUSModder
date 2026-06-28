@@ -1,0 +1,216 @@
+SKRYPT DO FILMU: INSTALACJA I OBSŁUGA SUSMODDERA
+
+Wstęp
+
+Cześć! W tym filmie pokażę ci, czym jest SUSModder, skąd go pobrać, jak zainstalować mody do Among Us na Steamie i Epic Games, czym są modpacki, czym są dodatki DLL oraz jak rozwiązać najczęstsze problemy, które mogą pojawić się przy pobieraniu, instalacji albo uruchamianiu gry.
+
+Jeżeli kiedykolwiek chciałeś zagrać w Town of Us, The Other Roles, Syzyfowy ToU, Town of Host albo inne mody, ale nie chciało ci się ręcznie szukać plików, dopasowywać wersji gry i przeklejać folderów, to właśnie po to powstał SUSModder.
+
+
+Co to jest SUSModder?
+
+SUSModder to mod manager do Among Us, czyli program, który pomaga instalować, aktualizować, usuwać i uruchamiać mody w prosty sposób.
+
+Zamiast ręcznie pobierać paczki z GitHuba, sprawdzać wersję Among Us, kopiować pliki do folderu gry i potem zastanawiać się, czemu coś nie działa, w SUSModderze wybierasz moda z listy, klikasz „Instaluj”, a później „Uruchom”.
+
+Aplikacja działa zarówno z wersją gry ze Steama, jak i z Epic Games. Obsługuje pełne mody, dodatki DLL, aktualizacje modów, uruchamianie gry z wybranym modem, ustawienia Town of Us oraz podstawowe narzędzia naprawcze, na przykład przy czarnym ekranie albo problemach z połączeniem.
+
+
+Skąd pobrać SUSModdera?
+
+SUSModdera pobieramy z oficjalnej strony:
+
+susmodder.app
+
+Na stronie wybieramy sekcję pobierania. Najwygodniej pobrać instalator albo wersję portable, jeżeli taka jest dostępna.
+
+Można też pobrać aplikację z GitHuba, z zakładki Releases, ale dla większości osób najprostsza będzie oficjalna strona susmodder.app.
+
+Ważne: pobieraj SUSModdera tylko z oficjalnej strony albo oficjalnego GitHuba. Nie pobieraj programu z losowych linków wysłanych na Discordzie, z prywatnych hostingów ani z dziwnych stron, bo wtedy nie masz pewności, co faktycznie pobierasz.
+
+
+Pierwsze uruchomienie
+
+Po pobraniu uruchamiamy aplikację. Jeżeli Windows pokaże komunikat SmartScreen, to jest to dość częste przy mniejszych aplikacjach, szczególnie jeśli instalator jest nowy albo nie ma jeszcze reputacji u Microsoftu.
+
+W takim przypadku klikamy „Więcej informacji”, a następnie „Uruchom mimo to”, ale tylko wtedy, gdy plik pobraliśmy z oficjalnego źródła.
+
+Po uruchomieniu aplikacji wybieramy tryb gry: Steam albo Epic Games. SUSModder próbuje wykryć instalację Among Us automatycznie. Jeśli gra jest w standardowym folderze, program powinien ją znaleźć sam.
+
+Jeśli gra nie zostanie wykryta, sprawdź, czy Among Us jest zainstalowany i czy uruchomiłeś go chociaż raz przez Steam albo Epic. Przy Epic Games aplikacja korzysta z integracji opartej o narzędzia Epic/legendary, więc pierwsza instalacja albo naprawa może potrwać dłużej.
+
+
+Jakie mody są dostępne?
+
+Lista modów może się zmieniać, bo mody są aktualizowane i dochodzą nowe pozycje. W SUSModderze znajdziesz między innymi:
+
+Town of Us, czyli jeden z najpopularniejszych modów do Among Us.
+
+Town of Us Mira, czyli wariant Town of Us oparty o MIRĘ.
+
+Syzyfowy ToU, czyli rozbudowany mod bazujący na Town of Us, z dodatkowymi rolami i trybami.
+
+The Other Roles, czyli mod dodający dużo nowych ról, ustawień i trybów.
+
+Town of Host oraz ToH Enhanced, czyli mody typu host-only, gdzie często wystarczy, że host ma moda, a pozostali gracze mogą grać bez instalowania tego samego moda.
+
+Endless Host Roles, czyli duży host-only mod z wieloma rolami i trybami.
+
+All The Roles, czyli mod dodający wiele ról, trybów i kosmetyków.
+
+Są też dodatki DLL, takie jak CrowdedMod albo AleLuduMod do większych lobby, LevelImposter do customowych map, AUnlocker do odblokowania kosmetyków, Mira - Stats Exporter do eksportu statystyk czy różne dodatki rozszerzające konkretne mody.
+
+Najważniejsze jest to, żeby patrzeć na typ moda. W aplikacji mamy pełne mody oraz dodatki DLL.
+
+
+Czym są pełne mody i modpacki?
+
+Pełny mod, czasem potocznie nazywany modpackiem, to gotowa paczka Among Us z konkretnym modem i potrzebnymi plikami. Taki mod instaluje się do osobnego folderu, dzięki czemu nie psuje twojej podstawowej gry.
+
+Przykład: instalujesz Town of Us. SUSModder tworzy osobną wersję gry z Town of Us, zapisuje ją w folderze z modami i później możesz ją uruchamiać bez ręcznego przekładania plików.
+
+Dzięki temu możesz mieć jednocześnie kilka różnych modów, na przykład Town of Us, The Other Roles i Syzyfowy ToU, i wybierać z listy, który chcesz uruchomić.
+
+To jest właśnie największa zaleta modpacków w SUSModderze: każdy mod jest oddzielnie, nie miesza się z innymi, a ty nie musisz ręcznie kopiować plików do głównego folderu Among Us.
+
+
+Instalacja moda na Steamie
+
+Teraz pokażmy instalację dla Steama.
+
+Najpierw upewniamy się, że w aplikacji wybrany jest tryb Steam.
+
+Na liście wybieramy pełny mod, na przykład Town of Us albo The Other Roles.
+
+Klikamy „Instaluj”.
+
+SUSModder pobierze odpowiednią wersję bazową Among Us, wypakuje ją, pobierze pliki moda i złoży wszystko w osobnym folderze. W zależności od internetu i komputera może to chwilę potrwać.
+
+Po zakończeniu instalacji przy modzie pojawi się opcja uruchomienia. Klikamy „Uruchom” i gra startuje z wybranym modem.
+
+Jeżeli mod ma konkretną wymaganą wersję Among Us, SUSModder stara się dopasować właściwe pliki. To ważne, bo wiele modów działa tylko z konkretną wersją gry.
+
+
+Instalacja moda na Epic Games
+
+Instalacja dla Epic Games wygląda podobnie z punktu widzenia użytkownika, ale technicznie dzieje się trochę więcej w tle.
+
+W aplikacji wybieramy tryb Epic.
+
+Wybieramy pełny mod z listy.
+
+Klikamy „Instaluj”.
+
+SUSModder przygotowuje wersję gry dla Epic, korzystając z integracji z Epic Games. Może pobrać potrzebne narzędzia, pliki i manifesty. Dlatego przy Epic pierwsza instalacja może trwać dłużej niż na Steamie.
+
+Po instalacji klikamy „Uruchom”. Jeśli pojawi się błąd uruchamiania Epic, aplikacja może próbować naprawić albo przeinstalować potrzebną wersję gry. Warto dać jej chwilę i nie zamykać programu w trakcie.
+
+Jeżeli Epic nadal sprawia problemy, sprawdź, czy jesteś zalogowany w Epic Games, czy Among Us działa normalnie bez modów i czy antywirus albo firewall nie blokuje plików.
+
+
+Czym są dodatki DLL?
+
+Dodatki DLL to nie są pełne mody. To małe rozszerzenia, które dokładamy do już zainstalowanego pełnego moda.
+
+Przykład: masz zainstalowany Town of Us i chcesz dodać większe lobby albo dodatkową funkcję. Wtedy instalujesz odpowiedni dodatek DLL do konkretnego pełnego moda.
+
+Dodatki DLL trafiają zwykle do folderu BepInEx/plugins wewnątrz folderu danego moda. SUSModder robi to automatycznie, więc nie trzeba ręcznie szukać folderu plugins.
+
+Ważne: dodatku DLL nie uruchamia się samodzielnie. Najpierw instalujesz pełny mod, potem wybierasz dodatek DLL i instalujesz go do tego konkretnego moda.
+
+Jeżeli dodatek DLL jest przeznaczony tylko do konkretnego moda albo konkretnej wersji Among Us, nie instaluj go na siłę wszędzie. Niekompatybilny dodatek może powodować crashe, czarny ekran albo błędy w lobby.
+
+
+Jak zainstalować dodatek DLL?
+
+Najpierw instalujemy pełny mod, na przykład Town of Us.
+
+Potem przechodzimy do sekcji dodatków DLL albo wybieramy dodatek z listy, jeśli jest oznaczony jako DLL.
+
+Klikamy instalację dodatku.
+
+Aplikacja zapyta albo pokaże, do którego moda można go dodać. Wybieramy zainstalowany mod docelowy.
+
+Po instalacji uruchamiamy pełny mod normalnie, przyciskiem „Uruchom”. Dodatek załaduje się razem z modem.
+
+Jeśli po dodaniu DLL gra przestaje działać, najprostszy test to usunąć ten dodatek i uruchomić moda bez niego. Jeśli wtedy działa, problemem jest najpewniej niekompatybilny albo przestarzały dodatek DLL.
+
+
+Aktualizacje modów
+
+Mody do Among Us są mocno zależne od wersji gry. Po aktualizacji Among Us część modów może przez jakiś czas nie działać, dopóki autorzy modów ich nie zaktualizują.
+
+SUSModder pokazuje dostępne aktualizacje i pozwala je instalować z poziomu aplikacji. Jeżeli widzisz informację, że mod wymaga aktualizacji, najlepiej ją wykonać przed grą.
+
+Jeżeli grasz ze znajomymi, wszyscy powinni mieć kompatybilną wersję moda. W przeciwnym razie mogą pojawić się błędy lobby, wyrzucanie z gry albo brak możliwości dołączenia.
+
+
+Typowe problemy i rozwiązania
+
+Pierwszy problem: Microsoft Edge blokuje pobranie.
+
+Czasami Edge ostrzega przed pobraniem instalatora albo archiwum. Jeśli pobierasz plik z oficjalnej strony susmodder.app, wybierz opcję zachowania pliku. Nie pobieraj programu z nieoficjalnych mirrorów.
+
+Drugi problem: Microsoft Defender SmartScreen blokuje uruchomienie.
+
+To może się pojawić przy pierwszym uruchomieniu. Kliknij „Więcej informacji”, a potem „Uruchom mimo to”, ale tylko dla pliku pobranego z oficjalnej strony lub GitHuba.
+
+Trzeci problem: antywirus usuwa pliki moda albo psuje instalację.
+
+Niektóre antywirusy blokują folder z modami, przez co Among Us z modem nie startuje poprawnie. Jeżeli aplikacja pokazuje informację o wykrytym antywirusie albo gra nie uruchamia się po instalacji, dodaj folder z modami do wyjątków antywirusa. Domyślnie mody są trzymane w folderze użytkownika, w lokalizacji związanej z „Among Us - Mody”.
+
+Czwarty problem: firewall blokuje grę.
+
+Po pierwszym uruchomieniu Among Us z modem Windows może zapytać o dostęp do sieci. Zezwól na połączenie, szczególnie dla sieci prywatnych. Jeśli wcześniej kliknąłeś blokadę, mogą pojawić się problemy z połączeniem albo serwerami.
+
+Dla wersji Steam można użyć w SUSModderze opcji „Napraw Among Us” i dodać wyjątki firewalla. Dla Epic Games czasem trzeba zrobić to ręcznie w Zaporze systemu Windows Defender z zabezpieczeniami zaawansowanymi, dodając reguły przychodzące i wychodzące dla pliku Among Us.exe oraz plików uruchamianych przez moda.
+
+Piąty problem: czarny ekran, problemy z serwerami albo wyglądem gry.
+
+W SUSModderze jest opcja naprawy Among Us. Użyj narzędzia „Napraw Among Us”, szczególnie opcji związanej z czarnym ekranem, problemami z serwerami albo problemami z wyglądem.
+
+Szósty problem: ConnectionError w Among Us.
+
+Najpierw sprawdź firewall i antywirusa. Potem upewnij się, że mod jest zgodny z wersją gry i że serwer, na którym grasz, pasuje do moda. Warto też uruchomić grę ponownie i sprawdzić, czy vanilla Among Us działa bez modów.
+
+Siódmy problem: mod się nie uruchamia po aktualizacji Among Us.
+
+To normalne, że po aktualizacji gry mody mogą przez chwilę nie działać. Sprawdź aktualizacje w SUSModderze. Jeżeli aktualizacji jeszcze nie ma, trzeba poczekać, aż autor moda wypuści wersję zgodną z nowym Among Us.
+
+Ósmy problem: gra crashuje po dodaniu DLL.
+
+Usuń ostatnio dodany dodatek DLL albo zainstaluj go ponownie do właściwego moda. Pamiętaj, że DLL musi pasować do moda, platformy i wersji gry.
+
+Dziewiąty problem: Epic nie chce uruchomić moda.
+
+Sprawdź, czy Epic Games działa normalnie, czy jesteś zalogowany, czy Among Us jest przypisany do konta i czy firewall oraz antywirus nie blokują plików. Przy Epic instalacja i naprawa mogą potrwać dłużej, więc nie przerywaj procesu w połowie.
+
+
+Dobre praktyki
+
+Pobieraj SUSModdera tylko z susmodder.app albo oficjalnego GitHuba.
+
+Nie mieszaj ręcznie plików w folderach modów, jeśli nie wiesz dokładnie, co robisz.
+
+Nie instaluj dodatków DLL do przypadkowych modów.
+
+Jeśli coś przestaje działać po aktualizacji, najpierw sprawdź aktualizacje moda.
+
+Jeżeli grasz ze znajomymi, upewnijcie się, że macie tę samą lub kompatybilną wersję moda.
+
+Jeśli antywirus blokuje mody, dodaj folder z modami do wyjątków zamiast ciągle instalować wszystko od nowa.
+
+Jeśli masz problem z połączeniem, sprawdź firewall i uprawnienia sieciowe dla Among Us.
+
+
+Zakończenie
+
+I to tyle. SUSModder ma uprościć modowanie Among Us do kilku kliknięć: pobierasz aplikację, wybierasz platformę, instalujesz moda i uruchamiasz grę.
+
+Pełne mody, czyli modpacki, instalują osobne wersje Among Us z konkretnym modem. Dodatki DLL są rozszerzeniami do już zainstalowanych modów i nie działają samodzielnie.
+
+Jeżeli pojawią się problemy, najczęściej winny jest SmartScreen, antywirus, firewall, niezgodna wersja moda albo niekompatybilny dodatek DLL. Większość podstawowych rozwiązań znajdziesz też na susmodder.app.
+
+Link do pobrania SUSModdera: susmodder.app
+
+Miłej gry i do zobaczenia w lobby!

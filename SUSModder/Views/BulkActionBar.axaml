@@ -1,0 +1,77 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             x:Class="SUSModder.Views.BulkActionBar"
+             x:DataType="vm:MainWindowViewModel">
+    <Border Classes="glass-bulk-bar"
+            IsVisible="{Binding IsBulkActionBarVisible}">
+        <StackPanel Spacing="8">
+            <TextBlock Text="{Binding BulkQueueStatusText}"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       IsVisible="{Binding IsBulkQueueRunning}"/>
+
+            <Grid ColumnDefinitions="*,Auto"
+                  IsVisible="{Binding IsBulkSelectionMode}">
+                <StackPanel Grid.Column="0"
+                            Orientation="Horizontal"
+                            Spacing="10"
+                            VerticalAlignment="Center">
+                    <Ellipse Width="8" Height="8"
+                             Fill="{DynamicResource BulkSelectionBrush}"
+                             VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding BulkSelectedCountText}"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <Button Content="{loc:Localize UI.Bulk.Done}"
+                            Command="{Binding ToggleBulkSelectionModeCommand}"
+                            Padding="10,4"
+                            CornerRadius="6"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{DynamicResource BulkSelectionBrush}"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                    <Button Content="{Binding BulkInstallButtonLabel}"
+                            Command="{Binding BulkInstallSelectedCommand}"
+                            IsVisible="{Binding ShowBulkInstallButton}"
+                            Padding="12,8"
+                            CornerRadius="8"
+                            Background="{DynamicResource AccentBrush}"
+                            Foreground="White"/>
+                    <Button Content="{Binding BulkUpdateButtonLabel}"
+                            Command="{Binding BulkUpdateSelectedCommand}"
+                            IsVisible="{Binding ShowBulkUpdateButton}"
+                            Padding="12,8"
+                            CornerRadius="8"
+                            Background="Transparent"
+                            BorderBrush="{DynamicResource AccentBrush}"
+                            BorderThickness="2"
+                            Foreground="{DynamicResource AccentBrush}"/>
+                    <Button Content="{Binding BulkUninstallButtonLabel}"
+                            Command="{Binding BulkUninstallSelectedCommand}"
+                            IsVisible="{Binding ShowBulkUninstallButton}"
+                            Padding="12,8"
+                            CornerRadius="8"
+                            Background="{DynamicResource DangerBrush}"
+                            Foreground="White"/>
+                    <Button Content="{loc:Localize UI.Actions.AddTo}"
+                            Command="{Binding BulkOpenSelectedDllInspectorCommand}"
+                            IsVisible="{Binding ShowBulkDllInspectButton}"
+                            Padding="12,8"
+                            CornerRadius="8"
+                            Background="{DynamicResource AccentBrush}"
+                            Foreground="White"/>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

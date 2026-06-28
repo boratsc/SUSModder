@@ -1,4 +1,5 @@
 using ReactiveUI;
+using SUSModder.Core.Api;
 using SUSModder.Core.Utilities;
 using SUSModder.Core.Services;
 using SUSModder.Models;
@@ -100,6 +101,7 @@ namespace SUSModder.ViewModels
         private static readonly TimeSpan MinModUpdateCheckInterval = TimeSpan.FromMinutes(2);
         private string _apiBaseUrl = string.Empty;
         private int _onlineUsersCount;
+        private CancellationTokenSource? _statusBarCts;
 
         public int OnlineUsersCount
         {
@@ -173,10 +175,19 @@ namespace SUSModder.ViewModels
         private string _modsStatusSubText = string.Empty;
         private string _modsStatusTooltip = string.Empty;
 
-        public int AvailableUpdatesCount
+public int AvailableUpdatesCount
         {
             get => _availableUpdatesCount;
-            set => this.RaiseAndSetIfChanged(ref _availableUpdatesCount, value);
+            set
+            {
+                System.Diagnostics.Debug.WriteLine($"[FAB-DEBUG] AvailableUpdatesCount SET: {_availableUpdatesCount} -> {value}");
+                this.RaiseAndSetIfChanged(ref _availableUpdatesCount, value);
+                this.RaisePropertyChanged(nameof(FabHasBadge));
+                this.RaisePropertyChanged(nameof(FabBadgeCount));
+                this.RaisePropertyChanged(nameof(FabBadgeTooltip));
+                this.RaisePropertyChanged(nameof(FabIconSymbol));
+                System.Diagnostics.Debug.WriteLine($"[FAB-DEBUG] After RaisePropertyChanged: FabHasBadge={FabHasBadge}, FabBadgeCount={FabBadgeCount}");
+            }
         }
 
         public List<string> AvailableUpdatesList
@@ -426,57 +437,58 @@ namespace SUSModder.ViewModels
             {
                 // Załaduj konfigurację
                 var configBuilder = new ConfigurationBuilder()
-                    .SetBasePath(Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory)
+                    .SetBasePath(SUSModder.Core.Utilities.ApplicationPaths.GetApplicationDirectory())
                     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
                 var configuration = configBuilder.Build();
 
-                var baseUrl = configuration["Configuration:BaseUrl"]?.TrimEnd('/');
-                ApiBaseUrl = baseUrl ?? "Nie ustawiono";
+                var apiBaseUrl = configuration["Configuration:ApiV2BaseUrl"]?.TrimEnd('/');
+                ApiBaseUrl = apiBaseUrl ?? "Nie ustawiono";
 
-                if (string.IsNullOrEmpty(baseUrl))
+                if (string.IsNullOrEmpty(apiBaseUrl))
                 {
                     ApiStatus = ApiConnectionStatus.Offline;
                     return;
                 }
 
+                var apiClient = SUSModderApiClientProvider.TryGetDefault()
+                    ?? new SUSModderApiClient(configuration, _diagnosticsOutput ?? new UIDiagnosticsOutput(_ => { }));
+
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-                
-                // Sprawdzamy endpoint do pobierania konfiguracji (UpdateServerUrl)
-                var updateServerUrl = configuration["Configuration:UpdateServerUrl"];
-                if (string.IsNullOrEmpty(updateServerUrl))
-                {
-                    // Fallback do baseUrl
-                    updateServerUrl = $"{baseUrl}/api/susmodder-current-version";
-                }
-
-                var response = await client.GetAsync(updateServerUrl);
-
+                var metaResponse = await apiClient.GetCatalogMetaAsync();
                 stopwatch.Stop();
 
-                if (response.IsSuccessStatusCode)
+                if (metaResponse.IsSuccess || metaResponse.IsNotModified)
                 {
                     ApiStatus = ApiConnectionStatus.Online;
                     ApiPingMs = (int)stopwatch.ElapsedMilliseconds;
 
-                    // Synchronizuj config z API nie częściej niż co 15 minut.
                     var nowUtc = DateTime.UtcNow;
                     if (nowUtc - _lastConfigSyncUtc >= ConfigSyncInterval)
                     {
-                        var configService = new ConfigService();
-                        bool configRefreshed = await configService.RefreshConfigFromApiAsync();
+                        bool configRefreshed = false;
+                        var catalogSync = CatalogSyncServiceProvider.TryGetDefault();
+                        if (catalogSync is not null)
+                        {
+                            var catalogResult = await catalogSync.RefreshCatalogIfDueAsync(force: false);
+                            configRefreshed = catalogResult.ConfigChanged;
+                            _ = catalogSync.RefreshCompatibilityIfDueAsync(force: false);
+                        }
+                        else
+                        {
+                            var configService = new ConfigService();
+                            configRefreshed = await configService.RefreshConfigFromApiAsync();
+                        }
+
                         _lastConfigSyncUtc = nowUtc;
 
-                        if (configRefreshed)
+                        if (configRefreshed && _activeInstallationsCount == 0)
                         {
-                            await RefreshModsListAsync(checkUpdates: false);
+                            await RefreshModsListAsync(checkUpdates: false, deferIfToolModalOpen: true);
                         }
                     }
-                    
-                    // Pobierz liczbę użytkowników online
-                    await FetchOnlineUsersAsync(baseUrl, client);
+
+                    await FetchOnlineUsersAsync(apiClient);
                 }
                 else
                 {
@@ -497,23 +509,12 @@ namespace SUSModder.ViewModels
         /// <summary>
         /// Pobiera liczbę użytkowników online z API
         /// </summary>
-        private async Task FetchOnlineUsersAsync(string baseUrl, HttpClient client)
+        private async Task FetchOnlineUsersAsync(ISUSModderApiClient apiClient)
         {
             try
             {
-                var onlineUsersUrl = $"{baseUrl}/api/online-users";
-                var response = await client.GetAsync(onlineUsersUrl);
-                
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var data = System.Text.Json.JsonSerializer.Deserialize<OnlineUsersResponse>(json);
-                    OnlineUsersCount = data?.Online ?? 0;
-                }
-                else
-                {
-                    OnlineUsersCount = 0;
-                }
+                var response = await apiClient.GetOnlineAsync();
+                OnlineUsersCount = response.IsSuccess ? response.Data?.Online ?? 0 : 0;
             }
             catch (Exception ex)
             {
@@ -524,15 +525,30 @@ namespace SUSModder.ViewModels
 
         /// <summary>
         /// Timer do auto-refresh statusu API (co 30 sekund)
+        /// Używa CancellationToken, aby można było przerwać przy Dispose.
         /// </summary>
         private void StartApiStatusAutoRefresh()
         {
+            _statusBarCts = new CancellationTokenSource();
+            var token = _statusBarCts.Token;
+
             Task.Run(async () =>
             {
-                while (true)
+                while (!token.IsCancellationRequested)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(30));
-                    
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(30), token);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        // Normalne przerwanie przy Dispose, wychodzimy
+                        break;
+                    }
+
+                    if (token.IsCancellationRequested)
+                        break;
+
                     try
                     {
                         await CheckApiConnectionAsync();
@@ -542,7 +558,7 @@ namespace SUSModder.ViewModels
                         System.Diagnostics.Debug.WriteLine($"Auto-refresh API status error: {ex.Message}");
                     }
                 }
-            });
+            }, token);
         }
 
         /// <summary>
@@ -564,9 +580,10 @@ namespace SUSModder.ViewModels
 
                 // Jeśli config został zaktualizowany (np. doszły nowe mody),
                 // przeładuj listę modów od razu bez czekania na restart aplikacji.
-                if (result.ConfigWasUpdated)
+                // Pomiń jeśli trwa instalacja (nie niszcz ModItem w trakcie).
+                if (result.ConfigWasUpdated && _activeInstallationsCount == 0)
                 {
-                    await RefreshModsListAsync(checkUpdates: false);
+                    await RefreshModsListAsync(checkUpdates: false, deferIfToolModalOpen: true);
                 }
 
                 if (result.Success && result.InstalledModUpdates.Any())
@@ -584,12 +601,28 @@ namespace SUSModder.ViewModels
                         tooltipBuilder.AppendLine($"• {update.ModName}");
                     }
                     AvailableUpdatesTooltip = tooltipBuilder.ToString().TrimEnd();
+
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        SyncModUpdateBadges(result.InstalledModUpdates.Select(u => u.ModName));
+                        await RefreshPackInstancesAsync();
+                    });
+
+                    // Auto-aktualizacja w tle dla modów z włączoną auto-aktualizacją
+                    // Nie blokujemy - uruchamiamy w tle
+                    _ = ProcessAutoUpdatesSilentlyAsync(result.InstalledModUpdates);
                 }
                 else
                 {
                     AvailableUpdatesCount = 0;
                     AvailableUpdatesList.Clear();
                     AvailableUpdatesTooltip = string.Empty;
+
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        SyncModUpdateBadges(Array.Empty<string>());
+                        await RefreshPackInstancesAsync();
+                    });
                 }
 
                 // Aktualizuj wyświetlanie statusu po sprawdzeniu aktualizacji
@@ -602,7 +635,11 @@ namespace SUSModder.ViewModels
                 AvailableUpdatesList.Clear();
                 AvailableUpdatesTooltip = string.Empty;
 
-                await Dispatcher.UIThread.InvokeAsync(() => UpdateModsStatusDisplay());
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    SyncModUpdateBadges(Array.Empty<string>());
+                    UpdateModsStatusDisplay();
+                });
             }
             finally
             {
@@ -632,6 +669,25 @@ namespace SUSModder.ViewModels
                 }
             });
         }
+
+        #region IDisposable support
+
+        /// <summary>
+        /// Anuluje background task do auto-refresh statusu API i zwalnia semafor.
+        /// </summary>
+        private void CancelStatusBarBackgroundTask()
+        {
+            if (_statusBarCts != null)
+            {
+                _statusBarCts.Cancel();
+                _statusBarCts.Dispose();
+                _statusBarCts = null;
+            }
+
+            _modUpdateCheckSemaphore.Dispose();
+        }
+
+        #endregion
 
         #endregion
     }

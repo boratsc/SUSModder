@@ -1,0 +1,341 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             x:Class="SUSModder.Views.LobbyBoardPanel"
+             x:DataType="vm:LobbyBoardPanelViewModel">
+	<UserControl.Styles>
+		<Style Selector="Border.lobby-entry">
+			<Setter Property="Background" Value="{DynamicResource ModCardBackgroundBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="Padding" Value="12"/>
+			<Setter Property="Margin" Value="0,0,0,8"/>
+		</Style>
+		<Style Selector="Border.status-msg">
+			<Setter Property="CornerRadius" Value="6"/>
+			<Setter Property="Padding" Value="10,8"/>
+			<Setter Property="Margin" Value="0,0,0,8"/>
+		</Style>
+		<Style Selector="Button.tab-button">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="CornerRadius" Value="6"/>
+			<Setter Property="Padding" Value="14,8"/>
+			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="FontWeight" Value="Normal"/>
+			<Setter Property="Cursor" Value="Hand"/>
+		</Style>
+		<Style Selector="Button.tab-button:pointerover">
+			<Setter Property="Background" Value="{DynamicResource ModCardBackgroundBrush}"/>
+		</Style>
+		<Style Selector="Button.tab-button.active">
+			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+		</Style>
+		<Style Selector="TextBlock.code-display">
+			<Setter Property="FontSize" Value="22"/>
+			<Setter Property="FontWeight" Value="Bold"/>
+			<Setter Property="FontFamily" Value="Consolas"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+			<Setter Property="LetterSpacing" Value="2"/>
+		</Style>
+		<Style Selector="TextBlock.ticker-text">
+			<Setter Property="FontSize" Value="11"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+		</Style>
+	</UserControl.Styles>
+
+	<ScrollViewer Padding="0,0,10,0">
+		<StackPanel Spacing="10">
+
+			<!-- ══════════ Nagłówek ══════════ -->
+			<Grid ColumnDefinitions="*,Auto">
+				<TextBlock Grid.Column="0"
+						   IsVisible="{Binding IsFullMode}"
+						   Text="{loc:Localize Lobby.Panel.Title}"
+						   FontSize="18" FontWeight="Bold"
+						   VerticalAlignment="Center"
+						   Foreground="{DynamicResource TextPrimaryBrush}"/>
+				<TextBlock Grid.Column="0"
+						   IsVisible="{Binding IsInspectorEmbedMode}"
+						   Text="{loc:Localize UI.Inspector.LobbyChat}"
+						   FontSize="14" FontWeight="SemiBold"
+						   VerticalAlignment="Center"
+						   Foreground="{DynamicResource TextPrimaryBrush}"/>
+				<Button Grid.Column="1"
+						Content="{loc:Localize Lobby.Panel.Refresh}"
+						Command="{Binding RefreshCommand}"
+						IsEnabled="{Binding !IsLoading}"
+						Background="{DynamicResource ModCardBackgroundBrush}"
+						Foreground="{DynamicResource TextPrimaryBrush}"
+						Padding="10,6"
+						CornerRadius="6"/>
+			</Grid>
+
+			<!-- ══════════ Zakładki (tylko pełny modal) ══════════ -->
+			<Border IsVisible="{Binding ShowLobbyTabs}"
+					Background="{DynamicResource TertiaryBackgroundBrush}"
+					BorderBrush="{DynamicResource BorderBrush}"
+					BorderThickness="1"
+					CornerRadius="8"
+					Padding="4">
+				<StackPanel Orientation="Horizontal" Spacing="2">
+					<Button Classes="tab-button"
+							Classes.active="{Binding IsCodesTabVisible}"
+							Content="{Binding CodeTabHeader}"
+							Command="{Binding SelectCodesTabCommand}"/>
+					<Button Classes="tab-button"
+							Classes.active="{Binding IsMessagesTabVisible}"
+							Content="{Binding MessageTabHeader}"
+							Command="{Binding SelectMessagesTabCommand}"/>
+				</StackPanel>
+			</Border>
+
+			<!-- ══════════ Status ══════════ -->
+			<Border IsVisible="{Binding HasStatusMessage}"
+					Classes.status-msg="True"
+					Background="{DynamicResource TertiaryBackgroundBrush}"
+					BorderBrush="{DynamicResource BorderBrush}"
+					BorderThickness="1">
+				<TextBlock Text="{Binding StatusMessage}"
+						   TextWrapping="Wrap"
+						   FontSize="12"
+						   Foreground="{DynamicResource TextSecondaryBrush}"/>
+			</Border>
+
+			<!-- ══════════ Loading ══════════ -->
+			<TextBlock IsVisible="{Binding IsLoading}"
+					   Text="{loc:Localize Lobby.Panel.Loading}"
+					   FontStyle="Italic"
+					   FontSize="12"
+					   Foreground="{DynamicResource TextSecondaryBrush}"
+					   HorizontalAlignment="Center"/>
+
+			<!-- ══════════ SEKCJA KODÓW (tylko pełny modal) ══════════ -->
+			<StackPanel IsVisible="{Binding IsCodesTabVisible}" Spacing="8">
+
+				<!-- Pusta lista -->
+				<TextBlock IsVisible="{Binding HasActiveCodes, Converter={x:Static BoolConverters.Not}}"
+						   Text="{loc:Localize Lobby.Panel.NoCodes}"
+						   FontStyle="Italic"
+						   FontSize="12"
+						   Foreground="{DynamicResource TextSecondaryBrush}"
+						   HorizontalAlignment="Center"
+						   Margin="0,10,0,10"/>
+
+				<!-- Lista kodów -->
+				<ItemsControl ItemsSource="{Binding ActiveCodes}">
+					<ItemsControl.ItemTemplate>
+						<DataTemplate x:DataType="vm:LobbyBoardItemViewModel">
+							<Border Classes="lobby-entry">
+								<Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+									<!-- Kod + gracze -->
+									<StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="10">
+										<TextBlock Classes="code-display" Text="{Binding Code}"/>
+										<TextBlock Text="{Binding PlayerCountDisplay}"
+												   FontSize="14"
+												   Foreground="{DynamicResource TextSecondaryBrush}"
+												   VerticalAlignment="Center"/>
+									</StackPanel>
+
+									<!-- Przycisk kopiowania -->
+									<Button Grid.Row="0" Grid.Column="1"
+											Content="{loc:Localize Lobby.Code.CopyButton}"
+											Padding="10,4" FontSize="12"
+											Background="{DynamicResource AccentBrush}"
+											Foreground="White"
+											CornerRadius="6"
+											Command="{Binding $parent[ItemsControl].DataContext.CopyCodeCommand}"
+											CommandParameter="{Binding}"/>
+
+									<!-- Region -->
+									<Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+											Background="{DynamicResource AccentBrush}"
+											CornerRadius="4"
+											Padding="8,2"
+											Margin="0,6,0,0"
+											HorizontalAlignment="Left">
+										<TextBlock Text="{Binding Region}"
+												   FontSize="11"
+												   Foreground="White"/>
+									</Border>
+
+									<!-- Czas + akcje -->
+									<StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+												Orientation="Horizontal" Spacing="10"
+												Margin="0,6,0,0">
+										<TextBlock Text="{Binding TimeAgoDisplay}"
+												   FontSize="11"
+												   Foreground="{DynamicResource TextSecondaryBrush}"/>
+										<Button Content="{loc:Localize Lobby.Report.Button}"
+												Padding="6,2" FontSize="11"
+												Background="{DynamicResource DangerBrush}"
+												Foreground="White"
+												CornerRadius="4"
+												Command="{Binding $parent[ItemsControl].DataContext.ReportCommand}"
+												CommandParameter="{Binding}"/>
+									</StackPanel>
+								</Grid>
+							</Border>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+
+				<!-- Formularz publikacji kodu -->
+				<Border IsVisible="{Binding ShowCodePublishForm}"
+						Background="{DynamicResource SecondaryBackgroundBrush}"
+						BorderBrush="{DynamicResource BorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="14">
+					<StackPanel Spacing="10">
+						<TextBlock Text="{loc:Localize Lobby.Code.PublishButton}"
+								   FontSize="14" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+						<Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto"
+							  ColumnSpacing="8" RowSpacing="8">
+							<!-- Kod -->
+							<TextBlock Grid.Row="0" Grid.Column="0"
+									   Text="{loc:Localize Lobby.Panel.Title}:"
+									   VerticalAlignment="Center"
+									   Foreground="{DynamicResource TextPrimaryBrush}"/>
+							<TextBox Grid.Row="0" Grid.Column="1"
+									 Text="{Binding CodeInput}"
+									 PlaceholderText="ABCDEF"
+									 FontFamily="Consolas"
+									 MaxLength="6"/>
+
+							<!-- Region -->
+							<TextBlock Grid.Row="0" Grid.Column="2"
+									   Text="Region:"
+									   VerticalAlignment="Center"
+									   Foreground="{DynamicResource TextPrimaryBrush}"/>
+							<ComboBox Grid.Row="0" Grid.Column="3"
+									  ItemsSource="{Binding AvailableRegions}"
+									  SelectedItem="{Binding SelectedRegion}"
+									  MinWidth="100"/>
+
+							<!-- Gracze -->
+							<TextBlock Grid.Row="1" Grid.Column="0"
+									   Text="Gracze:"
+									   VerticalAlignment="Center"
+									   Foreground="{DynamicResource TextPrimaryBrush}"/>
+							<StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="4">
+								<TextBox Text="{Binding CurrentPlayers}"
+										 Width="45" MaxLength="2"/>
+								<TextBlock Text="/" VerticalAlignment="Center"
+										   Foreground="{DynamicResource TextSecondaryBrush}"/>
+								<TextBox Text="{Binding MaxPlayers}"
+										 Width="45" MaxLength="2"/>
+							</StackPanel>
+						</Grid>
+
+						<Button Content="{loc:Localize Lobby.Code.PublishButton}"
+								Command="{Binding PublishCodeCommand}"
+								IsEnabled="{Binding !IsLoading}"
+								HorizontalAlignment="Stretch"
+								Padding="10,8"
+								CornerRadius="6"
+								Background="{DynamicResource AccentBrush}"
+								Foreground="White"/>
+					</StackPanel>
+				</Border>
+			</StackPanel>
+
+			<!-- ══════════ SEKCJA OGŁOSZEŃ ══════════ -->
+			<StackPanel IsVisible="{Binding IsMessagesTabVisible}" Spacing="8">
+
+				<!-- Pusta lista -->
+				<TextBlock IsVisible="{Binding HasActiveMessages, Converter={x:Static BoolConverters.Not}}"
+						   Text="{loc:Localize Lobby.Panel.NoMessages}"
+						   FontStyle="Italic"
+						   FontSize="12"
+						   Foreground="{DynamicResource TextSecondaryBrush}"
+						   HorizontalAlignment="Center"
+						   Margin="0,10,0,10"/>
+
+				<!-- Lista ogłoszeń -->
+				<ItemsControl ItemsSource="{Binding ActiveMessages}">
+					<ItemsControl.ItemTemplate>
+						<DataTemplate x:DataType="vm:LobbyBoardItemViewModel">
+							<Border Classes="lobby-entry">
+								<Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+									<!-- Treść -->
+									<TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+											   Text="{Binding Content}"
+											   TextWrapping="Wrap"
+											   FontSize="13"
+											   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+									<!-- Czas + przyciski -->
+									<StackPanel Grid.Row="1" Grid.Column="0"
+												Orientation="Horizontal" Spacing="8"
+												Margin="0,8,0,0">
+										<TextBlock Text="{Binding TimeAgoDisplay}"
+												   FontSize="11"
+												   Foreground="{DynamicResource TextSecondaryBrush}"/>
+									</StackPanel>
+
+									<StackPanel Grid.Row="1" Grid.Column="1"
+												Orientation="Horizontal" Spacing="6"
+												Margin="0,8,0,0">
+										<Button Content="{loc:Localize Lobby.Report.Button}"
+												Padding="8,2" FontSize="11"
+												Background="{DynamicResource DangerBrush}"
+												Foreground="White"
+												CornerRadius="4"
+												Command="{Binding $parent[ItemsControl].DataContext.ReportCommand}"
+												CommandParameter="{Binding}"/>
+									</StackPanel>
+								</Grid>
+							</Border>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+
+				<!-- Formularz publikacji ogłoszenia -->
+				<Border Background="{DynamicResource SecondaryBackgroundBrush}"
+						BorderBrush="{DynamicResource BorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="14">
+					<StackPanel Spacing="10">
+						<TextBlock Text="{loc:Localize Lobby.Message.PublishButton}"
+								   FontSize="14" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+						<TextBox Text="{Binding MessageInput}"
+								 PlaceholderText="{loc:Localize Lobby.Message.Placeholder}"
+								 TextWrapping="Wrap"
+								 AcceptsReturn="False"
+								 MaxLength="280"
+								 MinHeight="70"
+								 Padding="10"/>
+
+						<Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+							<TextBlock Grid.Column="0"
+									   Text="{Binding MessageCharCount, StringFormat='{}{0}/280'}"
+									   FontSize="11"
+									   Foreground="{DynamicResource TextSecondaryBrush}"
+									   VerticalAlignment="Center"/>
+							<Button Grid.Column="1"
+									Content="{loc:Localize Lobby.Message.PublishButton}"
+									Command="{Binding PublishMessageCommand}"
+									IsEnabled="{Binding !IsLoading}"
+									Padding="12,8"
+									CornerRadius="6"
+									Background="{DynamicResource AccentBrush}"
+									Foreground="White"/>
+						</Grid>
+					</StackPanel>
+				</Border>
+			</StackPanel>
+
+		</StackPanel>
+	</ScrollViewer>
+</UserControl>

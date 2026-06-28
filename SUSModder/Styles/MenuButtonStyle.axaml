@@ -8,6 +8,24 @@
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="Margin" Value="0,0,0,5"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                <BrushTransition Property="Foreground" Duration="0:0:0.15"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <!-- Styl dla przycisku menu w stanie pressed -->
+    <Style Selector="Button.menu-button:pressed">
+        <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPressed}"/>
+    </Style>
+
+    <!-- Styl dla przycisku menu w stanie disabled -->
+    <Style Selector="Button.menu-button:disabled">
+        <Setter Property="Opacity" Value="0.5"/>
+        <Setter Property="Cursor" Value="No"/>
     </Style>
 
     <!-- Styl dla przycisku hamburger menu -->
@@ -16,6 +34,23 @@
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <!-- Hamburger button pressed state -->
+    <Style Selector="Button.hamburger-button:pressed">
+        <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPressed}"/>
+    </Style>
+
+    <!-- Hamburger button disabled state -->
+    <Style Selector="Button.hamburger-button:disabled">
+        <Setter Property="Opacity" Value="0.5"/>
+        <Setter Property="Cursor" Value="No"/>
     </Style>
 
     <!-- Styl dla ikony i tekstu w przycisku menu -->

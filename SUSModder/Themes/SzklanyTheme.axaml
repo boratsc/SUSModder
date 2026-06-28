@@ -1,0 +1,150 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<!-- Szklany (liquid glass / aero) — semantyczne tokeny glass -->
+	<Color x:Key="GlassBackdropTintColor">#9910141F</Color>
+	<Color x:Key="GlassPanelFillColor">#B01B2433</Color>
+	<Color x:Key="GlassPanelStrongFillColor">#D0202738</Color>
+	<Color x:Key="GlassInspectorFillColor">#E0202738</Color>
+	<Color x:Key="GlassModalFillColor">#F0202738</Color>
+	<Color x:Key="GlassModalOverlayColor">#B0000000</Color>
+	<Color x:Key="GlassCardFillColor">#48182433</Color>
+	<Color x:Key="GlassCardFillHighlightColor">#8CFFFFFF</Color>
+	<Color x:Key="GlassStrokeColor">#55FFFFFF</Color>
+	<Color x:Key="GlassStrokeSubtleColor">#22FFFFFF</Color>
+	<Color x:Key="GlassHighlightColor">#66FFFFFF</Color>
+	<Color x:Key="GlassShadowColor">#66000000</Color>
+	<Color x:Key="GlassBlurFallbackColor">#E61E2433</Color>
+
+	<!-- v3 semantic tokens (glass-aware) -->
+	<Color x:Key="SurfaceBaseColor">#9910141F</Color>
+	<Color x:Key="SurfaceElevatedColor">#B01B2433</Color>
+	<Color x:Key="SurfaceCardColor">#48182433</Color>
+	<Color x:Key="SurfaceOverlayColor">#73000000</Color>
+	<Color x:Key="AccentPrimaryColor">#5BB5FF</Color>
+	<Color x:Key="AccentMutedColor">#3A5A7A</Color>
+	<Color x:Key="StatusInstalledColor">#34D399</Color>
+	<Color x:Key="StatusUpdateColor">#FBBF24</Color>
+	<Color x:Key="StatusBusyColor">#60A5FA</Color>
+	<Color x:Key="StatusNotInstalledColor">#94A3B8</Color>
+	<Color x:Key="SelectionBarColor">#5BB5FF</Color>
+	<Color x:Key="BulkSelectionColor">#A78BFA</Color>
+	<Color x:Key="SurfaceGlassFillColor">#D0202738</Color>
+
+	<!-- Legacy aliases -->
+	<Color x:Key="PrimaryBackgroundColor">#9910141F</Color>
+	<Color x:Key="SecondaryBackgroundColor">#B01B2433</Color>
+	<Color x:Key="TertiaryBackgroundColor">#D0202738</Color>
+	<Color x:Key="MenuBackgroundColor">#D0202738</Color>
+	<Color x:Key="CardBackgroundColor">#48182433</Color>
+	<Color x:Key="BorderColor">#55FFFFFF</Color>
+	<Color x:Key="TextPrimaryColor">#F1F5F9</Color>
+	<Color x:Key="TextSecondaryColor">#CBD5E1</Color>
+	<Color x:Key="AccentColor">#5BB5FF</Color>
+	<Color x:Key="DangerColor">#F87171</Color>
+	<Color x:Key="SuccessColor">#4ADE80</Color>
+	<Color x:Key="WindowBackgroundColor">#F0202738</Color>
+	<Color x:Key="PaneBackgroundColor">#D0202738</Color>
+	<Color x:Key="ModCardBackgroundColor">#48182433</Color>
+	<Color x:Key="ModCardBorderColor">#55FFFFFF</Color>
+	<Color x:Key="GridSplitterColor">#22FFFFFF</Color>
+	<Color x:Key="ListBoxSelectionColor">#5BB5FF</Color>
+	<Color x:Key="InstallPathBorderColor">#5BB5FF</Color>
+	<Color x:Key="DllButtonColor">#C4A035</Color>
+	<Color x:Key="StatusBarBackgroundColor">#B01B2433</Color>
+	<Color x:Key="StatusBarBorderColor">#55FFFFFF</Color>
+	<Color x:Key="StatusBarSectionHoverColor">#33FFFFFF</Color>
+
+	<!-- Brushes -->
+	<SolidColorBrush x:Key="SurfaceBaseBrush" Color="{StaticResource SurfaceBaseColor}"/>
+	<SolidColorBrush x:Key="SurfaceElevatedBrush" Color="{StaticResource SurfaceElevatedColor}"/>
+	<SolidColorBrush x:Key="SurfaceCardBrush" Color="{StaticResource SurfaceCardColor}"/>
+	<SolidColorBrush x:Key="SurfaceOverlayBrush" Color="{StaticResource SurfaceOverlayColor}"/>
+	<SolidColorBrush x:Key="AccentPrimaryBrush" Color="{StaticResource AccentPrimaryColor}"/>
+	<SolidColorBrush x:Key="AccentMutedBrush" Color="{StaticResource AccentMutedColor}"/>
+	<SolidColorBrush x:Key="StatusInstalledBrush" Color="{StaticResource StatusInstalledColor}"/>
+	<SolidColorBrush x:Key="StatusUpdateBrush" Color="{StaticResource StatusUpdateColor}"/>
+	<SolidColorBrush x:Key="StatusBusyBrush" Color="{StaticResource StatusBusyColor}"/>
+	<SolidColorBrush x:Key="StatusNotInstalledBrush" Color="{StaticResource StatusNotInstalledColor}"/>
+	<SolidColorBrush x:Key="SelectionBarBrush" Color="{StaticResource SelectionBarColor}"/>
+	<SolidColorBrush x:Key="BulkSelectionBrush" Color="{StaticResource BulkSelectionColor}"/>
+	<SolidColorBrush x:Key="SurfaceGlassFillBrush" Color="{StaticResource SurfaceGlassFillColor}"/>
+	<SolidColorBrush x:Key="GlassBackdropTintBrush" Color="{StaticResource GlassBackdropTintColor}"/>
+	<SolidColorBrush x:Key="GlassPanelFillBrush" Color="{StaticResource GlassPanelFillColor}"/>
+	<SolidColorBrush x:Key="GlassPanelStrongFillBrush" Color="{StaticResource GlassPanelStrongFillColor}"/>
+	<SolidColorBrush x:Key="GlassInspectorFillBrush" Color="{StaticResource GlassInspectorFillColor}"/>
+	<SolidColorBrush x:Key="GlassModalFillBrush" Color="{StaticResource GlassModalFillColor}"/>
+	<SolidColorBrush x:Key="GlassModalOverlayBrush" Color="{StaticResource GlassModalOverlayColor}"/>
+	<SolidColorBrush x:Key="GlassCardFillBrush" Color="{StaticResource GlassCardFillColor}"/>
+	<SolidColorBrush x:Key="GlassStrokeBrush" Color="{StaticResource GlassStrokeColor}"/>
+	<SolidColorBrush x:Key="GlassStrokeSubtleBrush" Color="{StaticResource GlassStrokeSubtleColor}"/>
+	<SolidColorBrush x:Key="GlassHighlightBrush" Color="{StaticResource GlassHighlightColor}"/>
+	<SolidColorBrush x:Key="GlassBlurFallbackBrush" Color="{StaticResource GlassBlurFallbackColor}"/>
+
+	<Color x:Key="GlassBadgeUpdateFillColor">#E6FBBF24</Color>
+	<Color x:Key="GlassBadgeInstalledFillColor">#E634D399</Color>
+	<Color x:Key="GlassBadgeNeutralFillColor">#CC1E2433</Color>
+	<SolidColorBrush x:Key="GlassBadgeUpdateFillBrush" Color="{StaticResource GlassBadgeUpdateFillColor}"/>
+	<SolidColorBrush x:Key="GlassBadgeInstalledFillBrush" Color="{StaticResource GlassBadgeInstalledFillColor}"/>
+	<SolidColorBrush x:Key="GlassBadgeNeutralFillBrush" Color="{StaticResource GlassBadgeNeutralFillColor}"/>
+
+	<LinearGradientBrush x:Key="GlassTabActiveBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+		<GradientStop Color="#55FFFFFF" Offset="0"/>
+		<GradientStop Color="#40202738" Offset="0.12"/>
+		<GradientStop Color="#D0202738" Offset="1"/>
+	</LinearGradientBrush>
+
+	<LinearGradientBrush x:Key="GlassInspectorBorderBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+		<GradientStop Color="#885BB5FF" Offset="0"/>
+		<GradientStop Color="#335BB5FF" Offset="0.5"/>
+		<GradientStop Color="#44FFFFFF" Offset="1"/>
+	</LinearGradientBrush>
+
+	<!-- Window backdrop: lekki tint — tapeta/Mica ma przeświecać między kafelkami -->
+	<LinearGradientBrush x:Key="WindowBackgroundGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+		<GradientStop Color="#4210141F" Offset="0"/>
+		<GradientStop Color="#2C101824" Offset="0.5"/>
+		<GradientStop Color="#22142030" Offset="1"/>
+	</LinearGradientBrush>
+
+	<LinearGradientBrush x:Key="GlassCardTopHighlightBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+		<GradientStop Color="#44FFFFFF" Offset="0"/>
+		<GradientStop Color="#00FFFFFF" Offset="0.08"/>
+		<GradientStop Color="#00000000" Offset="1"/>
+	</LinearGradientBrush>
+
+	<RadialGradientBrush x:Key="WindowAccentGlowBrush" Center="0%,0%" GradientOrigin="0%,0%" RadiusX="1.1" RadiusY="1.1">
+		<GradientStop Color="#305BB5FF" Offset="0"/>
+		<GradientStop Color="#00000000" Offset="1"/>
+	</RadialGradientBrush>
+
+	<RadialGradientBrush x:Key="WindowBulkGlowBrush" Center="100%,100%" GradientOrigin="100%,100%" RadiusX="1" RadiusY="1">
+		<GradientStop Color="#20A78BFA" Offset="0"/>
+		<GradientStop Color="#00000000" Offset="1"/>
+	</RadialGradientBrush>
+
+	<SolidColorBrush x:Key="PrimaryBackgroundBrush" Color="{StaticResource PrimaryBackgroundColor}"/>
+	<SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="{StaticResource SecondaryBackgroundColor}"/>
+	<SolidColorBrush x:Key="TertiaryBackgroundBrush" Color="{StaticResource TertiaryBackgroundColor}"/>
+	<SolidColorBrush x:Key="MenuBackgroundBrush" Color="{StaticResource MenuBackgroundColor}"/>
+	<SolidColorBrush x:Key="CardBackgroundBrush" Color="{StaticResource CardBackgroundColor}"/>
+	<SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}"/>
+	<SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}"/>
+	<SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
+	<SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+	<SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
+	<SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+	<SolidColorBrush x:Key="WindowBackgroundBrush" Color="{StaticResource WindowBackgroundColor}"/>
+	<SolidColorBrush x:Key="WarningBrush" Color="#FBBF24"/>
+	<SolidColorBrush x:Key="PaneBackgroundBrush" Color="{StaticResource PaneBackgroundColor}"/>
+	<SolidColorBrush x:Key="ModCardBackgroundBrush" Color="{StaticResource ModCardBackgroundColor}"/>
+	<SolidColorBrush x:Key="ModCardBorderBrush" Color="{StaticResource ModCardBorderColor}"/>
+	<SolidColorBrush x:Key="GridSplitterBrush" Color="{StaticResource GridSplitterColor}"/>
+	<SolidColorBrush x:Key="ListBoxSelectionBrush" Color="{StaticResource ListBoxSelectionColor}"/>
+	<SolidColorBrush x:Key="InstallPathBorderBrush" Color="{StaticResource InstallPathBorderColor}"/>
+	<SolidColorBrush x:Key="HeartsBackgroundBrush" Color="#00000000"/>
+	<SolidColorBrush x:Key="DllButtonBrush" Color="{StaticResource DllButtonColor}"/>
+	<SolidColorBrush x:Key="StatusBarBackgroundBrush" Color="{StaticResource StatusBarBackgroundColor}"/>
+	<SolidColorBrush x:Key="StatusBarBorderBrush" Color="{StaticResource StatusBarBorderColor}"/>
+	<SolidColorBrush x:Key="StatusBarSectionHoverBrush" Color="{StaticResource StatusBarSectionHoverColor}"/>
+</ResourceDictionary>

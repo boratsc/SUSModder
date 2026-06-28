@@ -15,6 +15,26 @@
 		<ScrollViewer Grid.Row="0" Padding="0,0,10,0">
 			<StackPanel Spacing="15">
 
+				<!-- Bieżący kanał aktualizacji -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource AccentBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="6">
+						<TextBlock Text="{local:Localize Settings.UpdateChannel.CurrentTitle}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="{Binding CurrentUpdateChannelSummary}"
+								   FontSize="13"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.UpdateChannel.CurrentDescription}"
+								   FontSize="12"
+								   TextWrapping="Wrap"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+					</StackPanel>
+				</Border>
+
 				<!-- Sekcja wyboru trybu gry -->
 				<Border Background="{DynamicResource ModCardBackgroundBrush}"
 						BorderBrush="{DynamicResource ModCardBorderBrush}"
@@ -44,6 +64,53 @@
 										 IsChecked="{Binding IsEpicMode}"
 										 Foreground="{DynamicResource TextPrimaryBrush}"/>
 						</StackPanel>
+					</StackPanel>
+				</Border>
+
+				<!-- Steam: pobieranie vanilla (eksperymentalne) -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15"
+						IsVisible="{Binding IsSteamDepotDownloaderSectionVisible}">
+					<StackPanel Spacing="12">
+						<TextBlock Text="{local:Localize Settings.SteamVanilla.Title}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.SteamVanilla.Description}"
+								   FontSize="12"
+								   TextWrapping="Wrap"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.SteamVanilla.ExperimentalWarning}"
+								   FontSize="11"
+								   TextWrapping="Wrap"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   FontStyle="Italic"/>
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="12">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0" VerticalAlignment="Center">
+									<TextBlock Text="{local:Localize Settings.SteamVanilla.DepotDownloader.Label}"
+											   FontSize="13" FontWeight="Medium"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   TextWrapping="Wrap"/>
+									<TextBlock Text="{local:Localize Settings.SteamVanilla.DepotDownloader.Description}"
+											   FontSize="11"
+											   TextWrapping="Wrap"
+											   Foreground="{DynamicResource TextSecondaryBrush}"/>
+								</StackPanel>
+								<ToggleSwitch Grid.Column="1"
+											  IsChecked="{Binding PreferDepotDownloader}"
+											  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+											  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+											  VerticalAlignment="Center"
+											  Margin="10,0,0,0"/>
+							</Grid>
+						</Border>
 					</StackPanel>
 				</Border>
 
@@ -81,6 +148,35 @@
 					</StackPanel>
 				</Border>
 
+				<!-- Motyw Szklany — dostępność -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15"
+						IsVisible="{Binding IsGlassAppearanceSectionVisible}">
+					<StackPanel Spacing="12">
+						<TextBlock Text="{local:Localize Settings.General.Appearance.Label}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.General.Appearance.Description}"
+								   FontSize="12"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.General.Appearance.TransparencyWarning}"
+								   FontSize="11"
+								   TextWrapping="Wrap"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   FontStyle="Italic"/>
+						<CheckBox Content="{local:Localize Settings.General.Appearance.ReduceTransparency}"
+								  IsChecked="{Binding GlassReduceTransparency}"
+								  Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.General.Appearance.ReduceTransparencyDescription}"
+								   FontSize="11"
+								   TextWrapping="Wrap"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+					</StackPanel>
+				</Border>
+
 				<!-- Sekcja ścieżek -->
 				<Border Background="{DynamicResource ModCardBackgroundBrush}"
 						BorderBrush="{DynamicResource ModCardBorderBrush}"
@@ -100,7 +196,7 @@
 								   Foreground="{DynamicResource TextSecondaryBrush}"/>
 
 						<TextBox Text="{Binding ModsInstallPath}"
-								 Watermark="{local:Localize Settings.Paths.ModsInstallPath.Placeholder}"
+								 PlaceholderText="{local:Localize Settings.Paths.ModsInstallPath.Placeholder}"
 								 FontSize="12"
 								 Padding="8"
 								 Background="{DynamicResource SecondaryBackgroundBrush}"
@@ -273,6 +369,71 @@
 											  VerticalAlignment="Center"
 											  Margin="10,0,0,0"
 											  Click="OnShowConsoleToggled"/>
+							</Grid>
+						</Border>
+					</StackPanel>
+				</Border>
+
+				<!-- Sekcja zachowania okna / system tray -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15">
+					<StackPanel Spacing="12">
+						<TextBlock Text="{local:Localize Settings.SystemTray.Title}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+						<!-- Minimalizuj do tray -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="12">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0" VerticalAlignment="Center">
+									<TextBlock Text="{local:Localize Settings.SystemTray.MinimizeToTray.Label}"
+											   FontSize="13" FontWeight="Medium"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   TextWrapping="Wrap"/>
+									<TextBlock Text="{local:Localize Settings.SystemTray.MinimizeToTray.Description}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"
+											   TextWrapping="Wrap"/>
+								</StackPanel>
+								<ToggleSwitch Grid.Column="1"
+											  IsChecked="{Binding MinimizeToTray}"
+											  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+											  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+											  VerticalAlignment="Center"
+											  Margin="10,0,0,0"/>
+							</Grid>
+						</Border>
+
+						<!-- Szybkie uruchamianie w tray -->
+						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="12">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0" VerticalAlignment="Center">
+									<TextBlock Text="{local:Localize Settings.SystemTray.QuickLaunch.Label}"
+											   FontSize="13" FontWeight="Medium"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   TextWrapping="Wrap"/>
+									<TextBlock Text="{local:Localize Settings.SystemTray.QuickLaunch.Description}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"
+											   TextWrapping="Wrap"/>
+								</StackPanel>
+								<ToggleSwitch Grid.Column="1"
+											  IsChecked="{Binding ShowQuickLaunchInTray}"
+											  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+											  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+											  VerticalAlignment="Center"
+											  Margin="10,0,0,0"/>
 							</Grid>
 						</Border>
 					</StackPanel>

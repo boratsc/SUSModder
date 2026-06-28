@@ -7,6 +7,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using SUSModder.Core.Utilities;
+using SUSModder.Core.Services.Localization;
 using SUSModder.Views;
 using SUSModder.ViewModels.Helpers;
 
@@ -55,6 +56,32 @@ namespace SUSModder.ViewModels
                 System.Diagnostics.Debug.WriteLine($"Error opening SUStats config panel: {ex.Message}");
                 await ShowErrorDialogAsync($"Nie udało się otworzyć okna konfiguracji SUStats: {ex.Message}", "Błąd");
             }
+        }
+
+        private void ShowLobbyBoardFromMenu()
+        {
+            IsPaneOpen = false;
+            if (SelectedMod == null)
+            {
+                var loc = App.GetService<ILocalizationService>();
+                ToastService.ShowInfo(
+                    loc.Get("Lobby.Panel.SelectModFirst") ?? "Wybierz najpierw moda z listy",
+                    autoCloseMs: 3000);
+                return;
+            }
+
+            // Zamknij inne panele
+            IsInfoPanelVisible = false;
+            IsAdditionalActionsVisible = false;
+            IsDllModificationsVisible = false;
+            IsSUStatsConfigVisible = false;
+            IsAppSettingsVisible = false;
+            IsRecommendedDiscordsVisible = false;
+            IsRepairOptionsVisible = false;
+            CloseDllSelectionModal();
+            IsVersionSelectionModalVisible = false;
+
+            ShowLobbyBoard();
         }
 
         #endregion
@@ -590,6 +617,43 @@ namespace SUSModder.ViewModels
                 Dispatcher.UIThread.InvokeAsync(async () =>
                 {
                     await ShowErrorDialogAsync("Folder instalacji nie istnieje lub mod nie jest zainstalowany.", "Błąd");
+                });
+            }
+        }
+
+        private void OpenVirusTotalReport()
+        {
+            if (SelectedMod == null)
+                return;
+
+            var permalink = SelectedMod.VtPermalink;
+            if (string.IsNullOrWhiteSpace(permalink))
+            {
+                Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await ShowErrorDialogAsync(
+                        _localizationService.Get("SecurityScan.NoReportAvailable"),
+                        _localizationService.Get("Dialogs.Error.Title"));
+                });
+                return;
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = permalink,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[VT] Nie udało się otworzyć raportu: {ex.Message}");
+                Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await ShowErrorDialogAsync(
+                        string.Format(_localizationService.Get("SecurityScan.OpenReportError"), ex.Message),
+                        _localizationService.Get("Dialogs.Error.Title"));
                 });
             }
         }

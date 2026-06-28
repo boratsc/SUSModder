@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -44,6 +43,7 @@ namespace SUSModder.Core.GameIntegration
         public event Action<string>? LegendaryOutput;
         private readonly object _fileLock = new object();
         public event Action<int, string>? ProgressChanged;
+        public event Action<string>? SpeedChanged;
         private double _lastProgressPercentage = 0;
         private string _lastCurrentFiles = "";
         private string _lastTotalFiles = "";
@@ -108,7 +108,11 @@ namespace SUSModder.Core.GameIntegration
             }
         }
 
-        private void Write(string line) => _output?.Write(line);
+        private void Write(string line)
+        {
+            _output?.Write(line);
+            LogToFile(line);
+        }
 
         private void ShowError(string msg) => _userInteraction?.ShowError(msg);
 
@@ -325,15 +329,15 @@ namespace SUSModder.Core.GameIntegration
             }
         }
 
-        public async Task ModifyEpicAsync(ModConfiguration modConfig, object? progressBar, object? progressLabel)
+        public async Task<bool> ModifyEpicAsync(ModConfiguration modConfig, object? progressBar, object? progressLabel)
         {
             if (modConfig == null)
             {
                 ShowError("Konfiguracja moda jest nieprawidłowa.");
-                return;
+                return false;
             }
 
-            string downloadUrl = ModDownloadUrlBuilder.Build(modConfig, "epic");
+            string downloadUrl = await ModDownloadUrlBuilder.ResolveAsync(modConfig, "epic");
 
             Write($"[CDN] URL pobierania moda Epic '{modConfig.ModName}': {downloadUrl}");
 
@@ -344,6 +348,9 @@ namespace SUSModder.Core.GameIntegration
             string tempDirectory = Path.Combine(baseDirectory, "temp", uniqueTempId);
             Directory.CreateDirectory(tempDirectory);
             string modFile = Path.Combine(tempDirectory, "mod.zip");
+
+            try
+            {
             ProgressChanged?.Invoke(10, "Rozpoczynam pobieranie moda...");
 
             Write($"Rozpoczynam pobieranie moda '{modConfig.ModName}' z: {downloadUrl}");
@@ -353,7 +360,7 @@ namespace SUSModder.Core.GameIntegration
             {
                 Write($"ERROR: Nie udało się pobrać moda z {downloadUrl}");
                 ShowError($"Nie udało się pobrać moda z {downloadUrl}.");
-                return;
+                return false;
             }
 
             Write($"Pomyślnie pobrano mod do: {modFile}");
@@ -374,14 +381,43 @@ namespace SUSModder.Core.GameIntegration
             try
             {
                 Write($"Rozpakowuję archiwum moda: {modFile} do {tempExtractPath}");
-                ZipFile.ExtractToDirectory(modFile, tempExtractPath, overwriteFiles: true);
+
+                var extractionProgress = new Progress<ExtractionProgress>(p =>
+                {
+                    int pct;
+                    if (p.PercentComplete.HasValue)
+                    {
+                        pct = (int)p.PercentComplete.Value;
+                    }
+                    else if (p.TotalBytes > 0)
+                    {
+                        pct = (int)(p.BytesExtracted * 100 / p.TotalBytes);
+                    }
+                    else
+                    {
+                        ProgressChanged?.Invoke(60,
+                            $"Rozpakowywanie... ({p.BytesExtracted} B)");
+                        return;
+                    }
+
+                    string currentFile = !string.IsNullOrEmpty(p.CurrentFile)
+                        ? $" ({Path.GetFileName(p.CurrentFile)})"
+                        : "";
+                    int mapped = 50 + (pct * 20 / 100); // 50-70% overall
+                    ProgressChanged?.Invoke(mapped,
+                        $"Rozpakowywanie: {pct}%{currentFile}");
+                });
+
+                var extractor = new SharpCompressExtractor();
+                await extractor.ExtractAsync(modFile, tempExtractPath, progress: extractionProgress);
+
                 Write("Pomyślnie rozpakowano archiwum moda");
             }
             catch (Exception ex)
             {
                 Write($"ERROR podczas rozpakowywania: {ex.Message}");
                 ShowError($"Błąd podczas rozpakowywania archiwum: {ex.Message}");
-                return;
+                return false;
             }
 
             ProgressChanged?.Invoke(70, "Kopiowanie plików...");
@@ -394,7 +430,7 @@ namespace SUSModder.Core.GameIntegration
             {
                 Write("ERROR: Nie znaleziono plików do skopiowania");
                 ShowError("Nie znaleziono plików do skopiowania.");
-                return;
+                return false;
             }
 
             Write($"Kopiuję pliki z {sourcePath} do {gameBasePath}");
@@ -451,20 +487,6 @@ namespace SUSModder.Core.GameIntegration
             }
             // === KONIEC NOWEGO KODU ===
 
-            // Usuń unikalny katalog temp dla tej instalacji
-            try
-            {
-                if (Directory.Exists(tempDirectory))
-                {
-                    Directory.Delete(tempDirectory, true);
-                    Write($"Usunięto katalog tymczasowy: {tempDirectory}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Write($"[WARNING] Nie udało się usunąć katalogu tymczasowego: {ex.Message}");
-            }
-
             ProgressChanged?.Invoke(100, "Instalacja zakończona!");
 
             // DODAJ DEBUGOWANIE
@@ -476,6 +498,12 @@ namespace SUSModder.Core.GameIntegration
 
             System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync FULLY COMPLETED for mod: {modConfig.ModName}");
             InstallationCompleted?.Invoke(modConfig);
+            return true;
+            }
+            finally
+            {
+                ModsStorageCleanupService.TryDeleteInstallTempDirectory(tempDirectory, Write);
+            }
         }
 
         /// <summary>
@@ -662,11 +690,13 @@ namespace SUSModder.Core.GameIntegration
                 Write("Import sesji nie powiódł się. Pokazuję dialog logowania...");
                 Write(stderr);
 
-                // Przygotuj OAuth URL - używamy responseType=code, który po zalogowaniu
-                // przekieruje na https://localhost/?code=XXXXX (tak jak robi to Heroic Games Launcher).
-                // Embedded WebView2 przechwytuje ten redirect automatycznie.
-                // W trybie fallback (systemowa przeglądarka) użytkownik kopiuje kod ręcznie.
-                string oauthUrl = "https://www.epicgames.com/id/login?responseType=code";
+                // Używamy tego samego flow co legendary: /id/login?redirectUrl=<encoded>/id/api/redirect
+                // (zob. legendary/api/egs.py:get_auth_url() oraz legendary issue #468).
+                // Po zalogowaniu NativeWebView ładuje /id/api/redirect który zwraca JSON.
+                // Wyciągamy authorizationCode z body przez InvokeScript (JavaScript injection).
+                var redirectUrl = Uri.EscapeDataString(
+                    "https://www.epicgames.com/id/api/redirect?clientId=34a02cf8f4414e29b15921876da36f9a&responseType=code");
+                string oauthUrl = $"https://www.epicgames.com/id/login?redirectUrl={redirectUrl}";
 
                 Write($"OAuth URL: {oauthUrl}");
 
@@ -971,12 +1001,21 @@ namespace SUSModder.Core.GameIntegration
                 await DownloadLegendaryAsync();
             }
 
-            // Uwierzytelnij użytkownika (spróbuj import, jeśli nie uda się - manual code entry)
-            bool authenticated = await AuthenticateAsync();
-            if (!authenticated)
+            // Sprawdź czy użytkownik jest już zalogowany (sesja persisted przez legendary).
+            // Jeśli tak – pomijamy AuthenticateAsync, unikając zbędnego auth --import
+            // który może pokazywać WebView przy każdym odpaleniu moda.
+            bool isLoggedIn = await CheckAuthStatusAsync();
+            if (!isLoggedIn)
             {
-                Write("Nie udało się uwierzytelnić użytkownika. Przerywam operację.");
-                return;
+                Write("Brak aktywnej sesji Epic Games – próba uwierzytelnienia...");
+
+                // Uwierzytelnij użytkownika (spróbuj import, jeśli nie uda się - WebView dialog)
+                bool authenticated = await AuthenticateAsync();
+                if (!authenticated)
+                {
+                    Write("Nie udało się uwierzytelnić użytkownika. Przerywam operację.");
+                    return;
+                }
             }
 
             string installDirectory;
@@ -991,7 +1030,7 @@ namespace SUSModder.Core.GameIntegration
                     return;
                 }
 
-                installDirectory = modConfig.InstallPath;
+                installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
 
                 try
                 {
@@ -1000,7 +1039,7 @@ namespace SUSModder.Core.GameIntegration
                     _hasLaunchError = false;
 
                     // Weryfikuj czy pliki gry faktycznie istnieją przed importem
-                    string gameExePath = Path.Combine(installDirectory, "Among Us.exe");
+                    string gameExePath = ResolveEpicGameExePath(installDirectory);
                     if (!File.Exists(gameExePath))
                     {
                         Write($"OSTRZEŻENIE: Plik gry nie istnieje w {installDirectory}");
@@ -1011,6 +1050,8 @@ namespace SUSModder.Core.GameIntegration
                         await PerformReinstallationSequence(modConfig);
                         return;
                     }
+
+                    EnsureEpicPayloadInsideGameDirectory(installDirectory);
 
                     await RunLegendaryCommandAsync($"import 963137e4c29d4c79a81323b8fab03a40 \"{installDirectory}\" -y");
                     await LaunchGameAsync();
@@ -1085,11 +1126,11 @@ namespace SUSModder.Core.GameIntegration
                     return;
                 }
 
-                installDirectory = modConfig.InstallPath.Replace("AmongUs", "").TrimEnd(Path.DirectorySeparatorChar);
+                installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
             }
             else
             {
-                installDirectory = Path.Combine(PathSettings.ModsInstallPath, modConfig.ModName);
+                installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
             }
             await RunLegendaryCommandAsync("uninstall 963137e4c29d4c79a81323b8fab03a40 --keep-files -y");
             await RunLegendaryCommandAsync($"import 963137e4c29d4c79a81323b8fab03a40 \"{installDirectory}\" -y");
@@ -1173,14 +1214,14 @@ namespace SUSModder.Core.GameIntegration
                 string installDirectory;
                 if (modConfig.Id == 0)
                 {
-                    installDirectory = modConfig.InstallPath?.Replace("AmongUs", "").TrimEnd(Path.DirectorySeparatorChar) ?? "";
+                    installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
                 }
                 else
                 {
-                    installDirectory = Path.Combine(PathSettings.ModsInstallPath, modConfig.ModName);
+                    installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
                 }
                 
-                string gameExePath = Path.Combine(installDirectory, "AmongUs", "Among Us.exe");
+                string gameExePath = ResolveEpicGameExePath(installDirectory);
                 if (!File.Exists(gameExePath))
                 {
                     Write($"BŁĄD: Instalacja nie powiodła się - brak pliku gry: {gameExePath}");
@@ -1258,6 +1299,98 @@ namespace SUSModder.Core.GameIntegration
             await RunLegendaryCommandAsync(commandArguments);
         }
 
+        private static string ResolveEpicBaseInstallDirectory(ModConfiguration modConfig)
+        {
+            if (!string.IsNullOrWhiteSpace(modConfig.InstallPath))
+            {
+                return TrimEpicGameSubdirectory(modConfig.InstallPath);
+            }
+
+            return Path.Combine(PathSettings.ModsInstallPath, modConfig.ModName ?? string.Empty);
+        }
+
+        private static string TrimEpicGameSubdirectory(string path)
+        {
+            var trimmed = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var directoryName = Path.GetFileName(trimmed);
+
+            return string.Equals(directoryName, "AmongUs", StringComparison.OrdinalIgnoreCase)
+                ? Path.GetDirectoryName(trimmed) ?? trimmed
+                : trimmed;
+        }
+
+        private static string ResolveEpicGameExePath(string baseInstallDirectory)
+        {
+            var epicExePath = Path.Combine(baseInstallDirectory, "AmongUs", "Among Us.exe");
+            if (File.Exists(epicExePath))
+                return epicExePath;
+
+            return Path.Combine(baseInstallDirectory, "Among Us.exe");
+        }
+
+        private void EnsureEpicPayloadInsideGameDirectory(string baseInstallDirectory)
+        {
+            var gameDirectory = Path.Combine(baseInstallDirectory, "AmongUs");
+            if (!Directory.Exists(gameDirectory))
+                return;
+
+            foreach (var directory in Directory.GetDirectories(baseInstallDirectory))
+            {
+                var name = Path.GetFileName(directory);
+                if (string.Equals(name, "AmongUs", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                MoveDirectoryContent(directory, Path.Combine(gameDirectory, name));
+                TryDeleteEmptyDirectory(directory);
+            }
+
+            foreach (var file in Directory.GetFiles(baseInstallDirectory))
+            {
+                var name = Path.GetFileName(file);
+                if (string.Equals(name, ".susmodder-install.json", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var destination = Path.Combine(gameDirectory, name);
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                File.Copy(file, destination, overwrite: true);
+                TryDeleteFile(file);
+            }
+        }
+
+        private static void MoveDirectoryContent(string sourceDirectory, string destinationDirectory)
+        {
+            Directory.CreateDirectory(destinationDirectory);
+
+            foreach (var file in Directory.GetFiles(sourceDirectory))
+            {
+                var destination = Path.Combine(destinationDirectory, Path.GetFileName(file));
+                File.Copy(file, destination, overwrite: true);
+                TryDeleteFile(file);
+            }
+
+            foreach (var directory in Directory.GetDirectories(sourceDirectory))
+            {
+                MoveDirectoryContent(directory, Path.Combine(destinationDirectory, Path.GetFileName(directory)));
+                TryDeleteEmptyDirectory(directory);
+            }
+        }
+
+        private static void TryDeleteFile(string file)
+        {
+            try { File.Delete(file); }
+            catch { /* best effort cleanup */ }
+        }
+
+        private static void TryDeleteEmptyDirectory(string directory)
+        {
+            try
+            {
+                if (!Directory.EnumerateFileSystemEntries(directory).Any())
+                    Directory.Delete(directory);
+            }
+            catch { /* best effort cleanup */ }
+        }
+
         public async Task InstallGameAsync(ModConfiguration modConfig, string amongVersionFormatted)
         {
             string installDirectory;
@@ -1269,11 +1402,11 @@ namespace SUSModder.Core.GameIntegration
                     return;
                 }
 
-                installDirectory = modConfig.InstallPath.Replace("AmongUs", "").TrimEnd(Path.DirectorySeparatorChar);
+                installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
             }
             else
             {
-                installDirectory = Path.Combine(PathSettings.ModsInstallPath, modConfig.ModName);
+                installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
             }
             Directory.CreateDirectory(installDirectory);
             string commandArguments;
@@ -1293,9 +1426,12 @@ namespace SUSModder.Core.GameIntegration
                 commandArguments = $"install {EpicAppId} -y --manifest \"{manifestFilePath}\" --base-path \"{installDirectory}\"";
             }
             await RunLegendaryCommandAsync(commandArguments);
-            
+
+            if (modConfig.Id != 0)
+                EnsureEpicPayloadInsideGameDirectory(installDirectory);
+             
             // Weryfikacja czy instalacja się powiodła
-            string gameExePath = Path.Combine(installDirectory, "AmongUs", "Among Us.exe");
+            string gameExePath = ResolveEpicGameExePath(installDirectory);
             if (!File.Exists(gameExePath))
             {
                 Write($"OSTRZEŻENIE: Plik gry nie został znaleziony po instalacji: {gameExePath}");
@@ -1477,6 +1613,7 @@ namespace SUSModder.Core.GameIntegration
                 if (speedMatch.Success)
                 {
                     _lastDownloadSpeed = speedMatch.Groups[1].Value;
+                    SpeedChanged?.Invoke(_lastDownloadSpeed);
                     if (_lastProgressPercentage > 0)
                         shouldReport = true;
                 }

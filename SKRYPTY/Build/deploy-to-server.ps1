@@ -512,7 +512,7 @@ if ($uploadSuccess) {
         Write-Host "Files uploaded to:" -ForegroundColor Cyan
         if (-not $SkipLegacy) {
             Write-Host "  https://susmodder.app/releases/legacy/" -ForegroundColor White
-            Write-Host "  https://susmodder.boracik.pl/SUSModder-$ReleaseVersion.zip" -ForegroundColor White
+            Write-Host "  https://susmodder.app/SUSModder-$ReleaseVersion.zip" -ForegroundColor White
         }
         if (-not $SkipRelease) {
             Write-Host "  https://susmodder.app/releases/release/" -ForegroundColor White
@@ -525,7 +525,7 @@ if ($uploadSuccess) {
         Write-Host ""
         
         Write-Host "Next steps:" -ForegroundColor Yellow
-        Write-Host "  1. Test legacy download: curl -I https://susmodder.boracik.pl/SUSModder-$ReleaseVersion.zip" -ForegroundColor Gray
+        Write-Host "  1. Test legacy download: curl -I https://susmodder.app/SUSModder-$ReleaseVersion.zip" -ForegroundColor Gray
         Write-Host "  2. Test Velopack API: curl https://susmodder.app/api/releases?channel=release" -ForegroundColor Gray
         Write-Host "  3. Test update in application (v2.0.2 → v$ReleaseVersion)" -ForegroundColor Gray
         Write-Host "  4. Monitor logs: ssh $Username@$Server 'tail -f /var/log/nginx/access.log'" -ForegroundColor Gray

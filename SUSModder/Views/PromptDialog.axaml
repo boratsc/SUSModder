@@ -30,7 +30,7 @@
 		        Background="{DynamicResource SecondaryBackgroundBrush}">
 			<TextBox x:Name="InputTextBox"
 			         Text="{Binding InputText}"
-			         Watermark="Wklej JSON, URL lub kod..."
+			         PlaceholderText="{loc:Localize Dialogs.Prompt.Placeholder}"
 			         AcceptsReturn="True"
 			         TextWrapping="Wrap"
 			         VerticalAlignment="Stretch"

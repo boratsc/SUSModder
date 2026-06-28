@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Threading;
+using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.ViewModels
 {
@@ -18,27 +19,31 @@ namespace SUSModder.ViewModels
     {
         private readonly Window _window;
         private readonly string _browserUrl;
+        private readonly ILocalizationService _localizationService;
         private string _authorizationInput = string.Empty;
-        private string _autoOpenMessage = "Przeglądarka otworzy się automatycznie za 5 sekund...";
+        private string _autoOpenMessage;
         private bool _browserOpened = false;
         private CancellationTokenSource? _clipboardMonitorCts;
         private string _lastClipboardContent = string.Empty;
         private bool _isMonitoringClipboard = false;
         private string _clipboardMonitorStatus = string.Empty;
         private bool _isWebViewMode = false;
-        private string _webViewStatus = "Ładowanie strony logowania Epic Games...";
+        private string _webViewStatus;
 
         public EpicAuthDialogViewModel(Window window, string browserUrl)
         {
             _window = window;
             _browserUrl = browserUrl;
+            _localizationService = App.GetService<ILocalizationService>();
+            _autoOpenMessage = _localizationService.GetFormatted("Dialogs.EpicAuth.AutoOpenCountdown", 5);
+            _webViewStatus = _localizationService.Get("Dialogs.EpicAuth.WebViewLoading");
 
             OpenBrowserCommand = ReactiveCommand.Create(OpenBrowser);
             ConfirmCommand = ReactiveCommand.Create(Confirm);
             CancelCommand = ReactiveCommand.Create(Cancel);
 
-            // Sprawdź czy WebView2 jest dostępny
-            _isWebViewMode = CheckWebView2Available();
+            // Sprawdź czy NativeWebView jest dostępny
+            _isWebViewMode = CheckNativeWebViewAvailable();
 
             if (!_isWebViewMode)
             {
@@ -48,41 +53,41 @@ namespace SUSModder.ViewModels
         }
 
         /// <summary>
-        /// Sprawdza czy WebView2 Runtime jest zainstalowany na maszynie użytkownika.
+        /// Sprawdza czy NativeWebView Runtime jest zainstalowany na maszynie użytkownika.
         /// Próbuje najpierw standardowy check przez rejestr, a potem bezpośrednie szukanie na dysku.
         /// </summary>
-        private bool CheckWebView2Available()
+        private bool CheckNativeWebViewAvailable()
         {
             try
             {
-                bool isSupported = Avalonia.Controls.WebView2.IsSupported;
-                Debug.WriteLine($"[EpicAuthDialog] WebView2 IsSupported (registry): {isSupported}");
+                bool isSupported = true; // NativeWebView is always supported on Windows with Avalonia 12
+                Debug.WriteLine($"[EpicAuthDialog] NativeWebView IsSupported (registry): {isSupported}");
                 if (isSupported)
                     return true;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[EpicAuthDialog] Błąd sprawdzania WebView2 IsSupported: {ex.Message}");
+                Debug.WriteLine($"[EpicAuthDialog] Błąd sprawdzania NativeWebView IsSupported: {ex.Message}");
             }
 
             // Fallback: sprawdź czy runtime jest zainstalowany na dysku (brak wpisów w rejestrze)
-            var runtimePath = FindWebView2RuntimePath();
+            var runtimePath = FindNativeWebViewRuntimePath();
             if (runtimePath != null)
             {
-                Debug.WriteLine($"[EpicAuthDialog] WebView2 Runtime znaleziony na dysku: {runtimePath}");
-                _webView2BrowserExecutableFolder = runtimePath;
+                Debug.WriteLine($"[EpicAuthDialog] NativeWebView Runtime znaleziony na dysku: {runtimePath}");
+                _NativeWebViewBrowserExecutableFolder = runtimePath;
                 return true;
             }
 
-            Debug.WriteLine("[EpicAuthDialog] WebView2 Runtime nie jest dostępny");
+            Debug.WriteLine("[EpicAuthDialog] NativeWebView Runtime nie jest dostępny");
             return false;
         }
 
         /// <summary>
-        /// Szuka WebView2 Runtime bezpośrednio na dysku, omijając rejestr.
+        /// Szuka NativeWebView Runtime bezpośrednio na dysku, omijając rejestr.
         /// Zwraca ścieżkę do folderu wersji lub null jeśli nie znaleziono.
         /// </summary>
-        private static string? FindWebView2RuntimePath()
+        private static string? FindNativeWebViewRuntimePath()
         {
             string[] searchPaths =
             {
@@ -95,23 +100,23 @@ namespace SUSModder.ViewModels
                 if (!Directory.Exists(basePath))
                     continue;
 
-                // Szukaj podfolderów z numerem wersji (np. "145.0.3800.70") które zawierają msedgewebview2.exe
+                // Szukaj podfolderów z numerem wersji (np. "145.0.3800.70") które zawierają msedgeNativeWebView.exe
                 try
                 {
                     var versionDir = Directory.GetDirectories(basePath)
-                        .Where(d => File.Exists(Path.Combine(d, "msedgewebview2.exe")))
+                        .Where(d => File.Exists(Path.Combine(d, "msedgeNativeWebView.exe")))
                         .OrderByDescending(d => d) // najnowsza wersja
                         .FirstOrDefault();
 
                     if (versionDir != null)
                     {
-                        Debug.WriteLine($"[EpicAuthDialog] Znaleziono WebView2 Runtime: {versionDir}");
-                        return basePath; // WebView2 oczekuje ścieżki do folderu Application, nie do wersji
+                        Debug.WriteLine($"[EpicAuthDialog] Znaleziono NativeWebView Runtime: {versionDir}");
+                        return basePath; // NativeWebView oczekuje ścieżki do folderu Application, nie do wersji
                     }
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[EpicAuthDialog] Błąd szukania WebView2 w {basePath}: {ex.Message}");
+                    Debug.WriteLine($"[EpicAuthDialog] Błąd szukania NativeWebView w {basePath}: {ex.Message}");
                 }
             }
 
@@ -119,14 +124,14 @@ namespace SUSModder.ViewModels
         }
 
         /// <summary>
-        /// Ścieżka do WebView2 Runtime znaleziona na dysku (gdy rejestr nie ma wpisów).
+        /// Ścieżka do NativeWebView Runtime znaleziona na dysku (gdy rejestr nie ma wpisów).
         /// Null jeśli runtime wykryty przez rejestr (standardowa ścieżka).
         /// </summary>
-        internal string? WebView2BrowserExecutableFolder => _webView2BrowserExecutableFolder;
-        private string? _webView2BrowserExecutableFolder;
+        internal string? NativeWebViewBrowserExecutableFolder => _NativeWebViewBrowserExecutableFolder;
+        private string? _NativeWebViewBrowserExecutableFolder;
 
         /// <summary>
-        /// Czy dialog działa w trybie WebView2 (embedded przeglądarka).
+        /// Czy dialog działa w trybie NativeWebView (embedded przeglądarka).
         /// Jeśli false, używany jest fallback z systemową przeglądarką + clipboard monitoring.
         /// </summary>
         public bool IsWebViewMode
@@ -142,7 +147,7 @@ namespace SUSModder.ViewModels
         public bool IsFallbackMode => !_isWebViewMode;
 
         /// <summary>
-        /// Status wyświetlany pod WebView2 (np. "Ładowanie...", "Zaloguj się...", "Przechwycono kod!")
+        /// Status wyświetlany pod NativeWebView (np. "Ładowanie...", "Zaloguj się...", "Przechwycono kod!")
         /// </summary>
         public string WebViewStatus
         {
@@ -151,19 +156,19 @@ namespace SUSModder.ViewModels
         }
 
         /// <summary>
-        /// Wywoływane z code-behind gdy WebView2 przechwyci kod autoryzacyjny z redirectu.
+        /// Wywoływane z code-behind gdy NativeWebView przechwyci kod autoryzacyjny z redirectu.
         /// </summary>
         /// <param name="authCode">Przechwycony authorization code z URL localhost/?code=XXX</param>
         public void SetWebViewAuthCode(string authCode)
         {
-            Debug.WriteLine($"[EpicAuthDialog] WebView2 przechwycił kod: {authCode.Substring(0, Math.Min(10, authCode.Length))}...");
-            WebViewStatus = "Przechwycono kod autoryzacji! Logowanie...";
+            Debug.WriteLine($"[EpicAuthDialog] NativeWebView przechwycił kod: {authCode.Substring(0, Math.Min(10, authCode.Length))}...");
+            WebViewStatus = _localizationService.Get("Dialogs.EpicAuth.WebViewCodeCaptured");
             Result = authCode;
             _window.Close(true);
         }
 
         /// <summary>
-        /// Wywoływane z code-behind gdy WebView2 nie może się zainicjalizować - przełącza na fallback.
+        /// Wywoływane z code-behind gdy NativeWebView nie może się zainicjalizować - przełącza na fallback.
         /// </summary>
         public void FallbackToManualMode()
         {
@@ -182,7 +187,7 @@ namespace SUSModder.ViewModels
                 // Countdown 5 -> 1
                 for (int i = 5; i > 0; i--)
                 {
-                    AutoOpenMessage = $"🌐 Przeglądarka otworzy się automatycznie za {i} sekund...";
+                    AutoOpenMessage = _localizationService.GetFormatted("Dialogs.EpicAuth.AutoOpenCountdown", i);
                     Debug.WriteLine($"[EpicAuthDialog] Countdown: {i}");
                     await Task.Delay(1000);
 
@@ -195,7 +200,7 @@ namespace SUSModder.ViewModels
                 if (_window.IsVisible && !_browserOpened)
                 {
                     Debug.WriteLine("[EpicAuthDialog] Automatyczne otwieranie przeglądarki...");
-                    AutoOpenMessage = "✅ Przeglądarka została otwarta!";
+                    AutoOpenMessage = _localizationService.Get("Dialogs.EpicAuth.BrowserOpened");
                     OpenBrowser();
                     
                     // Rozpocznij monitorowanie schowka po otwarciu przeglądarki
@@ -220,7 +225,7 @@ namespace SUSModder.ViewModels
             _clipboardMonitorCts = new CancellationTokenSource();
 
             Debug.WriteLine("[EpicAuthDialog] Rozpoczynam monitorowanie schowka...");
-            ClipboardMonitorStatus = "📋 Monitorowanie schowka aktywne - skopiuj kod!";
+            ClipboardMonitorStatus = _localizationService.Get("Dialogs.EpicAuth.ClipboardMonitoring");
 
             _ = MonitorClipboardAsync(_clipboardMonitorCts.Token);
         }
@@ -284,8 +289,8 @@ namespace SUSModder.ViewModels
                             await Dispatcher.UIThread.InvokeAsync(() =>
                             {
                                 AuthorizationInput = clipboardText;
-                                ClipboardMonitorStatus = "✅ Wykryto kod autoryzacji! Loguję...";
-                                AutoOpenMessage = "✅ Kod autoryzacji wykryty w schowku!";
+                                ClipboardMonitorStatus = _localizationService.Get("Dialogs.EpicAuth.ClipboardCodeDetected");
+                                AutoOpenMessage = _localizationService.Get("Dialogs.EpicAuth.ClipboardCodeDetectedShort");
                             });
 
                             // Poczekaj chwilę dla wizualnego feedbacku
@@ -423,7 +428,7 @@ namespace SUSModder.ViewModels
         public string? Result { get; private set; }
 
         /// <summary>
-        /// URL do otwarcia w przeglądarce (dla WebView2 lub fallback)
+        /// URL do otwarcia w przeglądarce (dla NativeWebView lub fallback)
         /// </summary>
         public string BrowserUrl => _browserUrl;
 
@@ -443,7 +448,7 @@ namespace SUSModder.ViewModels
                         UseShellExecute = true
                     });
                     _browserOpened = true;
-                    AutoOpenMessage = "✅ Przeglądarka została otwarta!";
+                    AutoOpenMessage = _localizationService.Get("Dialogs.EpicAuth.BrowserOpened");
                     Debug.WriteLine("[EpicAuthDialog] Przeglądarka otwarta przez użytkownika lub auto-open");
                     
                     // Rozpocznij monitorowanie schowka po ręcznym otwarciu przeglądarki
@@ -453,7 +458,7 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 Debug.WriteLine($"Błąd podczas otwierania przeglądarki: {ex.Message}");
-                AutoOpenMessage = "❌ Błąd podczas otwierania przeglądarki";
+                AutoOpenMessage = _localizationService.Get("Dialogs.EpicAuth.BrowserOpenFailed");
             }
         }
 

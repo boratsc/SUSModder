@@ -290,8 +290,8 @@ namespace SUSModder.Core.Configuration
                 {
                     System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Błąd SSL: {ex.Message}");
 
-                    // Jeśli to HTTPS i mamy błąd SSL, spróbuj HTTP
-                    if (isHttps)
+                    // Legacy ToU: HTTP fallback tylko w trybie deweloperskim (bezpieczeństwo)
+                    if (isHttps && DeveloperModeSettings.IsEnabled)
                     {
                         System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Próbuję fallback na HTTP...");
                         string httpUrl = serverUrl.Replace("https://", "http://");
@@ -482,8 +482,8 @@ namespace SUSModder.Core.Configuration
             {
                 System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Błąd SSL: {ex.Message}");
 
-                // Jeśli to HTTPS i mamy błąd SSL, spróbuj HTTP
-                if (isHttps)
+                // Legacy ToU: HTTP fallback tylko w trybie deweloperskim (bezpieczeństwo)
+                if (isHttps && DeveloperModeSettings.IsEnabled)
                 {
                     System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Próbuję fallback na HTTP...");
                     string httpUrl = serverUrl.Replace("https://", "http://");
@@ -628,26 +628,8 @@ namespace SUSModder.Core.Configuration
 
         private static void AddConfigToJSON(string hash)
         {
-            string jsonFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SUSModder", "touConfigsBase.json");
-            var newEntry = new
-            {
-                hash = hash,
-                date = DateTime.Now.ToString("yyyy-MM-dd, HH:mm")
-            };
-            List<dynamic> configList;
-            if (File.Exists(jsonFile))
-            {
-                var json = File.ReadAllText(jsonFile);
-                configList = JsonConvert.DeserializeObject<List<dynamic>>(json) ?? new List<dynamic>();
-            }
-            else
-            {
-                configList = new List<dynamic>();
-                // Utwórz katalog jeśli nie istnieje
-                Directory.CreateDirectory(Path.GetDirectoryName(jsonFile)!);
-            }
-            configList.Add(newEntry);
-            File.WriteAllText(jsonFile, JsonConvert.SerializeObject(configList, Newtonsoft.Json.Formatting.Indented));
+            // Deleguj do ConfigManager (SQLite lub JSON fallback)
+            ConfigManager.AddTouConfig(hash);
         }
 
 

@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -11,6 +12,7 @@ using SUSModder.Core.Configuration;
 using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Services;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Diagnostics.Launch;
 using SUSModder.Core.Utilities;
 using SUSModder.Services;
 using SUSModder.Views;
@@ -23,15 +25,37 @@ namespace SUSModder.ViewModels
     /// </summary>
     public partial class MainWindowViewModel
     {
-        public async Task LaunchAsync()
+        public Task LaunchAsync() => LaunchModItemAsync(SelectedMod);
+
+        /// <summary>
+        /// Uruchamia moda o podanym ID (używane przez SystemTrayService do szybkiego uruchamiania).
+        /// </summary>
+        public async void LaunchModById(int modId)
         {
-            await Task.Run(() => Launch());
+            var configService = new ConfigService();
+            var configs = configService.LoadConfig();
+            var modConfig = configs.FirstOrDefault(c => c.Id == modId);
+
+            if (modConfig == null)
+                return;
+
+            // Znajdź ModItem pasujący do konfiguracji
+            var modItem = Mods?.FirstOrDefault(m =>
+                m.Name == modConfig.ModName && m.ModType == modConfig.ModType);
+
+            if (modItem == null)
+                return;
+
+            SelectedMod = modItem;
+            await LaunchModItemAsync(modItem);
         }
 
-        private async void Launch()
+        private void Launch() => _ = LaunchModItemAsync(SelectedMod);
+
+        internal async Task LaunchModItemAsync(ModItem? modItem)
         {
             // 1) Walidacja wyboru
-            if (SelectedMod == null)
+            if (modItem == null)
             {
                 await ShowErrorDialogAsync("Nie wybrano wersji gry do uruchomienia.", "Błąd");
                 return;
@@ -40,12 +64,32 @@ namespace SUSModder.ViewModels
             // Pobierz konfigurację wybranego moda
             var configService = new ConfigService();
             var configs = configService.LoadConfig();
-            var modConfig = configs.FirstOrDefault(c => c.ModName == SelectedMod.Name);
+            var modConfig = configs.FirstOrDefault(c => c.ModName == modItem.Name);
 
             if (modConfig == null)
             {
                 await ShowErrorDialogAsync("Brak wybranej wersji do uruchomienia.", "Błąd");
                 return;
+            }
+
+            var userSettings = _userSettingsService.LoadUserSettings();
+            string mode = userSettings.Mode;
+
+            if (!mode.Equals("epic", StringComparison.OrdinalIgnoreCase) &&
+                IsVanillaModConfiguration(modConfig) &&
+                !await EnsureSteamAmongUsInstallPathAsync())
+            {
+                return;
+            }
+
+            if (IsVanillaModConfiguration(modConfig))
+            {
+                modConfig = configService.LoadConfig().FirstOrDefault(c => c.ModName == modItem.Name);
+                if (modConfig == null)
+                {
+                    await ShowErrorDialogAsync("Brak wybranej wersji do uruchomienia.", "Błąd");
+                    return;
+                }
             }
 
             // Sprawdź czy mod jest zainstalowany
@@ -56,7 +100,7 @@ namespace SUSModder.ViewModels
             }
 
             // 2) Włączamy UI „busy"
-            var currentSelectedMod = SelectedMod;
+            var currentSelectedMod = modItem;
             currentSelectedMod.ShowProgress = true;
             currentSelectedMod.IsInstalling = true; // Używamy tej flagi do wyłączenia przycisków
 
@@ -88,9 +132,6 @@ namespace SUSModder.ViewModels
             try
             {
                 // 3) Ustalamy tryb uruchomienia
-                var userSettings = _userSettingsService.LoadUserSettings();
-                string mode = userSettings.Mode;
-
                 if (mode.Equals("epic", StringComparison.OrdinalIgnoreCase))
                 {
                     await LaunchEpicGameAsync(currentSelectedMod, modConfig);
@@ -111,14 +152,14 @@ namespace SUSModder.ViewModels
                 currentSelectedMod.ShowProgress = false;
                 currentSelectedMod.InstallProgress = 0;
                 currentSelectedMod.InstallStatusMessage = string.Empty;
+                currentSelectedMod.DownloadSpeed = null;
                 currentSelectedMod.IsInstalling = false;
             }
         }
 
         private async Task LaunchEpicGameAsync(ModItem currentSelectedMod, ModConfiguration modConfig)
         {
-            // 4) Obsługa Epic z progress parserem
-            currentSelectedMod.InstallStatusMessage = "Uruchamianie Epic...";
+            currentSelectedMod.InstallStatusMessage = _localizationService.Get("LaunchDiagnostics.Progress.Starting");
             currentSelectedMod.InstallProgress = 5;
 
             var diagnosticsOutput = new UIDiagnosticsOutput((message) =>
@@ -131,15 +172,19 @@ namespace SUSModder.ViewModels
 
             epicManager.ResetErrorState();
 
+            var legendaryErrorDetected = false;
+            string legendaryErrorContent = string.Empty;
+
             epicManager.EpicLaunchError += async (modName, logContent) =>
             {
+                legendaryErrorDetected = true;
+                legendaryErrorContent = logContent;
                 await Dispatcher.UIThread.InvokeAsync(async () =>
                 {
                     await ShowEpicErrorDialogAsync(currentSelectedMod.Name, logContent);
                 });
             };
 
-            // NOWE: Subskrybuj progress z legendary
             epicManager.ProgressChanged += (percentage, message) =>
             {
                 Dispatcher.UIThread.InvokeAsync(() =>
@@ -149,7 +194,14 @@ namespace SUSModder.ViewModels
                 });
             };
 
-            // Podpinamy event do przekazywania linii do debug output
+            epicManager.SpeedChanged += (speed) =>
+            {
+                Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    currentSelectedMod.DownloadSpeed = speed;
+                });
+            };
+
             epicManager.LegendaryOutput += (message) =>
             {
                 Dispatcher.UIThread.InvokeAsync(() =>
@@ -159,86 +211,141 @@ namespace SUSModder.ViewModels
 
             // Wywołujemy Epic
             await epicManager.HandleEpicGameAsync(modConfig);
+
+            // Po zakończeniu Legendary flow, zbierz diagnostykę BepInEx
+            if (modConfig.InstallPath != null)
+            {
+                var context = new LaunchContext
+                {
+                    ModId = modConfig.Id,
+                    ModName = modConfig.ModName ?? currentSelectedMod.Name,
+                    ModType = modConfig.ModType ?? "full",
+                    PlatformMode = "epic",
+                    InstallPath = modConfig.InstallPath,
+                    ExePath = Path.Combine(PathSettings.GetActualModPath(modConfig.InstallPath), "Among Us.exe"),
+                    WasRunAsAdmin = false
+                };
+
+                // Stwórz attempt i result bez LaunchAndObserveAsync (bo proces już prowadzony przez Legendary)
+                var attempt = new SUSModder.Core.Diagnostics.Launch.LaunchAttempt
+                {
+                    ModId = context.ModId,
+                    ModName = context.ModName,
+                    ModType = context.ModType,
+                    PlatformMode = context.PlatformMode,
+                    InstallPath = context.InstallPath,
+                    ExePath = context.ExePath,
+                    StartedAtUtc = DateTimeOffset.UtcNow
+                };
+
+                var result = new SUSModder.Core.Diagnostics.Launch.LaunchResult { Attempt = attempt };
+
+                // Zbierz logi BepInEx – użyj statycznej metody
+                LaunchSupervisor.CollectBepInExDiagnostics(attempt, result);
+
+                // Skopiuj diagnozę z błędów Legendary
+                if (legendaryErrorDetected)
+                {
+                    result.DiagnosisCodes.Add(SUSModder.Core.Diagnostics.Launch.DiagnosisCode.ProcessStartFailed);
+                    result.Severity = SUSModder.Core.Diagnostics.Launch.DiagnosisSeverity.Critical;
+                    result.TechnicalSummary = "Epic/Legendary launch error detected.";
+                }
+
+                if (result.DiagnosisCodes.Count > 0)
+                {
+                    _lastLaunchResult = result;
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        currentSelectedMod.InstallProgress = 0;
+                        currentSelectedMod.InstallStatusMessage = string.Empty;
+                        ShowLaunchDiagnostics(result);
+                    });
+                }
+                else
+                {
+                    currentSelectedMod.InstallProgress = 100;
+                    currentSelectedMod.InstallStatusMessage = _localizationService.Get("GameLaunch.GameStarted");
+                }
+            }
         }
 
         private async Task LaunchSteamGameAsync(ModItem currentSelectedMod, ModConfiguration modConfig)
         {
-            // 5) Obsługa Steam / vanilla
-            currentSelectedMod.InstallStatusMessage = "Uruchamiam Steam...";
+            currentSelectedMod.InstallStatusMessage = _localizationService.Get("LaunchDiagnostics.Progress.Starting");
             currentSelectedMod.InstallProgress = 25;
 
             if (string.IsNullOrEmpty(modConfig.InstallPath))
             {
-                throw new InvalidOperationException("InstallPath nie może być pusty.");
+                currentSelectedMod.InstallStatusMessage = _localizationService.Get("GameLaunch.NoInstallPath");
+                return;
             }
 
-            // Uwzględnij strukturę Epic (podkatalog AmongUs)
             string actualModPath = PathSettings.GetActualModPath(modConfig.InstallPath);
             string exePath = Path.Combine(actualModPath, "Among Us.exe");
-            string steamAppIdPath = Path.Combine(actualModPath, "steam_appid.txt");
+
+            var context = new LaunchContext
+            {
+                ModId = modConfig.Id,
+                ModName = modConfig.ModName ?? currentSelectedMod.Name,
+                ModType = modConfig.ModType ?? "full",
+                PlatformMode = "steam",
+                InstallPath = modConfig.InstallPath,
+                ExePath = exePath,
+                WasRunAsAdmin = false
+            };
 
             try
             {
-                // Zapisz steam_appid.txt
-                await File.WriteAllTextAsync(steamAppIdPath, "945360");
-
                 currentSelectedMod.InstallProgress = 50;
+                currentSelectedMod.InstallStatusMessage = _localizationService.Get("LaunchDiagnostics.Progress.Observing");
 
-                if (File.Exists(exePath))
+                var supervisor = new SteamLaunchSupervisor();
+                var result = await supervisor.LaunchAndObserveAsync(
+                    context,
+                    observationWindow: TimeSpan.FromSeconds(35),
+                    cancellationToken: CancellationToken.None);
+
+                _lastLaunchResult = result;
+
+                if (result.IsSuccessful)
                 {
-                    currentSelectedMod.InstallStatusMessage = "Uruchamiam grę...";
-                    currentSelectedMod.InstallProgress = 75;
-
-                    // Uruchom Steam
-                    Process.Start(new ProcessStartInfo("steam://") { UseShellExecute = true });
-
-                    // Poczekaj chwilę i uruchom grę
-                    await Task.Delay(1000);
-                    Process.Start(exePath);
-
                     currentSelectedMod.InstallProgress = 100;
-                    currentSelectedMod.InstallStatusMessage = "Gra uruchomiona";
-
-                    // Poczekaj chwilę żeby użytkownik zobaczył komunikat
-                    await Task.Delay(1500);
+                    currentSelectedMod.InstallStatusMessage = _localizationService.Get("GameLaunch.GameStarted");
                 }
                 else
                 {
-                    await ShowErrorDialogAsync(
-                        "Nie znaleziono pliku Among Us.exe w wybranej ścieżce.",
-                        "Błąd");
-                    return;
+                    currentSelectedMod.InstallProgress = 0;
+                    currentSelectedMod.InstallStatusMessage = string.Empty;
+
+                    await Dispatcher.UIThread.InvokeAsync(() => ShowLaunchDiagnostics(result));
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Problem z utworzeniem pliku steam_appid.txt: {ex.Message}");
+                Debug.WriteLine($"[Launch Steam] Supervisor failed: {ex.Message}");
 
-                await ShowErrorDialogAsync(
-                    $"Problem z utworzeniem pliku steam_appid.txt: {ex.Message}. " +
-                    "Próba uruchomienia przez Steam URI.",
-                    "Błąd");
-
-                try
+                var result = new LaunchResult
                 {
-                    currentSelectedMod.InstallStatusMessage = "Uruchamiam przez Steam URI...";
-                    currentSelectedMod.InstallProgress = 75;
-
-                    Process.Start(new ProcessStartInfo("steam://rungameid/945360")
+                    Attempt = new LaunchAttempt
                     {
-                        UseShellExecute = true
-                    });
+                        ModId = context.ModId,
+                        ModName = context.ModName,
+                        ModType = context.ModType,
+                        PlatformMode = context.PlatformMode,
+                        InstallPath = context.InstallPath,
+                        ExePath = context.ExePath
+                    },
+                    DiagnosisCodes = { DiagnosisCode.ProcessStartFailed },
+                    Severity = DiagnosisSeverity.Critical,
+                    TechnicalSummary = ex.Message
+                };
 
-                    currentSelectedMod.InstallProgress = 100;
-                    currentSelectedMod.InstallStatusMessage = "Uruchomiono przez Steam";
-                    await Task.Delay(1500);
-                }
-                catch (Exception uriEx)
-                {
-                    await ShowErrorDialogAsync(
-                        $"Nie udało się uruchomić gry przez Steam URI: {uriEx.Message}",
-                        "Błąd");
-                }
+                _lastLaunchResult = result;
+
+                currentSelectedMod.InstallProgress = 0;
+                currentSelectedMod.InstallStatusMessage = string.Empty;
+
+                await Dispatcher.UIThread.InvokeAsync(() => ShowLaunchDiagnostics(result));
             }
         }
 
@@ -476,6 +583,131 @@ namespace SUSModder.ViewModels
                 System.Diagnostics.Debug.WriteLine($"[SUStats Choice] ❌ BŁĄD podczas obsługi wyboru: {ex.Message}");
                 return true; // W przypadku błędu - kontynuuj bez statystyk
             }
+        }
+
+        private static bool IsVanillaModConfiguration(ModConfiguration config) =>
+            config.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ||
+            (config.Id == 0 && config.ModName.Equals("AmongUs", StringComparison.OrdinalIgnoreCase));
+
+        private static bool HasAmongUsExeAtInstallPath(string? installPath)
+        {
+            if (string.IsNullOrWhiteSpace(installPath))
+                return false;
+
+            var actualPath = PathSettings.GetActualModPath(installPath);
+            return GameLocator.IsValidAmongUsInstallDirectory(actualPath);
+        }
+
+        /// <summary>
+        /// Po starcie aplikacji (Steam) monituje o ścieżkę Among Us, gdy auto-wykrywanie się nie powiodło.
+        /// </summary>
+        public Task PromptAmongUsPathOnStartupIfNeededAsync()
+        {
+            var mode = _userSettingsService.LoadUserSettings().Mode;
+            if (string.IsNullOrEmpty(mode) || mode.Equals("epic", StringComparison.OrdinalIgnoreCase))
+                return Task.CompletedTask;
+
+            return EnsureSteamAmongUsInstallPathAsync();
+        }
+
+        private async Task<bool> EnsureSteamAmongUsInstallPathAsync()
+        {
+            var configService = new ConfigService();
+            var configs = configService.LoadConfig();
+            var vanilla = configs.FirstOrDefault(IsVanillaModConfiguration);
+
+            if (vanilla != null && HasAmongUsExeAtInstallPath(vanilla.InstallPath))
+                return true;
+
+            var discovered = GameLocator.TryFindSteamPath();
+            if (discovered != null)
+            {
+                await RegisterVanillaPathAndRefreshAsync(discovered);
+                return true;
+            }
+
+            while (true)
+            {
+                var dialogResult = await ShowAmongUsNotFoundModalAsync();
+                if (dialogResult != AmongUsNotFoundResult.Browse)
+                    return false;
+
+                var selectedFile = await ShowSelectFileDialogAsync(
+                    "Among Us executable|*.exe",
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86));
+
+                if (string.IsNullOrWhiteSpace(selectedFile))
+                    continue;
+
+                if (!File.Exists(selectedFile) ||
+                    !string.Equals(Path.GetFileName(selectedFile), AmongUsPathDiscovery.GameExeName, StringComparison.OrdinalIgnoreCase))
+                {
+                    await ShowErrorDialogAsync(
+                        _localizationService.Get("Dialogs.AmongUsNotFound.InvalidFileMessage"),
+                        _localizationService.Get("Dialogs.AmongUsNotFound.InvalidFileTitle"));
+                    continue;
+                }
+
+                var installDirectory = Path.GetDirectoryName(selectedFile);
+                if (string.IsNullOrWhiteSpace(installDirectory) ||
+                    !GameLocator.IsValidAmongUsInstallDirectory(installDirectory))
+                {
+                    await ShowErrorDialogAsync(
+                        _localizationService.Get("Dialogs.AmongUsNotFound.InvalidFileMessage"),
+                        _localizationService.Get("Dialogs.AmongUsNotFound.InvalidFileTitle"));
+                    continue;
+                }
+
+                await RegisterVanillaPathAndRefreshAsync(installDirectory);
+                return true;
+            }
+        }
+
+        private async Task RegisterVanillaPathAndRefreshAsync(string installDirectory)
+        {
+            var configService = new ConfigService();
+            _loadedConfigs = configService.LoadConfig();
+            GameLocator.TryRegisterSteamVanillaPath(_loadedConfigs, _configuration!, installDirectory);
+            await RefreshModsListAsync(preloadedConfigs: _loadedConfigs);
+        }
+
+        private async Task<AmongUsNotFoundResult> ShowAmongUsNotFoundModalAsync()
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+                return await Dispatcher.UIThread.InvokeAsync(ShowAmongUsNotFoundModalAsync);
+
+            var completionSource = new TaskCompletionSource<AmongUsNotFoundResult>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            _amongUsNotFoundCompletionSource = completionSource;
+
+            var vm = new AmongUsNotFoundViewModel(_localizationService);
+            vm.CloseRequested += OnAmongUsNotFoundCloseRequested;
+            AmongUsNotFoundViewModel = vm;
+            IsAmongUsNotFoundVisible = true;
+
+            return await completionSource.Task;
+        }
+
+        private void OnAmongUsNotFoundCloseRequested(object? sender, EventArgs e)
+        {
+            if (sender is AmongUsNotFoundViewModel vm)
+                DismissAmongUsNotFoundModal(vm.Result);
+        }
+
+        private void DismissAmongUsNotFoundModal(AmongUsNotFoundResult result)
+        {
+            if (AmongUsNotFoundViewModel != null)
+            {
+                AmongUsNotFoundViewModel.CloseRequested -= OnAmongUsNotFoundCloseRequested;
+                AmongUsNotFoundViewModel = null;
+            }
+
+            if (!IsAmongUsNotFoundVisible && _amongUsNotFoundCompletionSource == null)
+                return;
+
+            IsAmongUsNotFoundVisible = false;
+            _amongUsNotFoundCompletionSource?.TrySetResult(result);
+            _amongUsNotFoundCompletionSource = null;
         }
 
         private void ClearSUStatsSelection()

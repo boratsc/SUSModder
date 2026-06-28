@@ -53,7 +53,7 @@ Frontend komunikuje się z warstwą Core (`SUSModder.Core`) poprzez serwisy:
 ## Technologie
 
 ### Główne zależności
-- **.NET 8.0** – platforma runtime
+- **.NET 10.0** – platforma runtime
 - **Avalonia 11.3** – framework UI (cross-platform XAML)
 - **ReactiveUI 20.x** – framework MVVM + reaktywne programowanie
 - **Microsoft.Extensions.Configuration** – zarządzanie konfiguracją

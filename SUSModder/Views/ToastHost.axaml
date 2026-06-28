@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:local="using:SUSModder.Views"
+             x:Class="SUSModder.Views.ToastHost"
+             x:DataType="vm:ToastService"
+             IsVisible="{Binding HasActiveToasts}">
+    <Border Margin="0,0,20,96"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom">
+        <ItemsControl ItemsSource="{Binding ActiveToasts}"
+                      Background="Transparent"
+                      BorderThickness="0">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Vertical"
+                                Spacing="0"
+                                Margin="0,0,0,8"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="vm:ToastNotification">
+                    <local:ToastNotificationView/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Border>
+</UserControl>

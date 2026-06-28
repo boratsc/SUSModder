@@ -188,7 +188,7 @@ static void SetCurrentVersion(string version)
 **API Fallback:**
 - Używa `SecretProvider.GetDownloadToken()` dla autoryzacji
 - URL z `appsettings.json`: `Configuration:UpdateServerUrl`
-- Domyślny URL: `https://susmodder.boracik.pl/api/susmodder-config`
+- Domyślny URL: `https://susmodder.app/api/susmodder-config`
 
 **Rekomendacja:** ✅ **ZACHOWAĆ** - Kluczowy model i manager aplikacji.
 

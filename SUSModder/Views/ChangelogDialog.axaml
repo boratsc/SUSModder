@@ -1,0 +1,192 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SUSModder.Services.Localization"
+        x:Class="SUSModder.Views.ChangelogDialog"
+        Title="{loc:Localize Changelog.WindowTitle}"
+        Width="550" Height="480"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="True">
+
+  <Window.Styles>
+    <FluentTheme />
+
+    <!-- Fade-in dla całego okna -->
+    <Style Selector="Window">
+      <Style.Animations>
+        <Animation Duration="0:0:0.3" FillMode="Forward">
+          <KeyFrame Cue="0%">
+            <Setter Property="Opacity" Value="0"/>
+          </KeyFrame>
+          <KeyFrame Cue="100%">
+            <Setter Property="Opacity" Value="1"/>
+          </KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+
+    <!-- Animacja dla ikony/header -->
+    <Style Selector="Border.changelog-header-icon">
+      <Style.Animations>
+        <Animation Duration="0:0:0.5" FillMode="Forward" Delay="0:0:0.1">
+          <KeyFrame Cue="0%">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="(TranslateTransform.Y)" Value="-20"/>
+          </KeyFrame>
+          <KeyFrame Cue="100%">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="(TranslateTransform.Y)" Value="0"/>
+          </KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+
+    <!-- Animacja dla contentu -->
+    <Style Selector="StackPanel.content-panel">
+      <Style.Animations>
+        <Animation Duration="0:0:0.4" FillMode="Forward" Delay="0:0:0.2">
+          <KeyFrame Cue="0%">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="(TranslateTransform.Y)" Value="10"/>
+          </KeyFrame>
+          <KeyFrame Cue="100%">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="(TranslateTransform.Y)" Value="0"/>
+          </KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+
+    <!-- Hover dla przycisku close -->
+    <Style Selector="Button.close-button:pointerover">
+      <Setter Property="Background" Value="#3B82F6"/>
+      <Setter Property="BorderBrush" Value="#2563EB"/>
+    </Style>
+    <Style Selector="Button.close-button:pressed">
+      <Setter Property="Background" Value="#2563EB"/>
+    </Style>
+
+    <!-- Hover dla przycisku GitHub -->
+    <Style Selector="Button.github-button:pointerover">
+      <Setter Property="Background" Value="#1F2937"/>
+      <Setter Property="BorderBrush" Value="#374151"/>
+    </Style>
+    <Style Selector="Button.github-button:pressed">
+      <Setter Property="Background" Value="#111827"/>
+    </Style>
+
+    <!-- Styl dla sekcji changeloga -->
+    <Style Selector="Border.changelog-section">
+      <Setter Property="Background" Value="{DynamicResource ModCardBackgroundBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="14,10"/>
+      <Setter Property="Margin" Value="0,0,0,8"/>
+    </Style>
+
+    <!-- Styl dla itemu listy -->
+    <Style Selector="TextBlock.changelog-item">
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+      <Setter Property="Margin" Value="0,2,0,2"/>
+    </Style>
+  </Window.Styles>
+
+  <Border Margin="0,30,0,0">
+    <Grid Margin="24,10,24,24" RowDefinitions="Auto,Auto,Auto,Auto">
+
+      <!-- Header z ikoną -->
+      <Border Grid.Row="0"
+              Classes="changelog-header-icon"
+              Width="72" Height="72"
+              CornerRadius="36"
+              Background="#203B82F6"
+              BorderBrush="#3B82F6"
+              BorderThickness="2"
+              HorizontalAlignment="Center"
+              Margin="0,0,0,16">
+        <Border.RenderTransform>
+          <TranslateTransform/>
+        </Border.RenderTransform>
+        <TextBlock Text="🎉"
+                   FontSize="36"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+      </Border>
+
+      <!-- Tytuł + subtitle -->
+      <StackPanel Grid.Row="1"
+                  Classes="content-panel"
+                  Spacing="6"
+                  Margin="0,0,0,16">
+        <StackPanel.RenderTransform>
+          <TranslateTransform/>
+        </StackPanel.RenderTransform>
+
+        <TextBlock Text="{loc:Localize Changelog.WindowTitle}"
+                   FontSize="22"
+                   FontWeight="Bold"
+                   Foreground="{DynamicResource TextPrimaryBrush}"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"/>
+
+        <TextBlock x:Name="VersionDateText"
+                   FontSize="13"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"
+                   Margin="0,2,0,0"/>
+      </StackPanel>
+
+      <!-- Sekcje changeloga (ScrollViewer) -->
+      <ScrollViewer Grid.Row="2"
+                    MaxHeight="240"
+                    Margin="0,0,0,16">
+        <StackPanel x:Name="SectionsContainer"
+                    Classes="content-panel"
+                    Spacing="0">
+          <StackPanel.RenderTransform>
+            <TranslateTransform/>
+          </StackPanel.RenderTransform>
+          <!-- Sekcje dodawane dynamicznie z kodu -->
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Przyciski -->
+      <StackPanel Grid.Row="3"
+                  Orientation="Horizontal"
+                  HorizontalAlignment="Center"
+                  Spacing="12">
+        <Button x:Name="GitHubButton"
+                Classes="github-button"
+                Content="{loc:Localize Changelog.GitHubButton}"
+                FontSize="13"
+                Padding="16,8"
+                Cursor="Hand"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource ModCardBorderBrush}"
+                Background="{DynamicResource ModCardBackgroundBrush}"
+                Foreground="{DynamicResource TextPrimaryBrush}"
+                CornerRadius="6"
+                Click="OnGitHubButtonClick"/>
+
+        <Button x:Name="CloseButton"
+                Classes="close-button"
+                Content="{loc:Localize Changelog.CloseButton}"
+                FontSize="13"
+                Padding="24,8"
+                Cursor="Hand"
+                BorderThickness="1"
+                BorderBrush="#3B82F6"
+                Background="#3B82F6"
+                Foreground="White"
+                CornerRadius="6"
+                Click="OnCloseButtonClick"/>
+      </StackPanel>
+    </Grid>
+  </Border>
+</Window>

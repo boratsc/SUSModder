@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using SUSModder.Core.Api;
 using SUSModder.Core.Configuration;
-using System.Net.Http;
 using System.Threading.Tasks;
+using SUSModder.Core.Utilities;
+using SUSModder.Core.Diagnostics;
+using Microsoft.Extensions.Configuration;
 
 namespace SUSModder.Core.Repositories
 {
@@ -12,6 +15,11 @@ namespace SUSModder.Core.Repositories
     {
         private readonly string configFilePath;
         private readonly string appSettingsFilePath;
+
+        public ConfigRepository()
+            : this(ApplicationPaths.GetApplicationDirectory())
+        {
+        }
 
         public ConfigRepository(string exeDir)
         {
@@ -63,39 +71,18 @@ namespace SUSModder.Core.Repositories
                 if (appSettings == null)
                     return null;
 
-                // Pobierz URL serwera z appsettings.json
-                string? updateServerUrl = null;
-                if (appSettings.TryGetValue("Configuration", out var configObj) &&
-                    configObj is JsonElement configElement &&
-                    configElement.TryGetProperty("UpdateServerUrl", out var urlElement))
+                var apiClient = SUSModderApiClientProvider.TryGetDefault();
+                if (apiClient is null)
                 {
-                    updateServerUrl = urlElement.GetString();
+                    var configuration = new ConfigurationBuilder()
+                        .SetBasePath(Path.GetDirectoryName(appSettingsFilePath) ?? ApplicationPaths.GetApplicationDirectory())
+                        .AddJsonFile(Path.GetFileName(appSettingsFilePath), optional: false)
+                        .Build();
+                    apiClient = new SUSModderApiClient(configuration, new NullConfigRepositoryDiagnostics());
                 }
 
-                if (string.IsNullOrEmpty(updateServerUrl))
-                {
-                    System.Diagnostics.Debug.WriteLine("UpdateServerUrl not found in appsettings.json");
-                    return null;
-                }
-
-                // Pobierz konfigurację z API
-                using var httpClient = new HttpClient();
-                httpClient.Timeout = TimeSpan.FromSeconds(30);
-
-                var response = await httpClient.GetAsync(updateServerUrl);
-                response.EnsureSuccessStatusCode();
-
-                var jsonContent = await response.Content.ReadAsStringAsync();
-
-                if (string.IsNullOrWhiteSpace(jsonContent))
-                    return null;
-
-                var configs = JsonSerializer.Deserialize<List<ModConfiguration>>(jsonContent, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                return configs;
+                var configs = await apiClient.GetCatalogAsModConfigurationsAsync();
+                return configs.Count == 0 ? null : configs;
             }
             catch (HttpRequestException ex)
             {
@@ -119,5 +106,9 @@ namespace SUSModder.Core.Repositories
             }
         }
 
+        private sealed class NullConfigRepositoryDiagnostics : IDiagnosticsOutput
+        {
+            public void Write(string message) { }
+        }
     }
 }

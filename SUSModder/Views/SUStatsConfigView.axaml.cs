@@ -1,8 +1,11 @@
 using Avalonia.Controls;
-using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using SUSModder.ViewModels;
-using System.Diagnostics;
+using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Services.Discord;
+using SUSModder.Core.Data;
+using SUSModder.Services;
+using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.Views
 {
@@ -11,34 +14,40 @@ namespace SUSModder.Views
         public SUStatsConfigView()
         {
             InitializeComponent();
-            DataContext = new SUStatsConfigViewModel();
+            DataContext = CreateViewModel();
         }
 
-        private void CloseButton_Click(object? sender, RoutedEventArgs e)
+        private static SUStatsConfigViewModel CreateViewModel()
         {
-            // Znajdź MainWindow i wywołaj command
-            var mainWindow = this.FindLogicalAncestorOfType<MainWindow>();
-            if (mainWindow?.DataContext is MainWindowViewModel vm)
-            {
-                // Bezpośrednie ustawienie właściwości
-                vm.IsSUStatsConfigVisible = false;
-            }
-        }
-
-        private void OpenClairbotLink_Click(object? sender, RoutedEventArgs e)
-            => OpenUrl("https://clairbot.app");
-
-        private void OpenClairHubLink_Click(object? sender, RoutedEventArgs e)
-            => OpenUrl("https://hub.clairbot.app/among-us");
-
-        private static void OpenUrl(string url)
-        {
+            // Próba utworzenia przez DI, fallback do design-time konstruktora
             try
             {
-                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                var diag = App.GetService<IDiagnosticsOutput>();
+                var loc = App.GetService<ILocalizationService>();
+                var discordOAuth = App.GetService<IDiscordOAuthService>();
+                var clair = App.GetService<IClairDiscordService>();
+                var sustatsRepo = App.GetService<ISustatsCredentialsRepository>();
+                var userSettingsRepo = App.GetService<IUserSettingsRepository>();
+                var discordAuthRepo = App.GetService<IDiscordAuthRepository>();
+                var loopback = App.GetService<OAuthLoopbackListener>();
+
+                return new SUStatsConfigViewModel(
+                    discordOAuth, clair, sustatsRepo, userSettingsRepo,
+                    discordAuthRepo, diag, loc, loopback);
             }
             catch
             {
+                // Fallback: design-time / brak DI
+                return new SUStatsConfigViewModel();
+            }
+        }
+
+        private void CloseButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            var mainWindow = this.FindLogicalAncestorOfType<MainWindow>();
+            if (mainWindow?.DataContext is MainWindowViewModel vm)
+            {
+                vm.IsSUStatsConfigVisible = false;
             }
         }
     }

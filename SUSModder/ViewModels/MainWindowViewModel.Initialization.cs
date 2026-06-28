@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -14,6 +16,7 @@ using SUSModder.Core.Diagnostics;
 using SUSModder.Services;
 using SUSModder.Views;
 using SUSModder.ViewModels.Helpers;
+using SUSModder.Core.Models;
 using SUSModder.Core.Utilities;
 
 namespace SUSModder.ViewModels
@@ -68,6 +71,10 @@ namespace SUSModder.ViewModels
                 // KROK 4: Odświeżenie interfejsu (70%)
                 progressCallback?.Invoke(0.4, "Odświeżanie listy modów...");
                 await RefreshModsListAsync(preloadedConfigs: _loadedConfigs);
+                await RefreshPackInstancesAsync();
+
+                // Odblokuj interakcję — po kroku 4 lista modów jest w pełni załadowana
+                _isInitializing = false;
 
                 // KROK 5: Równoległe operacje w tle (80%)
                 progressCallback?.Invoke(0.6, "Ładowanie zasobów...");
@@ -98,7 +105,10 @@ namespace SUSModder.ViewModels
                     }),
 
                     // Migracja instalacji
-                    MigrateExistingInstallationsAsync()
+                    MigrateExistingInstallationsAsync(),
+
+                    // Batch VirusTotal fetch dla wszystkich pełnych modów (best-effort, w tle)
+                    FetchVirusTotalForCatalogAsync()
                 };
 
                 // Nie czekamy na backgroundTasks - niech działają w tle
@@ -133,81 +143,24 @@ namespace SUSModder.ViewModels
 
         private async Task<bool> SetupVanillaGameAsync()
         {
-            while (true)
+            try
             {
-                try
-                {
-                    System.Diagnostics.Debug.WriteLine("Starting Vanilla game setup...");
+                System.Diagnostics.Debug.WriteLine("Starting Vanilla game setup...");
 
-                    // Użyj cache'owanej konfiguracji z DI zamiast budowania nowej
-                    var configuration = _configuration!;
+                var vanillaMod = await GameLocator.CheckAndSetupVanillaModAsync(
+                    _loadedConfigs,
+                    _configuration!,
+                    userInteraction: null);
 
-                    // Wywołaj asynchroniczną wersję z interfejsem użytkownika
-                    var vanillaMod = await GameLocator.CheckAndSetupVanillaModAsync(
-                        _loadedConfigs,
-                        configuration,
-                        _userInteractionService
-                    );
+                if (vanillaMod != null)
+                    _loadedConfigs.Add(vanillaMod);
 
-                    System.Diagnostics.Debug.WriteLine($"Vanilla game setup completed with result: {(vanillaMod != null ? "success" : "already exists or cancelled")}");
-
-                    // Jeśli zwrócono nowy mod, dodaj go do listy
-                    if (vanillaMod != null)
-                    {
-                        _loadedConfigs.Add(vanillaMod);
-                        return true;
-                    }
-
-                    // Jeśli null - już istniał lub user anulował
-                    var existingVanilla = _loadedConfigs.FirstOrDefault(x => x.ModName == "AmongUs" && x.ModType == "Vanilla");
-                    if (existingVanilla != null)
-                        return true;
-
-                    // Dla Epic brak Vanilla na starcie jest dopuszczalny (np. brak sesji legendary).
-                    // Nie pokazuj wtedy dialogu wyboru Among Us.exe (to flow Steam) i nie blokuj startu.
-                    var currentMode = _userSettingsService.LoadUserSettings().Mode;
-                    if (string.Equals(currentMode, "epic", StringComparison.OrdinalIgnoreCase))
-                    {
-                        System.Diagnostics.Debug.WriteLine("[Vanilla Setup] Epic mode without local vanilla config - skipping Steam retry dialog.");
-                        return true;
-                    }
-
-                    // Jeśli niepowodzenie, przejdź do obsługi poniżej
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error during Vanilla setup: {ex.Message}");
-                }
-
-                // Dialog z wyborem: Spróbuj ponownie / Zamknij
-                var shouldRetry = await ShowInlineConfirmAsync(
-                    "Nie wybrano pliku Among Us.exe",
-                    "Nie wybrałeś pliku Among Us.exe. Spróbuj ponownie albo zamknij aplikację.",
-                    "Spróbuj ponownie",
-                    "Zamknij");
-
-                if (shouldRetry)
-                {
-                    // Spróbuj ponownie
-                    continue;
-                }
-                else
-                {
-                    // Usuń config.json i zamknij aplikację
-                    try
-                    {
-                        string exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                        string configPath = Path.Combine(exeDir, "config.json");
-                        if (File.Exists(configPath))
-                            File.Delete(configPath);
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Błąd podczas kasowania config.json: {ex.Message}");
-                    }
-                    Environment.Exit(0);
-                    return false;
-                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error during Vanilla setup: {ex.Message}");
+                return true;
             }
         }
 
@@ -373,7 +326,9 @@ namespace SUSModder.ViewModels
             {
                 var userSettings = _userSettingsService.LoadUserSettings();
                 string platform = userSettings.Mode;
-                WindowTitle = $"SUSModder | {platform}";
+                WindowTitle = string.Equals(userSettings.UpdateChannel, "beta", StringComparison.OrdinalIgnoreCase)
+                    ? $"SUSModder | {platform} | {_localizationService.GetFormatted("App.WindowTitle.BetaVersion", AppVersion)}"
+                    : $"SUSModder | {platform}";
                 System.Diagnostics.Debug.WriteLine($"Window title set to: {WindowTitle}");
             }
             catch (Exception ex)
@@ -421,11 +376,42 @@ namespace SUSModder.ViewModels
                 // Zwiększone opóźnienie aby UI był w pełni zainicjalizowany i uniknąć błędów PlatformImpl
                 await Task.Delay(1500);
 
+                // KROK 0: Sprawdź czy pokazać "Co nowego" po aktualizacji
+                await ShowChangelogIfNewVersionAsync();
+
                 // Sprawdź aktualizacje SEKWENCYJNIE - najpierw mody FULL, potem DLL
                 if (ShouldRunInteractiveModUpdateCheck())
                 {
                     System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji modów FULL...");
-                    await CheckForModUpdatesAsync();
+
+                    // KROK 1: Sprawdź dostępne aktualizacje
+                    var updateManager = new ModUpdateManager();
+                    var result = await updateManager.CheckForUpdatesAsync();
+
+                    // Jeśli config został zaktualizowany, odśwież listę modów
+                    if (result.ConfigWasUpdated)
+                    {
+                        await RefreshModsListAsync(deferIfToolModalOpen: true);
+                    }
+
+                    if (result.Success && result.InstalledModUpdates.Any())
+                    {
+                        // KROK 2: Auto-aktualizuj mody z włączoną auto-aktualizacją (ciche, w tle)
+                        // IsModAutoUpdateEnabledAsync ładuje ustawienie bezpośrednio z Installation Map,
+                        // omijając asynchroniczne ładowanie w RefreshModsListAsync (fire-and-forget).
+                        System.Diagnostics.Debug.WriteLine($"[Post-Init] Auto-aktualizuję mody z włączoną auto-aktualizacją...");
+                        await ProcessAutoUpdatesSilentlyAsync(result.InstalledModUpdates);
+
+                        // KROK 3: Odśwież licznik statusu — ProcessAutoUpdatesSilentlyAsync już zaktualizował
+                        // status, jeśli coś auto-zaktualizował. Jeśli zostały jeszcze jakieś aktualizacje
+                        // (mod bez auto-aktualizacji), zobaczą licznik na pasku statusu.
+                        await CheckForModUpdatesForStatusBarAsync(force: true);
+                    }
+                    else
+                    {
+                        // Brak aktualizacji lub błąd — zaktualizuj status
+                        await CheckForModUpdatesForStatusBarAsync(force: true);
+                    }
                 }
                 else
                 {
@@ -435,12 +421,138 @@ namespace SUSModder.ViewModels
                 System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji modów DLL...");
                 await CheckDllUpdates();
 
+                System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji modpacków...");
+                await CheckModPackUpdatesAsync();
+
                 System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji zakończone");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Post-Init] Błąd podczas sprawdzania aktualizacji: {ex.Message}");
                 // Nie pokazujemy błędu użytkownikowi - aktualizacje nie są krytyczne
+            }
+        }
+
+        /// <summary>
+        /// Sprawdza czy aplikacja została zaktualizowana od ostatniego uruchomienia.
+        /// Jeśli tak: pobiera changelog z GitHub API i pokazuje dialog "Co nowego".
+        /// Jeśli GitHub API nie odpowiada – pokazuje tylko toast z linkiem do GitHub.
+        /// Zawsze pokazuje toast "Zaktualizowano do wersji X".
+        /// </summary>
+        private async Task ShowChangelogIfNewVersionAsync()
+        {
+            try
+            {
+                var userSettings = _userSettingsService.LoadUserSettings();
+                var lastSeenVersion = userSettings.LastSeenVersion ?? string.Empty;
+
+                using var changelogService = new SUSModder.Core.Services.ChangelogService();
+
+                // Pierwszy start / reset fabryczny — zapisz wersję bez toasta „Zaktualizowano do…”
+                if (string.IsNullOrWhiteSpace(lastSeenVersion))
+                {
+                    _userSettingsService.SaveLastSeenVersion(AppVersion);
+                    System.Diagnostics.Debug.WriteLine($"[Changelog] Pierwszy start — zapisano lastSeenVersion = {AppVersion} (bez toasta)");
+                    return;
+                }
+
+                // Toast tylko po rzeczywistej aktualizacji (np. 2.9.0 → 3.0.0)
+                bool isNewVersion = changelogService.IsNewerVersion(AppVersion, lastSeenVersion);
+
+                if (!isNewVersion)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Changelog] Wersja {AppVersion} już wyświetlona (lastSeen: {lastSeenVersion})");
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[Changelog] Nowa wersja {AppVersion} (lastSeen: {lastSeenVersion})");
+
+                // Zapisz od razu — żeby toast nie wracał po restarcie nawet gdy UI się wywali
+                _userSettingsService.SaveLastSeenVersion(AppVersion);
+
+                // KROK 1: Spróbuj pobrać z GitHub API (na potrzeby toasta)
+                var changelogData = await TryFetchFromGitHubAsync(changelogService);
+                ChangelogData? capturedData = changelogData;
+
+                // KROK 2: Toast z informacją o aktualizacji (jedyny widoczny element)
+                // Dialog changeloga otwiera się dopiero po kliknięciu w toasta
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    try
+                    {
+                        var toastTitle = _localizationService.GetFormatted("Toast.AppUpdated", AppVersion);
+
+                        if (capturedData != null)
+                        {
+                            // GitHub OK – kliknięcie w toasta otwiera dialog
+                            ToastService.ShowInfo(toastTitle, autoCloseMs: 8000, onClick: () =>
+                            {
+                                Dispatcher.UIThread.InvokeAsync(async () =>
+                                {
+                                    try
+                                    {
+                                        var dialog = new Views.ChangelogDialog(capturedData, _localizationService);
+                                        var mainWindow = (Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+                                        if (mainWindow != null)
+                                            await dialog.ShowDialog(mainWindow);
+                                    }
+                                    catch { /* ignoruj */ }
+                                });
+                            });
+                        }
+                        else
+                        {
+                            // GitHub fail – kliknięcie otwiera GitHub releases
+                            var githubUrl = "https://github.com/boratsc/SUSModder/releases";
+                            ToastService.ShowInfo(toastTitle, autoCloseMs: 8000, onClick: () =>
+                            {
+                                try
+                                {
+                                    Process.Start(new ProcessStartInfo
+                                    {
+                                        FileName = githubUrl,
+                                        UseShellExecute = true
+                                    });
+                                }
+                                catch { /* ignoruj */ }
+                            });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Changelog] Błąd toasta: {ex.Message}");
+                    }
+                });
+
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Changelog] Błąd: {ex.Message}");
+                // Nie blokujemy startu aplikacji
+            }
+        }
+
+        /// <summary>
+        /// Próbuje pobrać changelog z GitHub API.
+        /// </summary>
+        private async Task<ChangelogData?> TryFetchFromGitHubAsync(SUSModder.Core.Services.ChangelogService changelogService)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[Changelog] Próba GitHub API...");
+                var result = await changelogService.FetchFromGitHubAsync("boratsc", "SUSModder");
+
+                if (result != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Changelog] GitHub API sukces: wersja {result.Version}, {result.Sections.Count} sekcji");
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Changelog] GitHub API błąd: {ex.Message}");
+                return null;
             }
         }
 
@@ -492,11 +604,18 @@ namespace SUSModder.ViewModels
                         ConfigManager.SaveConfig(modConfigs);
                         Console.WriteLine($"[InstallationMap] ✅ Zaimportowano {imported.Count} modów do config.json");
 
-                        // Odśwież UI po imporcie
-                        await Dispatcher.UIThread.InvokeAsync(async () =>
+                        // Odśwież UI po imporcie (pomiń jeśli trwa instalacja)
+                        if (_activeInstallationsCount == 0)
                         {
-                            await RefreshModsListAsync();
-                        });
+                            await Dispatcher.UIThread.InvokeAsync(async () =>
+                            {
+                                await RefreshModsListAsync(deferIfToolModalOpen: true);
+                            });
+                        }
+                        else
+                        {
+                            Console.WriteLine("[InstallationMap] ⏭ Pomijam odświeżenie UI - trwa instalacja");
+                        }
                     }
                 }
 
@@ -514,11 +633,18 @@ namespace SUSModder.ViewModels
                     Console.WriteLine($"[InstallationMap] ✅ Wyczyszczono {cleaned} modów z config.json");
                     System.Diagnostics.Debug.WriteLine($"[InstallationMap] Wyczyszczono {cleaned} modów z config.json");
 
-                    // Odśwież UI po oczyszczeniu
-                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    // Odśwież UI po oczyszczeniu (pomiń jeśli trwa instalacja)
+                    if (_activeInstallationsCount == 0)
                     {
-                        await RefreshModsListAsync();
-                    });
+                        await Dispatcher.UIThread.InvokeAsync(async () =>
+                        {
+                            await RefreshModsListAsync(deferIfToolModalOpen: true);
+                        });
+                    }
+                    else
+                    {
+                        Console.WriteLine("[InstallationMap] ⏭ Pomijam odświeżenie UI - trwa instalacja");
+                    }
                 }
                 else
                 {
@@ -611,6 +737,42 @@ namespace SUSModder.ViewModels
                 System.Diagnostics.Debug.WriteLine($"[Registry] Error during registration check: {ex.Message}");
                 _diagnosticsOutput?.Write($"[Registry] Błąd podczas sprawdzania rejestracji: {ex.Message}");
                 // Nie pokazujemy błędu użytkownikowi - rejestracja nie jest krytyczna
+            }
+        }
+
+        /// <summary>
+        /// Pobiera raporty VirusTotal dla wszystkich pełnych modów w tle (best-effort).
+        /// </summary>
+        private async Task FetchVirusTotalForCatalogAsync()
+        {
+            if (_securityScanService == null || _loadedConfigs.Count == 0)
+                return;
+
+            try
+            {
+                var platform = DeterminePlatform();
+                var fullMods = _loadedConfigs
+                    .Where(c => !c.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase))
+                    .Select(c => (c.Id, c.ModVersion))
+                    .ToList();
+
+                if (fullMods.Count == 0)
+                    return;
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[SecurityScan] Rozpoczynam batch VT fetch dla {fullMods.Count} modów...");
+
+                await _securityScanService.FetchAndStoreVtForCatalogAsync(fullMods, platform);
+
+                // Po zapisie do DB, odśwież listę modów w UI
+                await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await RefreshModsListAsync();
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SecurityScan] Batch VT fetch failed: {ex.Message}");
             }
         }
     }

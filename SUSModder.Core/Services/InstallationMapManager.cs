@@ -182,19 +182,33 @@ namespace SUSModder.Core.Services
             {
                 try
                 {
+                    if (!IsImportableFullModMap(map))
+                    {
+                        log.Write($"[Import] Pomijam niepełną mapę instalacji: {map.DisplayName ?? map.FullMod?.InstallPath ?? "unknown"}");
+                        continue;
+                    }
+
+                    var fullMod = map.FullMod!;
+
                     // Sprawdź czy mod już istnieje w config
-                    var existing = existingConfigs.FirstOrDefault(c => c.Id == map.FullMod.ModId);
+                    var existing = existingConfigs.FirstOrDefault(c => c.Id == fullMod.ModId);
 
                     if (existing != null)
                     {
+                        if (!MatchesDiscoveredFullMod(existing, map))
+                        {
+                            log.Write($"[Import] Pomijam niespójną mapę instalacji dla ID {fullMod.ModId}: katalog='{existing.ModName}' ({existing.ModType}), mapa='{fullMod.ModName}'.");
+                            continue;
+                        }
+
                         // Aktualizuj InstallPath jeśli jest inny
-                        if (existing.InstallPath != map.FullMod.InstallPath)
+                        if (existing.InstallPath != fullMod.InstallPath)
                         {
                             log.Write($"[Import] Aktualizuję InstallPath dla {existing.ModName}");
-                            existing.InstallPath = map.FullMod.InstallPath;
-                            existing.ModVersion = map.FullMod.ModVersion;
-                            existing.AmongVersion = map.FullMod.AmongVersion;
-                            existing.LastUpdated = map.FullMod.LastUpdated;
+                            existing.InstallPath = fullMod.InstallPath;
+                            existing.ModVersion = fullMod.ModVersion;
+                            existing.AmongVersion = fullMod.AmongVersion;
+                            existing.LastUpdated = fullMod.LastUpdated;
                             imported.Add(existing);
                         }
                     }
@@ -203,14 +217,14 @@ namespace SUSModder.Core.Services
                         // Dodaj nowy mod do config
                         var newConfig = new ModConfiguration
                         {
-                            Id = map.FullMod.ModId,
-                            ModName = map.FullMod.ModName,
+                            Id = fullMod.ModId,
+                            ModName = fullMod.ModName,
                             ModType = "full",
-                            ModVersion = map.FullMod.ModVersion,
-                            AmongVersion = map.FullMod.AmongVersion,
-                            InstallPath = map.FullMod.InstallPath,
-                            LastUpdated = map.FullMod.LastUpdated,
-                            GitHubRepoOrLink = map.FullMod.InstalledFrom
+                            ModVersion = fullMod.ModVersion,
+                            AmongVersion = fullMod.AmongVersion,
+                            InstallPath = fullMod.InstallPath,
+                            LastUpdated = fullMod.LastUpdated,
+                            GitHubRepoOrLink = fullMod.InstalledFrom
                         };
 
                         log.Write($"[Import] Dodaję nowy mod: {newConfig.ModName}");
@@ -220,11 +234,30 @@ namespace SUSModder.Core.Services
                 }
                 catch (Exception ex)
                 {
-                    log.Write($"[ERROR] Błąd importu moda {map.FullMod.ModName}: {ex.Message}");
+                    log.Write($"[ERROR] Błąd importu moda {map.FullMod?.ModName ?? map.DisplayName ?? "unknown"}: {ex.Message}");
                 }
             }
 
             return imported;
+        }
+
+        private static bool IsImportableFullModMap(InstallationMap map)
+        {
+            return map.FullMod != null &&
+                   map.FullMod.ModId > 0 &&
+                   !string.IsNullOrWhiteSpace(map.FullMod.ModName) &&
+                   !string.IsNullOrWhiteSpace(map.FullMod.InstallPath);
+        }
+
+        private static bool MatchesDiscoveredFullMod(ModConfiguration existing, InstallationMap map)
+        {
+            if (!string.Equals(existing.ModType, "full", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            return string.Equals(
+                existing.ModName?.Trim(),
+                map.FullMod.ModName?.Trim(),
+                StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -376,6 +409,137 @@ namespace SUSModder.Core.Services
 
             log.Write($"[InstallationMapManager] Walidacja zakończona: {cleanedCount} modów wyczyszczono");
             return cleanedCount;
+        }
+
+        // ─────────────────────────────────────────────
+        // DLL Auto-Update helpers (v2.x)
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Stan auto-update dla danego moda DLL we wszystkich lokalizacjach.
+        /// </summary>
+        public enum DllAutoUpdateState
+        {
+            /// <summary>DLL nie jest nigdzie zainstalowany</summary>
+            NotInstalled,
+            /// <summary>Wszystkie lokalizacje mają auto-update OFF</summary>
+            Disabled,
+            /// <summary>Wszystkie lokalizacje mają auto-update ON</summary>
+            Enabled,
+            /// <summary>Różne lokalizacje mają różne ustawienie (mixed)</summary>
+            Mixed
+        }
+
+        /// <summary>
+        /// Odczytuje stan auto-update dla danego moda DLL (ID) we wszystkich lokalizacjach.
+        /// Skanuje wszystkie znane mody FULL (przekazane przez installedFullMods) i sprawdza
+        /// InstallationMap każdego z nich.
+        /// </summary>
+        /// <param name="dllModId">ID moda DLL</param>
+        /// <param name="installedFullMods">Lista wszystkich zainstalowanych modów FULL</param>
+        /// <returns>Stan auto-update (NotInstalled/Disabled/Enabled/Mixed)</returns>
+        public static async Task<DllAutoUpdateState> GetDllAutoUpdateStateAsync(
+            int dllModId,
+            List<ModConfiguration> installedFullMods)
+        {
+            bool foundAny = false;
+            bool? firstFlag = null;
+
+            foreach (var fullMod in installedFullMods)
+            {
+                if (string.IsNullOrEmpty(fullMod.InstallPath))
+                    continue;
+
+                var map = await LoadInstallationMapAsync(fullMod.InstallPath);
+                if (map?.InstalledDlls == null)
+                    continue;
+
+                var dllEntry = map.InstalledDlls.FirstOrDefault(d => d.ModId == dllModId);
+                if (dllEntry == null)
+                    continue;
+
+                foundAny = true;
+                if (firstFlag == null)
+                {
+                    firstFlag = dllEntry.AutoUpdateEnabled;
+                }
+                else if (firstFlag.Value != dllEntry.AutoUpdateEnabled)
+                {
+                    return DllAutoUpdateState.Mixed;
+                }
+            }
+
+            if (!foundAny)
+                return DllAutoUpdateState.NotInstalled;
+
+            return firstFlag == true ? DllAutoUpdateState.Enabled : DllAutoUpdateState.Disabled;
+        }
+
+        /// <summary>
+        /// Ustawia flagę auto-update dla danego moda DLL (ID) we wszystkich lokalizacjach
+        /// (wszystkie mody FULL gdzie DLL jest zainstalowany).
+        /// </summary>
+        /// <param name="dllModId">ID moda DLL</param>
+        /// <param name="installedFullMods">Lista wszystkich zainstalowanych modów FULL</param>
+        /// <param name="enabled">Wartość flagi do ustawienia</param>
+        /// <returns>Liczba zaktualizowanych lokalizacji</returns>
+        public static async Task<int> SetDllAutoUpdateAsync(
+            int dllModId,
+            List<ModConfiguration> installedFullMods,
+            bool enabled)
+        {
+            int updatedCount = 0;
+
+            foreach (var fullMod in installedFullMods)
+            {
+                if (string.IsNullOrEmpty(fullMod.InstallPath))
+                    continue;
+
+                var map = await LoadInstallationMapAsync(fullMod.InstallPath);
+                if (map?.InstalledDlls == null)
+                    continue;
+
+                var dllEntry = map.InstalledDlls.FirstOrDefault(d => d.ModId == dllModId);
+                if (dllEntry == null)
+                    continue;
+
+                if (dllEntry.AutoUpdateEnabled != enabled)
+                {
+                    dllEntry.AutoUpdateEnabled = enabled;
+                    await SaveInstallationMapAsync(fullMod.InstallPath, map);
+                    updatedCount++;
+                }
+            }
+
+            return updatedCount;
+        }
+
+        /// <summary>
+        /// Zwraca liczbę modów FULL w których zainstalowany jest dany DLL.
+        /// </summary>
+        /// <param name="dllModId">ID moda DLL</param>
+        /// <param name="installedFullMods">Lista wszystkich zainstalowanych modów FULL</param>
+        /// <returns>Liczba lokalizacji</returns>
+        public static async Task<int> GetDllInstallationCountAsync(
+            int dllModId,
+            List<ModConfiguration> installedFullMods)
+        {
+            int count = 0;
+
+            foreach (var fullMod in installedFullMods)
+            {
+                if (string.IsNullOrEmpty(fullMod.InstallPath))
+                    continue;
+
+                var map = await LoadInstallationMapAsync(fullMod.InstallPath);
+                if (map?.InstalledDlls == null)
+                    continue;
+
+                if (map.InstalledDlls.Any(d => d.ModId == dllModId))
+                    count++;
+            }
+
+            return count;
         }
     }
 }

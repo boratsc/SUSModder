@@ -5,7 +5,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System;
-using Newtonsoft.Json;
+using SUSModder.Core.Configuration;
 using SUSModder.ViewModels;
 using System.Collections.Generic;
 
@@ -71,30 +71,16 @@ namespace SUSModder.Views
         {
             try
             {
-                string jsonFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SUSModder", "touConfigsBase.json");
+                // Użyj SQLite przez ConfigManager (z fallback do JSON)
+                var configs = ConfigManager.GetTouConfigs();
 
-                if (File.Exists(jsonFile))
+                foreach (var config in configs)
                 {
-                    var json = File.ReadAllText(jsonFile);
-                    var configs = JsonConvert.DeserializeObject<List<dynamic>>(json);
-
-                    if (configs != null)
+                    SavedConfigs.Add(new SavedConfigItem
                     {
-                        // Sortuj od najnowszych
-                        var sortedConfigs = configs
-                            .OrderByDescending(c => DateTime.TryParse(c.date?.ToString(), out DateTime date) ? date : DateTime.MinValue)
-
-                            .ToList();
-
-                        foreach (var config in sortedConfigs)
-                        {
-                            SavedConfigs.Add(new SavedConfigItem
-                            {
-                                Hash = config.hash?.ToString() ?? "",
-                                Date = config.date?.ToString() ?? ""
-                            });
-                        }
-                    }
+                        Hash = config.Hash,
+                        Date = config.CreatedAt
+                    });
                 }
 
                 // Jeśli mamy zapisane konfiguracje, domyślnie wybierz tryb listy

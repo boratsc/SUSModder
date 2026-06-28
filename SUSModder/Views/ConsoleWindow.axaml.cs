@@ -1,6 +1,7 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using SUSModder.Core.Services.Localization;

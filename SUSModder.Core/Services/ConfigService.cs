@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 using SUSModder.Core.Configuration;
+using SUSModder.Core.Models;
 using SUSModder.Core.Repositories;
 
 namespace SUSModder.Core.Services
@@ -20,6 +22,7 @@ namespace SUSModder.Core.Services
         /// <summary>
         /// W pełni asynchroniczna wersja LoadConfig - unika blokującego .GetAwaiter().GetResult()
         /// przy pobieraniu konfiguracji z API (15s timeout).
+        /// Cache'owanie odbywa się w ConfigManager (30s TTL, unieważniany przy SaveConfig).
         /// </summary>
         public Task<List<ModConfiguration>> LoadConfigAsync()
         {
@@ -27,7 +30,16 @@ namespace SUSModder.Core.Services
         }
 
         /// <summary>
-        /// Zapisuje konfigurację modów do pliku config.json.
+        /// Czyści cache konfiguracji w ConfigManager.
+        /// Wywołaj po ręcznej zmianie configu, aby następne LoadConfigAsync pobrało świeże dane.
+        /// </summary>
+        public void InvalidateConfigCache()
+        {
+            ConfigManager.InvalidateConfigCache();
+        }
+
+        /// <summary>
+        /// Zapisuje konfigurację modów do pliku config.json (ConfigManager automatycznie unieważnia cache).
         /// </summary>
         public void SaveConfig(List<ModConfiguration> configs)
         {
@@ -35,11 +47,13 @@ namespace SUSModder.Core.Services
         }
 
         /// <summary>
-        /// Zapisuje pojedyncze ustawienie do appsettings.json (np. tryb Mode).
+        /// [DEPRECATED - SQLite Migration] appsettings.json jest read-only.
+        /// Tryb Mode jest teraz w user_settings. Użyj UserSettingsService.
         /// </summary>
+        [Obsolete("appsettings.json jest read-only. Użyj UserSettingsService.", false)]
         public void SaveConfigurationSetting(string key, string value)
         {
-            ConfigManager.SaveConfigurationSetting(key, value);
+            // No-op – appsettings.json is now read-only
         }
         public string GetAppVersion()
         {
@@ -53,6 +67,52 @@ namespace SUSModder.Core.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading app version: {ex.Message}");
                 return "Nieznana";
+            }
+        }
+
+        public async Task<ModConfiguration?> CheckInstanceUpdateAsync(ModInstance instance)
+        {
+            if (instance == null)
+                throw new ArgumentNullException(nameof(instance));
+
+            try
+            {
+                var latestConfigs = await LoadConfigFromApiAsync();
+                if (latestConfigs == null || latestConfigs.Count == 0)
+                    latestConfigs = LoadConfig();
+
+                var latestMod = latestConfigs.FirstOrDefault(c => c.Id == instance.BaseModId);
+                if (latestMod == null)
+                    return null;
+
+                var installedVersion = instance.FullModVersion ?? "unknown";
+                if (!string.IsNullOrEmpty(instance.InstallPath) && Directory.Exists(instance.InstallPath))
+                {
+                    try
+                    {
+                        var installMap = await InstallationMapManager.LoadInstallationMapAsync(instance.InstallPath);
+                        if (installMap?.FullMod != null && !string.IsNullOrEmpty(installMap.FullMod.ModVersion))
+                            installedVersion = installMap.FullMod.ModVersion;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[ConfigService] Nie udało się odczytać InstallationMap dla instancji {instance.InstanceId}: {ex.Message}");
+                    }
+                }
+
+                if (!IsNewerVersion(latestMod.ModVersion, installedVersion))
+                    return null;
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[ConfigService] ✓ Aktualizacja instancji {instance.DisplayName}: {installedVersion} → {latestMod.ModVersion}");
+                return latestMod;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[ConfigService] Błąd sprawdzania aktualizacji instancji {instance.InstanceId}: {ex.Message}");
+                return null;
             }
         }
 
@@ -134,7 +194,7 @@ namespace SUSModder.Core.Services
                         configs.Add(updatedMod);
                     }
 
-                    ConfigManager.SaveConfig(configs);
+                    SaveConfig(configs);
                     return true;
                 }
                 catch (Exception ex)
@@ -169,8 +229,7 @@ namespace SUSModder.Core.Services
             try
             {
                 // Użyj ConfigRepository do pobrania z API
-                var exeDir = AppDomain.CurrentDomain.BaseDirectory;
-                var configRepo = new ConfigRepository(exeDir);
+                var configRepo = new ConfigRepository();
 
                 return await configRepo.LoadConfigFromApiAsync();
             }
@@ -183,7 +242,10 @@ namespace SUSModder.Core.Services
 
         public async Task<bool> RefreshConfigFromApiAsync()
         {
-            return await ConfigManager.RefreshConfigFromApiAsync();
+            var result = await ConfigManager.RefreshConfigFromApiAsync();
+            if (result)
+                InvalidateConfigCache();
+            return result;
         }
 
 

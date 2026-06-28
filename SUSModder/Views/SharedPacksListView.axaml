@@ -1,0 +1,179 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:fic="using:FluentIcons.Common"
+             xmlns:labs="using:Avalonia.Labs.Panels"
+             xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:behaviors="using:SUSModder.Behaviors"
+             x:Class="SUSModder.Views.SharedPacksListView"
+             x:DataType="vm:SharedModPacksViewModel"
+             Background="{DynamicResource CardBackgroundBrush}">
+
+	<UserControl.Styles>
+		<Style Selector="UserControl">
+			<Style.Animations>
+				<Animation Duration="0:0:0.3" FillMode="Forward">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+	</UserControl.Styles>
+
+	<Grid Margin="24" RowDefinitions="Auto,Auto,*,Auto" MinWidth="640" MaxWidth="900" MinHeight="420">
+
+		<!-- Header: tytuł + refresh -->
+		<StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,12">
+			<ic:SymbolIcon Symbol="{x:Static fic:Symbol.CloudArrowUp}"
+						   FontSize="20"
+						   Foreground="{DynamicResource AccentBrush}"/>
+			<TextBlock Text="{Binding HeaderText}"
+					   FontWeight="SemiBold"
+					   FontSize="16"
+					   VerticalAlignment="Center"/>
+			<TextBlock Text="⚠"
+					   IsVisible="{Binding IsAtLimit}"
+					   FontSize="16"
+					   Foreground="{DynamicResource WarningBrush}"
+					   VerticalAlignment="Center"/>
+			<Button Classes="secondary"
+					Margin="16,0,0,0"
+					Command="{Binding RefreshCommand}"
+					IsEnabled="{Binding IsNotLoading}">
+				<StackPanel Orientation="Horizontal" Spacing="6">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowSync}" FontSize="14"/>
+					<TextBlock Text="{loc:Localize ModPacks.Shared.Refresh}"/>
+				</StackPanel>
+			</Button>
+		</StackPanel>
+
+		<!-- Error banner -->
+		<Border Grid.Row="1"
+				IsVisible="{Binding HasError}"
+				Margin="0,0,0,12"
+				Padding="12,8"
+				Background="#40FF9800"
+				BorderBrush="{DynamicResource WarningBrush}"
+				BorderThickness="1"
+				CornerRadius="6">
+			<TextBlock Text="{Binding ErrorText}" TextWrapping="Wrap"/>
+		</Border>
+
+		<!-- Empty state -->
+		<StackPanel Grid.Row="2"
+					IsVisible="{Binding ShowSharedPacksEmptyState}"
+					Spacing="12"
+					HorizontalAlignment="Center"
+					VerticalAlignment="Center">
+			<ic:SymbolIcon Symbol="{x:Static fic:Symbol.CloudArrowUp}"
+						   FontSize="48"
+						   Foreground="{DynamicResource TextSecondaryBrush}"/>
+			<TextBlock Text="{loc:Localize ModPacks.Shared.Empty}"
+					   FontSize="16"
+					   FontWeight="SemiBold"
+					   HorizontalAlignment="Center"/>
+			<TextBlock Text="{loc:Localize ModPacks.Shared.EmptyHint}"
+					   FontSize="13"
+					   TextWrapping="Wrap"
+					   MaxWidth="320"
+					   TextAlignment="Center"
+					   Foreground="{DynamicResource TextSecondaryBrush}"/>
+		</StackPanel>
+
+		<!-- Karty obok siebie -->
+		<ScrollViewer Grid.Row="2"
+					  IsVisible="{Binding IsSharedPacksGridVisible}"
+					  VerticalScrollBarVisibility="Auto"
+					  Background="Transparent">
+			<ItemsControl ItemsSource="{Binding Packs}">
+				<ItemsControl.ItemsPanel>
+					<ItemsPanelTemplate>
+						<labs:FlexPanel Direction="Row"
+										Wrap="Wrap"
+										JustifyContent="FlexStart"
+										AlignItems="FlexStart"
+										AlignContent="FlexStart"
+										RowSpacing="12"
+										ColumnSpacing="12">
+							<i:Interaction.Behaviors>
+								<behaviors:LayoutAnimationBehavior/>
+							</i:Interaction.Behaviors>
+						</labs:FlexPanel>
+					</ItemsPanelTemplate>
+				</ItemsControl.ItemsPanel>
+				<ItemsControl.ItemTemplate>
+					<DataTemplate x:DataType="vm:SharedModPackItem">
+						<Border Width="260" MinHeight="140"
+								Padding="14"
+								CornerRadius="8"
+								Background="{DynamicResource SlightlyLighterBrush}">
+							<Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="6">
+								<TextBlock Grid.Row="0"
+										   Text="{Binding ModName}"
+										   FontWeight="SemiBold"
+										   FontSize="14"
+										   TextTrimming="CharacterEllipsis"/>
+								<TextBlock Grid.Row="1"
+										   Text="{Binding PackCode}"
+										   FontFamily="Courier New, monospace"
+										   FontSize="11"
+										   Foreground="{DynamicResource TextSecondaryBrush}"/>
+								<StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10">
+									<TextBlock Text="{Binding StatusText}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"/>
+									<TextBlock Text="{Binding ExpiresAtText}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextSecondaryBrush}"/>
+								</StackPanel>
+								<StackPanel Grid.Row="4"
+											Orientation="Horizontal"
+											Spacing="4"
+											HorizontalAlignment="Right">
+									<Button Classes="secondary"
+											Command="{Binding $parent[ItemsControl].DataContext.CopyCodeCommand}"
+											CommandParameter="{Binding}">
+										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Copy}" FontSize="12"/>
+									</Button>
+									<Button Classes="secondary"
+											Command="{Binding $parent[ItemsControl].DataContext.CopyLinkCommand}"
+											CommandParameter="{Binding}">
+										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Link}" FontSize="12"/>
+									</Button>
+									<Button Classes="secondary"
+											Command="{Binding $parent[ItemsControl].DataContext.DeleteCommand}"
+											CommandParameter="{Binding}"
+											IsEnabled="{Binding !IsBusy}">
+										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Delete}" FontSize="12"/>
+									</Button>
+								</StackPanel>
+							</Grid>
+						</Border>
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+		</ScrollViewer>
+
+		<!-- Dolny przycisk zamknięcia -->
+		<Button Grid.Row="3"
+				HorizontalAlignment="Center"
+				MinWidth="120"
+				Margin="0,20,0,0"
+				Padding="16,10"
+				CornerRadius="8"
+				Background="{DynamicResource AccentBrush}"
+				Foreground="White"
+				BorderThickness="0"
+				Command="{Binding CloseCommand}">
+			<TextBlock Text="{loc:Localize UI.Buttons.Close}"/>
+		</Button>
+	</Grid>
+</UserControl>
+
+

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Velopack;
+using SUSModder.Core.Api;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.Configuration;
 
@@ -275,11 +276,16 @@ namespace SUSModder.Core.Services
 
         private Uri GetUpdateFeedUri()
         {
-            var baseUrl = _configuration["Configuration:BaseUrl"]?.TrimEnd('/');
-            if (string.IsNullOrWhiteSpace(baseUrl))
-                throw new InvalidOperationException("Configuration:BaseUrl is not configured.");
+            var apiBaseUrl = _configuration["Configuration:ApiV2BaseUrl"]?.TrimEnd('/');
+            if (string.IsNullOrWhiteSpace(apiBaseUrl))
+            {
+                apiBaseUrl = SUSModderApiClientProvider.TryGetDefault()?.BaseUrl.TrimEnd('/');
+            }
 
-            return EnsureAbsoluteUri($"{baseUrl}/api/releases");
+            if (string.IsNullOrWhiteSpace(apiBaseUrl))
+                throw new InvalidOperationException("Configuration:ApiV2BaseUrl is not configured.");
+
+            return EnsureAbsoluteUri($"{apiBaseUrl}/releases");
         }
 
         private string GetUpdateChannel()

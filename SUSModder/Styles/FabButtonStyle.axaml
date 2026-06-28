@@ -39,6 +39,12 @@
         <Setter Property="Background" Value="{DynamicResource AccentButtonBackgroundPressed}"/>
     </Style>
 
+    <!-- FAB disabled state -->
+    <Style Selector="Button.fab:disabled">
+        <Setter Property="Opacity" Value="0.45"/>
+        <Setter Property="Cursor" Value="No"/>
+    </Style>
+
     <!-- FAB active (menu open) state -->
     <Style Selector="Button.fab.active">
         <Setter Property="Background" Value="{DynamicResource SystemAccentColorDark1}"/>
@@ -71,6 +77,7 @@
         <Setter Property="MinWidth" Value="280"/>
         <Setter Property="MaxWidth" Value="320"/>
         <Setter Property="Width" Value="300"/>
+        <Setter Property="ClipToBounds" Value="True"/>
         <Setter Property="RenderTransform" Value="translateY(20px)"/>
         <Setter Property="Opacity" Value="0"/>
         <Setter Property="IsVisible" Value="False"/>
@@ -114,6 +121,43 @@
     </Style>
 
     <Style Selector="Button.fab-menu-item:pressed">
+        <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPressed}"/>
+    </Style>
+
+    <Style Selector="Button.fab-menu-item:disabled">
+        <Setter Property="Opacity" Value="0.45"/>
+        <Setter Property="Cursor" Value="No"/>
+    </Style>
+
+    <Style Selector="Border.fab-menu-group">
+        <Setter Property="Margin" Value="0,4"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Background" Value="#1000BCD4"/>
+    </Style>
+
+    <Style Selector="Button.fab-menu-subitem">
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Padding" Value="10,8"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="Margin" Value="0,2"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.fab-menu-subitem:pointerover">
+        <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+    </Style>
+
+    <Style Selector="Button.fab-menu-subitem:pressed">
         <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPressed}"/>
     </Style>
 
@@ -170,6 +214,33 @@
     <Style Selector="Grid.fab-discord-promo-content.visible">
         <Setter Property="Opacity" Value="1"/>
         <Setter Property="RenderTransform" Value="translateY(0px)"/>
+    </Style>
+
+
+    <!-- FAB badge (update counter) -->
+    <Style Selector="Border.fab-badge">
+        <Setter Property="Background" Value="#E53935"/>
+        <Setter Property="CornerRadius" Value="9"/>
+        <Setter Property="MinWidth" Value="18"/>
+        <Setter Property="MinHeight" Value="18"/>
+        <Setter Property="Padding" Value="3,1"/>
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
+        <Setter Property="Margin" Value="0,-3,-3,0"/>
+        <Setter Property="ZIndex" Value="10"/>
+    </Style>
+
+    <!-- Menu item badge (inline with icon) -->
+    <Style Selector="Border.fab-menu-item-badge">
+        <Setter Property="Background" Value="#E53935"/>
+        <Setter Property="CornerRadius" Value="7"/>
+        <Setter Property="MinWidth" Value="14"/>
+        <Setter Property="MinHeight" Value="14"/>
+        <Setter Property="Padding" Value="2,0"/>
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
+        <Setter Property="Margin" Value="14,-2,0,0"/>
+        <Setter Property="ZIndex" Value="5"/>
     </Style>
 
 </Styles>

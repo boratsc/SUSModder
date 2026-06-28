@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text.Json;
-using System.Collections.Generic;
+using SUSModder.Core.Services;
 
 namespace SUSModder.Core.Configuration
 {
@@ -25,36 +25,16 @@ namespace SUSModder.Core.Configuration
         {
             try
             {
-                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                var configPath = Path.Combine(exeDir, "appsettings.json");
+                var service = new UserSettingsService();
+                var settings = service.LoadUserSettings();
 
-                if (File.Exists(configPath))
+                if (!settings.DeveloperMode && TryReadLegacyAppSettingsDeveloperMode(out var legacyEnabled) && legacyEnabled)
                 {
-                    var json = File.ReadAllText(configPath);
-                    var config = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-
-                    if (config != null && config.TryGetValue("AppSettings", out var appSettingsObj))
-                    {
-                        var appSettingsElement = (JsonElement)appSettingsObj;
-
-                        if (appSettingsElement.TryGetProperty("DeveloperMode", out var devModeElement))
-                        {
-                            _cachedDeveloperMode = devModeElement.GetBoolean();
-                        }
-                        else
-                        {
-                            _cachedDeveloperMode = false;
-                        }
-                    }
-                    else
-                    {
-                        _cachedDeveloperMode = false;
-                    }
+                    service.UpdateUserSetting(s => s.DeveloperMode = true);
+                    settings.DeveloperMode = true;
                 }
-                else
-                {
-                    _cachedDeveloperMode = false;
-                }
+
+                _cachedDeveloperMode = settings.DeveloperMode;
             }
             catch (Exception ex)
             {
@@ -67,48 +47,9 @@ namespace SUSModder.Core.Configuration
         {
             try
             {
-                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
-                var configPath = Path.Combine(exeDir, "appsettings.json");
-
-                Dictionary<string, object> config;
-
-                if (File.Exists(configPath))
-                {
-                    var json = File.ReadAllText(configPath);
-                    config = JsonSerializer.Deserialize<Dictionary<string, object>>(json) ?? new Dictionary<string, object>();
-                }
-                else
-                {
-                    config = new Dictionary<string, object>();
-                }
-
-                // Pobierz istniejące AppSettings lub stwórz nowe
-                Dictionary<string, object> appSettings;
-                if (config.TryGetValue("AppSettings", out var appSettingsObj) && appSettingsObj is JsonElement element)
-                {
-                    appSettings = JsonSerializer.Deserialize<Dictionary<string, object>>(element.GetRawText()) ?? new Dictionary<string, object>();
-                }
-                else
-                {
-                    appSettings = new Dictionary<string, object>();
-                }
-
-                // Aktualizuj DeveloperMode
-                appSettings["DeveloperMode"] = enabled;
-                config["AppSettings"] = appSettings;
-
-                // Zapisz plik
-                var options = new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                };
-
-                var updatedJson = JsonSerializer.Serialize(config, options);
-                File.WriteAllText(configPath, updatedJson);
-
-                // Aktualizuj cache
+                var service = new UserSettingsService();
+                service.UpdateUserSetting(s => s.DeveloperMode = enabled);
                 _cachedDeveloperMode = enabled;
-
                 System.Diagnostics.Debug.WriteLine($"DeveloperMode set to: {enabled}");
             }
             catch (Exception ex)
@@ -120,6 +61,32 @@ namespace SUSModder.Core.Configuration
         public static void ClearCache()
         {
             _cachedDeveloperMode = null;
+        }
+
+        private static bool TryReadLegacyAppSettingsDeveloperMode(out bool enabled)
+        {
+            enabled = false;
+            try
+            {
+                var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? Environment.CurrentDirectory;
+                var configPath = Path.Combine(exeDir, "appsettings.json");
+                if (!File.Exists(configPath))
+                    return false;
+
+                using var doc = JsonDocument.Parse(File.ReadAllText(configPath));
+                if (doc.RootElement.TryGetProperty("AppSettings", out var appSettings) &&
+                    appSettings.TryGetProperty("DeveloperMode", out var devModeElement))
+                {
+                    enabled = devModeElement.GetBoolean();
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Legacy DeveloperMode read failed: {ex.Message}");
+            }
+
+            return false;
         }
     }
 }

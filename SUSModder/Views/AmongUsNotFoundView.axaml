@@ -1,0 +1,78 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             x:Class="SUSModder.Views.AmongUsNotFoundView"
+             x:DataType="vm:AmongUsNotFoundViewModel"
+             Background="{DynamicResource CardBackgroundBrush}">
+
+	<UserControl.Styles>
+		<Style Selector="UserControl">
+			<Style.Animations>
+				<Animation Duration="0:0:0.3" FillMode="Forward">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+
+		<Style Selector="Button.primary-button:pointerover">
+			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+
+		<Style Selector="Button.secondary-button:pointerover">
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+	</UserControl.Styles>
+
+	<StackPanel Spacing="20" VerticalAlignment="Center" Margin="30">
+		<Border HorizontalAlignment="Center">
+			<TextBlock Text="🎮" FontSize="48"/>
+		</Border>
+
+		<TextBlock FontSize="22"
+		           FontWeight="Bold"
+		           Foreground="{DynamicResource TextPrimaryBrush}"
+		           TextAlignment="Center"
+		           TextWrapping="Wrap"
+		           Text="{Binding Title}"/>
+
+		<TextBlock FontSize="14"
+		           Foreground="{DynamicResource TextSecondaryBrush}"
+		           TextAlignment="Center"
+		           TextWrapping="Wrap"
+		           Margin="0,0,0,10"
+		           Text="{Binding Message}"/>
+
+		<StackPanel Orientation="Horizontal"
+		            HorizontalAlignment="Center"
+		            Spacing="15">
+			<Button Command="{Binding BrowseCommand}"
+			        Classes="primary-button"
+			        FontSize="16"
+			        FontWeight="SemiBold"
+			        Padding="20,12"
+			        CornerRadius="8"
+			        Background="{DynamicResource AccentBrush}"
+			        Foreground="White"
+			        BorderThickness="0"
+			        Content="{Binding BrowseButton}"/>
+
+			<Button Command="{Binding CloseCommand}"
+			        Classes="secondary-button"
+			        FontSize="16"
+			        FontWeight="SemiBold"
+			        Padding="20,12"
+			        CornerRadius="8"
+			        Background="{DynamicResource SecondaryBackgroundBrush}"
+			        BorderBrush="{DynamicResource AccentBrush}"
+			        BorderThickness="1"
+			        Foreground="{DynamicResource TextPrimaryBrush}"
+			        Content="{Binding CloseButton}"/>
+		</StackPanel>
+	</StackPanel>
+</UserControl>

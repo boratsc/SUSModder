@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Utilities;
@@ -20,160 +20,166 @@ namespace SUSModder.Core.GameIntegration
         public Func<string, string, Task<bool>>? ConfirmAsync { get; set; }
         public Func<string, string, Task>? ShowErrorAsync { get; set; }
         public Func<string, string, Task>? ShowInfoAsync { get; set; }
+        public Func<SteamQrDownloadContext, Task<bool>>? RunSteamQrDownloadAsync { get; set; }
     }
 
     public class ModManager
     {
         private readonly IConfiguration configuration;
+        private readonly SteamVanillaProvider _steamVanillaProvider;
         private IDiagnosticsOutput? log;
 
         public ModManager(IConfiguration configuration)
         {
             this.configuration = configuration;
+            _steamVanillaProvider = new SteamVanillaProvider(configuration);
         }
 
-        public async Task ModifyAsync(
+        public async Task<ModInstallResult> ModifyAsync(
             ModConfiguration modConfig,
             List<ModConfiguration> modConfigs,
             IProgressReporter progress,
             IDiagnosticsOutput log,
             ModManagerUserCallbacks userCallbacks,
-            string mode)
+            string mode,
+            Action<string>? onSpeedUpdate = null)
         {
-            this.log = log; // Przypisz log do pola klasy
+            this.log = log;
 
-            if (modConfig.ModType == "full")
+            if (modConfig.ModType != "full")
+                return ModInstallResult.Succeeded();
+
+            if (mode == "steam")
             {
-                if (mode == "steam")
-                {
-                    await InstallSteamAsync(modConfig, modConfigs, progress, log, userCallbacks);
-                }
-                else
-                {
-                    if (userCallbacks.ShowInfoAsync != null)
-                        await userCallbacks.ShowInfoAsync("Instalacja modów Epic obsługiwana jest przez EpicVersionManager.", "Informacja");
-                }
+                return await InstallSteamAsync(
+                    modConfig,
+                    modConfigs,
+                    progress,
+                    log,
+                    userCallbacks,
+                    onSpeedUpdate,
+                    targetInstallPath: null,
+                    updateCatalogInstallPath: true,
+                    allowReplaceExistingTarget: true);
             }
+
+            const string epicMessage = "Instalacja modów Epic obsługiwana jest przez EpicVersionManager.";
+            if (userCallbacks.ShowInfoAsync != null)
+                await userCallbacks.ShowInfoAsync(epicMessage, "Informacja");
+
+            return ModInstallResult.Failed(epicMessage);
         }
 
-        private async Task InstallSteamAsync(
+        /// <summary>
+        /// Instaluje moda FULL do konkretnego folderu bez aktualizowania katalogowego InstallPath.
+        /// Używane przez lokalne instancje modpacków, gdzie jedna pozycja katalogowa może mieć wiele instalacji.
+        /// </summary>
+        public Task<ModInstallResult> InstallFullModToPathAsync(
+            ModConfiguration modConfig,
+            string targetInstallPath,
+            IProgressReporter progress,
+            IDiagnosticsOutput log,
+            ModManagerUserCallbacks userCallbacks,
+            string mode,
+            Action<string>? onSpeedUpdate = null)
+        {
+            if (string.IsNullOrWhiteSpace(targetInstallPath))
+                throw new ArgumentException("Target install path cannot be empty.", nameof(targetInstallPath));
+
+            this.log = log;
+
+            if (modConfig.ModType != "full")
+                throw new InvalidOperationException("Only full mods can be installed as local instances.");
+
+            if (mode == "steam")
+            {
+                return InstallSteamAsync(
+                    modConfig,
+                    new List<ModConfiguration> { modConfig },
+                    progress,
+                    log,
+                    userCallbacks,
+                    onSpeedUpdate,
+                    targetInstallPath,
+                    updateCatalogInstallPath: false,
+                    allowReplaceExistingTarget: false);
+            }
+
+            throw new NotSupportedException("Local instance installation currently supports Steam full mods only.");
+        }
+
+        private async Task<ModInstallResult> InstallSteamAsync(
             ModConfiguration modConfig,
             List<ModConfiguration> modConfigs,
             IProgressReporter progress,
             IDiagnosticsOutput log,
-            ModManagerUserCallbacks userCallbacks)
+            ModManagerUserCallbacks userCallbacks,
+            Action<string>? onSpeedUpdate = null,
+            string? targetInstallPath = null,
+            bool updateCatalogInstallPath = true,
+            bool allowReplaceExistingTarget = true)
         {
             string modsInstallPath = PathSettings.ModsInstallPath;
             Directory.CreateDirectory(modsInstallPath);
 
-            string vanillaDir = Path.Combine(modsInstallPath, "Among Us - Vanilla");
-            Directory.CreateDirectory(vanillaDir);
-
-            // Nazwa pliku vanilla
-            string vanilla7zName = $"{modConfig.AmongVersion.Replace("-", "").Replace(".", "")}";
-            string vanilla7zPath = Path.Combine(vanillaDir, vanilla7zName + ".7z");
-
-            string baseUrl = configuration.GetSection("Configuration")["BaseUrl"] ?? "https://susmodder.boracik.pl/";
-            string fileUrlAmongUs = $"{baseUrl}api/susmodder-download-version?version={vanilla7zName}";
-
-            // Unikalna nazwa katalogu temp dla każdej instalacji, aby uniknąć konfliktów przy równoczesnych instalacjach
             string uniqueTempId = Guid.NewGuid().ToString("N");
             string tempDir = Path.Combine(modsInstallPath, "temp", uniqueTempId);
-            string modFolderPath = Path.Combine(modsInstallPath, modConfig.ModName);
+            string modFolderPath = string.IsNullOrWhiteSpace(targetInstallPath)
+                ? Path.Combine(modsInstallPath, modConfig.ModName)
+                : targetInstallPath;
             string modFile = Path.Combine(tempDir, "mod.zip");
 
-            // Pobierz vanilla 7z jeśli nie istnieje
-            bool needsDownload = !File.Exists(vanilla7zPath);
+            // Pobierz moda
+            progress.Report(30, "Pobieranie moda...");
+            Directory.CreateDirectory(tempDir);
 
-            while (true) // Pętla dla ponownego pobierania w przypadku błędów
+            try
             {
-                if (needsDownload)
+            var downloadResolution = await ModDownloadUrlBuilder.ResolveWithHashAsync(modConfig, "steam");
+            log.Write($"[CDN] URL pobierania moda (Steam): {downloadResolution.Url}");
+
+            bool retryMod;
+            do
+            {
+                retryMod = false;
+                progress.Report(30, "Pobieranie moda...");
+
+                bool modDownloaded = await DownloadFileWithMemoryManagementAsync(
+                    downloadResolution.Url,
+                    modFile,
+                    progress,
+                    $"mod {modConfig.ModName}",
+                    onSpeedUpdate,
+                    downloadResolution.ExpectedSha256);
+
+                if (!modDownloaded)
                 {
-                    progress.Report(10, "Pobieranie gry vanilla...");
-                    log.Write($"Pobieram vanilla: {fileUrlAmongUs}");
+                    if (userCallbacks.ConfirmAsync == null)
+                        throw new InvalidOperationException("Brak obsługi potwierdzenia (ConfirmAsync) w ModManagerUserCallbacks!");
 
-                    bool downloaded = false;
-                    do
+                    bool retry = await userCallbacks.ConfirmAsync(
+                        $"Błąd pobierania moda: {modConfig.ModName}\nCzy chcesz spróbować ponownie?",
+                        "Błąd pobierania");
+
+                    if (!retry)
+                        return ModInstallResult.Failed("Przerwano instalację moda.");
+
+                    retryMod = retry;
+                }
+            } while (retryMod);
+
+            // Przygotuj katalog moda
+            progress.Report(50, "Przygotowywanie katalogu...");
+            if (Directory.Exists(modFolderPath))
+            {
+                if (!allowReplaceExistingTarget)
+                {
+                    if (Directory.EnumerateFileSystemEntries(modFolderPath).Any())
                     {
-                        downloaded = await DownloadFileWithMemoryManagementAsync(
-                            fileUrlAmongUs,
-                            vanilla7zPath,
-                            progress,
-                            "vanilla Among Us");
-
-                        if (!downloaded)
-                        {
-                            if (userCallbacks.ConfirmAsync == null)
-                                throw new InvalidOperationException("Brak obsługi potwierdzenia (ConfirmAsync) w ModManagerUserCallbacks!");
-
-                            bool retry = await userCallbacks.ConfirmAsync(
-                                "Wystąpił błąd podczas pobierania pliku vanilla. Czy chcesz spróbować ponownie?",
-                                "Błąd pobierania");
-
-                            if (!retry)
-                            {
-                                if (userCallbacks.ShowErrorAsync != null)
-                                    await userCallbacks.ShowErrorAsync("Przerwano instalację.", "Błąd");
-                                return;
-                            }
-                        }
-                    } while (!downloaded);
+                        throw new IOException($"Target instance directory already exists and is not empty: {modFolderPath}");
+                    }
                 }
                 else
-                {
-                    log.Write($"Plik vanilla już istnieje: {vanilla7zPath}");
-                }
-
-                // Sprawdź rozmiar pliku
-                if (!File.Exists(vanilla7zPath) || new FileInfo(vanilla7zPath).Length < 1000)
-                {
-                    log.Write("Pobrany plik vanilla jest nieprawidłowy lub pusty.");
-                    if (userCallbacks.ShowErrorAsync != null)
-                        await userCallbacks.ShowErrorAsync("Pobrany plik vanilla jest nieprawidłowy lub pusty. Sprawdź token i wersję.", "Błąd");
-                    return;
-                }
-
-                // Pobierz moda
-                progress.Report(30, "Pobieranie moda...");
-                Directory.CreateDirectory(tempDir);
-
-                string downloadUrl = ModDownloadUrlBuilder.Build(modConfig, "steam");
-                log.Write($"[CDN] URL pobierania moda (Steam): {downloadUrl}");
-
-                bool retryMod;
-                do
-                {
-                    retryMod = false;
-                    progress.Report(30, "Pobieranie moda...");
-
-                    bool modDownloaded = await DownloadFileWithMemoryManagementAsync(
-                        downloadUrl,
-                        modFile,
-                        progress,
-                        $"mod {modConfig.ModName}");
-
-                    if (!modDownloaded)
-                    {
-                        if (userCallbacks.ConfirmAsync == null)
-                            throw new InvalidOperationException("Brak obsługi potwierdzenia (ConfirmAsync) w ModManagerUserCallbacks!");
-
-                        bool retry = await userCallbacks.ConfirmAsync(
-                            $"Błąd pobierania moda: {modConfig.ModName}\nCzy chcesz spróbować ponownie?",
-                            "Błąd pobierania");
-
-                        if (!retry)
-                        {
-                            if (userCallbacks.ShowErrorAsync != null)
-                                await userCallbacks.ShowErrorAsync("Przerwano instalację moda.", "Błąd");
-                            return;
-                        }
-                        retryMod = retry;
-                    }
-                } while (retryMod);
-
-                // Przygotuj katalog moda
-                progress.Report(50, "Przygotowywanie katalogu...");
-                if (Directory.Exists(modFolderPath))
                 {
                     log.Write($"Usuwam istniejący katalog moda: {modFolderPath}");
                     try
@@ -183,71 +189,36 @@ namespace SUSModder.Core.GameIntegration
                     catch (UnauthorizedAccessException ex)
                     {
                         log.Write($"[ERROR] Brak dostępu do katalogu: {modFolderPath} - {ex.Message}");
-                        if (userCallbacks.ShowErrorAsync != null)
-                            await userCallbacks.ShowErrorAsync(
-                                $"Nie można usunąć katalogu:\n{modFolderPath}\n\n" +
-                                $"Dostęp został zabroniony. Upewnij się, że:\n" +
-                                $"- Gra Among Us NIE jest uruchomiona\n" +
-                                $"- Żaden plik z tego folderu nie jest otwarty\n" +
-                                $"- Folder nie jest tylko do odczytu\n" +
-                                $"- Masz uprawnienia administratora\n\n" +
-                                $"Szczegóły: {ex.Message}",
-                                "Błąd dostępu");
-                        return;
-                    }
-                }
-                Directory.CreateDirectory(modFolderPath);
-
-                // Rozpakuj vanilla 7z do katalogu moda
-                try
-                {
-                    progress.Report(60, "Rozpakowywanie gry vanilla...");
-                    log.Write($"Rozpakowuję vanilla 7z: {vanilla7zPath} do {modFolderPath}");
-
-                    string zipPassword = SecretProvider.Get7zPassword();
-                    await Task.Run(() => Extract7zWithPassword(vanilla7zPath, modFolderPath, zipPassword));
-
-                    log.Write("Rozpakowano vanilla.");
-                    break; // Jeśli rozpakowywanie się udało, wychodzimy z pętli
-                }
-                catch (Exception ex)
-                {
-                    log.Write($"[ERROR] Błąd podczas rozpakowywania archiwum: {ex}");
-
-                    // Usuń uszkodzony plik
-                    if (File.Exists(vanilla7zPath))
-                    {
-                        try
-                        {
-                            File.Delete(vanilla7zPath);
-                            log.Write($"Usunięto uszkodzony plik: {vanilla7zPath}");
-                        }
-                        catch (Exception deleteEx)
-                        {
-                            log.Write($"[WARNING] Nie udało się usunąć uszkodzonego pliku: {deleteEx.Message}");
-                        }
-                    }
-
-                    if (userCallbacks.ConfirmAsync == null)
-                        throw new InvalidOperationException("Brak obsługi potwierdzenia (ConfirmAsync) w ModManagerUserCallbacks!");
-
-                    bool retryExtract = await userCallbacks.ConfirmAsync(
-                        $"Błąd podczas rozpakowywania archiwum vanilla:\n{ex.Message}\n\nPlik może być uszkodzony. Czy chcesz pobrać go ponownie?",
-                        "Błąd rozpakowywania");
-
-                    if (retryExtract)
-                    {
-                        needsDownload = true; // Oznacz że trzeba pobrać ponownie
-                        continue; // Kontynuuj pętlę - pobierz i spróbuj ponownie
-                    }
-                    else
-                    {
-                        if (userCallbacks.ShowErrorAsync != null)
-                            await userCallbacks.ShowErrorAsync("Przerwano instalację.", "Błąd");
-                        return;
+                        return ModInstallResult.Failed(
+                            $"Nie można usunąć katalogu:\n{modFolderPath}\n\n" +
+                            $"Dostęp został zabroniony. Upewnij się, że:\n" +
+                            $"- Gra Among Us NIE jest uruchomiona\n" +
+                            $"- Żaden plik z tego folderu nie jest otwarty\n" +
+                            $"- Folder nie jest tylko do odczytu\n" +
+                            $"- Masz uprawnienia administratora\n\n" +
+                            $"Szczegóły: {ex.Message}");
                     }
                 }
             }
+            Directory.CreateDirectory(modFolderPath);
+
+            // Vanilla: domyślnie paczka 7z; DepotDownloader opcjonalnie (user_settings.prefer_depot_downloader)
+            log.Write($"[Vanilla] Wersja Among Us: {modConfig.AmongVersion}");
+            var vanillaResult = await _steamVanillaProvider.AcquireAsync(
+                modConfig.AmongVersion,
+                modFolderPath,
+                progress,
+                log,
+                userCallbacks);
+
+            if (!vanillaResult.Success)
+            {
+                var vanillaError = vanillaResult.ErrorMessage ?? "Nie udało się pobrać gry vanilla.";
+                log.Write($"[Vanilla] Nie udało się przygotować vanilli: {vanillaError}");
+                return ModInstallResult.Failed(vanillaError);
+            }
+
+            log.Write($"[Vanilla] Źródło: {vanillaResult.Source}");
 
             // Rozpakuj moda do temp
             progress.Report(80, "Rozpakowywanie moda...");
@@ -259,15 +230,38 @@ namespace SUSModder.Core.GameIntegration
             try
             {
                 log.Write($"Rozpakowuję archiwum moda: {modFile} do {tempExtractPath}");
-                ZipFile.ExtractToDirectory(modFile, tempExtractPath, overwriteFiles: true);
+
+                var extractionProgress = new Progress<ExtractionProgress>(p =>
+                {
+                    int pct;
+                    if (p.PercentComplete.HasValue)
+                    {
+                        pct = (int)p.PercentComplete.Value;
+                    }
+                    else if (p.TotalBytes > 0)
+                    {
+                        pct = (int)(p.BytesExtracted * 100 / p.TotalBytes);
+                    }
+                    else
+                    {
+                        progress.Report(85, $"Rozpakowywanie moda... ({FormatSize(p.BytesExtracted)})");
+                        return;
+                    }
+
+                    int mappedProgress = 80 + (pct * 10 / 100); // 80-90% overall
+                    progress.Report(mappedProgress,
+                        $"Rozpakowywanie moda: {pct}% ({FormatSize(p.BytesExtracted)}/{FormatSize(p.TotalBytes)})");
+                });
+
+                var extractor = new SharpCompressExtractor();
+                await extractor.ExtractAsync(modFile, tempExtractPath, progress: extractionProgress);
+
                 log.Write("Pomyślnie rozpakowano archiwum moda");
             }
             catch (Exception ex)
             {
                 log.Write($"ERROR podczas rozpakowywania moda: {ex.Message}");
-                if (userCallbacks.ShowErrorAsync != null)
-                    await userCallbacks.ShowErrorAsync($"Błąd podczas rozpakowywania archiwum moda: {ex.Message}", "Błąd");
-                return;
+                return ModInstallResult.Failed($"Błąd podczas rozpakowywania archiwum moda: {ex.Message}");
             }
 
             // Skopiuj pliki moda do katalogu moda
@@ -279,30 +273,31 @@ namespace SUSModder.Core.GameIntegration
             if (string.IsNullOrEmpty(sourcePath))
             {
                 log.Write("ERROR: Nie znaleziono plików do skopiowania");
-                if (userCallbacks.ShowErrorAsync != null)
-                    await userCallbacks.ShowErrorAsync("Nie znaleziono plików do skopiowania.", "Błąd");
-                return;
+                return ModInstallResult.Failed("Nie znaleziono plików do skopiowania.");
             }
 
             log.Write($"Kopiuję pliki z {sourcePath} do {modFolderPath}");
             CopyContent(sourcePath, modFolderPath);
 
             // Zapisz konfigurację i posprzątaj temp
-            var existingConfig = modConfigs.FirstOrDefault(c => c.Id == modConfig.Id);
-            if (existingConfig != null)
+            if (updateCatalogInstallPath)
             {
-                existingConfig.InstallPath = modFolderPath;
-                existingConfig.LastUpdated = DateTime.Now;
-                log.Write($"Zaktualizowano konfigurację dla istniejącego moda: {modConfig.ModName}");
-            }
-            else
-            {
-                modConfig.InstallPath = modFolderPath;
-                modConfigs.Add(modConfig);
-                log.Write($"Dodano nową konfigurację dla moda: {modConfig.ModName}");
-            }
+                var existingConfig = modConfigs.FirstOrDefault(c => c.Id == modConfig.Id);
+                if (existingConfig != null)
+                {
+                    existingConfig.InstallPath = modFolderPath;
+                    existingConfig.LastUpdated = DateTime.Now;
+                    log.Write($"Zaktualizowano konfigurację dla istniejącego moda: {modConfig.ModName}");
+                }
+                else
+                {
+                    modConfig.InstallPath = modFolderPath;
+                    modConfigs.Add(modConfig);
+                    log.Write($"Dodano nową konfigurację dla moda: {modConfig.ModName}");
+                }
 
-            ConfigManager.SaveConfig(modConfigs);
+                ConfigManager.SaveConfig(modConfigs);
+            }
 
             // === NOWY KOD: Stwórz Installation Map ===
             try
@@ -335,20 +330,6 @@ namespace SUSModder.Core.GameIntegration
             }
             // === KONIEC NOWEGO KODU ===
 
-            // Usuń unikalny katalog temp dla tej instalacji
-            try
-            {
-                if (Directory.Exists(tempDir))
-                {
-                    Directory.Delete(tempDir, true);
-                    log.Write($"Usunięto katalog tymczasowy: {tempDir}");
-                }
-            }
-            catch (Exception ex)
-            {
-                log.Write($"[WARNING] Nie udało się usunąć katalogu tymczasowego: {ex.Message}");
-            }
-
             ForceMemoryCleanup();
 
             progress.Report(100, "Zakończono instalację moda.");
@@ -356,6 +337,12 @@ namespace SUSModder.Core.GameIntegration
 
             GC.Collect();
             GC.WaitForPendingFinalizers();
+            return ModInstallResult.Succeeded();
+            }
+            finally
+            {
+                ModsStorageCleanupService.TryDeleteInstallTempDirectory(tempDir, log.Write);
+            }
         }
 
         public async Task ModifyDllAsync(
@@ -374,9 +361,11 @@ namespace SUSModder.Core.GameIntegration
             Directory.CreateDirectory(tempDir);
 
             string modFile = Path.Combine(tempDir, "mod.dll");
-            string downloadUrl = ModDownloadUrlBuilder.Build(modConfig, mode);
+            string downloadUrl = await ModDownloadUrlBuilder.ResolveAsync(modConfig, mode);
             log.Write($"[CDN] URL pobierania DLL moda ({mode}): {downloadUrl}");
 
+            try
+            {
             bool retry;
             do
             {
@@ -423,9 +412,15 @@ namespace SUSModder.Core.GameIntegration
                     continue;
                 }
 
-                string dllTargetDir = Path.Combine(fullMod.InstallPath, modConfig.DllInstallPath ?? string.Empty);
+                var actualModPath = PathSettings.GetActualModPath(fullMod.InstallPath);
+                if (!ModPackInstaller.TryResolveSafeDllDirectory(actualModPath, modConfig.DllInstallPath, out var dllTargetDir) ||
+                    !ModPackInstaller.TryResolveSafeDllPath(dllTargetDir, $"{modConfig.ModName}.dll", out var dllTargetPath))
+                {
+                    log.Write($"Pominięto mod '{fullMod.ModName}' - niebezpieczna ścieżka DLL");
+                    continue;
+                }
+
                 Directory.CreateDirectory(dllTargetDir);
-                string dllTargetPath = Path.Combine(dllTargetDir, $"{modConfig.ModName}.dll");
                 File.Copy(modFile, dllTargetPath, overwrite: true);
                 log.Write($"Skopiowano DLL do: {dllTargetPath}");
             }
@@ -435,76 +430,22 @@ namespace SUSModder.Core.GameIntegration
 
             if (userCallbacks.ShowInfoAsync != null)
                 await userCallbacks.ShowInfoAsync($"Instalacja DLL moda {modConfig.ModName} zakończona pomyślnie.", "Sukces");
-            
-            // Usuń unikalny katalog temp dla tej instalacji
-            try
-            {
-                if (Directory.Exists(tempDir))
-                {
-                    Directory.Delete(tempDir, true);
-                }
-            }
-            catch (Exception ex)
-            {
-                log.Write($"[WARNING] Nie udało się usunąć katalogu tymczasowego: {ex.Message}");
-            }
-            
+
             GC.Collect();
             GC.WaitForPendingFinalizers();
+            }
+            finally
+            {
+                ModsStorageCleanupService.TryDeleteInstallTempDirectory(tempDir, log.Write);
+            }
         }
 
-        private void Extract7zWithPassword(string archivePath, string extractPath, string password)
+        private static string FormatSize(long bytes)
         {
-            try
-            {
-                log?.Write($"Rozpakowuję archiwum 7z: {archivePath} do {extractPath} (z hasłem)");
-
-                // Ścieżka do 7z.exe w katalogu aplikacji
-                string? appDirPath = Path.GetDirectoryName(Environment.ProcessPath);
-                if (string.IsNullOrEmpty(appDirPath))
-                {
-                    throw new InvalidOperationException("Nie można określić katalogu aplikacji.");
-                }
-
-                string sevenZipPath = Path.Combine(appDirPath, "tools", "7z.exe");
-                Directory.CreateDirectory(extractPath);
-
-                if (!File.Exists(sevenZipPath))
-                {
-                    log?.Write($"Nie znaleziono 7z.exe w katalogu: {Path.Combine(appDirPath, "tools")}");
-                    throw new FileNotFoundException($"Nie znaleziono 7z.exe: {sevenZipPath}");
-                }
-
-                using (var process = new Process())
-                {
-                    process.StartInfo.FileName = sevenZipPath;
-                    process.StartInfo.Arguments = $"x \"{archivePath}\" -o\"{extractPath}\" -p{password} -y";
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.CreateNoWindow = true;
-                    process.StartInfo.RedirectStandardOutput = true;
-                    process.StartInfo.RedirectStandardError = true;
-
-                    log?.Write($"Uruchamiam 7z.exe do rozpakowania: {archivePath}");
-                    process.Start();
-
-                    string output = process.StandardOutput.ReadToEnd();
-                    string error = process.StandardError.ReadToEnd();
-                    process.WaitForExit();
-
-                    if (process.ExitCode != 0)
-                    {
-                        throw new Exception($"Błąd podczas rozpakowywania archiwum. Kod wyjścia: {process.ExitCode}. Błąd: {error}");
-                    }
-
-                    log?.Write("Archiwum rozpakowane pomyślnie.");
-                }
-            }
-            catch (Exception ex)
-            {
-                string safeErrorMessage = ex.Message.Replace(password, "***HIDDEN***");
-                log?.Write($"Błąd podczas rozpakowywania archiwum: {safeErrorMessage}");
-                throw new Exception(safeErrorMessage, ex.InnerException);
-            }
+            if (bytes < 1024) return $"{bytes} B";
+            if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+            if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024.0):F1} MB";
+            return $"{bytes / (1024.0 * 1024.0 * 1024.0):F2} GB";
         }
 
         private async Task SafeDeleteDirectory(string directoryPath)
@@ -605,10 +546,17 @@ namespace SUSModder.Core.GameIntegration
             }
         }
 
-        private async Task<bool> DownloadFileWithMemoryManagementAsync(string url, string filePath, IProgressReporter progress, string fileDescription)
+        private async Task<bool> DownloadFileWithMemoryManagementAsync(
+            string url,
+            string filePath,
+            IProgressReporter progress,
+            string fileDescription,
+            Action<string>? onSpeedUpdate = null,
+            string? expectedSha256 = null)
         {
             const int bufferSize = 8192; // 8KB buffer
             const long maxMemoryThreshold = 50 * 1024 * 1024; // 50MB threshold dla GC
+            const long speedUpdateInterval = 512 * 1024; // Aktualizuj prędkość co ~512KB
 
             try
             {
@@ -621,39 +569,79 @@ namespace SUSModder.Core.GameIntegration
                 using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
                 response.EnsureSuccessStatusCode();
 
+                var headerSha256 = response.Headers.TryGetValues("X-SUSModder-SHA256", out var shaValues)
+                    ? shaValues.FirstOrDefault()?.Trim().ToLowerInvariant()
+                    : null;
+                var expectedHash = !string.IsNullOrWhiteSpace(expectedSha256)
+                    ? expectedSha256.Trim().ToLowerInvariant()
+                    : headerSha256;
+
                 var totalBytes = response.Content.Headers.ContentLength ?? 0;
                 var downloadedBytes = 0L;
                 var lastGcBytes = 0L;
+                var lastSpeedBytes = 0L;
+                var stopwatch = Stopwatch.StartNew();
 
-                using var contentStream = await response.Content.ReadAsStreamAsync();
-                using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize);
-
-                var buffer = new byte[bufferSize];
-                int bytesRead;
-
-                while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                using (var contentStream = await response.Content.ReadAsStreamAsync())
+                using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize))
                 {
-                    await fileStream.WriteAsync(buffer, 0, bytesRead);
-                    downloadedBytes += bytesRead;
+                    var buffer = new byte[bufferSize];
+                    int bytesRead;
 
-                    // Aktualizuj progress
-                    if (totalBytes > 0)
+                    while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
                     {
-                        var percentage = (int)((downloadedBytes * 100) / totalBytes);
-                        progress?.Report(percentage, $"Pobieranie {fileDescription}...");
+                        await fileStream.WriteAsync(buffer, 0, bytesRead);
+                        downloadedBytes += bytesRead;
+
+                        if (totalBytes > 0)
+                        {
+                            var percentage = (int)((downloadedBytes * 100) / totalBytes);
+                            progress?.Report(percentage, $"Pobieranie {fileDescription}...");
+                        }
+
+                        if (onSpeedUpdate != null && downloadedBytes - lastSpeedBytes > speedUpdateInterval)
+                        {
+                            lastSpeedBytes = downloadedBytes;
+                            var speed = CalculateDownloadSpeed(downloadedBytes, stopwatch);
+                            if (speed != null)
+                                onSpeedUpdate(speed);
+                        }
+
+                        if (downloadedBytes - lastGcBytes > maxMemoryThreshold)
+                        {
+                            lastGcBytes = downloadedBytes;
+                            GC.Collect(0, GCCollectionMode.Optimized);
+                            GC.WaitForPendingFinalizers();
+                        }
                     }
 
-                    // Wymuś GC co 50MB pobranych danych
-                    if (downloadedBytes - lastGcBytes > maxMemoryThreshold)
-                    {
-                        lastGcBytes = downloadedBytes;
-                        GC.Collect(0, GCCollectionMode.Optimized);
-                        GC.WaitForPendingFinalizers();
-                    }
+                    await fileStream.FlushAsync();
                 }
 
-                // Wymuś flush i zamknij strumień
-                await fileStream.FlushAsync();
+                if (onSpeedUpdate != null)
+                {
+                    var finalSpeed = CalculateDownloadSpeed(downloadedBytes, stopwatch);
+                    if (finalSpeed != null)
+                        onSpeedUpdate(finalSpeed);
+                }
+
+                stopwatch.Stop();
+
+                if (!string.IsNullOrWhiteSpace(expectedHash))
+                {
+                    await using var verifyStream = File.OpenRead(filePath);
+                    using var sha = SHA256.Create();
+                    var hashBytes = await sha.ComputeHashAsync(verifyStream);
+                    var actualHash = Convert.ToHexString(hashBytes).ToLowerInvariant();
+                    if (!string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase))
+                    {
+                        log?.Write($"Błąd weryfikacji SHA256 {fileDescription}: oczekiwano {expectedHash}, otrzymano {actualHash}");
+                        try { File.Delete(filePath); } catch { }
+                        return false;
+                    }
+
+                    log?.Write($"SHA256 OK dla {fileDescription}");
+                }
 
                 log?.Write($"Pobrano {fileDescription}: {downloadedBytes:N0} bajtów do {filePath}");
                 return true;
@@ -707,6 +695,24 @@ namespace SUSModder.Core.GameIntegration
             {
                 return "unknown";
             }
+        }
+
+        /// <summary>
+        /// Oblicza prędkość pobierania na podstawie pobranych bajtów i czasu.
+        /// </summary>
+        private static string? CalculateDownloadSpeed(long bytesReceived, Stopwatch stopwatch)
+        {
+            var elapsed = stopwatch.Elapsed;
+            if (elapsed.TotalSeconds < 0.5)
+                return null;
+
+            double speed = bytesReceived / elapsed.TotalSeconds;
+
+            if (speed > 1_000_000)
+                return $"{speed / 1_000_000:F1} MB/s";
+            if (speed > 1_000)
+                return $"{speed / 1_000:F0} KB/s";
+            return $"{speed:F0} B/s";
         }
     }
 }

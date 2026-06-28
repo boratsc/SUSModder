@@ -20,8 +20,44 @@ namespace SUSModder.Core.Configuration
                 ModType = config.ModType,
                 DllInstallPath = config.DllInstallPath ?? string.Empty,
                 LastUpdated = config.LastUpdated,
-                HasRoles = config.HasRoles
+                HasRoles = config.HasRoles,
+                LobbyRegionBaseUrl = config.LobbyRegionBaseUrl,
+                SupportsLobbySharing = config.SupportsLobbySharing,
+                VtScanStatus = config.VtScanStatus,
+                VtPermalink = config.VtPermalink,
+                VtLastCheckedAt = config.VtLastCheckedAt,
+                VtStats = config.VtStats,
+                VtAiReviewStatus = config.VtAiReviewStatus,
+                VtAiReviewSummary = config.VtAiReviewSummary
             };
+        }
+
+        /// <summary>
+        /// Aktualizuje istniejący ModItem danymi z konfiguracji (bez resetu stanu instalacji / bulk).
+        /// </summary>
+        public static void ApplyConfigToModItem(ModItem item, ModConfiguration config)
+        {
+            item.Id = config.Id;
+            item.Name = config.ModName;
+            item.Description = config.Description;
+            item.PngFileName = config.PngFileName;
+            item.ModVersion = config.ModVersion;
+            item.AmongVersion = config.AmongVersion;
+            item.InstallPath = config.InstallPath;
+            item.GitHubRepoOrLink = config.GitHubRepoOrLink;
+            item.EpicGitHubRepoOrLink = config.EpicGitHubRepoOrLink;
+            item.ModType = config.ModType;
+            item.DllInstallPath = config.DllInstallPath ?? string.Empty;
+            item.LastUpdated = config.LastUpdated;
+            item.HasRoles = config.HasRoles;
+            item.LobbyRegionBaseUrl = config.LobbyRegionBaseUrl;
+            item.SupportsLobbySharing = config.SupportsLobbySharing;
+            item.VtScanStatus = config.VtScanStatus;
+            item.VtPermalink = config.VtPermalink;
+            item.VtLastCheckedAt = config.VtLastCheckedAt;
+            item.VtStats = config.VtStats;
+            item.VtAiReviewStatus = config.VtAiReviewStatus;
+            item.VtAiReviewSummary = config.VtAiReviewSummary;
         }
 
         public static ModConfiguration ToConfig(ModItem item)
@@ -40,7 +76,9 @@ namespace SUSModder.Core.Configuration
                 ModType = item.ModType,
                 DllInstallPath = item.DllInstallPath,
                 LastUpdated = item.LastUpdated,
-                HasRoles = item.HasRoles
+                HasRoles = item.HasRoles,
+                LobbyRegionBaseUrl = item.LobbyRegionBaseUrl,
+                SupportsLobbySharing = item.SupportsLobbySharing
             };
         }
     }

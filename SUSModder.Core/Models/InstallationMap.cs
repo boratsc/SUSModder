@@ -17,6 +17,30 @@ namespace SUSModder.Core.Models
         public string Version { get; set; } = "1.0";
 
         /// <summary>
+        /// Id lokalnej instancji modpacka (format v2). Puste dla legacy map v1.
+        /// </summary>
+        [JsonPropertyName("instanceId")]
+        public string? InstanceId { get; set; }
+
+        /// <summary>
+        /// Lokalna nazwa instancji ustawiona przez użytkownika (format v2).
+        /// </summary>
+        [JsonPropertyName("displayName")]
+        public string? DisplayName { get; set; }
+
+        /// <summary>
+        /// Źródło utworzenia instancji: manual, shared_pack, clone lub legacy (format v2).
+        /// </summary>
+        [JsonPropertyName("origin")]
+        public string? Origin { get; set; }
+
+        /// <summary>
+        /// Kod paczki źródłowej, jeśli instancja powstała z importu udostępnionego modpacka.
+        /// </summary>
+        [JsonPropertyName("sourcePackCode")]
+        public string? SourcePackCode { get; set; }
+
+        /// <summary>
         /// Data i czas instalacji
         /// </summary>
         [JsonPropertyName("installedAt")]

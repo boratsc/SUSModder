@@ -8,9 +8,12 @@
 	</Application.DataTemplates>
 	<Application.Styles>
 		<FluentTheme />
+		<StyleInclude Source="/Styles/ScrollViewerStyles.axaml"/>
 		<StyleInclude Source="/Styles/AnimationStyles.axaml"/>
 		<StyleInclude Source="/Styles/ListBoxStyles.axaml"/>
 		<StyleInclude Source="/Styles/LinkButtonStyle.axaml"/>
 		<StyleInclude Source="/Styles/FabButtonStyle.axaml"/>
+		<StyleInclude Source="/Styles/TooltipStyle.axaml"/>
+		<StyleInclude Source="/Controls/SkeletonCard.axaml"/>
 	</Application.Styles>
 </Application>

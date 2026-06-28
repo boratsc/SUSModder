@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:fic="using:FluentIcons.Common"
+             x:Class="SUSModder.Views.BulkModeChip"
+             x:DataType="vm:MainWindowViewModel">
+	<Button Classes="bulk-mode-chip"
+			Classes.active="{Binding IsBulkSelectionMode}"
+			Command="{Binding ToggleBulkSelectionModeCommand}">
+		<ToolTip.Tip>
+			<TextBlock Text="{loc:Localize UI.Bulk.SelectModeHint}"
+					   MaxWidth="280"
+					   TextWrapping="Wrap"
+					   FontSize="11"/>
+		</ToolTip.Tip>
+		<Panel Width="36" Height="36">
+			<ic:SymbolIcon Symbol="{x:Static fic:Symbol.CheckboxChecked}"
+						   FontSize="18"
+						   HorizontalAlignment="Center"
+						   VerticalAlignment="Center"
+						   IsVisible="{Binding IsBulkSelectionMode, Converter={x:Static BoolConverters.Not}}"/>
+			<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Dismiss}"
+						   FontSize="16"
+						   HorizontalAlignment="Center"
+						   VerticalAlignment="Center"
+						   IsVisible="{Binding IsBulkSelectionMode}"/>
+			<Border Classes="bulk-mode-chip-badge">
+				<Border.IsVisible>
+					<MultiBinding Converter="{x:Static BoolConverters.And}">
+						<Binding Path="IsBulkSelectionMode"/>
+						<Binding Path="BulkSelectedCount"/>
+					</MultiBinding>
+				</Border.IsVisible>
+				<TextBlock Text="{Binding BulkSelectedCount}"
+						   FontSize="9"
+						   FontWeight="Bold"
+						   Foreground="White"
+						   HorizontalAlignment="Center"
+						   VerticalAlignment="Center"/>
+			</Border>
+		</Panel>
+	</Button>
+</UserControl>

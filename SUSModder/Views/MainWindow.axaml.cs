@@ -13,10 +13,13 @@ using System.Collections.Generic;
 using System.Reactive;
 using System.Linq;
 using Avalonia.Media;
+using SUSModder.Core.Services;
 using SUSModder.Services;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia.Input;
+using FluentIcons.Common;
+using FluentIcons.Avalonia;
 
 namespace SUSModder.Views;
 
@@ -25,6 +28,10 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     // Dodaj komendy jako w�a�ciwo�ci
     public ReactiveCommand<Unit, Unit> RemoveSingleInstanceCommand { get; private set; } = null!;
     public ReactiveCommand<Unit, Unit> LaunchMultipleInstancesCommand { get; private set; } = null!;
+
+    // System tray
+    private SystemTrayService? _systemTrayService;
+    private bool _forceClose;
 
     public MainWindow()
     {
@@ -42,11 +49,126 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         InitializeWindow();
     }
 
+    /// <summary>
+    /// Inicjalizuje SystemTrayService. Wywoływana z App.axaml.cs po pokazaniu MainWindow.
+    /// </summary>
+    public void InitializeSystemTray()
+    {
+        if (_systemTrayService != null)
+            return;
+
+        _systemTrayService = new SystemTrayService();
+        _systemTrayService.Initialize(this);
+        _systemTrayService.RestoreRequested += OnTrayRestoreRequested;
+
+        // Subskrybuj zmiany modów w ViewModel (aktualizacja menu tray)
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(MainWindowViewModel.InstalledModsCount))
+                {
+                    UpdateTrayModsList();
+                }
+            };
+        }
+
+        ApplyTrayVisibility();
+    }
+
+    /// <summary>
+    /// Aktualizuje widoczność ikony tray na podstawie bieżącego ustawienia MinimizeToTray.
+    /// Gdy opcja jest włączona, ikona jest zawsze widoczna; gdy wyłączona — ukryta.
+    /// </summary>
+    public void ApplyTrayVisibility()
+    {
+        if (_systemTrayService == null)
+            return;
+
+        var settings = new UserSettingsService().LoadUserSettings();
+        if (settings.MinimizeToTray)
+        {
+            _systemTrayService.Show();
+        }
+        else
+        {
+            _systemTrayService.Hide();
+            // Jeśli okno było ukryte w tray, a użytkownik wyłączył tę opcję,
+            // przywróć okno, aby nie pozostawić aplikacji niedostępnej.
+            if (!IsVisible)
+            {
+                Show();
+                WindowState = WindowState.Normal;
+                Activate();
+                Focus();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Odświeża listę modów w menu tray na podstawie bieżących danych z ViewModel.
+    /// </summary>
+    internal void UpdateTrayModsList()
+    {
+        if (_systemTrayService == null || DataContext is not MainWindowViewModel vm)
+            return;
+
+        _systemTrayService.UpdateRecentMods(vm.GetTrayQuickLaunchMods());
+    }
+
+    private void OnTrayRestoreRequested()
+    {
+        // Gdy użytkownik kliknie "Przywróć" w menu tray,
+        // SystemTrayService.RestoreWindow() już obsługuje przywrócenie okna.
+        // To zdarzenie jest rejestrowane dla ewentualnych dodatkowych działań.
+    }
+
+    /// <summary>
+    /// Przywraca okno z tray, taskbar lub tła i ustawia je na pierwszym planie.
+    /// Wywoływana gdy druga instancja aplikacji zażąda aktywacji.
+    /// </summary>
+    public void RestoreAndActivate()
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (_systemTrayService?.IsVisible == true)
+            {
+                _systemTrayService.RestoreWindow();
+                return;
+            }
+
+            if (WindowState == WindowState.Minimized)
+                WindowState = WindowState.Normal;
+
+            Show();
+            Activate();
+            Focus();
+        });
+    }
+
     private void InitializeWindow()
     {
         InitializeComponent();
 
         _fabDiscordPromoContent = this.FindControl<Grid>("FabDiscordPromoContent");
+
+        var statusBar = this.FindControl<Border>("StatusBar");
+        if (statusBar != null)
+            statusBar.LayoutUpdated += (_, _) => UpdateFabMenuLayout();
+
+        LayoutUpdated += (_, _) => UpdateFabMenuLayout();
+
+        var modsList = this.FindControl<ListBox>("ModsListBox");
+        if (modsList != null)
+            modsList.SelectionChanged += ModsListBox_SelectionChanged;
+
+        var packsList = this.FindControl<ListBox>("PackInstancesListBox");
+        if (packsList != null)
+            packsList.SelectionChanged += PackInstancesListBox_SelectionChanged;
+
+        var dllList = this.FindControl<ListBox>("DllModsListBox");
+        if (dllList != null)
+            dllList.SelectionChanged += DllModsListBox_SelectionChanged;
 
         // Inicjalizuj komendy
         RemoveSingleInstanceCommand = ReactiveCommand.CreateFromTask(RemoveSingleInstanceAsync);
@@ -70,18 +192,241 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 vm.WhenAnyValue(x => x.CurrentPromotedDiscord)
                   .Subscribe(_ => TriggerDiscordPromoScrollAnimation())
                   .DisposeWith(disposables);
+
+                // Aktualizuj ikonę FAB na podstawie stanu aktualizacji
+                vm.WhenAnyValue(x => x.FabHasBadge, x => x.IsAnyModInstalling)
+                  .Subscribe(_ =>
+                  {
+                      System.Diagnostics.Debug.WriteLine($"[FAB-DEBUG] WhenAnyValue fired: FabHasBadge={vm.FabHasBadge}, IsAnyModInstalling={vm.IsAnyModInstalling}");
+                      UpdateFabIcon(vm);
+                  })
+                  .DisposeWith(disposables);
+
+                vm.WhenAnyValue(x => x.IsBulkSelectionMode)
+                  .Subscribe(active =>
+                  {
+                      if (active)
+                      {
+                          _bulkListSelectionAnchor = vm.SelectedMod;
+                          _bulkPackSelectionAnchor = vm.SelectedPackInstance;
+                      }
+                  })
+                  .DisposeWith(disposables);
+
+                vm.WhenAnyValue(x => x.IsPaneOpen)
+                  .Subscribe(_ => UpdateFabMenuLayout())
+                  .DisposeWith(disposables);
+
+                vm.WhenAnyValue(x => x.IsDiscordPromoStatusBarMode, x => x.IsSystemStatusBarMode)
+                  .Subscribe(_ => UpdateFabMenuLayout())
+                  .DisposeWith(disposables);
+
+                SubscribeGlassThemeChanges(vm, disposables);
             }
+        });
+
+        InitializeGlassThemeHooks();
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == ActualTransparencyLevelProperty)
+            OnGlassTransparencyLevelChanged();
+    }
+
+    /// <summary>
+    /// Kotwiczy menu FAB tuż nad przyciskiem (wysokość paska statusu + przewijanie przy długiej liście).
+    /// </summary>
+    private void UpdateFabMenuLayout()
+    {
+        var panel = this.FindControl<Border>("FabMenuPanel");
+        var scroll = this.FindControl<ScrollViewer>("FabMenuScroll");
+        var statusBar = this.FindControl<Border>("StatusBar");
+        if (panel == null)
+            return;
+
+        const double gapAboveStatusBar = 10;
+        var statusHeight = statusBar?.Bounds.Height ?? 0;
+        if (statusHeight < 1)
+            statusHeight = 76;
+
+        panel.Margin = new Thickness(16, 0, 0, statusHeight + gapAboveStatusBar);
+
+        if (scroll == null || Bounds.Height < 1)
+            return;
+
+        var topReserve = 24;
+        var maxMenuHeight = Math.Max(200, Bounds.Height - statusHeight - gapAboveStatusBar - topReserve);
+        scroll.MaxHeight = maxMenuHeight;
+    }
+
+    /// <summary>
+    /// Aktualizuje ikonę FAB na podstawie stanu aktualizacji i instalacji.
+    /// Ustawiana w code-behind, bo compiled binding nie aktualizuje ikony SymbolIcon.
+    /// </summary>
+    private void UpdateFabIcon(MainWindowViewModel vm)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            var icon = this.FindControl<SymbolIcon>("FabIcon");
+            System.Diagnostics.Debug.WriteLine($"[FAB-DEBUG] UpdateFabIcon: icon={(icon != null ? "found" : "NULL")}, FabHasBadge={vm.FabHasBadge}, IsAnyModInstalling={vm.IsAnyModInstalling}");
+            if (icon == null) return;
+
+            var newSymbol = vm.IsAnyModInstalling ? Symbol.ArrowSync
+                          : vm.FabHasBadge ? Symbol.ArrowDownload
+                          : Symbol.Navigation;
+            System.Diagnostics.Debug.WriteLine($"[FAB-DEBUG] Setting icon.Symbol = {newSymbol} (was {icon.Symbol})");
+            icon.Symbol = newSymbol;
         });
     }
 
-    private void ModDeveloperMenuButton_Click(object sender, RoutedEventArgs e)
+    private ModItem? _bulkListSelectionAnchor;
+    private ModInstanceItem? _bulkPackSelectionAnchor;
+    private bool _revertingBulkListSelection;
+    private bool _revertingBulkPackSelection;
+    private bool _revertingBulkDllSelection;
+    private ModItem? _bulkDllSelectionAnchor;
+
+    private void ModsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        // Menu flyout otworzy si� automatycznie
-        // Tutaj mamy dost�p do wybranego moda przez DataContext
-        if (DataContext is MainWindowViewModel vm && vm.SelectedMod != null)
+        if (_revertingBulkListSelection || sender is not ListBox listBox)
+            return;
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        if (!vm.IsBulkSelectionMode)
         {
-            Debug.WriteLine($"Developer menu opened for mod: {vm.SelectedMod.Name}");
+            _bulkListSelectionAnchor = vm.SelectedMod;
+            return;
         }
+
+        if (listBox.SelectedItem is not ModItem clicked)
+            return;
+
+        _revertingBulkListSelection = true;
+        try
+        {
+            listBox.SelectedItem = _bulkListSelectionAnchor;
+        }
+        finally
+        {
+            _revertingBulkListSelection = false;
+        }
+
+        vm.ToggleBulkModCheckCommand.Execute(clicked).Subscribe();
+    }
+
+    private void PackInstancesListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_revertingBulkPackSelection || sender is not ListBox listBox)
+            return;
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        if (!vm.IsBulkSelectionMode)
+        {
+            _bulkPackSelectionAnchor = vm.SelectedPackInstance;
+            return;
+        }
+
+        if (listBox.SelectedItem is not ModInstanceItem clicked)
+            return;
+
+        _revertingBulkPackSelection = true;
+        try
+        {
+            listBox.SelectedItem = _bulkPackSelectionAnchor;
+        }
+        finally
+        {
+            _revertingBulkPackSelection = false;
+        }
+
+        vm.ToggleBulkPackCheckCommand.Execute(clicked).Subscribe();
+    }
+
+    private void DllModsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_revertingBulkDllSelection || sender is not ListBox listBox)
+            return;
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        if (!vm.IsBulkSelectionMode)
+        {
+            _bulkDllSelectionAnchor = vm.SelectedDllMod;
+            return;
+        }
+
+        if (listBox.SelectedItem is not ModItem clicked)
+            return;
+
+        _revertingBulkDllSelection = true;
+        try
+        {
+            listBox.SelectedItem = _bulkDllSelectionAnchor;
+        }
+        finally
+        {
+            _revertingBulkDllSelection = false;
+        }
+
+        vm.ToggleBulkModCheckCommand.Execute(clicked).Subscribe();
+    }
+
+    private void ModGridBackground_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm ||
+            (!vm.IsModPanelVisible && !vm.IsPackInstancePanelVisible && !vm.IsDllPanelVisible))
+            return;
+
+        for (Control? c = e.Source as Control; c != null; c = c.Parent as Control)
+        {
+            if (c is ListBoxItem or Controls.ModCard or Controls.PackInstanceCard or Controls.DllAddonCard or CheckBox or BulkModeChip or BrowserTabBar or BrowserToolbar)
+                return;
+            if (c is Button btn && btn.Classes.Contains("bulk-mode-chip"))
+                return;
+        }
+
+        if (vm.IsDllPanelVisible)
+            vm.CloseDllDetailCommand.Execute().Subscribe();
+        else if (vm.IsPackInstancePanelVisible)
+            vm.ClosePackInstanceDetailCommand.Execute().Subscribe();
+        else
+            vm.CloseModDetailCommand.Execute().Subscribe();
+        e.Handled = true;
+    }
+
+    private void MainWindow_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape)
+            return;
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+        if (vm.IsAnyToolModalOpen)
+            return;
+
+        if (vm.IsDllPanelVisible)
+        {
+            vm.CloseDllDetailCommand.Execute().Subscribe();
+            e.Handled = true;
+            return;
+        }
+
+        if (vm.IsPackInstancePanelVisible)
+        {
+            vm.ClosePackInstanceDetailCommand.Execute().Subscribe();
+            e.Handled = true;
+            return;
+        }
+
+        if (!vm.IsModPanelVisible)
+            return;
+
+        vm.CloseModDetailCommand.Execute().Subscribe();
+        e.Handled = true;
     }
 
     private async Task RemoveSingleInstanceAsync()
@@ -408,7 +753,9 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     /// </summary>
     public void SetDescriptionWithLinks(string description)
     {
-        if (this.FindControl<StackPanel>("DescriptionPanel") is not StackPanel panel)
+        var panel = this.FindControl<ModDetailDrawer>("ModDetailDrawerControl")?.FindControl<StackPanel>("DescriptionPanel")
+                    ?? this.FindControl<StackPanel>("DescriptionPanel");
+        if (panel is null)
             return;
 
         panel.Children.Clear();
@@ -561,7 +908,123 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
     protected override void OnClosing(WindowClosingEventArgs e)
     {
+        // Jeśli wymuszone zamknięcie (np. z menu tray "Zamknij") – omiń minimize-to-tray
+        if (_forceClose)
+        {
+            _forceClose = false;
+            goto cleanup;
+        }
+
+        // Sprawdź czy minimalizować do zasobnika zamiast zamykać
+        var userSettingsService = new UserSettingsService();
+        var settings = userSettingsService.LoadUserSettings();
+
+        if (settings.MinimizeToTray && _systemTrayService != null)
+        {
+            // Anuluj zamknięcie, schowaj do tray
+            e.Cancel = true;
+
+            _systemTrayService.Show();
+
+            // Pokaż dymek przy pierwszym minimalizowaniu
+            _systemTrayService.ShowFirstMinimizeNotificationIfNeeded();
+
+            this.Hide();
+            return;
+        }
+
+    cleanup:
+        // Zwalnianie zasobów ViewModel (timery, bitmapy, background taski)
+        if (DataContext is IDisposable disposableViewModel)
+        {
+            disposableViewModel.Dispose();
+        }
+
+        _systemTrayService?.Dispose();
+        _systemTrayService = null;
+
         ConsoleLogger.Shutdown();
         base.OnClosing(e);
     }
+
+    /// <summary>
+    /// Wymusza zamknięcie aplikacji z pominięciem minimize-to-tray.
+    /// Wywoływane z SystemTrayService przy wyborze "Zamknij" w menu tray.
+    /// </summary>
+    public void ForceClose()
+    {
+        _forceClose = true;
+        Close();
+    }
+
+    /// <summary>
+    /// Zwraca instancję SystemTrayService (jeśli został zainicjalizowany).
+    /// Używane przez App.axaml.cs do przekazania serwisu do ViewModel.
+    /// </summary>
+    public SystemTrayService? SystemTrayService => _systemTrayService;
+
+    private void OnLobbyBoardHeaderClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+        {
+            ViewModel.IsInfoPanelVisible = false;
+            ViewModel.IsAdditionalActionsVisible = false;
+            ViewModel.ShowLobbyBoard();
+        }
+    }
+
+    // ── Launch diagnostics actions ────────────────────────────
+
+    private void OnOpenModFolderClicked(object? sender, RoutedEventArgs e)
+        => ViewModel?.OpenModFolder();
+
+    private void OnOpenBepInExLogsClicked(object? sender, RoutedEventArgs e)
+        => ViewModel?.OpenBepInExLogs();
+
+    private async void OnGenerateSupportBundleClicked(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+            await ViewModel.GenerateSupportBundleAsync();
+    }
+
+    private void OnOpenAiSupportClicked(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+        {
+            ViewModel.IsLaunchDiagnosticsVisible = false;
+            ViewModel.ShowAiSupport();
+        }
+    }
+
+    private void OnCloseLaunchDiagnosticsClicked(object? sender, RoutedEventArgs e)
+        => ViewModel?.HideLaunchDiagnostics();
+
+    // ── AI Support actions ────────────────────────────────────
+
+    private void OnAiSupportAcceptPrivacyClicked(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+            ViewModel.AiSupportPrivacyAccepted = true;
+    }
+
+    private async void OnAnalyzeAiSupportClicked(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+            await ViewModel.AnalyzeProblemAsync();
+    }
+
+    private async void OnAiSupportHelpedClicked(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+            await ViewModel.SendAiSupportFeedbackAsync(helped: true);
+    }
+
+    private async void OnAiSupportNotHelpedClicked(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+            await ViewModel.SendAiSupportFeedbackAsync(helped: false);
+    }
+
+    private void OnCloseAiSupportClicked(object? sender, RoutedEventArgs e)
+        => ViewModel?.HideAiSupport();
 }

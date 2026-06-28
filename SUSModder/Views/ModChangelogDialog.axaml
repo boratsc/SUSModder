@@ -1,0 +1,164 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SUSModder.ViewModels"
+        xmlns:loc="using:SUSModder.Services.Localization"
+        x:Class="SUSModder.Views.ModChangelogDialog"
+        x:DataType="vm:ModChangelogViewModel"
+        Title="{Binding WindowTitle}"
+        Width="580" Height="560"
+        MinWidth="440" MinHeight="320"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="True">
+
+	<Window.Styles>
+		<FluentTheme />
+
+		<!-- Fade-in -->
+		<Style Selector="Window">
+			<Style.Animations>
+				<Animation Duration="0:0:0.3" FillMode="Forward">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+
+		<!-- Animacja ikony headera -->
+		<Style Selector="Border.mod-changelog-header-icon">
+			<Style.Animations>
+				<Animation Duration="0:0:0.5" FillMode="Forward" Delay="0:0:0.1">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0"/>
+						<Setter Property="(TranslateTransform.Y)" Value="-20"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1"/>
+						<Setter Property="(TranslateTransform.Y)" Value="0"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+
+		<!-- Animacja contentu -->
+		<Style Selector="StackPanel.content-panel">
+			<Style.Animations>
+				<Animation Duration="0:0:0.4" FillMode="Forward" Delay="0:0:0.2">
+					<KeyFrame Cue="0%">
+						<Setter Property="Opacity" Value="0"/>
+						<Setter Property="(TranslateTransform.Y)" Value="10"/>
+					</KeyFrame>
+					<KeyFrame Cue="100%">
+						<Setter Property="Opacity" Value="1"/>
+						<Setter Property="(TranslateTransform.Y)" Value="0"/>
+					</KeyFrame>
+				</Animation>
+			</Style.Animations>
+		</Style>
+	</Window.Styles>
+
+	<Border Margin="0,30,0,0">
+		<Grid Margin="24,10,24,24" RowDefinitions="Auto,Auto,Auto">
+
+			<!-- Ikona headera -->
+			<Border Grid.Row="0"
+			        Classes="mod-changelog-header-icon"
+			        Width="72" Height="72"
+			        CornerRadius="36"
+			        Background="#20A78BFA"
+			        BorderBrush="#A78BFA"
+			        BorderThickness="2"
+			        HorizontalAlignment="Center"
+			        Margin="0,0,0,16">
+				<Border.RenderTransform>
+					<TranslateTransform/>
+				</Border.RenderTransform>
+				<TextBlock Text="📋"
+				           FontSize="36"
+				           HorizontalAlignment="Center"
+				           VerticalAlignment="Center"/>
+			</Border>
+
+			<!-- Tytuł + informacja o fallbacku -->
+			<StackPanel Grid.Row="1"
+			            Classes="content-panel"
+			            Spacing="6"
+			            Margin="0,0,0,16">
+				<StackPanel.RenderTransform>
+					<TranslateTransform/>
+				</StackPanel.RenderTransform>
+
+				<TextBlock Text="{Binding WindowTitle}"
+				           FontSize="20"
+				           FontWeight="Bold"
+				           Foreground="{DynamicResource TextPrimaryBrush}"
+				           HorizontalAlignment="Center"
+				           TextAlignment="Center"/>
+
+				<TextBlock Text="{Binding FallbackLanguageNotice}"
+				           FontSize="12"
+				           Foreground="#F59E0B"
+				           HorizontalAlignment="Center"
+				           TextAlignment="Center"
+				           TextWrapping="Wrap"
+				           IsVisible="{Binding ShowFallbackNotice}"/>
+			</StackPanel>
+
+			<!-- Content -->
+			<ScrollViewer Grid.Row="2"
+			              MaxHeight="380"
+			              VerticalScrollBarVisibility="Auto">
+
+				<StackPanel Classes="content-panel" Spacing="12">
+					<StackPanel.RenderTransform>
+						<TranslateTransform/>
+					</StackPanel.RenderTransform>
+
+					<!-- Loading -->
+					<StackPanel IsVisible="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:ModChangelogState.Loading}}"
+					            HorizontalAlignment="Center" Margin="0,40">
+						<TextBlock Text="{Binding StatusMessage}"
+						           FontSize="14"
+						           Foreground="{DynamicResource TextSecondaryBrush}"
+						           HorizontalAlignment="Center"/>
+					</StackPanel>
+
+					<!-- Empty -->
+					<StackPanel IsVisible="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:ModChangelogState.Empty}}"
+					            HorizontalAlignment="Center" Margin="0,40">
+						<TextBlock Text="📭" FontSize="32" HorizontalAlignment="Center"/>
+						<TextBlock Text="{Binding StatusMessage}"
+						           FontSize="14"
+						           Foreground="{DynamicResource TextSecondaryBrush}"
+						           Margin="0,8,0,0"
+						           HorizontalAlignment="Center"
+						           TextAlignment="Center"/>
+					</StackPanel>
+
+					<!-- Error -->
+					<StackPanel IsVisible="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:ModChangelogState.Error}}"
+					            HorizontalAlignment="Center" Margin="0,40">
+						<TextBlock Text="⚠️" FontSize="32" HorizontalAlignment="Center"/>
+						<TextBlock Text="{Binding StatusMessage}"
+						           FontSize="14"
+						           Foreground="{DynamicResource TextSecondaryBrush}"
+						           Margin="0,8,0,0"
+						           HorizontalAlignment="Center"
+						           TextAlignment="Center"
+						           TextWrapping="Wrap"/>
+					</StackPanel>
+
+					<!-- Entries (code-behind populates with Markdown-rendered content) -->
+					<StackPanel x:Name="EntriesPanel"
+					            IsVisible="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:ModChangelogState.Success}}"/>
+				</StackPanel>
+			</ScrollViewer>
+		</Grid>
+	</Border>
+</Window>

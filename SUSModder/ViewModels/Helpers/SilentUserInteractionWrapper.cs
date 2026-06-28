@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using SUSModder.Core.Models;
 using SUSModder.Core.Utilities;
 using SUSModder.Core.Services;
 
@@ -32,5 +33,6 @@ namespace SUSModder.ViewModels.Helpers
         public async Task<bool> ShowConfirmAsync(string message, string title = "") => await _inner.ShowConfirmAsync(message, title);
         public async Task<string?> ShowPromptAsync(string message, string title = "") => await _inner.ShowPromptAsync(message, title);
         public async Task<string?> ShowSelectFileDialogAsync(string filter, string initialDirectory = "") => await _inner.ShowSelectFileDialogAsync(filter, initialDirectory);
+        public Task<bool> RunSteamQrDownloadAsync(SteamQrDownloadContext context) => _inner.RunSteamQrDownloadAsync(context);
     }
 }

@@ -58,6 +58,21 @@ namespace SUSModder.Core.Models
         public bool DisableAutoUpdatePrompt { get; set; }
 
         /// <summary>
+        /// Auto-aktualizacja moda — gdy true, aktualizacje są instalowane
+        /// automatycznie bez pytania użytkownika o potwierdzenie.
+        /// Niezależne od DisableAutoUpdatePrompt/PinnedInstallVersion.
+        /// </summary>
+        [JsonPropertyName("autoUpdateEnabled")]
+        public bool AutoUpdateEnabled { get; set; }
+
+        /// <summary>
+        /// Gdy true, dwuetapowy dialog poinstalacyjny (z wyborem
+        /// uruchom/dodaj DLL) nie będzie pokazywany dla tego moda.
+        /// </summary>
+        [JsonPropertyName("dontShowPostInstallDialog")]
+        public bool DontShowPostInstallDialog { get; set; }
+
+        /// <summary>
         /// Przypięta wersja instalacji (jeśli DisableAutoUpdatePrompt = true)
         /// </summary>
         [JsonPropertyName("pinnedInstallVersion")]

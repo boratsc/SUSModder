@@ -9,13 +9,14 @@ using System;
 
 namespace SUSModder.ViewModels
 {
-    public class DiscordServerViewModel : ViewModelBase
+    public class DiscordServerViewModel : ViewModelBase, IDisposable
     {
         private static readonly HttpClient _httpClient = new HttpClient();
         private Bitmap? _iconBitmap;
         private bool _isIconLoading = false;
         private readonly DiscordServer _model;
         private int _memberCount;
+        private bool _disposed;
 
         public DiscordServerViewModel(DiscordServer model)
         {
@@ -91,6 +92,31 @@ namespace SUSModder.ViewModels
             {
                 IsIconLoading = false;
             }
+        }
+
+        /// <summary>
+        /// Zwalnia bitmapę ikony. Wywoływane przy czyszczeniu cache lub przy Dispose ViewModelu.
+        /// Bezpieczne do wielokrotnego wywołania.
+        /// </summary>
+        public void DisposeIconBitmap()
+        {
+            if (_iconBitmap != null)
+            {
+                var oldBitmap = _iconBitmap;
+                _iconBitmap = null;
+                oldBitmap.Dispose();
+                this.RaisePropertyChanged(nameof(IconBitmap));
+                this.RaisePropertyChanged(nameof(HasIcon));
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+            DisposeIconBitmap();
         }
     }
 }

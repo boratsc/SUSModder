@@ -294,7 +294,7 @@ Task<List<ModConfiguration>?> LoadConfigFromApiAsync()
 
 **Endpoint API:**
 - URL: `Configuration:UpdateServerUrl` z appsettings.json
-- Domyślny: `https://susmodder.boracik.pl/api/susmodder-config`
+- Domyślny: `https://susmodder.app/api/susmodder-config`
 - Format: JSON array `ModConfiguration[]`
 - Autoryzacja: BRAK (publiczne API)
 
@@ -369,7 +369,7 @@ private static string Decrypt(string encrypted)
 
 **Używane sekrety:**
 1. **Download Token:**
-   - Autoryzacja HTTP do API `susmodder.boracik.pl`
+   - Autoryzacja HTTP do API `susmodder.app`
    - Dodawany jako header: `Authorization: {token}` (bez "Bearer")
    - Używany dla:
      - Pobieranie config.json
@@ -444,7 +444,7 @@ log.Write($"Token: {token?.Substring(0, 10)}...");
         ├─────────────────┬───────────┘
         ↓                 ↓
     config.json      HTTP API
-    appsettings.json (susmodder.boracik.pl)
+    appsettings.json (susmodder.app)
         │                 │
         └─────────┬───────┘
                   ↓
@@ -490,8 +490,8 @@ log.Write($"Token: {token?.Substring(0, 10)}...");
 {
   "Configuration": {
     "Mode": "steam",
-    "BaseUrl": "https://susmodder.boracik.pl/",
-    "UpdateServerUrl": "https://susmodder.boracik.pl/api/susmodder-config",
+    "BaseUrl": "https://susmodder.app/",
+    "UpdateServerUrl": "https://susmodder.app/api/susmodder-config",
     "CurrentVersion": "1.0.0",
     "ApiConfig": "/api/sustats-servers",
     "DiscordEndpoint": "/api/discord-favorites",
@@ -508,7 +508,7 @@ log.Write($"Token: {token?.Substring(0, 10)}...");
 
 ---
 
-## API Endpoints (susmodder.boracik.pl)
+## API Endpoints (susmodder.app)
 
 | Endpoint | Zwraca | Autoryzacja | Używany przez |
 |----------|---------|-------------|---------------|

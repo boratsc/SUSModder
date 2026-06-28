@@ -13,7 +13,7 @@
 
 ## O aplikacji
 
-**Updater** to mała aplikacja konsolowa (.NET 8) odpowiedzialna za **automatyczną aktualizację SUSModder**.
+**Updater** to mała aplikacja konsolowa (.NET 10.0) odpowiedzialna za **automatyczną aktualizację SUSModder** (legacy — obecnie zastąpiona przez Velopack).
 
 ### Kluczowe cechy:
 - **Minimalistyczna** – jeden plik `Program.cs` (~200 linii)
@@ -38,13 +38,13 @@
 ```
 Updater/
 ├── Program.cs              # Cała logika aktualizacji (~200 linii)
-├── Updater.csproj          # Konfiguracja projektu (.NET 8)
+├── Updater.csproj          # Konfiguracja projektu (.NET 10.0, legacy)
 └── bin/Release/            # Output publikacji
     └── Updater.exe         # Single-file executable
 ```
 
 ### Technologia
-- **.NET 8.0** – platforma runtime
+- **.NET 10.0** – platforma runtime (legacy; obecnie Velopack)
 - **System.IO.Compression** – rozpakowanie archiwum ZIP
 - **System.Diagnostics.Process** – monitorowanie procesów i uruchomienie aplikacji
 
@@ -563,7 +563,7 @@ catch (Exception ex)
 
 **Rekomendacja:**
 - Dodanie weryfikacji SHA256 hash archiwum przed rozpakowanie
-- HTTPS dla UpdateServerUrl (już zaimplementowane: `https://susmodder.boracik.pl`)
+- HTTPS dla UpdateServerUrl (już zaimplementowane: `https://susmodder.app`)
 
 ---
 

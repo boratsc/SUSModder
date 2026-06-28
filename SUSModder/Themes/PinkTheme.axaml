@@ -37,6 +37,7 @@
 	<SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
 	<SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
 	<SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+	<SolidColorBrush x:Key="WarningBrush" Color="#FF9800"/>
 	<SolidColorBrush x:Key="WindowBackgroundBrush" Color="{StaticResource WindowBackgroundColor}"/>
 	<SolidColorBrush x:Key="PaneBackgroundBrush" Color="{StaticResource PaneBackgroundColor}"/>
 	<SolidColorBrush x:Key="ModCardBackgroundBrush" Color="{StaticResource ModCardBackgroundColor}"/>
@@ -49,8 +50,16 @@
 	<SolidColorBrush x:Key="StatusBarBorderBrush" Color="{StaticResource StatusBarBorderColor}"/>
 	<SolidColorBrush x:Key="StatusBarSectionHoverBrush" Color="{StaticResource StatusBarSectionHoverColor}"/>
 
-	<ImageBrush x:Key="HeartsBackgroundBrush" 
-	            Source="avares://SUSModder/Assets/hearth-background.jpg" 
+	<ImageBrush x:Key="HeartsBackgroundBrush"
+	            Source="avares://SUSModder/Assets/hearth-background.jpg"
 	            TileMode="Tile"
 	            Stretch="UniformToFill"/>
+
+	<LinearGradientBrush x:Key="WindowBackgroundGradientBrush">
+		<GradientStop Color="#00FFFFFF" Offset="0"/>
+		<GradientStop Color="#00FFFFFF" Offset="1"/>
+	</LinearGradientBrush>
+	<SolidColorBrush x:Key="WindowAccentGlowBrush" Color="Transparent"/>
+	<SolidColorBrush x:Key="WindowBulkGlowBrush" Color="Transparent"/>
+	<SolidColorBrush x:Key="SurfaceGlassFillBrush" Color="#E6FFFFFF"/>
 </ResourceDictionary>

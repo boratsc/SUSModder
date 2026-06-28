@@ -1,3 +1,0 @@
-C:\Users\borat\Desktop\SUSModder\publish-beta\createdump.exe
-C:\Users\borat\Desktop\SUSModder\publish-beta\SUSModder.exe
-C:\Users\borat\Desktop\SUSModder\publish-beta\tools\7z.exe

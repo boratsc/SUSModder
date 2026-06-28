@@ -46,7 +46,7 @@
                                  FontSize="16" FontWeight="SemiBold"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  IsChecked="{Binding UseManualHash}"
-                                 Checked="OnManualHashRadioChecked"/>
+                                 IsCheckedChanged="OnManualHashRadioChecked"/>
 
 					<TextBlock Text="{local:Localize Tools.LoadServerConfig.ManualHashHint}"
                                FontSize="12"
@@ -54,7 +54,7 @@
                                IsVisible="{Binding UseManualHash}"/>
 
 					<TextBox Text="{Binding ManualHash}"
-                             Watermark="{local:Localize Tools.LoadServerConfig.ManualHashPlaceholder}"
+                             PlaceholderText="{local:Localize Tools.LoadServerConfig.ManualHashPlaceholder}"
                              FontFamily="Consolas"
                              FontSize="14"
                              Padding="12"
@@ -75,7 +75,7 @@
                                  FontSize="16" FontWeight="SemiBold"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  IsChecked="{Binding UseManualHash, Converter={x:Static BoolConverters.Not}}"
-                                 Checked="OnSavedConfigRadioChecked"/>
+                                 IsCheckedChanged="OnSavedConfigRadioChecked"/>
 
 					<StackPanel IsVisible="{Binding UseManualHash, Converter={x:Static BoolConverters.Not}}"
                                 Spacing="10">

@@ -17,6 +17,7 @@ using System.Linq;
 using SUSModder.Services;
 using System.Net;
 using System.Net.Http;
+using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.ViewModels
 {
@@ -27,11 +28,12 @@ namespace SUSModder.ViewModels
         private static readonly TimeSpan _inviteCacheTtl = TimeSpan.FromMinutes(30);
 
         private bool _isLoading = true;
-        private string _statusMessage = "Ładowanie serwerów Discord...";
+        private string _statusMessage = Loc("RecommendedDiscords.LoadingServers");
 
         public ObservableCollection<DiscordServerViewModel> DiscordServers { get; } = new();
 
         public ReactiveCommand<string, Unit> OpenDiscordLinkCommand { get; }
+        public ReactiveCommand<Unit, Unit> OpenOfficialDiscordHubCommand { get; }
         public ReactiveCommand<Unit, Unit> CloseCommand { get; }
         public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
 
@@ -50,6 +52,7 @@ namespace SUSModder.ViewModels
         public RecommendedDiscordsViewModel()
         {
             OpenDiscordLinkCommand = ReactiveCommand.Create<string>(OpenDiscordLink);
+            OpenOfficialDiscordHubCommand = ReactiveCommand.Create(OfficialDiscordHub.Open);
             CloseCommand = ReactiveCommand.Create(() => { });
             RefreshCommand = ReactiveCommand.CreateFromTask(LoadDiscordServersAsync);
 
@@ -62,7 +65,7 @@ namespace SUSModder.ViewModels
             try
             {
                 IsLoading = true;
-                StatusMessage = "Ładowanie serwerów Discord...";
+                StatusMessage = Loc("RecommendedDiscords.LoadingServers");
 
                 var configuration = App.GetService<IConfiguration>();
 
@@ -90,13 +93,13 @@ namespace SUSModder.ViewModels
                         {
                             DiscordServers.Add(serverVM);
                         }
-                        StatusMessage = $"Załadowano {sortedPreloadedServers.Count} serwerów Discord";
+                        StatusMessage = LocFmt("RecommendedDiscords.ServersLoaded", sortedPreloadedServers.Count);
                     });
                 }
                 else
                 {
                     // Fallback - stwórz ViewModels bez ikon
-                    StatusMessage = "Pobieranie listy serwerów Discord...";
+                    StatusMessage = Loc("RecommendedDiscords.FetchingServers");
                     var serverDataList = await discordService.GetDiscordFavoritesAsync();
                     var discordServers = DiscordServerAdapter.FromServerDataList(serverDataList);
                     var filteredDiscordServers = await FilterValidInvitesAsync(discordServers);
@@ -117,18 +120,18 @@ namespace SUSModder.ViewModels
                                 // Załaduj ikony w tle
                                 _ = Task.Run(async () => await serverVM.LoadIconAsync());
                             }
-                            StatusMessage = $"Załadowano {sortedDiscordServers.Count} serwerów Discord";
+                            StatusMessage = LocFmt("RecommendedDiscords.ServersLoaded", sortedDiscordServers.Count);
                         }
                         else
                         {
                             if (!discordServers.Any())
                             {
                                 LoadPlaceholderData();
-                                StatusMessage = "Używam danych przykładowych (problem z połączeniem)";
+                                StatusMessage = Loc("RecommendedDiscords.UsingSampleData");
                             }
                             else
                             {
-                                StatusMessage = "Załadowano 0 serwerów Discord";
+                                StatusMessage = LocFmt("RecommendedDiscords.ServersLoaded", 0);
                             }
                         }
                     });
@@ -141,7 +144,7 @@ namespace SUSModder.ViewModels
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     LoadPlaceholderData();
-                    StatusMessage = "Błąd połączenia - używam danych przykładowych";
+                    StatusMessage = Loc("RecommendedDiscords.ConnectionError");
                 });
             }
             finally
@@ -268,6 +271,16 @@ namespace SUSModder.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"Nie udało się otworzyć linku Discord: {ex.Message}");
             }
+        }
+
+        private static string Loc(string key)
+        {
+            return App.GetService<ILocalizationService>().Get(key);
+        }
+
+        private static string LocFmt(string key, params object[] args)
+        {
+            return App.GetService<ILocalizationService>().GetFormatted(key, args);
         }
 
         private static async Task<List<DiscordServer>> FilterValidInvitesAsync(List<DiscordServer> servers)
