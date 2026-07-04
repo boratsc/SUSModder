@@ -1200,6 +1200,13 @@
     "DllUpdateFailedTitle": "Błąd aktualizacji",
     "DllUpdateError": "Błąd podczas aktualizacji {0}: {1}",
     "DllCheckError": "Błąd podczas sprawdzania aktualizacji DLL: {0}",
+    "FullMod": {
+      "RestoringDllAddons": "Przywracanie {0} addonów DLL...",
+      "DllRestorePartialSuccess": "Mod zaktualizowany, ale część addonów DLL wymaga uwagi: przywrócono {0}, pominięto {1}, błędy {2}.",
+      "DllRestoreFailed": "Nie udało się przywrócić addonu DLL: {0}",
+      "DllRestoreSkippedMissingCatalog": "Addon DLL jest niedostępny w katalogu: {0}",
+      "DllRestoreSummary": "Przywracanie DLL: przywrócono {0}, pominięto {1}, błędy {2}."
+    },
     "DownloadingAndInstalling": "Pobieranie i instalacja...",
     "ErrorInMod": "Błąd w {0}",
     "NewVersionAvailable": "Dostępna nowa wersja!",

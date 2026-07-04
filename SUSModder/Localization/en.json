@@ -1200,6 +1200,13 @@
     "DllUpdateFailedTitle": "Update error",
     "DllUpdateError": "Error updating {0}: {1}",
     "DllCheckError": "Error checking DLL updates: {0}",
+    "FullMod": {
+      "RestoringDllAddons": "Restoring {0} DLL addons...",
+      "DllRestorePartialSuccess": "Mod updated, but some DLL addons need attention: restored {0}, skipped {1}, failed {2}.",
+      "DllRestoreFailed": "Failed to restore DLL addon: {0}",
+      "DllRestoreSkippedMissingCatalog": "DLL addon is no longer available in the catalog: {0}",
+      "DllRestoreSummary": "DLL restore: restored {0}, skipped {1}, failed {2}."
+    },
     "DownloadingAndInstalling": "Downloading and installing...",
     "ErrorInMod": "Error in {0}",
     "NewVersionAvailable": "New version available!",

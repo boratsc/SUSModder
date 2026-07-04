@@ -240,6 +240,7 @@ namespace SUSModder.Core.Services
                 throw new InvalidOperationException("mod_instance_missing_install_path");
 
             var dllRows = _instances.GetDlls(instanceId).ToList();
+            var dllAutoUpdateFlags = await CaptureDllAutoUpdateFlagsAsync(instance);
             var preserveIntegration = IntegrationDllExists(installPath);
 
             log.Write($"[ModInstanceInstaller] Aktualizuję instancję '{instance.DisplayName}' ({instance.FullModVersion} → {updatedFullMod.ModVersion})");
@@ -286,6 +287,8 @@ namespace SUSModder.Core.Services
                     try
                     {
                         await InstallDllToInstanceAsync(dllMod, instanceId, platform, log);
+                        if (row.DllModId.HasValue && dllAutoUpdateFlags.TryGetValue(row.DllModId.Value, out var autoUpdateEnabled))
+                            await ApplyDllAutoUpdateFlagAsync(instance.InstallPath, row.DllModId.Value, autoUpdateEnabled);
                     }
                     catch (Exception ex)
                     {
@@ -296,6 +299,34 @@ namespace SUSModder.Core.Services
 
             progress.Report(100, "done");
             log.Write($"[ModInstanceInstaller] Zaktualizowano instancję {instance.InstanceId} do {instance.FullModVersion}.");
+        }
+
+        private static async Task<Dictionary<int, bool>> CaptureDllAutoUpdateFlagsAsync(ModInstance instance)
+        {
+            var map = await InstallationMapManager.LoadInstallationMapAsync(instance.InstallPath);
+            if (map == null)
+                return new Dictionary<int, bool>();
+
+            if (!string.IsNullOrWhiteSpace(map.InstanceId) &&
+                !string.Equals(map.InstanceId, instance.InstanceId, StringComparison.OrdinalIgnoreCase))
+            {
+                return new Dictionary<int, bool>();
+            }
+
+            return map.InstalledDlls
+                .GroupBy(dll => dll.ModId)
+                .ToDictionary(group => group.Key, group => group.First().AutoUpdateEnabled);
+        }
+
+        private static async Task ApplyDllAutoUpdateFlagAsync(string installPath, int dllModId, bool autoUpdateEnabled)
+        {
+            var map = await InstallationMapManager.LoadInstallationMapAsync(installPath);
+            var dll = map?.InstalledDlls.FirstOrDefault(d => d.ModId == dllModId);
+            if (map == null || dll == null)
+                return;
+
+            dll.AutoUpdateEnabled = autoUpdateEnabled;
+            await InstallationMapManager.SaveInstallationMapAsync(installPath, map);
         }
 
         public async Task<ModInstance> CloneInstanceAsync(
