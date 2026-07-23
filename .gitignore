@@ -3,6 +3,7 @@
 .opencode/
 .vscode/
 .sisyphus/
+.superpowers/
 # NOTE: .github/ must NOT be ignored — workflows live there for CI/CD
 
 ## Ignore Visual Studio temporary files, build results, and
