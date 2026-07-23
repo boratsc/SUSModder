@@ -53,6 +53,16 @@ namespace SUSModder.Core.GameIntegration
         public event Action<ModConfiguration>? InstallationCompleted;
         private StringBuilder _errorLog = new StringBuilder();
         public event Action<string, string>? EpicLaunchError; // ModName, LogContent
+
+        /// <summary>
+        /// Last stable failure code from install/download flows (e.g. download_hash_mismatch).
+        /// </summary>
+        public string? LastFailureCode { get; private set; }
+
+        /// <summary>
+        /// Wywoływane tuż przed <c>legendary launch</c> — sygnał do startu obserwacji procesu gry.
+        /// </summary>
+        public event Action? GameLaunchStarting;
         private bool _hasLaunchError = false;
         private bool _isRetryingInstallation = false;
         private int _retryCount = 0;
@@ -80,18 +90,101 @@ namespace SUSModder.Core.GameIntegration
 
         public EpicVersionManager(IDiagnosticsOutput output, IEpicUserInteraction userInteraction)
         {
-            string exeDir = Path.GetDirectoryName(Environment.ProcessPath)!;
+            // BaseDirectory = katalog aplikacji (modów/tooli). ProcessPath przy `dotnet run`
+            // wskazuje na dotnet.exe → C:\Program Files\dotnet\ (brak zapisu).
+            var appDir = ResolveWritableAppDirectory();
+            var logsDir = ResolveWritableLogsDirectory(appDir);
 
             legendaryPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "legendary.exe");
             manifestDirectory = AppDomain.CurrentDomain.BaseDirectory;
             installDirectory = PathSettings.ModsInstallPath;
-            appSettingsFilePath = Path.Combine(exeDir, "appsettings.json");
+            appSettingsFilePath = Path.Combine(appDir, "appsettings.json");
 
-            logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "epic.log.txt");
-            legendaryLogFilePath = Path.Combine(exeDir, "legendary.log.txt");
+            logFilePath = Path.Combine(logsDir, "epic.log.txt");
+            legendaryLogFilePath = Path.Combine(logsDir, "legendary.log.txt");
 
             _output = output;
             _userInteraction = userInteraction;
+        }
+
+        /// <summary>
+        /// Katalog z appsettings / artefaktami aplikacji — nigdy Program Files\dotnet.
+        /// </summary>
+        private static string ResolveWritableAppDirectory()
+        {
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            if (IsUsableAppDirectory(baseDir))
+                return baseDir;
+
+            var appContextDir = AppContext.BaseDirectory;
+            if (IsUsableAppDirectory(appContextDir))
+                return appContextDir;
+
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "SUSModder");
+        }
+
+        private static string ResolveWritableLogsDirectory(string appDir)
+        {
+            // Preferuj %APPDATA%\SUSModder\logs — zawsze zapisywalne (także przy instalacji w Program Files).
+            var appDataLogs = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "SUSModder",
+                "logs");
+
+            try
+            {
+                Directory.CreateDirectory(appDataLogs);
+                return appDataLogs;
+            }
+            catch
+            {
+                // Fallback: obok aplikacji, jeśli się da
+                try
+                {
+                    Directory.CreateDirectory(appDir);
+                    return appDir;
+                }
+                catch
+                {
+                    return Path.GetTempPath();
+                }
+            }
+        }
+
+        private static bool IsUsableAppDirectory(string? directory)
+        {
+            if (string.IsNullOrWhiteSpace(directory))
+                return false;
+
+            try
+            {
+                var full = Path.GetFullPath(directory);
+                // `dotnet run` → ProcessPath/BaseDir potrafi wskazać instalację SDK
+                if (full.Contains($"{Path.DirectorySeparatorChar}dotnet{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
+                    || full.EndsWith($"{Path.DirectorySeparatorChar}dotnet", StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                return Directory.Exists(full);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void AppendLegendaryLog(string line)
+        {
+            try
+            {
+                lock (_fileLock)
+                    File.AppendAllText(legendaryLogFilePath, line + Environment.NewLine);
+            }
+            catch
+            {
+                // Log never blocks / crashes launch
+            }
         }
 
         private void LogToFile(string message)
@@ -331,15 +424,22 @@ namespace SUSModder.Core.GameIntegration
 
         public async Task<bool> ModifyEpicAsync(ModConfiguration modConfig, object? progressBar, object? progressLabel)
         {
+            LastFailureCode = null;
+
             if (modConfig == null)
             {
                 ShowError("Konfiguracja moda jest nieprawidłowa.");
                 return false;
             }
 
-            string downloadUrl = await ModDownloadUrlBuilder.ResolveAsync(modConfig, "epic");
+            var downloadResolution = await ModDownloadUrlBuilder.ResolveWithHashAsync(modConfig, "epic");
+            string downloadUrl = downloadResolution.Url;
 
             Write($"[CDN] URL pobierania moda Epic '{modConfig.ModName}': {downloadUrl}");
+            if (!string.IsNullOrWhiteSpace(downloadResolution.ExpectedSha256))
+                Write($"[CDN] Expected SHA256: {downloadResolution.ExpectedSha256}");
+            else
+                Write("[CDN] WARNING: brak SHA256 w metadanych — kontynuuję bez twardej weryfikacji (download_hash_missing).");
 
             string baseDirectory = installDirectory;
             
@@ -364,8 +464,30 @@ namespace SUSModder.Core.GameIntegration
             }
 
             Write($"Pomyślnie pobrano mod do: {modFile}");
+
+            if (Sha256Verifier.IsWellFormedHash(downloadResolution.ExpectedSha256))
+            {
+                ProgressChanged?.Invoke(38, "Weryfikacja sumy kontrolnej...");
+                var actualHash = await Sha256Verifier.ComputeFileHexAsync(modFile);
+                if (!string.Equals(actualHash, downloadResolution.ExpectedSha256!.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    Write($"ERROR: SHA256 mismatch for Epic mod: expected {downloadResolution.ExpectedSha256}, got {actualHash}");
+                    try { File.Delete(modFile); } catch { /* best effort */ }
+                    LastFailureCode = DownloadVerificationCodes.HashMismatch;
+                    ShowError(DownloadVerificationCodes.HashMismatch);
+                    return false;
+                }
+
+                Write($"SHA256 OK for Epic mod '{modConfig.ModName}'");
+            }
+            else if (!string.IsNullOrWhiteSpace(downloadResolution.ExpectedSha256))
+            {
+                Write($"[CDN] WARNING: malformed expected SHA256 '{downloadResolution.ExpectedSha256}' — treating as missing.");
+            }
+
             ProgressChanged?.Invoke(40, "Pobieranie zakończone, przygotowywanie instalacji...");
 
+            // Verify-before-replace: only delete target AmongUs after successful download (+ hash when available).
             string gameBasePath = Path.Combine(baseDirectory, modConfig.ModName, "AmongUs");
             if (Directory.Exists(gameBasePath))
             {
@@ -1020,6 +1142,7 @@ namespace SUSModder.Core.GameIntegration
 
             string installDirectory;
             int lastLaunchId = GetLastLaunchId();
+            Write($"Epic launch: modId={modConfig.Id}, lastLaunchId={lastLaunchId}, installPath={modConfig.InstallPath}");
 
             if (modConfig.Id == lastLaunchId)
             {
@@ -1445,6 +1568,7 @@ namespace SUSModder.Core.GameIntegration
 
         public async Task LaunchGameAsync()
         {
+            GameLaunchStarting?.Invoke();
             string commandArguments = $"launch {EpicAppId} --skip-version-check";
             await RunLegendaryCommandAsync(commandArguments);
         }
@@ -1479,8 +1603,7 @@ namespace SUSModder.Core.GameIntegration
 
                     ParseAndReportProgress(e.Data);
                     LegendaryOutput?.Invoke(e.Data);
-                    lock (_fileLock)
-                        File.AppendAllText(legendaryLogFilePath, e.Data + Environment.NewLine);
+                    AppendLegendaryLog(e.Data);
                 };
 
                 process.ErrorDataReceived += (s, e) =>
@@ -1494,8 +1617,7 @@ namespace SUSModder.Core.GameIntegration
 
                     var line = "[ERR] " + e.Data;
                     LegendaryOutput?.Invoke(line);
-                    lock (_fileLock)
-                        File.AppendAllText(legendaryLogFilePath, line + Environment.NewLine);
+                    AppendLegendaryLog(line);
                 };
 
                 process.Start();
@@ -1694,11 +1816,48 @@ namespace SUSModder.Core.GameIntegration
             };
         }
 
+        // Pinned legendary 0.20.41 Windows x64 — SHA256 of legendary_windows_x86_64.exe
+        // https://github.com/Heroic-Games-Launcher/legendary/releases/download/0.20.41/legendary_windows_x86_64.exe
+        private const string LegendaryVersion = "0.20.41";
+        private const string LegendaryWindowsX64Sha256 =
+            "b8866cca30d1d66a9d1331d6f38ec8249073bd749b871821ef9c20e70ce7d263";
+
         private async Task DownloadLegendaryAsync()
         {
-            string url = "https://github.com/Heroic-Games-Launcher/legendary/releases/download/0.20.41/legendary_windows_x86_64.exe";
-            await DownloadFileAsync(url, legendaryPath);
-            Write("Legendary downloaded.");
+            string url =
+                $"https://github.com/Heroic-Games-Launcher/legendary/releases/download/{LegendaryVersion}/legendary_windows_x86_64.exe";
+            string tmpPath = $"{legendaryPath}.tmp.{Guid.NewGuid():N}";
+
+            try
+            {
+                Write($"[Legendary] Pobieram {url}...");
+                await DownloadFileAsync(url, tmpPath);
+
+                if (!File.Exists(tmpPath))
+                {
+                    LastFailureCode = DownloadVerificationCodes.ToolDownloadFailed;
+                    throw new InvalidOperationException(DownloadVerificationCodes.ToolDownloadFailed);
+                }
+
+                var actualHash = await Sha256Verifier.ComputeFileHexAsync(tmpPath);
+                if (!string.Equals(actualHash, LegendaryWindowsX64Sha256, StringComparison.OrdinalIgnoreCase))
+                {
+                    try { File.Delete(tmpPath); } catch { /* best effort */ }
+                    LastFailureCode = DownloadVerificationCodes.ToolHashMismatch;
+                    Write($"[Legendary] SHA256 mismatch: expected {LegendaryWindowsX64Sha256}, got {actualHash}");
+                    throw new InvalidOperationException(DownloadVerificationCodes.ToolHashMismatch);
+                }
+
+                File.Move(tmpPath, legendaryPath, overwrite: true);
+                Write($"[Legendary] Downloaded and verified ({LegendaryVersion}).");
+            }
+            finally
+            {
+                if (File.Exists(tmpPath))
+                {
+                    try { File.Delete(tmpPath); } catch { /* best effort */ }
+                }
+            }
         }
 
         private async Task DownloadFileAsync(string url, string filePath)
@@ -1798,27 +1957,105 @@ namespace SUSModder.Core.GameIntegration
 
         private int GetLastLaunchId()
         {
-            var json = File.ReadAllText(appSettingsFilePath);
-            var jsonObj = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(json);
-            if (jsonObj != null && jsonObj.ContainsKey("Configuration") && jsonObj["Configuration"].ContainsKey("lastLaunchId"))
+            try
             {
-                return int.Parse(jsonObj["Configuration"]["lastLaunchId"]?.ToString() ?? "-1");
+                var settings = new UserSettingsService().LoadUserSettings();
+                return settings.LastLaunchId;
             }
+            catch (Exception ex)
+            {
+                Write($"Nie udało się odczytać LastLaunchId z user settings: {ex.Message}");
+            }
+
+            // Legacy fallback: appsettings.json obok exe / BaseDirectory
+            foreach (var path in GetLegacyAppSettingsCandidates())
+            {
+                try
+                {
+                    if (!File.Exists(path))
+                        continue;
+
+                    var json = File.ReadAllText(path);
+                    var jsonObj = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, JsonElement>>>(json);
+                    if (jsonObj != null
+                        && jsonObj.TryGetValue("Configuration", out var config)
+                        && config.TryGetValue("lastLaunchId", out var idElement))
+                    {
+                        if (idElement.ValueKind == JsonValueKind.Number && idElement.TryGetInt32(out var id))
+                            return id;
+                        if (idElement.ValueKind == JsonValueKind.String
+                            && int.TryParse(idElement.GetString(), out var parsed))
+                            return parsed;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Write($"Legacy GetLastLaunchId ({path}) nieudane: {ex.Message}");
+                }
+            }
+
             return -1;
         }
 
         private void SaveLastLaunchId(int id)
         {
-            var json = File.ReadAllText(appSettingsFilePath);
-            var jsonObj = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(json);
-            if (jsonObj != null && jsonObj.ContainsKey("Configuration"))
+            try
             {
-                var config = jsonObj["Configuration"];
-                config["lastLaunchId"] = id;
-                jsonObj["Configuration"] = config;
-                var updatedJson = JsonSerializer.Serialize(jsonObj, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(appSettingsFilePath, updatedJson);
+                var userSettings = new UserSettingsService();
+                userSettings.UpdateUserSetting(s => s.LastLaunchId = id);
             }
+            catch (Exception ex)
+            {
+                Write($"Nie udało się zapisać LastLaunchId do user settings: {ex.Message}");
+            }
+
+            // Legacy: utrzymuj też appsettings jeśli plik istnieje (stare narzędzia/logi)
+            foreach (var path in GetLegacyAppSettingsCandidates())
+            {
+                try
+                {
+                    if (!File.Exists(path))
+                        continue;
+
+                    var json = File.ReadAllText(path);
+                    var jsonObj = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(json);
+                    if (jsonObj == null || !jsonObj.ContainsKey("Configuration"))
+                        continue;
+
+                    var config = jsonObj["Configuration"];
+                    config["lastLaunchId"] = id;
+                    jsonObj["Configuration"] = config;
+                    var updatedJson = JsonSerializer.Serialize(jsonObj, new JsonSerializerOptions { WriteIndented = true });
+                    File.WriteAllText(path, updatedJson);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Write($"Legacy SaveLastLaunchId ({path}) nieudane: {ex.Message}");
+                }
+            }
+        }
+
+        private IEnumerable<string> GetLegacyAppSettingsCandidates()
+        {
+            var list = new List<string>();
+            void TryAdd(string? path)
+            {
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+                try { path = Path.GetFullPath(path); }
+                catch { return; }
+                if (list.Exists(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase)))
+                    return;
+                list.Add(path);
+            }
+
+            TryAdd(appSettingsFilePath);
+            TryAdd(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json"));
+            TryAdd(Path.Combine(AppContext.BaseDirectory, "appsettings.json"));
+            // ProcessPath pomijamy gdy to dotnet.exe (Program Files\dotnet)
+
+            return list;
         }
 
         private string GetLegendaryLogContent()

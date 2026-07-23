@@ -34,6 +34,13 @@ public sealed class SteamVanillaProvider
         CancellationToken ct = default)
     {
         var normalizedVersion = AmongUsVersionHelper.NormalizeAmongVersion(amongVersion);
+        if (string.IsNullOrWhiteSpace(normalizedVersion))
+        {
+            log.Write("[Vanilla] Brak AmongVersion — nie można pobrać vanilli.");
+            return VanillaAcquireResult.Fail(
+                "Brak wersji Among Us dla tego moda. Wybierz wersję gry (np. przy własnym modzie z GitHuba) i spróbuj ponownie.");
+        }
+
         var storageVersion = AmongUsVersionHelper.ToStorageVersion(normalizedVersion);
         var vanillaRoot = VanillaCacheService.GetVanillaRoot(PathSettings.ModsInstallPath);
         var extractedPath = VanillaCacheService.GetExtractedPath(vanillaRoot, storageVersion);

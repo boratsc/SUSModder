@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -28,6 +29,7 @@ public partial class ModPackCreatorView : UserControl
     private readonly IModInstanceRepository _instances;
     private readonly InstanceToModPackMapper _mapper;
     private readonly ModVersionService _versionService;
+    private readonly AmongUsManifestService? _amongUsManifestService;
     private readonly ILocalizationService _loc;
     private readonly UserSettingsService _userSettingsService = new();
     private readonly string _platform;
@@ -39,9 +41,11 @@ public partial class ModPackCreatorView : UserControl
     private List<ModConfiguration> _dllMods = new();
     private readonly List<CheckBox> _dllCheckBoxes = new();
     private readonly List<string> _versionValues = new();
+    private readonly List<string> _amongVersionValues = new();
     private readonly List<CustomDllSelection> _customDllFiles = new();
     private readonly List<GithubDllSelection> _githubDllEntries = new();
     private CancellationTokenSource? _createCts;
+    private bool _amongVersionsLoaded;
 
     public string ModalTitle { get; private set; } = string.Empty;
     public event Action<ModPackCreatorDialogResult?>? Completed;
@@ -60,6 +64,7 @@ public partial class ModPackCreatorView : UserControl
         _instances = null!;
         _mapper = null!;
         _versionService = null!;
+        _amongUsManifestService = null;
         _loc = null!;
         _platform = string.Empty;
         InitializeComponent();
@@ -86,6 +91,7 @@ public partial class ModPackCreatorView : UserControl
         _mapper = mapper;
         _instanceInstaller = instanceInstaller;
         _versionService = new ModVersionService(diagnostics);
+        _amongUsManifestService = new AmongUsManifestService(configuration);
         _loc = loc;
         _platform = platform;
         _preselectedInstanceId = preselectedInstanceId;
@@ -131,12 +137,14 @@ public partial class ModPackCreatorView : UserControl
             CustomDllNoticeText.Text = _loc.Get("ModPacks.CustomDlls.CreateAndShareNotice");
         }
 
-        UseCustomFullCheck.IsCheckedChanged += (_, _) =>
+        UseCustomFullCheck.IsCheckedChanged += async (_, _) =>
         {
             var useCustomFull = UseCustomFullCheck.IsChecked == true;
             CustomFullPanel.IsVisible = useCustomFull;
             FullModCombo.IsEnabled = !useCustomFull;
             VersionPanel.IsVisible = !useCustomFull;
+            if (useCustomFull)
+                await EnsureAmongVersionsLoadedAsync();
         };
 
         UseGithubDllCheck.IsCheckedChanged += (_, _) =>
@@ -302,6 +310,45 @@ public partial class ModPackCreatorView : UserControl
         }
 
         VersionCombo.SelectedIndex = 0;
+    }
+
+    private async Task EnsureAmongVersionsLoadedAsync()
+    {
+        if (_amongVersionsLoaded || _amongUsManifestService == null)
+            return;
+
+        CustomFullAmongVersionCombo.Items.Clear();
+        _amongVersionValues.Clear();
+
+        try
+        {
+            var versions = await _amongUsManifestService.GetAmongUsVersionValuesAsync();
+            foreach (var version in versions)
+            {
+                CustomFullAmongVersionCombo.Items.Add(version);
+                _amongVersionValues.Add(version);
+            }
+
+            _amongVersionsLoaded = _amongVersionValues.Count > 0;
+            if (_amongVersionsLoaded)
+                CustomFullAmongVersionCombo.SelectedIndex = 0;
+            else
+                ShowError(_loc.Get("ModPacks.CustomFull.AmongVersionLoadFailed"));
+        }
+        catch
+        {
+            ShowError(_loc.Get("ModPacks.CustomFull.AmongVersionLoadFailed"));
+        }
+    }
+
+    private string? GetSelectedAmongVersion()
+    {
+        var idx = CustomFullAmongVersionCombo.SelectedIndex;
+        if (idx < 0 || idx >= _amongVersionValues.Count)
+            return null;
+
+        var value = AmongUsVersionHelper.NormalizeAmongVersion(_amongVersionValues[idx]);
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
     private async Task RefreshDllListAsync()
@@ -655,7 +702,8 @@ public partial class ModPackCreatorView : UserControl
                     DiscordInvite = discordInvite,
                     IncludeIntegrationDll = IncludeIntegrationCheck.IsChecked == true,
                     TtlDays = ttlDays,
-                    DllMods = installedDllRequests
+                    DllMods = installedDllRequests,
+                    Metadata = BuildAmongVersionMetadata(modToInstall.AmongVersion)
                 }
                 : _mapper.Map(
                     instance.InstanceId,
@@ -1073,6 +1121,13 @@ private async Task CreateSharedPackAsync()
             return false;
         }
 
+        var amongVersion = GetSelectedAmongVersion();
+        if (string.IsNullOrWhiteSpace(amongVersion))
+        {
+            ShowError(_loc.Get("ModPacks.CustomFull.AmongVersionRequired"));
+            return false;
+        }
+
         CustomFullStatusText.IsVisible = true;
         CustomFullStatusText.Text = _loc.Get("ModPacks.CustomFull.Declaring");
 
@@ -1082,6 +1137,7 @@ private async Task CreateSharedPackAsync()
             ModType = "full",
             DisplayName = displayName,
             Version = string.IsNullOrWhiteSpace(CustomFullVersionBox.Text) ? null : CustomFullVersionBox.Text.Trim(),
+            AmongVersion = amongVersion,
             GithubUrl = githubUrl
         }, ct);
 
@@ -1409,6 +1465,9 @@ private async Task CreateSharedPackAsync()
             return null;
         }
 
+        if (!TryGetCustomFullAmongVersion(out var amongVersion))
+            return null;
+
         return new ModConfiguration
         {
             Id = 0,
@@ -1417,11 +1476,28 @@ private async Task CreateSharedPackAsync()
             ModVersion = string.IsNullOrWhiteSpace(CustomFullVersionBox.Text)
                 ? "custom"
                 : CustomFullVersionBox.Text.Trim(),
+            AmongVersion = amongVersion,
             GitHubRepoOrLink = githubUrl,
             EpicGitHubRepoOrLink = githubUrl,
             DllInstallPath = "BepInEx/plugins"
         };
     }
+
+    private bool TryGetCustomFullAmongVersion(out string amongVersion)
+    {
+        amongVersion = GetSelectedAmongVersion() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(amongVersion))
+            return true;
+
+        ShowError(_loc.Get("ModPacks.CustomFull.AmongVersionRequired"));
+        return false;
+    }
+
+    private static JsonElement BuildAmongVersionMetadata(string amongVersion) =>
+        JsonSerializer.SerializeToElement(new Dictionary<string, string>
+        {
+            ["amongVersion"] = amongVersion
+        });
 
     private static bool TryCopyIntegrationDll(string installPath)
     {

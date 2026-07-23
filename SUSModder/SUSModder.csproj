@@ -19,13 +19,14 @@
     -->
     <NoWarn>$(NoWarn);NU1903</NoWarn>
   </PropertyGroup>
-  <!-- Konfiguracja tylko dla Release/Publish -->
+  <!--
+    Public Velopack releases require unpacked output (PublishSingleFile=false).
+    Dev-only single-file publish must pass -p:PublishSingleFile=true explicitly.
+  -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <SelfContained>true</SelfContained>
-    <PublishSingleFile>true</PublishSingleFile>
+    <PublishSingleFile>false</PublishSingleFile>
     <PublishReadyToRun>true</PublishReadyToRun>
-    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <PublishTrimmed>false</PublishTrimmed>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>

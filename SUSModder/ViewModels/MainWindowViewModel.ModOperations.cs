@@ -29,7 +29,11 @@ namespace SUSModder.ViewModels
         private ModManagerUserCallbacks CreateModManagerCallbacks() => new()
         {
             ConfirmAsync = _userInteractionService.ShowConfirmAsync,
-            ShowErrorAsync = _userInteractionService.ShowErrorAsync,
+            ShowErrorAsync = async (message, title) =>
+            {
+                var mapped = MapDownloadVerificationMessage(message);
+                await _userInteractionService.ShowErrorAsync(mapped ?? message, title);
+            },
             ShowInfoAsync = _userInteractionService.ShowInfoAsync,
             RunSteamQrDownloadAsync = _userInteractionService.RunSteamQrDownloadAsync
         };
@@ -414,15 +418,41 @@ namespace SUSModder.ViewModels
                 return epicResult
                     ? ModInstallResult.Succeeded(diagnosticsOutput.Lines)
                     : ModInstallResult.Failed(
-                        _localizationService.Get("Dialogs.Error.InstallFailed"),
+                        MapDownloadVerificationMessage(epicManager.LastFailureCode)
+                            ?? _localizationService.Get("Dialogs.Error.InstallFailed"),
                         diagnosticsOutput.Lines);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync threw exception: {ex.Message}");
                 diagnosticsOutput.Write($"[Install Epic] Exception: {ex.Message}");
-                return ModInstallResult.Failed(ex.Message, diagnosticsOutput.Lines);
+                return ModInstallResult.Failed(
+                    MapDownloadVerificationMessage(ex.Message)
+                        ?? MapDownloadVerificationMessage(epicManager.LastFailureCode)
+                        ?? ex.Message,
+                    diagnosticsOutput.Lines);
             }
+        }
+
+        private string? MapDownloadVerificationMessage(string? codeOrMessage)
+        {
+            if (string.IsNullOrWhiteSpace(codeOrMessage))
+                return null;
+
+            return codeOrMessage switch
+            {
+                DownloadVerificationCodes.HashMismatch =>
+                    _localizationService.Get("Security.DownloadHashMismatch"),
+                DownloadVerificationCodes.HashMissing =>
+                    _localizationService.Get("Security.DownloadHashMissing"),
+                DownloadVerificationCodes.ToolHashMismatch =>
+                    _localizationService.Get("Security.ToolHashMismatch"),
+                DownloadVerificationCodes.ToolDownloadFailed =>
+                    _localizationService.Get("Security.ToolDownloadFailed"),
+                DownloadVerificationCodes.ArtifactVerificationFailed =>
+                    _localizationService.Get("Security.ArtifactVerificationFailed"),
+                _ => null
+            };
         }
 
         private async Task<ModInstallResult> InstallSteamModAsync(

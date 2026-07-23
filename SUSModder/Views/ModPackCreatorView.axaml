@@ -72,6 +72,10 @@
 				<TextBlock Text="{loc:Localize ModPacks.CustomFull.VersionLabel}" FontWeight="SemiBold"/>
 				<TextBox x:Name="CustomFullVersionBox"
 				         PlaceholderText="{loc:Localize ModPacks.CustomFull.VersionPlaceholder}"/>
+				<TextBlock Text="{loc:Localize ModPacks.CustomFull.AmongVersionLabel}" FontWeight="SemiBold"/>
+				<ComboBox x:Name="CustomFullAmongVersionCombo"
+				          HorizontalAlignment="Stretch"
+				          PlaceholderText="{loc:Localize ModPacks.CustomFull.AmongVersionPlaceholder}"/>
 				<TextBlock Text="{loc:Localize ModPacks.CustomFull.UrlLabel}" FontWeight="SemiBold"/>
 				<TextBox x:Name="CustomFullUrlBox"
 				         PlaceholderText="{loc:Localize ModPacks.CustomFull.UrlPlaceholder}"/>

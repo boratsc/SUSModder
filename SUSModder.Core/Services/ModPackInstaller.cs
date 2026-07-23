@@ -240,7 +240,9 @@ namespace SUSModder.Core.Services
                     return false;
                 }
 
-                fullModConfig = BuildCustomFullModConfig(customFull);
+                if (!TryBuildCustomFullModConfig(pack, customFull, out fullModConfig, out errorMessage))
+                    return false;
+
                 return true;
             }
 
@@ -285,7 +287,13 @@ namespace SUSModder.Core.Services
                     return result;
                 }
 
-                fullModConfig = BuildCustomFullModConfig(customFull);
+                if (!TryBuildCustomFullModConfig(pack, customFull, out var built, out var buildError))
+                {
+                    result.ErrorMessage = buildError;
+                    return result;
+                }
+
+                fullModConfig = built!;
             }
             else
             {
@@ -440,7 +448,13 @@ namespace SUSModder.Core.Services
                     return result;
                 }
 
-                fullModConfig = BuildCustomFullModConfig(customFull);
+                if (!TryBuildCustomFullModConfig(pack, customFull, out var built, out var buildError))
+                {
+                    result.ErrorMessage = buildError;
+                    return result;
+                }
+
+                fullModConfig = built!;
             }
             else
             {
@@ -600,9 +614,23 @@ namespace SUSModder.Core.Services
             return clone;
         }
 
-        private static ModConfiguration BuildCustomFullModConfig(ModPackCustomArtifact customFull)
+        internal static bool TryBuildCustomFullModConfig(
+            ModPack pack,
+            ModPackCustomArtifact customFull,
+            out ModConfiguration? config,
+            out string? errorMessage)
         {
-            return new ModConfiguration
+            config = null;
+            errorMessage = null;
+
+            var amongVersion = ResolveCustomFullAmongVersion(pack, customFull);
+            if (string.IsNullOrWhiteSpace(amongVersion))
+            {
+                errorMessage = "custom_full_among_version_missing";
+                return false;
+            }
+
+            config = new ModConfiguration
             {
                 Id = 0,
                 ModName = string.IsNullOrWhiteSpace(customFull.DisplayName)
@@ -610,9 +638,27 @@ namespace SUSModder.Core.Services
                     : customFull.DisplayName,
                 ModType = "full",
                 ModVersion = customFull.Version ?? string.Empty,
+                AmongVersion = amongVersion,
                 GitHubRepoOrLink = customFull.DownloadUrl ?? string.Empty,
+                EpicGitHubRepoOrLink = customFull.DownloadUrl ?? string.Empty,
                 DllInstallPath = "BepInEx/plugins"
             };
+            return true;
+        }
+
+        /// <summary>
+        /// AmongVersion z artefaktu, potem z metadata paczki (kompatybilność ze starym API).
+        /// </summary>
+        internal static string? ResolveCustomFullAmongVersion(ModPack pack, ModPackCustomArtifact customFull)
+        {
+            var fromArtifact = AmongUsVersionHelper.NormalizeAmongVersion(customFull.AmongVersion);
+            if (!string.IsNullOrWhiteSpace(fromArtifact))
+                return fromArtifact;
+
+            if (ModPackService.TryReadAmongVersionFromMetadata(pack.Metadata, out var fromMeta))
+                return AmongUsVersionHelper.NormalizeAmongVersion(fromMeta);
+
+            return null;
         }
 
         private static ModConfiguration TargetModFromInstance(ModInstance instance, ModConfiguration catalogMod)

@@ -493,7 +493,17 @@
       "Intro": "Mody mogą nie działać prawidłowo, ponieważ wykryto zainstalowane oprogramowanie antywirusowe: {0}.",
       "SingleRecommendation": "Zalecamy odinstalowanie tego programu lub dodanie wyjątku dla katalogu modów:\n{0}",
       "MultipleRecommendation": "Wykryto więcej niż jedno oprogramowanie antywirusowe. Warto odinstalować zbędne programy, ponieważ mogą dodatkowo powodować konflikty z modami.",
-      "Acknowledge": "Zapoznałem się z informacją"
+      "Acknowledge": "Zapoznałem się z informacją",
+      "SecurityTitle": "Bezpieczeństwo pobierania i antywirusy",
+      "SecurityBody": "SUSModder pobiera i rozpakowuje mody do Among Us, dlatego pojedyncze silniki antywirusowe mogą czasem zgłosić fałszywy alarm. Przed instalacją aplikacja weryfikuje integralność obsługiwanych paczek za pomocą SHA256. Kanał release docelowo będzie podpisany Authenticode; wydania beta mogą być niepodpisane.",
+      "UnsignedNote": "Bieżące wydanie może być niepodpisane Authenticode (szczególnie kanał beta). To nie oznacza, że plik pochodzi spoza oficjalnego pipeline SUSModder."
+    },
+    "Security": {
+      "DownloadHashMismatch": "Suma kontrolna SHA256 pobranego pliku moda nie zgadza się z oczekiwaną. Instalacja została przerwana, a podejrzany plik usunięty.",
+      "DownloadHashMissing": "Backend nie dostarczył sumy SHA256 dla tego pliku. Instalacja kontynuowana z obniżoną pewnością integralności.",
+      "ToolHashMismatch": "Suma kontrolna pobranego narzędzia (np. legendary) nie zgadza się z zapisaną wartością. Plik został odrzucony.",
+      "ToolDownloadFailed": "Nie udało się pobrać wymaganego narzędzia zewnętrznego.",
+      "ArtifactVerificationFailed": "Weryfikacja integralności artefaktu nie powiodła się."
     },
     "PostInstallSuccess": {
       "Title": "Mod zainstalowany",
@@ -1200,6 +1210,13 @@
     "DllUpdateFailedTitle": "Błąd aktualizacji",
     "DllUpdateError": "Błąd podczas aktualizacji {0}: {1}",
     "DllCheckError": "Błąd podczas sprawdzania aktualizacji DLL: {0}",
+    "FullMod": {
+      "RestoringDllAddons": "Przywracanie {0} addonów DLL...",
+      "DllRestorePartialSuccess": "Mod zaktualizowany, ale część addonów DLL wymaga uwagi: przywrócono {0}, pominięto {1}, błędy {2}.",
+      "DllRestoreFailed": "Nie udało się przywrócić addonu DLL: {0}",
+      "DllRestoreSkippedMissingCatalog": "Addon DLL jest niedostępny w katalogu: {0}",
+      "DllRestoreSummary": "Przywracanie DLL: przywrócono {0}, pominięto {1}, błędy {2}."
+    },
     "DownloadingAndInstalling": "Pobieranie i instalacja...",
     "ErrorInMod": "Błąd w {0}",
     "NewVersionAvailable": "Dostępna nowa wersja!",
@@ -1470,9 +1487,13 @@
       "NameRequired": "Podaj nazwę własnego moda głównego z GitHuba.",
       "VersionLabel": "Wersja/tag",
       "VersionPlaceholder": "np. v5.5.0",
+      "AmongVersionLabel": "Wersja Among Us",
+      "AmongVersionPlaceholder": "Wybierz wersję gry pod overlay",
+      "AmongVersionRequired": "Wybierz wersję Among Us, z którą działa własny mod główny.",
+      "AmongVersionLoadFailed": "Nie udało się pobrać listy wersji Among Us. Sprawdź połączenie i spróbuj ponownie.",
       "UrlLabel": "URL GitHub release asset (ZIP overlay)",
       "UrlPlaceholder": "https://github.com/owner/repo/releases/download/tag/ModOverlay.zip",
-      "GitHubOnlyWarning": "Podaj publiczny link do GitHub release asset z ZIP overlayem moda. SUSModder nie pobiera go bezpośrednio u użytkownika — backend pobierze artefakt, sprawdzi strukturę (BepInEx, doorstop) i uruchomi skan VirusTotal.",
+      "GitHubOnlyWarning": "Podaj publiczny link do GitHub release asset z ZIP overlayem moda. SUSModder nie pobiera go bezpośrednio u użytkownika — backend pobierze artefakt, sprawdzi strukturę (BepInEx, doorstop) i uruchomi skan VirusTotal. Musisz też wskazać wersję Among Us, na którą nakładany jest overlay.",
       "ReleaseAssetRequired": "Link musi wskazywać publiczny GitHub release asset (`/releases/download/...`).",
       "UrlRequired": "Podaj URL GitHub release asset dla własnego moda głównego.",
       "Declaring": "Zgłaszanie moda głównego z GitHuba do walidacji…",
@@ -1521,6 +1542,7 @@
     "TitleFailure": "Diagnostyka uruchomienia – wykryto problem",
     "Progress.Starting": "Uruchamianie...",
     "Progress.Observing": "Obserwacja procesu...",
+    "Progress.WaitingForGame": "Oczekiwanie na start gry (może potrwać kilka minut)...",
     "Summary.ProcessStartFailed": "Nie udało się uruchomić procesu gry.",
     "Summary.ExitedEarly": "Gra zamknęła się przedwcześnie.",
     "Summary.BepInExMissing": "Nie znaleziono logów BepInEx – mod mógł się nie załadować.",

@@ -200,6 +200,65 @@ public class ModInstanceInstallerTests : IDisposable
         Assert.Equal("ToU - renamed", map?.DisplayName);
     }
 
+    [Fact]
+    public async Task UpdateInstanceAsync_RestoresDllAutoUpdateFlagFromInstallationMap()
+    {
+        await using var db = await CreateInitializedDatabaseAsync();
+        var repo = new ModInstanceRepository(db);
+        var installPath = Path.Combine(_tempDir, "instance-update");
+        Directory.CreateDirectory(installPath);
+        var instance = CreateInstance("instance-update", installPath);
+        repo.AddInstance(instance);
+        repo.AddDll(new ModInstanceDll
+        {
+            InstanceId = instance.InstanceId,
+            DllModId = 20,
+            DllName = "AleLuduMod",
+            DllVersion = "1.0",
+            Source = "catalog",
+            InstalledPath = Path.Combine("BepInEx", "plugins", "AleLuduMod.dll"),
+            CreatedAt = DateTime.UtcNow.ToString("O")
+        });
+        await InstallationMapManager.SaveInstallationMapAsync(installPath, new InstallationMap
+        {
+            Version = "2.0",
+            InstanceId = instance.InstanceId,
+            DisplayName = instance.DisplayName,
+            Platform = "steam",
+            FullMod = new FullModInstallation
+            {
+                ModId = instance.BaseModId,
+                ModName = instance.BaseModName,
+                InstallPath = installPath
+            },
+            InstalledDlls = new List<DllModInstallation>
+            {
+                new()
+                {
+                    ModId = 20,
+                    ModName = "AleLuduMod",
+                    ModVersion = "1.0",
+                    InstallPath = Path.Combine("BepInEx", "plugins", "AleLuduMod.dll"),
+                    InstalledFrom = "https://example.test/aleludu-old.dll",
+                    InstalledAt = DateTime.Now,
+                    LastUpdated = DateTime.Now,
+                    AutoUpdateEnabled = true
+                }
+            }
+        });
+        var service = new ModInstanceInstaller(repo, new FakeFullModInstaller(), new FakeDllInstaller());
+
+        await service.UpdateInstanceAsync(
+            instance.InstanceId,
+            CreateFullMod(),
+            new[] { CreateDllMod() },
+            "steam");
+
+        var map = await InstallationMapManager.LoadInstallationMapAsync(installPath);
+        Assert.NotNull(map);
+        Assert.True(Assert.Single(map!.InstalledDlls).AutoUpdateEnabled);
+    }
+
     public void Dispose()
     {
         PathSettings.SetCustomPath(_previousModsInstallPath);
@@ -288,7 +347,7 @@ public class ModInstanceInstallerTests : IDisposable
         public ModConfiguration? LastTargetMod { get; private set; }
         public string? LastPlatform { get; private set; }
 
-        public Task<string?> InstallAsync(ModConfiguration dllMod, ModConfiguration targetMod, string platform)
+        public async Task<string?> InstallAsync(ModConfiguration dllMod, ModConfiguration targetMod, string platform)
         {
             LastTargetMod = targetMod;
             LastPlatform = platform;
@@ -296,7 +355,25 @@ public class ModInstanceInstallerTests : IDisposable
             Directory.CreateDirectory(targetDir);
             var targetPath = Path.Combine(targetDir, $"{dllMod.ModName}.dll");
             File.WriteAllText(targetPath, string.Empty);
-            return Task.FromResult<string?>(targetPath);
+            var map = await InstallationMapManager.LoadInstallationMapAsync(targetMod.InstallPath);
+            if (map != null)
+            {
+                map.InstalledDlls.RemoveAll(d => d.ModId == dllMod.Id);
+                map.InstalledDlls.Add(new DllModInstallation
+                {
+                    ModId = dllMod.Id,
+                    ModName = dllMod.ModName,
+                    ModVersion = dllMod.ModVersion,
+                    InstallPath = Path.Combine(dllMod.DllInstallPath ?? string.Empty, $"{dllMod.ModName}.dll"),
+                    InstalledFrom = dllMod.GitHubRepoOrLink,
+                    InstalledAt = DateTime.Now,
+                    LastUpdated = DateTime.Now,
+                    AutoUpdateEnabled = false
+                });
+                await InstallationMapManager.SaveInstallationMapAsync(targetMod.InstallPath!, map);
+            }
+
+            return targetPath;
         }
     }
 }

@@ -493,7 +493,17 @@
       "Intro": "Mods may not work correctly because installed antivirus software was detected: {0}.",
       "SingleRecommendation": "We recommend uninstalling this program or adding an exception for the mods folder:\n{0}",
       "MultipleRecommendation": "More than one antivirus product was detected. It is worth uninstalling unnecessary programs because they can additionally cause conflicts with mods.",
-      "Acknowledge": "I have read this information"
+      "Acknowledge": "I have read this information",
+      "SecurityTitle": "Download security and antivirus warnings",
+      "SecurityBody": "SUSModder downloads and extracts Among Us mods, so individual antivirus engines may sometimes report a false positive. Before installation, the app verifies supported packages with SHA256 integrity checks. The release channel will be Authenticode-signed; beta builds may be unsigned.",
+      "UnsignedNote": "This build may be unsigned Authenticode (especially on the beta channel). That does not mean the file came from outside the official SUSModder pipeline."
+    },
+    "Security": {
+      "DownloadHashMismatch": "The downloaded mod file SHA256 checksum does not match the expected value. Installation was blocked and the suspect file was deleted.",
+      "DownloadHashMissing": "The backend did not provide a SHA256 checksum for this file. Installation continues with reduced integrity assurance.",
+      "ToolHashMismatch": "The downloaded tool checksum (e.g. legendary) does not match the pinned value. The file was rejected.",
+      "ToolDownloadFailed": "Failed to download a required external tool.",
+      "ArtifactVerificationFailed": "Artifact integrity verification failed."
     },
     "PostInstallSuccess": {
       "Title": "Mod installed",
@@ -1200,6 +1210,13 @@
     "DllUpdateFailedTitle": "Update error",
     "DllUpdateError": "Error updating {0}: {1}",
     "DllCheckError": "Error checking DLL updates: {0}",
+    "FullMod": {
+      "RestoringDllAddons": "Restoring {0} DLL addons...",
+      "DllRestorePartialSuccess": "Mod updated, but some DLL addons need attention: restored {0}, skipped {1}, failed {2}.",
+      "DllRestoreFailed": "Failed to restore DLL addon: {0}",
+      "DllRestoreSkippedMissingCatalog": "DLL addon is no longer available in the catalog: {0}",
+      "DllRestoreSummary": "DLL restore: restored {0}, skipped {1}, failed {2}."
+    },
     "DownloadingAndInstalling": "Downloading and installing...",
     "ErrorInMod": "Error in {0}",
     "NewVersionAvailable": "New version available!",
@@ -1470,9 +1487,13 @@
       "NameRequired": "Enter a name for the custom main mod from GitHub.",
       "VersionLabel": "Version/tag",
       "VersionPlaceholder": "e.g. v5.5.0",
+      "AmongVersionLabel": "Among Us version",
+      "AmongVersionPlaceholder": "Select the game version for the overlay",
+      "AmongVersionRequired": "Select the Among Us version this custom main mod targets.",
+      "AmongVersionLoadFailed": "Failed to load Among Us versions. Check your connection and try again.",
       "UrlLabel": "GitHub release asset URL (ZIP overlay)",
       "UrlPlaceholder": "https://github.com/owner/repo/releases/download/tag/ModOverlay.zip",
-      "GitHubOnlyWarning": "Enter a public GitHub release asset link to a ZIP overlay. SUSModder does not download it directly on the user machine — the backend downloads the artifact, validates the structure (BepInEx, doorstop), and runs a VirusTotal scan.",
+      "GitHubOnlyWarning": "Enter a public GitHub release asset link to a ZIP overlay. SUSModder does not download it directly on the user machine — the backend downloads the artifact, validates the structure (BepInEx, doorstop), and runs a VirusTotal scan. You must also select the Among Us version the overlay is built for.",
       "ReleaseAssetRequired": "The link must point to a public GitHub release asset (`/releases/download/...`).",
       "UrlRequired": "Enter a GitHub release asset URL for the custom main mod.",
       "Declaring": "Submitting main mod from GitHub for validation…",
@@ -1521,6 +1542,7 @@
     "TitleFailure": "Launch Diagnostics — problem detected",
     "Progress.Starting": "Launching...",
     "Progress.Observing": "Observing process...",
+    "Progress.WaitingForGame": "Waiting for the game to start (may take a few minutes)...",
     "Summary.ProcessStartFailed": "Failed to start game process.",
     "Summary.ExitedEarly": "Game closed unexpectedly.",
     "Summary.BepInExMissing": "BepInEx logs not found — the mod may not have loaded.",

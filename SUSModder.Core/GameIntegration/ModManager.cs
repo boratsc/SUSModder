@@ -203,6 +203,13 @@ namespace SUSModder.Core.GameIntegration
             Directory.CreateDirectory(modFolderPath);
 
             // Vanilla: domyślnie paczka 7z; DepotDownloader opcjonalnie (user_settings.prefer_depot_downloader)
+            if (string.IsNullOrWhiteSpace(modConfig.AmongVersion))
+            {
+                log.Write("[Vanilla] AmongVersion jest puste — przerywam instalację.");
+                return ModInstallResult.Failed(
+                    "Brak wersji Among Us dla tego moda. Każdy full mod musi być sparowany z wersją gry.");
+            }
+
             log.Write($"[Vanilla] Wersja Among Us: {modConfig.AmongVersion}");
             var vanillaResult = await _steamVanillaProvider.AcquireAsync(
                 modConfig.AmongVersion,
@@ -361,8 +368,13 @@ namespace SUSModder.Core.GameIntegration
             Directory.CreateDirectory(tempDir);
 
             string modFile = Path.Combine(tempDir, "mod.dll");
-            string downloadUrl = await ModDownloadUrlBuilder.ResolveAsync(modConfig, mode);
+            var downloadResolution = await ModDownloadUrlBuilder.ResolveWithHashAsync(modConfig, mode);
+            string downloadUrl = downloadResolution.Url;
             log.Write($"[CDN] URL pobierania DLL moda ({mode}): {downloadUrl}");
+            if (!string.IsNullOrWhiteSpace(downloadResolution.ExpectedSha256))
+                log.Write($"[CDN] Expected SHA256: {downloadResolution.ExpectedSha256}");
+            else
+                log.Write($"[CDN] WARNING: brak SHA256 dla DLL — kontynuuję ({DownloadVerificationCodes.HashMissing}).");
 
             try
             {
@@ -382,8 +394,34 @@ namespace SUSModder.Core.GameIntegration
 
                         using var response = await client.GetAsync(downloadUrl);
                         response.EnsureSuccessStatusCode();
+
+                        var headerSha256 = response.Headers.TryGetValues("X-SUSModder-SHA256", out var shaValues)
+                            ? shaValues.FirstOrDefault()?.Trim().ToLowerInvariant()
+                            : null;
+                        var expectedHash = Sha256Verifier.IsWellFormedHash(downloadResolution.ExpectedSha256)
+                            ? downloadResolution.ExpectedSha256!.Trim().ToLowerInvariant()
+                            : (Sha256Verifier.IsWellFormedHash(headerSha256) ? headerSha256 : null);
+
                         using var fs = new FileStream(modFile, FileMode.Create, FileAccess.Write);
                         await response.Content.CopyToAsync(fs);
+                        await fs.FlushAsync();
+                        fs.Close();
+
+                        if (!string.IsNullOrWhiteSpace(expectedHash))
+                        {
+                            progress.Report(40, "Weryfikacja sumy kontrolnej...");
+                            var actualHash = await Sha256Verifier.ComputeFileHexAsync(modFile);
+                            if (!string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase))
+                            {
+                                log.Write($"[ERROR] SHA256 mismatch DLL: expected {expectedHash}, got {actualHash}");
+                                try { File.Delete(modFile); } catch { /* best effort */ }
+                                if (userCallbacks.ShowErrorAsync != null)
+                                    await userCallbacks.ShowErrorAsync(DownloadVerificationCodes.HashMismatch, "Błąd");
+                                return;
+                            }
+
+                            log.Write($"SHA256 OK dla DLL '{modConfig.ModName}'");
+                        }
                     }
                 }
                 catch (Exception ex)

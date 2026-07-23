@@ -44,4 +44,57 @@ public static class Sha256Verifier
             return false;
         }
     }
+
+    /// <summary>
+    /// Verifies file SHA256. Returns false for missing/malformed expected hash or mismatch.
+    /// On mismatch, deletes <paramref name="filePath"/> when <paramref name="deleteOnMismatch"/> is true.
+    /// </summary>
+    public static async Task<bool> VerifyFileAsync(
+        string filePath,
+        string? expectedSha256,
+        bool deleteOnMismatch = true,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(expectedSha256))
+            return false;
+
+        var normalizedExpected = expectedSha256.Trim().ToLowerInvariant();
+        if (normalizedExpected.Length != 64)
+            return false;
+
+        if (!File.Exists(filePath))
+            return false;
+
+        var actualHash = await ComputeFileHexAsync(filePath, ct);
+        if (string.Equals(actualHash, normalizedExpected, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (deleteOnMismatch)
+        {
+            try { File.Delete(filePath); } catch { /* best effort */ }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// True when expected hash is present and well-formed (64 hex chars).
+    /// </summary>
+    public static bool IsWellFormedHash(string? expectedSha256)
+    {
+        if (string.IsNullOrWhiteSpace(expectedSha256))
+            return false;
+        var normalized = expectedSha256.Trim();
+        if (normalized.Length != 64)
+            return false;
+        foreach (var c in normalized)
+        {
+            var isHex = (c >= '0' && c <= '9')
+                || (c >= 'a' && c <= 'f')
+                || (c >= 'A' && c <= 'F');
+            if (!isHex)
+                return false;
+        }
+        return true;
+    }
 }

@@ -101,6 +101,8 @@ function Build-Channel {
         throw "Publish failed"
     }
 
+    & (Join-Path $PSScriptRoot "Assert-NotSingleFile.ps1") -PublishDir $PublishDir
+
     Write-Host "  OK: Published" -ForegroundColor Green
     Write-Host ""
 

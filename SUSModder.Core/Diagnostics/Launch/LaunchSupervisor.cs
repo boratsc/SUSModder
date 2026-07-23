@@ -13,7 +13,19 @@ namespace SUSModder.Core.Diagnostics.Launch;
 /// </summary>
 public abstract class LaunchSupervisor : ILaunchSupervisor
 {
-    private static readonly TimeSpan DefaultObservationWindow = TimeSpan.FromSeconds(30);
+    /// <summary>Domyślne okno stabilności procesu po starcie (Steam).</summary>
+    protected static readonly TimeSpan DefaultObservationWindow = TimeSpan.FromSeconds(60);
+
+    /// <summary>Górny limit oczekiwania na pojawienie się procesu (Epic cold-start / wolny Unity).</summary>
+    protected static readonly TimeSpan ExtendedProcessAppearTimeout = TimeSpan.FromMinutes(15);
+
+    /// <summary>Tolerancja na restart bootstrappera Unity/BepInEx.</summary>
+    protected static readonly TimeSpan DefaultRestartGrace = TimeSpan.FromSeconds(20);
+
+    /// <summary>
+    /// Grace po zakończeniu Legendary launch — gra (Unity) często startuje dopiero po wyjściu CLI.
+    /// </summary>
+    private static readonly TimeSpan PostLaunchAbortGrace = TimeSpan.FromMinutes(3);
 
     public async Task<LaunchResult> LaunchAndObserveAsync(
         LaunchContext context,
@@ -67,7 +79,7 @@ public abstract class LaunchSupervisor : ILaunchSupervisor
 
             attempt.ProcessId = process.Id;
 
-            // 4. Obserwuj proces
+            // 4. Obserwuj proces (z tolerancją na restart Unity/BepInEx)
             var exitedEarly = await ObserveProcessAsync(process, window, cancellationToken);
 
             attempt.ElapsedMs = (long)(DateTimeOffset.UtcNow - attempt.StartedAtUtc).TotalMilliseconds;
@@ -80,19 +92,7 @@ public abstract class LaunchSupervisor : ILaunchSupervisor
                 result.Severity = DiagnosisSeverity.Critical;
             }
 
-            // 5. Zbierz logi BepInEx
-            await CollectBepInExLogsAsync(attempt, result, cancellationToken);
-
-            // 6. Zbierz snapshot pluginów
-            CollectPluginSnapshot(attempt, result);
-
-            // 7. Best-effort: Windows Defender korelacja
-            CollectWindowsSecurityEvents(attempt, result);
-
-            // 8. Klasyfikacja końcowa
-            ClassifyResult(result, exitedEarly);
-
-            result.IsSuccessful = result.Severity < DiagnosisSeverity.Critical;
+            await FinalizeObservationAsync(attempt, result, exitedEarly, cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -102,6 +102,138 @@ public abstract class LaunchSupervisor : ILaunchSupervisor
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Nadzoruje zewnętrzny launch (np. Legendary), który sam startuje grę.
+    /// <paramref name="launchAction"/> działa równolegle z oczekiwaniem na proces Among Us —
+    /// krytyczne, bo Legendary często blokuje aż do zamknięcia gry.
+    /// </summary>
+    public async Task<LaunchResult> ObserveExternalLaunchAsync(
+        LaunchContext context,
+        Func<CancellationToken, Task> launchAction,
+        TimeSpan? processAppearTimeout = null,
+        TimeSpan? observationWindow = null,
+        CancellationToken cancellationToken = default)
+    {
+        // Przy Epic cold-start (instalacja + pierwszy boot Unity) 5 min bywa za mało,
+        // ale gdy Legendary już wrócił z błędem — nie czekamy pełnego extended timeout.
+        var appearTimeout = processAppearTimeout ?? ExtendedProcessAppearTimeout;
+        var window = observationWindow ?? DefaultObservationWindow;
+
+        var attempt = new LaunchAttempt
+        {
+            ModId = context.ModId,
+            ModName = context.ModName,
+            ModType = context.ModType,
+            PlatformMode = context.PlatformMode,
+            InstallPath = context.InstallPath,
+            ExePath = context.ExePath,
+            StartedAtUtc = DateTimeOffset.UtcNow
+        };
+
+        var result = new LaunchResult { Attempt = attempt };
+
+        try
+        {
+            await OnBeforeLaunchAsync(context, cancellationToken);
+
+            // Bez Task.Run — ten sam model co wcześniej (kontynuacje po await na wywołującym kontekście).
+            // Task.Run + abort-on-complete przy wyjątku w GetLastLaunchId zabijał cały flow Epic.
+            var launchTask = launchAction(cancellationToken);
+
+            var (found, exitedEarly, processId) = await GameProcessObserver.WaitAndObserveAsync(
+                GameProcessObserver.DefaultProcessName,
+                context.ExePath,
+                appearTimeout,
+                window,
+                DefaultRestartGrace,
+                abortAppearWhenCompleted: launchTask,
+                postAbortGrace: PostLaunchAbortGrace,
+                cancellationToken);
+
+            attempt.ProcessId = processId;
+            attempt.ElapsedMs = (long)(DateTimeOffset.UtcNow - attempt.StartedAtUtc).TotalMilliseconds;
+
+            // Jeśli Legendary/launch padł zanim gra wystartowała — preferuj ten błąd.
+            if (launchTask.IsCompleted)
+            {
+                try
+                {
+                    await launchTask;
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    if (!found)
+                    {
+                        result.DiagnosisCodes.Add(DiagnosisCode.ProcessStartFailed);
+                        result.Severity = DiagnosisSeverity.Critical;
+                        result.TechnicalSummary = $"External launch failed: {ex.Message}";
+                        result.IsSuccessful = false;
+                        return result;
+                    }
+                }
+            }
+
+            if (!found)
+            {
+                result.DiagnosisCodes.Add(DiagnosisCode.ProcessStartFailed);
+                result.Severity = DiagnosisSeverity.Critical;
+                result.TechnicalSummary =
+                    $"Game process did not appear within {appearTimeout.TotalMinutes:0} minutes.";
+                result.IsSuccessful = false;
+                return result;
+            }
+
+            if (exitedEarly)
+            {
+                attempt.ExitedWithinObservationWindow = true;
+                result.DiagnosisCodes.Add(DiagnosisCode.ProcessExitedEarly);
+                result.Severity = DiagnosisSeverity.Critical;
+            }
+
+            await FinalizeObservationAsync(attempt, result, exitedEarly, cancellationToken);
+
+            // Nie czekamy na launchTask — Legendary często blokuje do zamknięcia gry.
+            _ = launchTask.ContinueWith(
+                t =>
+                {
+                    if (t.IsFaulted && t.Exception != null)
+                        Debug.WriteLine($"[LaunchSupervisor] Background launch faulted: {t.Exception.GetBaseException().Message}");
+                },
+                TaskScheduler.Default);
+        }
+        catch (OperationCanceledException)
+        {
+            result.DiagnosisCodes.Add(DiagnosisCode.Unknown);
+            result.Severity = DiagnosisSeverity.Warning;
+            result.TechnicalSummary = "Launch observation was cancelled.";
+        }
+
+        return result;
+    }
+
+    private async Task FinalizeObservationAsync(
+        LaunchAttempt attempt,
+        LaunchResult result,
+        bool exitedEarly,
+        CancellationToken cancellationToken)
+    {
+        // Vanilla nie ma BepInEx — pomiń diagnostykę logów.
+        var isVanilla = string.Equals(attempt.ModType, "Vanilla", StringComparison.OrdinalIgnoreCase)
+                        || (attempt.ModId == 0 && string.Equals(attempt.ModName, "AmongUs", StringComparison.OrdinalIgnoreCase));
+
+        if (!isVanilla)
+            await CollectBepInExLogsAsync(attempt, result, cancellationToken);
+
+        CollectPluginSnapshot(attempt, result);
+        CollectWindowsSecurityEvents(attempt, result);
+        ClassifyResult(result, exitedEarly);
+        result.IsSuccessful = result.Severity < DiagnosisSeverity.Critical;
     }
 
     /// <summary>
@@ -116,25 +248,20 @@ public abstract class LaunchSupervisor : ILaunchSupervisor
 
     /// <summary>
     /// Obserwuje proces przez observationWindow. Zwraca true jeśli proces wyszedł przedwcześnie.
+    /// Toleruje krótki restart bootstrappera Unity/BepInEx.
     /// </summary>
-    protected virtual async Task<bool> ObserveProcessAsync(
+    protected virtual Task<bool> ObserveProcessAsync(
         Process process,
         TimeSpan window,
         CancellationToken ct)
     {
-        try
-        {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            cts.CancelAfter(window);
-
-            await process.WaitForExitAsync(cts.Token);
-            return true; // proces wyszedł w oknie obserwacji
-        }
-        catch (OperationCanceledException)
-        {
-            // Proces nadal działa po oknie – to normalne
-            return false;
-        }
+        return GameProcessObserver.ObserveWithRestartGraceAsync(
+            process,
+            GameProcessObserver.DefaultProcessName,
+            exePathHint: null,
+            window,
+            DefaultRestartGrace,
+            ct);
     }
 
     /// <summary>

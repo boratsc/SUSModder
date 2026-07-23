@@ -28,7 +28,8 @@ internal static class ModPackCreateRequestSerializer
             IncludeIntegrationDll = request.IncludeIntegrationDll,
             TtlDays = request.TtlDays,
             DllMods = request.DllMods,
-            TouConfig = request.TouConfig
+            TouConfig = request.TouConfig,
+            Metadata = request.Metadata
         };
 
         return JsonSerializer.Serialize(payload, JsonOptions);
@@ -46,5 +47,6 @@ internal static class ModPackCreateRequestSerializer
         public int TtlDays { get; set; } = 30;
         public IReadOnlyList<ModPackDllModRequest> DllMods { get; set; } = Array.Empty<ModPackDllModRequest>();
         public JsonElement? TouConfig { get; set; }
+        public JsonElement? Metadata { get; set; }
     }
 }

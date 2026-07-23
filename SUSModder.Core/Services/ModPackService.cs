@@ -885,8 +885,19 @@ namespace SUSModder.Core.Services
             pack.CustomArtifacts = ParseCustomArtifacts(el);
             pack.CustomFullMod = FindCustomFullArtifact(pack.CustomArtifacts);
 
+            if (el.TryGetProperty("metadata", out var metadata) && metadata.ValueKind == JsonValueKind.Object)
+                pack.Metadata = metadata.Clone();
+
             if (TryGetProperty(el, "touConfig", "tou_config", out var tou))
                 pack.TouConfig = tou.Clone();
+
+            // Fallback: amongVersion z metadata paczki, gdy artefakt nie zwraca pola (stary backend).
+            if (pack.CustomFullMod != null &&
+                string.IsNullOrWhiteSpace(pack.CustomFullMod.AmongVersion) &&
+                TryReadAmongVersionFromMetadata(pack.Metadata, out var metaAmong))
+            {
+                pack.CustomFullMod.AmongVersion = metaAmong;
+            }
 
             return pack;
         }
@@ -912,6 +923,7 @@ namespace SUSModder.Core.Services
                 ModType = GetString(item, "modType", "mod_type") ?? "dll",
                 DisplayName = GetString(item, "displayName", "display_name", "fileName", "file_name") ?? string.Empty,
                 Version = GetString(item, "version"),
+                AmongVersion = GetString(item, "amongVersion", "among_version"),
                 OriginalSourceUrl = GetString(item, "originalSourceUrl", "original_source_url", "githubUrl", "github_url"),
                 FileName = GetString(item, "fileName", "file_name") ?? string.Empty,
                 Sha256 = GetString(item, "sha256", "fileSha256", "file_sha256") ?? string.Empty,
@@ -1121,6 +1133,20 @@ namespace SUSModder.Core.Services
             if (el.TryGetProperty(name2, out value)) return true;
             value = default;
             return false;
+        }
+
+        internal static bool TryReadAmongVersionFromMetadata(JsonElement? metadata, out string amongVersion)
+        {
+            amongVersion = string.Empty;
+            if (metadata is not { ValueKind: JsonValueKind.Object } meta)
+                return false;
+
+            var value = GetString(meta, "amongVersion", "among_version");
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            amongVersion = value.Trim();
+            return true;
         }
 
         private static string? GetString(JsonElement el, params string[] names)

@@ -44,6 +44,7 @@ namespace SUSModder.ViewModels
         private string _antivirusWarningRecommendation = string.Empty;
         private string _antivirusWarningProductsHeader = string.Empty;
         private string _antivirusWarningCheckboxText = string.Empty;
+        private string _antivirusWarningSecurityNote = string.Empty;
         private bool _isAntivirusWarningAcknowledged;
 
         public ObservableCollection<string> AntivirusWarningProducts { get; } = new();
@@ -88,6 +89,12 @@ namespace SUSModder.ViewModels
         {
             get => _antivirusWarningCheckboxText;
             private set => this.RaiseAndSetIfChanged(ref _antivirusWarningCheckboxText, value);
+        }
+
+        public string AntivirusWarningSecurityNote
+        {
+            get => _antivirusWarningSecurityNote;
+            private set => this.RaiseAndSetIfChanged(ref _antivirusWarningSecurityNote, value);
         }
 
         public bool IsAntivirusWarningAcknowledged
@@ -223,6 +230,10 @@ namespace SUSModder.ViewModels
                             _localizationService.Get("Dialogs.AntivirusWarning.SingleRecommendation"),
                             modsInstallPath);
                     AntivirusWarningCheckboxText = _localizationService.Get("Dialogs.AntivirusWarning.Acknowledge");
+                    AntivirusWarningSecurityNote =
+                        _localizationService.Get("Dialogs.AntivirusWarning.SecurityBody")
+                        + Environment.NewLine + Environment.NewLine
+                        + _localizationService.Get("Dialogs.AntivirusWarning.UnsignedNote");
                     IsAntivirusWarningAcknowledged = false;
 
                     AntivirusWarningProducts.Clear();

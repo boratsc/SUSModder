@@ -17,7 +17,8 @@ param(
     [switch]$SkipLegacy,
     [switch]$SkipRelease,
     [switch]$SkipBeta,
-    [switch]$DryRun
+    [switch]$DryRun,
+    [switch]$Force
 )
 
 $ErrorActionPreference = "Stop"
@@ -301,6 +302,9 @@ Write-Host ""
 
 if ($DryRun) {
     Write-Host "DRY RUN MODE - No files will be uploaded" -ForegroundColor Yellow
+    Write-Host ""
+} elseif ($Force) {
+    Write-Host "FORCE MODE - Skipping interactive confirmation" -ForegroundColor Yellow
     Write-Host ""
 } else {
     $confirmation = Read-Host "Continue with upload? (Y/n)"

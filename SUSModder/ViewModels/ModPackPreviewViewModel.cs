@@ -205,6 +205,8 @@ public sealed class ModPackPreviewViewModel : ViewModelBase
             var cf = _pack.CustomFullMod!;
             var name = string.IsNullOrWhiteSpace(cf.DisplayName) ? cf.FileName : cf.DisplayName;
             sb.AppendLine($"{_loc.Get("ModPacks.FullModLabel")}: {name} ({_loc.Get("ModPacks.CustomFull.Title")}, {cf.Status})");
+            if (!string.IsNullOrWhiteSpace(cf.AmongVersion))
+                sb.AppendLine($"{_loc.Get("ModPacks.CustomFull.AmongVersionLabel")}: {cf.AmongVersion}");
         }
 
         sb.AppendLine(_loc.GetFormatted("ModPacks.PlatformVariantLabel", platform));
