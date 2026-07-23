@@ -185,14 +185,37 @@ jobs:
           }
 
           $keyPath = Join-Path $env:RUNNER_TEMP "deploy_key"
-          # Normalize newlines for OpenSSH on Windows
-          $keyNormalized = $env:DEPLOY_SSH_PRIVATE_KEY -replace "`r`n", "`n" -replace "`r", "`n"
-          if (-not $keyNormalized.EndsWith("`n")) { $keyNormalized += "`n" }
-          [System.IO.File]::WriteAllText($keyPath, $keyNormalized, [System.Text.UTF8Encoding]::new($false))
+          $raw = $env:DEPLOY_SSH_PRIVATE_KEY.Trim()
 
-          # Restrict ACL: "$env:USERNAME:(R)" is invalid PowerShell parse — use ${}
+          # Prefer Base64 secret (reliable in GitHub Actions). Also accept PEM with real or literal \n.
+          if ($raw -notmatch '-----BEGIN') {
+            try {
+              $pem = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($raw))
+            } catch {
+              throw "DEPLOY_SSH_PRIVATE_KEY is neither PEM nor valid Base64. Paste Base64 of the private key file."
+            }
+          } else {
+            $pem = $raw -replace '\\n', "`n"
+          }
+
+          $pem = $pem -replace "`r`n", "`n" -replace "`r", "`n"
+          if (-not $pem.EndsWith("`n")) { $pem += "`n" }
+
+          if ($pem -notmatch '-----BEGIN OPENSSH PRIVATE KEY-----' -or $pem -notmatch '-----END OPENSSH PRIVATE KEY-----') {
+            throw "Decoded SSH key missing OpenSSH BEGIN/END markers (invalid format)."
+          }
+
+          [System.IO.File]::WriteAllText($keyPath, $pem, [System.Text.UTF8Encoding]::new($false))
+
           & icacls.exe $keyPath /inheritance:r | Out-Null
           & icacls.exe $keyPath /grant:r "${env:USERNAME}:(R)" | Out-Null
+
+          # Quick local validation without printing key material
+          $probe = & ssh.exe -i $keyPath -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 "${userName}@${hostName}" "echo SSH_OK"
+          if ($LASTEXITCODE -ne 0) {
+            throw "SSH key auth probe failed (exit $LASTEXITCODE). Output: $probe"
+          }
+          Write-Host "SSH probe OK"
 
           # NOTE: do not name this $args — that is an automatic variable and breaks splatting
           $deployArgs = @{
