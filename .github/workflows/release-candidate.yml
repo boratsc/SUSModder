@@ -47,7 +47,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Enforce signing policy
         shell: pwsh
@@ -66,7 +66,7 @@ jobs:
           Write-Host "Channel=$channel SigningMode=$signingMode PublishTarget=${{ github.event.inputs.publishTarget }}"
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
 
@@ -139,7 +139,7 @@ jobs:
 
       - name: Upload temporary workflow artifact
         if: github.event.inputs.publishTarget != 'none'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: susmodder-${{ github.event.inputs.channel }}-${{ github.event.inputs.version }}
           path: ${{ steps.pack.outputs.zip_path }}
@@ -148,7 +148,7 @@ jobs:
 
       - name: Create GitHub Release draft
         if: contains(github.event.inputs.publishTarget, 'github-draft')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.pack.outputs.tag }}
           name: SUSModder ${{ github.event.inputs.version }} (${{ github.event.inputs.channel }})
