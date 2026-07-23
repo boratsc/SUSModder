@@ -173,37 +173,38 @@ jobs:
         env:
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
         shell: pwsh
         run: |
           $channel = "${{ github.event.inputs.channel }}"
           $hostName = if ($env:DEPLOY_HOST) { $env:DEPLOY_HOST } else { "vps-b99a39c3.vps.ovh.net" }
           $userName = if ($env:DEPLOY_USER) { $env:DEPLOY_USER } else { "debian" }
 
-          $keyPath = Join-Path $env:RUNNER_TEMP "deploy_key"
-          $keyRaw = "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}"
-          if ([string]::IsNullOrWhiteSpace($keyRaw)) {
+          if ([string]::IsNullOrWhiteSpace($env:DEPLOY_SSH_PRIVATE_KEY)) {
             throw "DEPLOY_SSH_PRIVATE_KEY secret is required for server publish."
           }
 
+          $keyPath = Join-Path $env:RUNNER_TEMP "deploy_key"
           # Normalize newlines for OpenSSH on Windows
-          $keyNormalized = $keyRaw -replace "`r`n", "`n" -replace "`r", "`n"
-          Set-Content -Path $keyPath -Value $keyNormalized -Encoding ascii -NoNewline
-          icacls $keyPath /inheritance:r | Out-Null
-          icacls $keyPath /grant:r "$env:USERNAME:(R)" | Out-Null
+          $keyNormalized = $env:DEPLOY_SSH_PRIVATE_KEY -replace "`r`n", "`n" -replace "`r", "`n"
+          if (-not $keyNormalized.EndsWith("`n")) { $keyNormalized += "`n" }
+          [System.IO.File]::WriteAllText($keyPath, $keyNormalized, [System.Text.UTF8Encoding]::new($false))
 
-          $skipRelease = $channel -ne "release"
-          $skipBeta = $channel -ne "beta"
+          # Restrict ACL: "$env:USERNAME:(R)" is invalid PowerShell parse — use ${}
+          & icacls.exe $keyPath /inheritance:r | Out-Null
+          & icacls.exe $keyPath /grant:r "${env:USERNAME}:(R)" | Out-Null
 
-          $args = @(
-            "-ReleaseVersion", "${{ github.event.inputs.version }}"
-            "-Server", $hostName
-            "-Username", $userName
-            "-SshKeyPath", $keyPath
-            "-SkipLegacy"
-            "-Force"
-          )
-          if ($skipRelease) { $args += "-SkipRelease" }
-          if ($skipBeta) { $args += "-SkipBeta" }
+          # NOTE: do not name this $args — that is an automatic variable and breaks splatting
+          $deployArgs = @{
+            ReleaseVersion = "${{ github.event.inputs.version }}"
+            Server         = $hostName
+            Username       = $userName
+            SshKeyPath     = $keyPath
+            SkipLegacy     = $true
+            Force          = $true
+            SkipRelease    = ($channel -ne "release")
+            SkipBeta       = ($channel -ne "beta")
+          }
 
-          & .\SKRYPTY\Build\deploy-to-server.ps1 @args
+          & .\SKRYPTY\Build\deploy-to-server.ps1 @deployArgs
           if ($LASTEXITCODE -ne 0) { throw "deploy-to-server.ps1 failed with exit $LASTEXITCODE" }
