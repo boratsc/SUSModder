@@ -1,0 +1,209 @@
+name: Release Candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (e.g. 3.1.0 or 3.1.0-beta)"
+        required: true
+        type: string
+      channel:
+        description: "Velopack channel"
+        required: true
+        type: choice
+        options:
+          - beta
+          - release
+        default: beta
+      publishTarget:
+        description: "Where to publish artifacts"
+        required: true
+        type: choice
+        options:
+          - github-draft+server
+          - github-draft
+          - none
+        default: github-draft+server
+      signingMode:
+        description: "Authenticode signing mode"
+        required: true
+        type: choice
+        options:
+          - none
+          - signpath
+        default: none
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-candidate-${{ github.event.inputs.channel }}
+  cancel-in-progress: false
+
+jobs:
+  build-pack-publish:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enforce signing policy
+        shell: pwsh
+        run: |
+          $channel = "${{ github.event.inputs.channel }}"
+          $signingMode = "${{ github.event.inputs.signingMode }}"
+
+          if ($channel -eq "beta" -and $signingMode -ne "none") {
+            throw "Policy: beta channel must use signingMode=none (unsigned)."
+          }
+
+          if ($signingMode -eq "signpath") {
+            throw "SignPath/OSSign is not wired yet. Use signingMode=none until the SignPath integration sprint."
+          }
+
+          Write-Host "Channel=$channel SigningMode=$signingMode PublishTarget=${{ github.event.inputs.publishTarget }}"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install Velopack CLI
+        shell: pwsh
+        run: |
+          dotnet tool install -g vpk
+          echo "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Generate Secrets.cs
+        env:
+          SUSMODDER_DOWNLOAD_TOKEN: ${{ secrets.SUSMODDER_DOWNLOAD_TOKEN }}
+          SUSMODDER_7Z_PASSWORD: ${{ secrets.SUSMODDER_7Z_PASSWORD }}
+        shell: pwsh
+        run: .\SKRYPTY\Build\generate-secrets.ps1
+
+      - name: Restore / Build / Test
+        shell: pwsh
+        run: |
+          dotnet restore SUSModder.sln
+          dotnet build SUSModder.sln -c Release --no-restore
+          dotnet test SUSModder.Core.Tests/SUSModder.Core.Tests.csproj -c Release --no-build
+
+      - name: Pack single channel (Velopack)
+        id: pack
+        shell: pwsh
+        run: |
+          $channel = "${{ github.event.inputs.channel }}"
+          $version = "${{ github.event.inputs.version }}".Trim()
+          if ([string]::IsNullOrWhiteSpace($version)) { throw "version input is required" }
+
+          if ($channel -eq "beta") {
+            .\SKRYPTY\Build\build-dual-channel.ps1 -Version $version -SkipRelease
+            $releasesDir = Join-Path $PWD "releases-beta"
+          } else {
+            .\SKRYPTY\Build\build-dual-channel.ps1 -Version $version -SkipBeta
+            $releasesDir = Join-Path $PWD "releases-release"
+          }
+
+          if (-not (Test-Path $releasesDir)) { throw "Missing releases dir: $releasesDir" }
+
+          # publish-dual-channel temp dirs are cleaned after pack; inspect release EXEs instead.
+          Write-Host "=== Authenticode status ==="
+          $peFiles = @(Get-ChildItem -Path $releasesDir -Filter "*.exe" -File -ErrorAction SilentlyContinue)
+          if ($peFiles.Count -eq 0) {
+            Write-Host "WARNING: No EXE files found for Authenticode log in $releasesDir"
+          } else {
+            foreach ($pe in $peFiles) {
+              Write-Host "--- $($pe.Name) ---"
+              Get-AuthenticodeSignature $pe.FullName | Format-List Status, StatusMessage, SignerCertificate | Out-String | Write-Host
+            }
+          }
+
+          $hashes = @()
+          Get-ChildItem $releasesDir -File | ForEach-Object {
+            $sha = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            $hashes += "$sha  $($_.Name)"
+            Write-Host "$($_.Name): $sha"
+          }
+          $hashesPath = Join-Path $releasesDir "SHA256SUMS.txt"
+          Set-Content -Path $hashesPath -Value ($hashes -join "`n") -Encoding UTF8
+
+          $zipPath = Join-Path $PWD "SUSModder-$version-$channel-velopack.zip"
+          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+          Compress-Archive -Path (Get-ChildItem -Path $releasesDir -File | ForEach-Object FullName) -DestinationPath $zipPath -Force
+
+          "releases_dir=$releasesDir" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "zip_path=$zipPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "tag=v$version-$channel" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Upload temporary workflow artifact
+        if: github.event.inputs.publishTarget != 'none'
+        uses: actions/upload-artifact@v4
+        with:
+          name: susmodder-${{ github.event.inputs.channel }}-${{ github.event.inputs.version }}
+          path: ${{ steps.pack.outputs.zip_path }}
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Create GitHub Release draft
+        if: contains(github.event.inputs.publishTarget, 'github-draft')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.pack.outputs.tag }}
+          name: SUSModder ${{ github.event.inputs.version }} (${{ github.event.inputs.channel }})
+          draft: true
+          prerelease: ${{ github.event.inputs.channel == 'beta' }}
+          body: |
+            ## Signing / provenance
+            - Channel: `${{ github.event.inputs.channel }}`
+            - Authenticode: **unsigned** (expected for beta; SignPath pending for release)
+            - Built by: GitHub Actions `${{ github.workflow }}` @ `${{ github.sha }}`
+
+            ## Notes
+            - Velopack unpacked publish (`PublishSingleFile=false`)
+            - See `SHA256SUMS.txt` in assets for integrity hashes
+          files: |
+            ${{ steps.pack.outputs.releases_dir }}/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy to susmodder.app
+        if: contains(github.event.inputs.publishTarget, 'server')
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        shell: pwsh
+        run: |
+          $channel = "${{ github.event.inputs.channel }}"
+          $hostName = if ($env:DEPLOY_HOST) { $env:DEPLOY_HOST } else { "vps-b99a39c3.vps.ovh.net" }
+          $userName = if ($env:DEPLOY_USER) { $env:DEPLOY_USER } else { "debian" }
+
+          $keyPath = Join-Path $env:RUNNER_TEMP "deploy_key"
+          $keyRaw = "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}"
+          if ([string]::IsNullOrWhiteSpace($keyRaw)) {
+            throw "DEPLOY_SSH_PRIVATE_KEY secret is required for server publish."
+          }
+
+          # Normalize newlines for OpenSSH on Windows
+          $keyNormalized = $keyRaw -replace "`r`n", "`n" -replace "`r", "`n"
+          Set-Content -Path $keyPath -Value $keyNormalized -Encoding ascii -NoNewline
+          icacls $keyPath /inheritance:r | Out-Null
+          icacls $keyPath /grant:r "$env:USERNAME:(R)" | Out-Null
+
+          $skipRelease = $channel -ne "release"
+          $skipBeta = $channel -ne "beta"
+
+          $args = @(
+            "-ReleaseVersion", "${{ github.event.inputs.version }}"
+            "-Server", $hostName
+            "-Username", $userName
+            "-SshKeyPath", $keyPath
+            "-SkipLegacy"
+            "-Force"
+          )
+          if ($skipRelease) { $args += "-SkipRelease" }
+          if ($skipBeta) { $args += "-SkipBeta" }
+
+          & .\SKRYPTY\Build\deploy-to-server.ps1 @args
+          if ($LASTEXITCODE -ne 0) { throw "deploy-to-server.ps1 failed with exit $LASTEXITCODE" }
