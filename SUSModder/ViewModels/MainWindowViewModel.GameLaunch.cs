@@ -209,63 +209,145 @@ namespace SUSModder.ViewModels
                 );
             };
 
-            // Wywołujemy Epic
-            await epicManager.HandleEpicGameAsync(modConfig);
-
-            // Po zakończeniu Legendary flow, zbierz diagnostykę BepInEx
-            if (modConfig.InstallPath != null)
+            if (string.IsNullOrEmpty(modConfig.InstallPath))
             {
-                var context = new LaunchContext
+                currentSelectedMod.InstallStatusMessage = _localizationService.Get("GameLaunch.NoInstallPath");
+                return;
+            }
+
+            string actualModPath = PathSettings.GetActualModPath(modConfig.InstallPath);
+            string exePath = Path.Combine(actualModPath, "Among Us.exe");
+
+            var context = new LaunchContext
+            {
+                ModId = modConfig.Id,
+                ModName = modConfig.ModName ?? currentSelectedMod.Name,
+                ModType = modConfig.ModType ?? "full",
+                PlatformMode = "epic",
+                InstallPath = modConfig.InstallPath,
+                ExePath = exePath,
+                WasRunAsAdmin = false
+            };
+
+            currentSelectedMod.InstallProgress = 15;
+            currentSelectedMod.InstallStatusMessage = _localizationService.Get("LaunchDiagnostics.Progress.Starting");
+
+            try
+            {
+                // 1) Najpierw Legendary: auth / import / download / install.
+                // 2) Dopiero sygnał GameLaunchStarting → start obserwacji Among Us.exe.
+                var launchStarting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                epicManager.GameLaunchStarting += () => launchStarting.TrySetResult();
+
+                var launchTask = epicManager.HandleEpicGameAsync(modConfig);
+
+                var prepareFinished = await Task.WhenAny(launchStarting.Task, launchTask);
+                if (prepareFinished == launchTask && !launchStarting.Task.IsCompleted)
                 {
-                    ModId = modConfig.Id,
-                    ModName = modConfig.ModName ?? currentSelectedMod.Name,
-                    ModType = modConfig.ModType ?? "full",
-                    PlatformMode = "epic",
-                    InstallPath = modConfig.InstallPath,
-                    ExePath = Path.Combine(PathSettings.GetActualModPath(modConfig.InstallPath), "Among Us.exe"),
-                    WasRunAsAdmin = false
-                };
+                    // Flow zakończył się bez legendary launch (błąd / early return).
+                    try
+                    {
+                        await launchTask;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[Launch Epic] Prepare failed: {ex.Message}");
+                    }
 
-                // Stwórz attempt i result bez LaunchAndObserveAsync (bo proces już prowadzony przez Legendary)
-                var attempt = new SUSModder.Core.Diagnostics.Launch.LaunchAttempt
-                {
-                    ModId = context.ModId,
-                    ModName = context.ModName,
-                    ModType = context.ModType,
-                    PlatformMode = context.PlatformMode,
-                    InstallPath = context.InstallPath,
-                    ExePath = context.ExePath,
-                    StartedAtUtc = DateTimeOffset.UtcNow
-                };
+                    var failed = new LaunchResult
+                    {
+                        Attempt = new LaunchAttempt
+                        {
+                            ModId = context.ModId,
+                            ModName = context.ModName,
+                            ModType = context.ModType,
+                            PlatformMode = context.PlatformMode,
+                            InstallPath = context.InstallPath,
+                            ExePath = context.ExePath,
+                            StartedAtUtc = DateTimeOffset.UtcNow
+                        },
+                        DiagnosisCodes = { DiagnosisCode.ProcessStartFailed },
+                        Severity = DiagnosisSeverity.Critical,
+                        IsSuccessful = false,
+                        TechnicalSummary = legendaryErrorDetected
+                            ? "Epic/Legendary launch error detected."
+                            : "Epic prepare/install finished without starting the game."
+                    };
 
-                var result = new SUSModder.Core.Diagnostics.Launch.LaunchResult { Attempt = attempt };
+                    _lastLaunchResult = failed;
+                    currentSelectedMod.InstallProgress = 0;
+                    currentSelectedMod.InstallStatusMessage = string.Empty;
+                    await Dispatcher.UIThread.InvokeAsync(() => ShowLaunchDiagnostics(failed));
+                    return;
+                }
 
-                // Zbierz logi BepInEx – użyj statycznej metody
-                LaunchSupervisor.CollectBepInExDiagnostics(attempt, result);
+                // Legendary zaraz odpala grę — teraz dopiero nasłuchujemy procesu.
+                currentSelectedMod.InstallProgress = 85;
+                currentSelectedMod.InstallStatusMessage =
+                    _localizationService.Get("LaunchDiagnostics.Progress.WaitingForGame");
 
-                // Skopiuj diagnozę z błędów Legendary
+                var supervisor = new EpicLaunchSupervisor();
+                var result = await supervisor.ObserveExternalLaunchAsync(
+                    context,
+                    launchAction: async _ => await launchTask,
+                    processAppearTimeout: TimeSpan.FromMinutes(5),
+                    observationWindow: TimeSpan.FromSeconds(60),
+                    cancellationToken: CancellationToken.None);
+
                 if (legendaryErrorDetected)
                 {
-                    result.DiagnosisCodes.Add(SUSModder.Core.Diagnostics.Launch.DiagnosisCode.ProcessStartFailed);
-                    result.Severity = SUSModder.Core.Diagnostics.Launch.DiagnosisSeverity.Critical;
-                    result.TechnicalSummary = "Epic/Legendary launch error detected.";
+                    result.DiagnosisCodes.Add(DiagnosisCode.ProcessStartFailed);
+                    result.Severity = DiagnosisSeverity.Critical;
+                    result.IsSuccessful = false;
+                    if (string.IsNullOrWhiteSpace(result.TechnicalSummary))
+                        result.TechnicalSummary = "Epic/Legendary launch error detected.";
                 }
 
-                if (result.DiagnosisCodes.Count > 0)
-                {
-                    _lastLaunchResult = result;
-                    await Dispatcher.UIThread.InvokeAsync(() =>
-                    {
-                        currentSelectedMod.InstallProgress = 0;
-                        currentSelectedMod.InstallStatusMessage = string.Empty;
-                        ShowLaunchDiagnostics(result);
-                    });
-                }
-                else
+                _lastLaunchResult = result;
+
+                // Jak Steam: panel tylko przy realnym problemie (Critical), nie przy samym Warning/Stale.
+                if (result.IsSuccessful)
                 {
                     currentSelectedMod.InstallProgress = 100;
                     currentSelectedMod.InstallStatusMessage = _localizationService.Get("GameLaunch.GameStarted");
                 }
+                else
+                {
+                    currentSelectedMod.InstallProgress = 0;
+                    currentSelectedMod.InstallStatusMessage = string.Empty;
+                    await Dispatcher.UIThread.InvokeAsync(() => ShowLaunchDiagnostics(result));
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Launch Epic] Supervisor failed: {ex.Message}");
+
+                var result = new LaunchResult
+                {
+                    Attempt = new LaunchAttempt
+                    {
+                        ModId = context.ModId,
+                        ModName = context.ModName,
+                        ModType = context.ModType,
+                        PlatformMode = context.PlatformMode,
+                        InstallPath = context.InstallPath,
+                        ExePath = context.ExePath
+                    },
+                    DiagnosisCodes = { DiagnosisCode.ProcessStartFailed },
+                    Severity = DiagnosisSeverity.Critical,
+                    TechnicalSummary = legendaryErrorDetected
+                        ? "Epic/Legendary launch error detected."
+                        : ex.Message
+                };
+
+                if (legendaryErrorDetected && !string.IsNullOrEmpty(legendaryErrorContent))
+                    result.TechnicalSummary = "Epic/Legendary launch error detected.";
+
+                _lastLaunchResult = result;
+
+                currentSelectedMod.InstallProgress = 0;
+                currentSelectedMod.InstallStatusMessage = string.Empty;
+                await Dispatcher.UIThread.InvokeAsync(() => ShowLaunchDiagnostics(result));
             }
         }
 
@@ -297,12 +379,12 @@ namespace SUSModder.ViewModels
             try
             {
                 currentSelectedMod.InstallProgress = 50;
-                currentSelectedMod.InstallStatusMessage = _localizationService.Get("LaunchDiagnostics.Progress.Observing");
+                currentSelectedMod.InstallStatusMessage = _localizationService.Get("LaunchDiagnostics.Progress.WaitingForGame");
 
                 var supervisor = new SteamLaunchSupervisor();
                 var result = await supervisor.LaunchAndObserveAsync(
                     context,
-                    observationWindow: TimeSpan.FromSeconds(35),
+                    observationWindow: TimeSpan.FromSeconds(60),
                     cancellationToken: CancellationToken.None);
 
                 _lastLaunchResult = result;

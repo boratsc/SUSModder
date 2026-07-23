@@ -203,6 +203,13 @@ namespace SUSModder.Core.GameIntegration
             Directory.CreateDirectory(modFolderPath);
 
             // Vanilla: domyślnie paczka 7z; DepotDownloader opcjonalnie (user_settings.prefer_depot_downloader)
+            if (string.IsNullOrWhiteSpace(modConfig.AmongVersion))
+            {
+                log.Write("[Vanilla] AmongVersion jest puste — przerywam instalację.");
+                return ModInstallResult.Failed(
+                    "Brak wersji Among Us dla tego moda. Każdy full mod musi być sparowany z wersją gry.");
+            }
+
             log.Write($"[Vanilla] Wersja Among Us: {modConfig.AmongVersion}");
             var vanillaResult = await _steamVanillaProvider.AcquireAsync(
                 modConfig.AmongVersion,

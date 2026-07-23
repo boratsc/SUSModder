@@ -43,4 +43,21 @@ public class ModPackCreateRequestSerializerTests
         Assert.Equal("2.0", dllMods[0].GetProperty("dllModVersion").GetString());
     }
 
+    [Fact]
+    public void ToJson_IncludesMetadata_WhenProvided()
+    {
+        var request = new ModPackCreateRequest
+        {
+            CreatorHash = new string('a', 64),
+            FullModId = 0,
+            FullModVersion = "custom",
+            Metadata = JsonSerializer.SerializeToElement(new { amongVersion = "2024-6-18" })
+        };
+
+        var json = ModPackCreateRequestSerializer.ToJson(request);
+
+        using var doc = JsonDocument.Parse(json);
+        var metadata = doc.RootElement.GetProperty("metadata");
+        Assert.Equal("2024-6-18", metadata.GetProperty("amongVersion").GetString());
+    }
 }

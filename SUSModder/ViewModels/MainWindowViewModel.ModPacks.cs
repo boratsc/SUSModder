@@ -543,6 +543,10 @@ private async Task ShowModPackCreatorDialogAsync(ModPackCreatorMode mode)
 
             "mod_pack_epic_install_failed" => _localizationService.Get("ModPacks.EpicInstallFailed"),
 
+            "custom_full_among_version_missing" => _localizationService.Get("ModPacks.CustomFull.AmongVersionRequired"),
+
+            "custom_full_download_missing" => _localizationService.Get("ModPacks.CustomFull.DeclareFailed"),
+
             var e when e.StartsWith("mod_instance_platform_not_supported", StringComparison.OrdinalIgnoreCase)
 
                 => _localizationService.GetFormatted("ModPacks.PlatformNotSupported", platform),

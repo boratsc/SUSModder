@@ -53,6 +53,11 @@ namespace SUSModder.Core.GameIntegration
         public event Action<ModConfiguration>? InstallationCompleted;
         private StringBuilder _errorLog = new StringBuilder();
         public event Action<string, string>? EpicLaunchError; // ModName, LogContent
+
+        /// <summary>
+        /// Wywoływane tuż przed <c>legendary launch</c> — sygnał do startu obserwacji procesu gry.
+        /// </summary>
+        public event Action? GameLaunchStarting;
         private bool _hasLaunchError = false;
         private bool _isRetryingInstallation = false;
         private int _retryCount = 0;
@@ -80,18 +85,101 @@ namespace SUSModder.Core.GameIntegration
 
         public EpicVersionManager(IDiagnosticsOutput output, IEpicUserInteraction userInteraction)
         {
-            string exeDir = Path.GetDirectoryName(Environment.ProcessPath)!;
+            // BaseDirectory = katalog aplikacji (modów/tooli). ProcessPath przy `dotnet run`
+            // wskazuje na dotnet.exe → C:\Program Files\dotnet\ (brak zapisu).
+            var appDir = ResolveWritableAppDirectory();
+            var logsDir = ResolveWritableLogsDirectory(appDir);
 
             legendaryPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "legendary.exe");
             manifestDirectory = AppDomain.CurrentDomain.BaseDirectory;
             installDirectory = PathSettings.ModsInstallPath;
-            appSettingsFilePath = Path.Combine(exeDir, "appsettings.json");
+            appSettingsFilePath = Path.Combine(appDir, "appsettings.json");
 
-            logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "epic.log.txt");
-            legendaryLogFilePath = Path.Combine(exeDir, "legendary.log.txt");
+            logFilePath = Path.Combine(logsDir, "epic.log.txt");
+            legendaryLogFilePath = Path.Combine(logsDir, "legendary.log.txt");
 
             _output = output;
             _userInteraction = userInteraction;
+        }
+
+        /// <summary>
+        /// Katalog z appsettings / artefaktami aplikacji — nigdy Program Files\dotnet.
+        /// </summary>
+        private static string ResolveWritableAppDirectory()
+        {
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            if (IsUsableAppDirectory(baseDir))
+                return baseDir;
+
+            var appContextDir = AppContext.BaseDirectory;
+            if (IsUsableAppDirectory(appContextDir))
+                return appContextDir;
+
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "SUSModder");
+        }
+
+        private static string ResolveWritableLogsDirectory(string appDir)
+        {
+            // Preferuj %APPDATA%\SUSModder\logs — zawsze zapisywalne (także przy instalacji w Program Files).
+            var appDataLogs = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "SUSModder",
+                "logs");
+
+            try
+            {
+                Directory.CreateDirectory(appDataLogs);
+                return appDataLogs;
+            }
+            catch
+            {
+                // Fallback: obok aplikacji, jeśli się da
+                try
+                {
+                    Directory.CreateDirectory(appDir);
+                    return appDir;
+                }
+                catch
+                {
+                    return Path.GetTempPath();
+                }
+            }
+        }
+
+        private static bool IsUsableAppDirectory(string? directory)
+        {
+            if (string.IsNullOrWhiteSpace(directory))
+                return false;
+
+            try
+            {
+                var full = Path.GetFullPath(directory);
+                // `dotnet run` → ProcessPath/BaseDir potrafi wskazać instalację SDK
+                if (full.Contains($"{Path.DirectorySeparatorChar}dotnet{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
+                    || full.EndsWith($"{Path.DirectorySeparatorChar}dotnet", StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                return Directory.Exists(full);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void AppendLegendaryLog(string line)
+        {
+            try
+            {
+                lock (_fileLock)
+                    File.AppendAllText(legendaryLogFilePath, line + Environment.NewLine);
+            }
+            catch
+            {
+                // Log never blocks / crashes launch
+            }
         }
 
         private void LogToFile(string message)
@@ -1020,6 +1108,7 @@ namespace SUSModder.Core.GameIntegration
 
             string installDirectory;
             int lastLaunchId = GetLastLaunchId();
+            Write($"Epic launch: modId={modConfig.Id}, lastLaunchId={lastLaunchId}, installPath={modConfig.InstallPath}");
 
             if (modConfig.Id == lastLaunchId)
             {
@@ -1445,6 +1534,7 @@ namespace SUSModder.Core.GameIntegration
 
         public async Task LaunchGameAsync()
         {
+            GameLaunchStarting?.Invoke();
             string commandArguments = $"launch {EpicAppId} --skip-version-check";
             await RunLegendaryCommandAsync(commandArguments);
         }
@@ -1479,8 +1569,7 @@ namespace SUSModder.Core.GameIntegration
 
                     ParseAndReportProgress(e.Data);
                     LegendaryOutput?.Invoke(e.Data);
-                    lock (_fileLock)
-                        File.AppendAllText(legendaryLogFilePath, e.Data + Environment.NewLine);
+                    AppendLegendaryLog(e.Data);
                 };
 
                 process.ErrorDataReceived += (s, e) =>
@@ -1494,8 +1583,7 @@ namespace SUSModder.Core.GameIntegration
 
                     var line = "[ERR] " + e.Data;
                     LegendaryOutput?.Invoke(line);
-                    lock (_fileLock)
-                        File.AppendAllText(legendaryLogFilePath, line + Environment.NewLine);
+                    AppendLegendaryLog(line);
                 };
 
                 process.Start();
@@ -1798,27 +1886,105 @@ namespace SUSModder.Core.GameIntegration
 
         private int GetLastLaunchId()
         {
-            var json = File.ReadAllText(appSettingsFilePath);
-            var jsonObj = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(json);
-            if (jsonObj != null && jsonObj.ContainsKey("Configuration") && jsonObj["Configuration"].ContainsKey("lastLaunchId"))
+            try
             {
-                return int.Parse(jsonObj["Configuration"]["lastLaunchId"]?.ToString() ?? "-1");
+                var settings = new UserSettingsService().LoadUserSettings();
+                return settings.LastLaunchId;
             }
+            catch (Exception ex)
+            {
+                Write($"Nie udało się odczytać LastLaunchId z user settings: {ex.Message}");
+            }
+
+            // Legacy fallback: appsettings.json obok exe / BaseDirectory
+            foreach (var path in GetLegacyAppSettingsCandidates())
+            {
+                try
+                {
+                    if (!File.Exists(path))
+                        continue;
+
+                    var json = File.ReadAllText(path);
+                    var jsonObj = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, JsonElement>>>(json);
+                    if (jsonObj != null
+                        && jsonObj.TryGetValue("Configuration", out var config)
+                        && config.TryGetValue("lastLaunchId", out var idElement))
+                    {
+                        if (idElement.ValueKind == JsonValueKind.Number && idElement.TryGetInt32(out var id))
+                            return id;
+                        if (idElement.ValueKind == JsonValueKind.String
+                            && int.TryParse(idElement.GetString(), out var parsed))
+                            return parsed;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Write($"Legacy GetLastLaunchId ({path}) nieudane: {ex.Message}");
+                }
+            }
+
             return -1;
         }
 
         private void SaveLastLaunchId(int id)
         {
-            var json = File.ReadAllText(appSettingsFilePath);
-            var jsonObj = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(json);
-            if (jsonObj != null && jsonObj.ContainsKey("Configuration"))
+            try
             {
-                var config = jsonObj["Configuration"];
-                config["lastLaunchId"] = id;
-                jsonObj["Configuration"] = config;
-                var updatedJson = JsonSerializer.Serialize(jsonObj, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(appSettingsFilePath, updatedJson);
+                var userSettings = new UserSettingsService();
+                userSettings.UpdateUserSetting(s => s.LastLaunchId = id);
             }
+            catch (Exception ex)
+            {
+                Write($"Nie udało się zapisać LastLaunchId do user settings: {ex.Message}");
+            }
+
+            // Legacy: utrzymuj też appsettings jeśli plik istnieje (stare narzędzia/logi)
+            foreach (var path in GetLegacyAppSettingsCandidates())
+            {
+                try
+                {
+                    if (!File.Exists(path))
+                        continue;
+
+                    var json = File.ReadAllText(path);
+                    var jsonObj = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, object>>>(json);
+                    if (jsonObj == null || !jsonObj.ContainsKey("Configuration"))
+                        continue;
+
+                    var config = jsonObj["Configuration"];
+                    config["lastLaunchId"] = id;
+                    jsonObj["Configuration"] = config;
+                    var updatedJson = JsonSerializer.Serialize(jsonObj, new JsonSerializerOptions { WriteIndented = true });
+                    File.WriteAllText(path, updatedJson);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Write($"Legacy SaveLastLaunchId ({path}) nieudane: {ex.Message}");
+                }
+            }
+        }
+
+        private IEnumerable<string> GetLegacyAppSettingsCandidates()
+        {
+            var list = new List<string>();
+            void TryAdd(string? path)
+            {
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+                try { path = Path.GetFullPath(path); }
+                catch { return; }
+                if (list.Exists(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase)))
+                    return;
+                list.Add(path);
+            }
+
+            TryAdd(appSettingsFilePath);
+            TryAdd(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json"));
+            TryAdd(Path.Combine(AppContext.BaseDirectory, "appsettings.json"));
+            // ProcessPath pomijamy gdy to dotnet.exe (Program Files\dotnet)
+
+            return list;
         }
 
         private string GetLegendaryLogContent()

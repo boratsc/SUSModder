@@ -212,6 +212,111 @@ public class ModPackServiceCustomContentTests
         Assert.Equal("modpacks/ABCD-EFGH-JKLM/finalize", requests[1].RelativePath);
     }
 
+    [Fact]
+    public async Task GetPackAsync_ParsesAmongVersion_FromArtifactAndMetadataFallback()
+    {
+        var api = CreateApi(new List<SusModderApiRequest>(), _ => JsonResponse(HttpStatusCode.OK, """
+        {
+          "data": {
+            "packCode": "ABCD-EFGH-JKLM",
+            "status": "ready",
+            "installable": true,
+            "metadata": { "amongVersion": "2025-3-25" },
+            "customArtifacts": [
+              {
+                "artifactId": "full-1",
+                "sourceKind": "github_full",
+                "modType": "full",
+                "displayName": "Custom Full",
+                "version": "1.0",
+                "amongVersion": "2024-6-18",
+                "status": "clean",
+                "downloadUrl": "https://cdn.example/full.zip",
+                "fileName": "full.zip",
+                "sha256": "abc"
+              }
+            ]
+          }
+        }
+        """));
+        var service = CreateService(api.Object);
+
+        var pack = await service.GetPackAsync(PackCode);
+
+        Assert.NotNull(pack);
+        Assert.True(pack!.HasCustomFullMod);
+        Assert.Equal("2024-6-18", pack.CustomFullMod!.AmongVersion);
+        Assert.Equal("2025-3-25", pack.Metadata!.Value.GetProperty("amongVersion").GetString());
+    }
+
+    [Fact]
+    public async Task GetPackAsync_FillsCustomFullAmongVersion_FromMetadataWhenArtifactOmitsIt()
+    {
+        var api = CreateApi(new List<SusModderApiRequest>(), _ => JsonResponse(HttpStatusCode.OK, """
+        {
+          "data": {
+            "packCode": "ABCD-EFGH-JKLM",
+            "status": "ready",
+            "metadata": { "amongVersion": "2025-3-25" },
+            "customArtifacts": [
+              {
+                "artifactId": "full-1",
+                "sourceKind": "github_full",
+                "modType": "full",
+                "displayName": "Custom Full",
+                "status": "clean",
+                "downloadUrl": "https://cdn.example/full.zip",
+                "fileName": "full.zip"
+              }
+            ]
+          }
+        }
+        """));
+        var service = CreateService(api.Object);
+
+        var pack = await service.GetPackAsync(PackCode);
+
+        Assert.NotNull(pack);
+        Assert.Equal("2025-3-25", pack!.CustomFullMod!.AmongVersion);
+    }
+
+    [Fact]
+    public async Task DeclareGitHubCustomModAsync_SendsAmongVersionInPayload()
+    {
+        string? postedBody = null;
+        var api = CreateApi(new List<SusModderApiRequest>(), request =>
+        {
+            postedBody = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            return JsonResponse(HttpStatusCode.Accepted, """
+            {
+              "data": {
+                "customArtifact": {
+                  "artifactId": "gh-full-1",
+                  "sourceKind": "github_full",
+                  "modType": "full",
+                  "amongVersion": "2024-6-18",
+                  "status": "pending"
+                }
+              }
+            }
+            """);
+        });
+        var service = CreateService(api.Object);
+
+        var artifact = await service.DeclareGitHubCustomModAsync(PackCode, new ModPackCustomGithubModRequest
+        {
+            SourceKind = "github_full",
+            ModType = "full",
+            DisplayName = "Custom Full",
+            AmongVersion = "2024-6-18",
+            GithubUrl = "https://github.com/owner/repo/releases/download/v1/mod.zip"
+        });
+
+        Assert.NotNull(artifact);
+        Assert.Equal("2024-6-18", artifact!.AmongVersion);
+        Assert.Contains("\"amongVersion\":\"2024-6-18\"", postedBody);
+    }
+
     private static ModPackService CreateService(ISUSModderApiClient apiClient)
     {
         var config = new ConfigurationBuilder().Build();

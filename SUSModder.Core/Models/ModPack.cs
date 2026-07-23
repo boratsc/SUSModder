@@ -83,6 +83,8 @@ namespace SUSModder.Core.Models
         public string ModType { get; set; } = "dll";
         public string DisplayName { get; set; } = string.Empty;
         public string? Version { get; set; }
+        /// <summary>Wersja Among Us wymagana do instalacji custom full moda (overlay na vanillę).</summary>
+        public string? AmongVersion { get; set; }
         public string? OriginalSourceUrl { get; set; }
         public string FileName { get; set; } = string.Empty;
         public string Sha256 { get; set; } = string.Empty;
@@ -187,6 +189,11 @@ namespace SUSModder.Core.Models
         /// </summary>
         [JsonIgnore]
         public IReadOnlyList<string> ExternalDllFilePaths { get; set; } = Array.Empty<string>();
+
+        /// <summary>
+        /// Opcjonalne metadane paczki (np. amongVersion dla custom full z GitHuba).
+        /// </summary>
+        public JsonElement? Metadata { get; set; }
     }
 
     public sealed class ModPackCustomGithubModRequest
@@ -205,6 +212,10 @@ namespace SUSModder.Core.Models
 
         [JsonPropertyName("version")]
         public string? Version { get; set; }
+
+        /// <summary>Wymagane dla sourceKind=github_full — wersja Among Us pod overlay.</summary>
+        [JsonPropertyName("amongVersion")]
+        public string? AmongVersion { get; set; }
 
         [JsonPropertyName("githubUrl")]
         public string GithubUrl { get; set; } = string.Empty;

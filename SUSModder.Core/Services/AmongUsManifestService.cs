@@ -71,6 +71,28 @@ public sealed class AmongUsManifestService
         return _listCache;
     }
 
+    /// <summary>
+    /// Lista wersji Among Us z API (również bez Steam ManifestId — wystarczy do paczek 7z).
+    /// </summary>
+    public async Task<IReadOnlyList<string>> GetAmongUsVersionValuesAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _apiClient.GetAmongUsVersionsAsync(cancellationToken: ct);
+            return (response.Data ?? [])
+                .Select(dto => AmongUsVersionHelper.NormalizeAmongVersion(
+                    string.IsNullOrWhiteSpace(dto.DbValue) ? dto.Label : dto.DbValue))
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderByDescending(v => v, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        catch
+        {
+            return Array.Empty<string>();
+        }
+    }
+
     private static SteamManifestInfo MapDto(AmongUsVersionDto dto, string amongVersion)
     {
         var resolvedAmong = AmongUsVersionHelper.NormalizeAmongVersion(
