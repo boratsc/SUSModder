@@ -493,7 +493,17 @@
       "Intro": "Mods may not work correctly because installed antivirus software was detected: {0}.",
       "SingleRecommendation": "We recommend uninstalling this program or adding an exception for the mods folder:\n{0}",
       "MultipleRecommendation": "More than one antivirus product was detected. It is worth uninstalling unnecessary programs because they can additionally cause conflicts with mods.",
-      "Acknowledge": "I have read this information"
+      "Acknowledge": "I have read this information",
+      "SecurityTitle": "Download security and antivirus warnings",
+      "SecurityBody": "SUSModder downloads and extracts Among Us mods, so individual antivirus engines may sometimes report a false positive. Before installation, the app verifies supported packages with SHA256 integrity checks. The release channel will be Authenticode-signed; beta builds may be unsigned.",
+      "UnsignedNote": "This build may be unsigned Authenticode (especially on the beta channel). That does not mean the file came from outside the official SUSModder pipeline."
+    },
+    "Security": {
+      "DownloadHashMismatch": "The downloaded mod file SHA256 checksum does not match the expected value. Installation was blocked and the suspect file was deleted.",
+      "DownloadHashMissing": "The backend did not provide a SHA256 checksum for this file. Installation continues with reduced integrity assurance.",
+      "ToolHashMismatch": "The downloaded tool checksum (e.g. legendary) does not match the pinned value. The file was rejected.",
+      "ToolDownloadFailed": "Failed to download a required external tool.",
+      "ArtifactVerificationFailed": "Artifact integrity verification failed."
     },
     "PostInstallSuccess": {
       "Title": "Mod installed",

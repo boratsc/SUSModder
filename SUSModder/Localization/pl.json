@@ -493,7 +493,17 @@
       "Intro": "Mody mogą nie działać prawidłowo, ponieważ wykryto zainstalowane oprogramowanie antywirusowe: {0}.",
       "SingleRecommendation": "Zalecamy odinstalowanie tego programu lub dodanie wyjątku dla katalogu modów:\n{0}",
       "MultipleRecommendation": "Wykryto więcej niż jedno oprogramowanie antywirusowe. Warto odinstalować zbędne programy, ponieważ mogą dodatkowo powodować konflikty z modami.",
-      "Acknowledge": "Zapoznałem się z informacją"
+      "Acknowledge": "Zapoznałem się z informacją",
+      "SecurityTitle": "Bezpieczeństwo pobierania i antywirusy",
+      "SecurityBody": "SUSModder pobiera i rozpakowuje mody do Among Us, dlatego pojedyncze silniki antywirusowe mogą czasem zgłosić fałszywy alarm. Przed instalacją aplikacja weryfikuje integralność obsługiwanych paczek za pomocą SHA256. Kanał release docelowo będzie podpisany Authenticode; wydania beta mogą być niepodpisane.",
+      "UnsignedNote": "Bieżące wydanie może być niepodpisane Authenticode (szczególnie kanał beta). To nie oznacza, że plik pochodzi spoza oficjalnego pipeline SUSModder."
+    },
+    "Security": {
+      "DownloadHashMismatch": "Suma kontrolna SHA256 pobranego pliku moda nie zgadza się z oczekiwaną. Instalacja została przerwana, a podejrzany plik usunięty.",
+      "DownloadHashMissing": "Backend nie dostarczył sumy SHA256 dla tego pliku. Instalacja kontynuowana z obniżoną pewnością integralności.",
+      "ToolHashMismatch": "Suma kontrolna pobranego narzędzia (np. legendary) nie zgadza się z zapisaną wartością. Plik został odrzucony.",
+      "ToolDownloadFailed": "Nie udało się pobrać wymaganego narzędzia zewnętrznego.",
+      "ArtifactVerificationFailed": "Weryfikacja integralności artefaktu nie powiodła się."
     },
     "PostInstallSuccess": {
       "Title": "Mod zainstalowany",

@@ -9,6 +9,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+
 Write-Host "════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host "  SUSModder Velopack Release Builder" -ForegroundColor Cyan
 Write-Host "════════════════════════════════════════" -ForegroundColor Cyan
@@ -23,7 +25,7 @@ if (-not (Get-Command vpk -ErrorAction SilentlyContinue)) {
 }
 
 # --- Step 2: Update version metadata ----------------------------------------------
-$appSettingsPath = Join-Path $PSScriptRoot 'SUSModder/appsettings.json'
+$appSettingsPath = Join-Path $ProjectRoot 'SUSModder/appsettings.json'
 if (-not (Test-Path $appSettingsPath)) {
     throw "Cannot find appsettings.json at $appSettingsPath"
 }
@@ -34,26 +36,30 @@ $appSettingsContent = $appSettingsContent -replace '"CurrentVersion"\s*:\s*"[^"]
 Set-Content -Path $appSettingsPath -Value $appSettingsContent -Encoding UTF8
 
 # --- Step 3: Clean publish/output directories -------------------------------------
-$publishDir = Join-Path $PSScriptRoot 'SUSModder/bin/Release/net10.0-windows/win-x64/publish'
-$releasesDir = Join-Path $PSScriptRoot 'Releases'
+$publishDir = Join-Path $ProjectRoot 'publish-velopack-single'
+$releasesDir = Join-Path $ProjectRoot 'releases-velopack-single'
 
 Write-Host "[2/6] Cleaning previous artifacts" -ForegroundColor Yellow
 if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
 if (Test-Path $releasesDir) { Remove-Item $releasesDir -Recurse -Force }
 
-# --- Step 4: Publish single-file app ----------------------------------------------
-Write-Host "[3/6] Publishing SUSModder" -ForegroundColor Yellow
+# --- Step 4: Publish unpacked app (required by Velopack) --------------------------
+Write-Host "[3/6] Publishing SUSModder (PublishSingleFile=false)" -ForegroundColor Yellow
+$projectFile = Join-Path $ProjectRoot 'SUSModder/SUSModder.csproj'
+
 $publishArgs = @(
     'publish',
-    (Join-Path $PSScriptRoot 'SUSModder/SUSModder.csproj'),
+    $projectFile,
     '-c', 'Release',
     '-r', 'win-x64',
     '--self-contained',
-    '-p:PublishSingleFile=true',
-    '-p:IncludeNativeLibrariesForSelfExtract=true'
+    '-o', $publishDir,
+    '-p:PublishSingleFile=false',
+    '-p:DebugType=none',
+    '-p:DebugSymbols=false'
 )
 
-$publishResult = & dotnet @publishArgs
+& dotnet @publishArgs
 if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed."
 }
@@ -61,6 +67,8 @@ if ($LASTEXITCODE -ne 0) {
 if (-not (Test-Path $publishDir)) {
     throw "Publish directory not found at $publishDir"
 }
+
+& (Join-Path $PSScriptRoot 'Assert-NotSingleFile.ps1') -PublishDir $publishDir
 
 # --- Step 4.5: Generate version.json -----------------------------------------------
 Write-Host "[3.5/6] Generating version.json" -ForegroundColor Yellow
@@ -78,8 +86,8 @@ Write-Host "  version.json created with version $Version" -ForegroundColor Green
 Write-Host "[4/6] Packing Velopack release" -ForegroundColor Yellow
 New-Item -ItemType Directory -Path $releasesDir -Force | Out-Null
 
-$iconPath = Join-Path $PSScriptRoot 'SUSModder/Assets/icon.ico'
-$splashPath = Join-Path $PSScriptRoot 'SUSModder/Assets/splashscreen.jpg'
+$iconPath = Join-Path $ProjectRoot 'SUSModder/Assets/icon.ico'
+$splashPath = Join-Path $ProjectRoot 'SUSModder/Assets/splashscreen.jpg'
 
 $vpkArgs = @(
     'pack',
@@ -92,7 +100,6 @@ $vpkArgs = @(
     '--outputDir', $releasesDir
 )
 
-# Dodaj splash screen jeśli istnieje
 if (Test-Path $splashPath) {
     $vpkArgs += @('--splashImage', $splashPath)
     Write-Host "  Using splash image: $splashPath" -ForegroundColor Cyan

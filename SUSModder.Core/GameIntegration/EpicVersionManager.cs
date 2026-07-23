@@ -55,6 +55,11 @@ namespace SUSModder.Core.GameIntegration
         public event Action<string, string>? EpicLaunchError; // ModName, LogContent
 
         /// <summary>
+        /// Last stable failure code from install/download flows (e.g. download_hash_mismatch).
+        /// </summary>
+        public string? LastFailureCode { get; private set; }
+
+        /// <summary>
         /// Wywoływane tuż przed <c>legendary launch</c> — sygnał do startu obserwacji procesu gry.
         /// </summary>
         public event Action? GameLaunchStarting;
@@ -419,15 +424,22 @@ namespace SUSModder.Core.GameIntegration
 
         public async Task<bool> ModifyEpicAsync(ModConfiguration modConfig, object? progressBar, object? progressLabel)
         {
+            LastFailureCode = null;
+
             if (modConfig == null)
             {
                 ShowError("Konfiguracja moda jest nieprawidłowa.");
                 return false;
             }
 
-            string downloadUrl = await ModDownloadUrlBuilder.ResolveAsync(modConfig, "epic");
+            var downloadResolution = await ModDownloadUrlBuilder.ResolveWithHashAsync(modConfig, "epic");
+            string downloadUrl = downloadResolution.Url;
 
             Write($"[CDN] URL pobierania moda Epic '{modConfig.ModName}': {downloadUrl}");
+            if (!string.IsNullOrWhiteSpace(downloadResolution.ExpectedSha256))
+                Write($"[CDN] Expected SHA256: {downloadResolution.ExpectedSha256}");
+            else
+                Write("[CDN] WARNING: brak SHA256 w metadanych — kontynuuję bez twardej weryfikacji (download_hash_missing).");
 
             string baseDirectory = installDirectory;
             
@@ -452,8 +464,30 @@ namespace SUSModder.Core.GameIntegration
             }
 
             Write($"Pomyślnie pobrano mod do: {modFile}");
+
+            if (Sha256Verifier.IsWellFormedHash(downloadResolution.ExpectedSha256))
+            {
+                ProgressChanged?.Invoke(38, "Weryfikacja sumy kontrolnej...");
+                var actualHash = await Sha256Verifier.ComputeFileHexAsync(modFile);
+                if (!string.Equals(actualHash, downloadResolution.ExpectedSha256!.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    Write($"ERROR: SHA256 mismatch for Epic mod: expected {downloadResolution.ExpectedSha256}, got {actualHash}");
+                    try { File.Delete(modFile); } catch { /* best effort */ }
+                    LastFailureCode = DownloadVerificationCodes.HashMismatch;
+                    ShowError(DownloadVerificationCodes.HashMismatch);
+                    return false;
+                }
+
+                Write($"SHA256 OK for Epic mod '{modConfig.ModName}'");
+            }
+            else if (!string.IsNullOrWhiteSpace(downloadResolution.ExpectedSha256))
+            {
+                Write($"[CDN] WARNING: malformed expected SHA256 '{downloadResolution.ExpectedSha256}' — treating as missing.");
+            }
+
             ProgressChanged?.Invoke(40, "Pobieranie zakończone, przygotowywanie instalacji...");
 
+            // Verify-before-replace: only delete target AmongUs after successful download (+ hash when available).
             string gameBasePath = Path.Combine(baseDirectory, modConfig.ModName, "AmongUs");
             if (Directory.Exists(gameBasePath))
             {
@@ -1782,11 +1816,48 @@ namespace SUSModder.Core.GameIntegration
             };
         }
 
+        // Pinned legendary 0.20.41 Windows x64 — SHA256 of legendary_windows_x86_64.exe
+        // https://github.com/Heroic-Games-Launcher/legendary/releases/download/0.20.41/legendary_windows_x86_64.exe
+        private const string LegendaryVersion = "0.20.41";
+        private const string LegendaryWindowsX64Sha256 =
+            "b8866cca30d1d66a9d1331d6f38ec8249073bd749b871821ef9c20e70ce7d263";
+
         private async Task DownloadLegendaryAsync()
         {
-            string url = "https://github.com/Heroic-Games-Launcher/legendary/releases/download/0.20.41/legendary_windows_x86_64.exe";
-            await DownloadFileAsync(url, legendaryPath);
-            Write("Legendary downloaded.");
+            string url =
+                $"https://github.com/Heroic-Games-Launcher/legendary/releases/download/{LegendaryVersion}/legendary_windows_x86_64.exe";
+            string tmpPath = $"{legendaryPath}.tmp.{Guid.NewGuid():N}";
+
+            try
+            {
+                Write($"[Legendary] Pobieram {url}...");
+                await DownloadFileAsync(url, tmpPath);
+
+                if (!File.Exists(tmpPath))
+                {
+                    LastFailureCode = DownloadVerificationCodes.ToolDownloadFailed;
+                    throw new InvalidOperationException(DownloadVerificationCodes.ToolDownloadFailed);
+                }
+
+                var actualHash = await Sha256Verifier.ComputeFileHexAsync(tmpPath);
+                if (!string.Equals(actualHash, LegendaryWindowsX64Sha256, StringComparison.OrdinalIgnoreCase))
+                {
+                    try { File.Delete(tmpPath); } catch { /* best effort */ }
+                    LastFailureCode = DownloadVerificationCodes.ToolHashMismatch;
+                    Write($"[Legendary] SHA256 mismatch: expected {LegendaryWindowsX64Sha256}, got {actualHash}");
+                    throw new InvalidOperationException(DownloadVerificationCodes.ToolHashMismatch);
+                }
+
+                File.Move(tmpPath, legendaryPath, overwrite: true);
+                Write($"[Legendary] Downloaded and verified ({LegendaryVersion}).");
+            }
+            finally
+            {
+                if (File.Exists(tmpPath))
+                {
+                    try { File.Delete(tmpPath); } catch { /* best effort */ }
+                }
+            }
         }
 
         private async Task DownloadFileAsync(string url, string filePath)

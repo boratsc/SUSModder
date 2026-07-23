@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+      - main
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Generate Secrets.cs
+        env:
+          SUSMODDER_DOWNLOAD_TOKEN: ${{ secrets.SUSMODDER_DOWNLOAD_TOKEN }}
+          SUSMODDER_7Z_PASSWORD: ${{ secrets.SUSMODDER_7Z_PASSWORD }}
+        shell: pwsh
+        run: |
+          .\SKRYPTY\Build\generate-secrets.ps1
+
+      - name: Restore
+        run: dotnet restore SUSModder.sln
+
+      - name: Build
+        run: dotnet build SUSModder.sln -c Release --no-restore
+
+      - name: Test
+        id: test
+        run: >
+          dotnet test SUSModder.Core.Tests/SUSModder.Core.Tests.csproj
+          -c Release --no-build --logger "trx;LogFileName=test-results.trx"
+          --results-directory TestResults
+
+      - name: Upload test results on failure
+        if: failure() && steps.test.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/
+          retention-days: 1
+          if-no-files-found: ignore

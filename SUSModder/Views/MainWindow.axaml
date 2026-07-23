@@ -923,6 +923,20 @@
 										   TextWrapping="Wrap"
 										   Foreground="{DynamicResource TextPrimaryBrush}"/>
 								</Border>
+
+								<Border BorderBrush="{DynamicResource BorderBrush}"
+										BorderThickness="1"
+										CornerRadius="10"
+										Padding="14"
+										Background="{DynamicResource SecondaryBackgroundBrush}">
+									<StackPanel Spacing="6">
+										<TextBlock Text="{Binding AntivirusWarningSecurityNote}"
+												   TextWrapping="Wrap"
+												   FontSize="12"
+												   Opacity="0.9"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									</StackPanel>
+								</Border>
 							</StackPanel>
 						</ScrollViewer>
 
