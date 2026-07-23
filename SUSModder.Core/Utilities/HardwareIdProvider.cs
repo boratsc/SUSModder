@@ -1,7 +1,6 @@
 using System;
 using System.Management;
 using System.Runtime.Versioning;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace SUSModder.Core.Utilities
@@ -21,7 +20,12 @@ namespace SUSModder.Core.Utilities
         public static string GetAnonymousUserHash()
         {
             if (!string.IsNullOrEmpty(_cachedHash))
+            {
+                // Napraw cache z historycznego fallbacku GUID "N" (32 hex).
+                if (!AnonymousUserHash.IsValid(_cachedHash))
+                    _cachedHash = AnonymousUserHash.EnsureValid(_cachedHash);
                 return _cachedHash;
+            }
 
             try
             {
@@ -29,7 +33,8 @@ namespace SUSModder.Core.Utilities
                 var hardwareId = GetHardwareIdentifier();
 
                 // Zahashuj SHA256 (jednostronnie - nie da się odtworzyć oryginalnych danych)
-                _cachedHash = ComputeSha256Hash(hardwareId);
+                // API (creatorHash / X-User-Hash) wymaga dokładnie 64 lowercase hex.
+                _cachedHash = AnonymousUserHash.EnsureValid(AnonymousUserHash.ComputeSha256Hex(hardwareId));
 
                 return _cachedHash;
             }
@@ -37,9 +42,9 @@ namespace SUSModder.Core.Utilities
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to generate hardware hash: {ex.Message}");
 
-                // Fallback - losowy GUID (będzie się zmieniał przy każdym uruchomieniu)
-                // Lepszy niż brak telemetrii, ale nie idealny
-                _cachedHash = Guid.NewGuid().ToString("N");
+                // Fallback: SHA256 z losowego seeda — NIGDY surowy GUID "N" (32 hex),
+                // bo backend odrzuca to jako "Invalid creatorHash format (64 hex chars)".
+                _cachedHash = AnonymousUserHash.CreateFallback();
                 return _cachedHash;
             }
         }
@@ -122,23 +127,5 @@ namespace SUSModder.Core.Utilities
             }
         }
 
-        /// <summary>
-        /// Oblicza SHA256 hash
-        /// </summary>
-        private static string ComputeSha256Hash(string input)
-        {
-            using var sha256 = SHA256.Create();
-            var bytes = Encoding.UTF8.GetBytes(input);
-            var hashBytes = sha256.ComputeHash(bytes);
-
-            // Konwersja do hex string
-            var sb = new StringBuilder();
-            foreach (var b in hashBytes)
-            {
-                sb.Append(b.ToString("x2"));
-            }
-
-            return sb.ToString();
-        }
     }
 }

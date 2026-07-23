@@ -37,8 +37,12 @@ namespace SUSModder.Core.Services
         {
             _ = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _log = log ?? throw new ArgumentNullException(nameof(log));
-            CreatorHash = (hardwareIdProvider ?? throw new ArgumentNullException(nameof(hardwareIdProvider)))
+            var rawHash = (hardwareIdProvider ?? throw new ArgumentNullException(nameof(hardwareIdProvider)))
                 .GetAnonymousUserHash();
+            // Obrona przed historycznym fallbackiem GUID "N" (32 hex) i innymi niepoprawnymi wartościami.
+            CreatorHash = AnonymousUserHash.EnsureValid(rawHash);
+            if (!string.Equals(rawHash, CreatorHash, StringComparison.Ordinal))
+                _log.Write($"[ModPack] creatorHash znormalizowany (len {rawHash?.Length ?? 0} → {CreatorHash.Length})");
             _apiClient = apiClient ?? SUSModderApiClientProvider.TryGetDefault()
                 ?? new SUSModderApiClient(configuration, log);
         }

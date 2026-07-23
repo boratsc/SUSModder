@@ -1395,6 +1395,8 @@
     "Disabled": "Udostępnianie zestawów modów jest wyłączone w ustawieniach.",
     "SelectFullMod": "Wybierz mod główny.",
     "CreateFailed": "Nie udało się utworzyć zestawu.",
+    "ResumeFinalize": "Dokańczanie udostępniania…",
+    "FinalizeRetryHint": "Paczka została już utworzona na serwerze. Kliknij ponownie „Utwórz”, aby dokończyć walidację — nie powstanie kolejna kopia.",
     "Shared": {
       "TabTitle": "Udostępnione",
       "HeaderCount": "Aktywne paczki: {0}/{1}",

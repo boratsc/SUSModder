@@ -1395,6 +1395,8 @@
     "Disabled": "Mod pack sharing is disabled in settings.",
     "SelectFullMod": "Select a main mod.",
     "CreateFailed": "Failed to create pack.",
+    "ResumeFinalize": "Finishing share…",
+    "FinalizeRetryHint": "The pack was already created on the server. Click Create again to finish validation — another copy will not be created.",
     "Shared": {
       "TabTitle": "Shared",
       "HeaderCount": "Active packs: {0}/{1}",

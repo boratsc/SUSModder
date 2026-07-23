@@ -46,6 +46,16 @@ public partial class ModPackCreatorView : UserControl
     private readonly List<GithubDllSelection> _githubDllEntries = new();
     private CancellationTokenSource? _createCts;
     private bool _amongVersionsLoaded;
+    private bool _isCreating;
+    /// <summary>
+    /// Kod paczki utworzonej na serwerze, gdy custom content / finalize jeszcze nie doszedł do końca.
+    /// Ponowne kliknięcie wznawia finalize zamiast tworzyć kolejną paczkę.
+    /// </summary>
+    private string? _pendingSharePackCode;
+    private ModPackCreateResult? _pendingShareResult;
+    private string? _pendingCreatedInstanceId;
+    private List<int>? _pendingInstalledDllIds;
+    private List<string>? _pendingFailedDllNames;
 
     public string ModalTitle { get; private set; } = string.Empty;
     public event Action<ModPackCreatorDialogResult?>? Completed;
@@ -430,6 +440,15 @@ public partial class ModPackCreatorView : UserControl
         ErrorText.IsVisible = true;
     }
 
+    private void AppendFinalizeRetryHint()
+    {
+        var hint = _loc.Get("ModPacks.FinalizeRetryHint");
+        if (ErrorText.IsVisible && !string.IsNullOrWhiteSpace(ErrorText.Text))
+            ErrorText.Text = ErrorText.Text.TrimEnd() + "\n" + hint;
+        else
+            ShowError(hint);
+    }
+
     private void ApplySavedShareProfile()
     {
         try
@@ -573,25 +592,48 @@ public partial class ModPackCreatorView : UserControl
 
     private async void CreateButton_Click(object? sender, RoutedEventArgs e)
     {
-        ErrorText.IsVisible = false;
+        if (_isCreating)
+            return;
 
-        switch (_mode)
+        ErrorText.IsVisible = false;
+        _isCreating = true;
+        CreateButton.IsEnabled = false;
+
+        try
         {
-            case ModPackCreatorMode.InstallLocal:
-                await CreateLocalInstanceAsync();
-                break;
-            case ModPackCreatorMode.CreateAndShare:
-                await CreateAndShareAsync();
-                break;
-            case ModPackCreatorMode.ShareExisting:
-                await CreateSharedPackAsync();
-                break;
+            switch (_mode)
+            {
+                case ModPackCreatorMode.InstallLocal:
+                    await CreateLocalInstanceAsync();
+                    break;
+                case ModPackCreatorMode.CreateAndShare:
+                    await CreateAndShareAsync();
+                    break;
+                case ModPackCreatorMode.ShareExisting:
+                    await CreateSharedPackAsync();
+                    break;
+            }
+        }
+        finally
+        {
+            _isCreating = false;
+            // Complete() zamyka dialog — nie włączaj przycisku, jeśli sukces.
+            if (_pendingSharePackCode != null || IsVisible)
+                CreateButton.IsEnabled = true;
         }
     }
 
     
     private async Task CreateAndShareAsync()
     {
+        _createCts?.Cancel();
+        _createCts?.Dispose();
+        _createCts = new CancellationTokenSource();
+        var ct = _createCts.Token;
+
+        if (await TryResumePendingShareAsync(ct))
+            return;
+
         var useCustomFull = UseCustomFullCheck.IsChecked == true;
         var catalogMod = useCustomFull ? null : GetSelectedCatalogMod();
         if (!useCustomFull && catalogMod == null)
@@ -638,12 +680,6 @@ public partial class ModPackCreatorView : UserControl
         var creatorName = string.IsNullOrWhiteSpace(CreatorNameBox.Text) ? null : CreatorNameBox.Text.Trim();
         var discordInvite = string.IsNullOrWhiteSpace(DiscordInviteBox.Text) ? null : DiscordInviteBox.Text.Trim();
         SaveShareProfileFromForm();
-
-        CreateButton.IsEnabled = false;
-        _createCts?.Cancel();
-        _createCts?.Dispose();
-        _createCts = new CancellationTokenSource();
-        var ct = _createCts.Token;
 
         try
         {
@@ -730,8 +766,13 @@ public partial class ModPackCreatorView : UserControl
 
             if (HasCustomContentToSubmit() && !string.IsNullOrWhiteSpace(result.PackCode))
             {
+                RememberPendingShare(result, instance.InstanceId, installedDllIds, failedDllNames);
                 if (!await SubmitCustomContentAndFinalizeAsync(result, ct))
+                {
+                    AppendFinalizeRetryHint();
                     return;
+                }
+                ClearPendingShare();
             }
 
             Complete(new ModPackCreatorDialogResult
@@ -752,12 +793,20 @@ public partial class ModPackCreatorView : UserControl
         }
         finally
         {
-            CreateButton.IsEnabled = true;
             CreateButton.Content = _loc.Get("UI.Packs.CreateAndShare");
         }
     }
-private async Task CreateSharedPackAsync()
+
+    private async Task CreateSharedPackAsync()
     {
+        _createCts?.Cancel();
+        _createCts?.Dispose();
+        _createCts = new CancellationTokenSource();
+        var ct = _createCts.Token;
+
+        if (await TryResumePendingShareAsync(ct))
+            return;
+
         var source = GetSelectedShareSource();
         if (source == null)
         {
@@ -806,11 +855,6 @@ private async Task CreateSharedPackAsync()
             };
         }
 
-        CreateButton.IsEnabled = false;
-        _createCts?.Cancel();
-        _createCts?.Dispose();
-        _createCts = new CancellationTokenSource();
-        var ct = _createCts.Token;
         try
         {
             var result = await _modPackService.CreatePackAsync(request, ct);
@@ -829,9 +873,14 @@ private async Task CreateSharedPackAsync()
 
             if (HasCustomContentToSubmit() && !string.IsNullOrWhiteSpace(result.PackCode))
             {
+                RememberPendingShare(result, createdInstanceId: null, installedDllIds: null, failedDllNames: null);
                 var customOk = await SubmitCustomContentAndFinalizeAsync(result, ct);
                 if (!customOk)
+                {
+                    AppendFinalizeRetryHint();
                     return;
+                }
+                ClearPendingShare();
             }
 
             Complete(new ModPackCreatorDialogResult
@@ -844,10 +893,64 @@ private async Task CreateSharedPackAsync()
         {
             // User cancelled the dialog; CancelButton already completed the modal.
         }
-        finally
+    }
+
+    private void RememberPendingShare(
+        ModPackCreateResult result,
+        string? createdInstanceId,
+        List<int>? installedDllIds,
+        List<string>? failedDllNames)
+    {
+        _pendingShareResult = result;
+        _pendingSharePackCode = result.PackCode;
+        _pendingCreatedInstanceId = createdInstanceId;
+        _pendingInstalledDllIds = installedDllIds;
+        _pendingFailedDllNames = failedDllNames;
+    }
+
+    private void ClearPendingShare()
+    {
+        _pendingShareResult = null;
+        _pendingSharePackCode = null;
+        _pendingCreatedInstanceId = null;
+        _pendingInstalledDllIds = null;
+        _pendingFailedDllNames = null;
+    }
+
+    /// <summary>
+    /// Wznawia finalizację już utworzonej paczki zamiast wołać CreatePack ponownie.
+    /// </summary>
+    private async Task<bool> TryResumePendingShareAsync(CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(_pendingSharePackCode) || _pendingShareResult == null)
+            return false;
+
+        CreateButton.Content = _loc.Get("ModPacks.ResumeFinalize");
+
+        if (HasCustomContentToSubmit())
         {
-            CreateButton.IsEnabled = true;
+            if (!await SubmitCustomContentAndFinalizeAsync(_pendingShareResult, ct))
+            {
+                AppendFinalizeRetryHint();
+                return true;
+            }
         }
+
+        var result = _pendingShareResult;
+        var instanceId = _pendingCreatedInstanceId;
+        var dllIds = _pendingInstalledDllIds ?? new List<int>();
+        var failed = _pendingFailedDllNames ?? new List<string>();
+        ClearPendingShare();
+
+        Complete(new ModPackCreatorDialogResult
+        {
+            Mode = _mode,
+            CreatedInstanceId = instanceId,
+            InstalledDllModIds = dllIds,
+            FailedDllNames = failed,
+            ShareResult = result
+        });
+        return true;
     }
 
     private bool HasCustomContentToSubmit() =>
