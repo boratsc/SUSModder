@@ -159,5 +159,12 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         [JsonPropertyName("developerMode")]
         public bool DeveloperMode { get; set; } = false;
+
+        /// <summary>
+        /// UTC ISO-8601 czasu zamknięcia belki wsparcia (suppi.pl). Puste = nigdy nie zamknięto.
+        /// Belka wraca po 7 dniach.
+        /// </summary>
+        [JsonPropertyName("supportBannerDismissedAt")]
+        public string SupportBannerDismissedAt { get; set; } = string.Empty;
     }
 }

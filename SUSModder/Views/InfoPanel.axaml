@@ -184,6 +184,43 @@
 				</StackPanel>
 			</Border>
 
+			<Border Classes="info-card">
+				<Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+					<Border Width="32"
+							Height="32"
+							CornerRadius="10"
+							Background="{DynamicResource SecondaryBackgroundBrush}"
+							BorderBrush="{DynamicResource BorderBrush}"
+							BorderThickness="1"
+							VerticalAlignment="Top">
+						<TextBlock Text="☕"
+								   FontSize="16"
+								   HorizontalAlignment="Center"
+								   VerticalAlignment="Center"/>
+					</Border>
+					<StackPanel Grid.Column="1" Spacing="8">
+						<TextBlock Text="{loc:Localize Support.CardTitle}"
+								   FontSize="15"
+								   FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="{loc:Localize Support.CardMessage}"
+								   FontSize="12"
+								   TextWrapping="Wrap"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+						<Button Content="{loc:Localize Support.CardLink}"
+								Click="OpenSupport_Click"
+								HorizontalAlignment="Left"
+								Background="#183B9EFF"
+								Foreground="{DynamicResource AccentBrush}"
+								BorderBrush="#553B9EFF"
+								BorderThickness="1"
+								CornerRadius="6"
+								Padding="12,6"
+								FontSize="12"/>
+					</StackPanel>
+				</Grid>
+			</Border>
+
 			<Border Classes="info-card" Padding="12" Margin="0,0,0,4">
 				<Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
 					<TextBlock Text="i" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>

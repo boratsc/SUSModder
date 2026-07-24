@@ -51,6 +51,7 @@ namespace SUSModder.ViewModels
         private void OnCatalogModInspectorChanged()
         {
             ResetInspectorSections();
+            ClearInstallVersionFlyout();
             if (SelectedMod != null && !SelectedMod.IsVanilla)
                 EnsureInspectorLobbyEmbedViewModel();
             this.RaisePropertyChanged(nameof(ShowCatalogInspectorCompatibleDlls));
@@ -63,6 +64,7 @@ namespace SUSModder.ViewModels
             CatalogCompatibleDllLines.Clear();
             _catalogCompatibleDllDisplay.Clear();
             IsCatalogCompatibleDllExpanded = false;
+            IsCatalogCompatibleDllSectionExpanded = false;
             IsCatalogCompatibleDllLoading = false;
             NotifyCatalogInspectorProperties();
         }
@@ -81,6 +83,7 @@ namespace SUSModder.ViewModels
             var token = _catalogCompatLoadCts.Token;
 
             IsCatalogCompatibleDllExpanded = false;
+            IsCatalogCompatibleDllSectionExpanded = false;
             IsCatalogCompatibleDllLoading = true;
             NotifyCatalogInspectorProperties();
 

@@ -814,6 +814,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             InitializeInspectorCompatExpand();
             InitializeInspectorLayout();
             InitializeBulkOperations();
+            InitializeSupportBanner();
             RefreshLaunchDiagnosticsPanelStrings();
             
             // Subscribe to language changes to update theme button text

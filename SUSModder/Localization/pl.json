@@ -78,6 +78,19 @@
       "LobbyChat": "Chat lobby",
       "Compat": {
         "Loading": "Ładowanie kompatybilności…"
+      },
+      "ActionTiles": {
+        "Lobby": "Lobby",
+        "Dll": "DLL",
+        "Roles": "Role",
+        "Folder": "Folder",
+        "Shortcut": "Skrót",
+        "Pack": "Zestaw",
+        "Share": "Udostępnij",
+        "Delete": "Usuń",
+        "SelectVersion": "Wybierz wersję…",
+        "LatestBadge": "najnowsza",
+        "VersionsHint": "Kliknij wersję, aby zainstalować"
       }
     },
     "Actions": {
@@ -824,6 +837,15 @@
     "Tagline": "Among Us Mod Manager",
     "Email": "E-mail",
     "Copyright": "© 2026 SUSModder - Oprogramowanie na licencji GPLv3. Wszelkie prawa zastrzeżone."
+  },
+  "Support": {
+    "BannerMessage": "Projekt jest darmowy i open source. Jeśli chcesz podziękować za pracę — możesz postawić wirtualną kawę.",
+    "BannerLink": "suppi.pl →",
+    "BannerDismissTooltip": "Ukryj na 7 dni",
+    "CardTitle": "Wesprzyj projekt",
+    "CardMessage": "SUSModder jest darmowy i open source. Jeśli chcesz podziękować za włożoną pracę, możesz postawić wirtualną kawę — całkowicie dobrowolnie.",
+    "CardLink": "Otwórz suppi.pl →",
+    "SettingsFooter": "☕ Postaw kawę · suppi.pl"
   },
   "Tools": {
     "TownOfUsTools": "Narzędzia dla TownOfUs",

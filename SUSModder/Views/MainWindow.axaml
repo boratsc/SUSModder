@@ -98,9 +98,58 @@
 			<Rectangle Fill="{DynamicResource WindowBulkGlowBrush}" Opacity="0.7"/>
 		</Panel>
 
-		<Grid Grid.Row="0" RowDefinitions="*">
+		<Grid Grid.Row="0" RowDefinitions="Auto,*">
+			<!-- Belka wsparcia — pełna szerokość okna, nad master-detail -->
+			<Border Grid.Row="0"
+					IsVisible="{Binding IsSupportBannerVisible}"
+					Background="{DynamicResource SecondaryBackgroundBrush}"
+					BorderBrush="{DynamicResource BorderBrush}"
+					BorderThickness="0,0,0,1"
+					Padding="12,8"
+					ZIndex="2">
+				<Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+					<Border Width="26"
+							Height="26"
+							CornerRadius="8"
+							Background="{DynamicResource ModCardBackgroundBrush}"
+							VerticalAlignment="Center">
+						<TextBlock Text="☕"
+								   FontSize="14"
+								   HorizontalAlignment="Center"
+								   VerticalAlignment="Center"/>
+					</Border>
+					<TextBlock Grid.Column="1"
+							   Text="{loc:Localize Support.BannerMessage}"
+							   FontSize="12"
+							   TextWrapping="Wrap"
+							   VerticalAlignment="Center"
+							   Foreground="{DynamicResource TextPrimaryBrush}"/>
+					<Button Grid.Column="2"
+							Content="{loc:Localize Support.BannerLink}"
+							Command="{Binding OpenSupportLinkCommand}"
+							Background="#183B9EFF"
+							Foreground="{DynamicResource AccentBrush}"
+							BorderBrush="#553B9EFF"
+							BorderThickness="1"
+							CornerRadius="6"
+							Padding="10,5"
+							FontSize="11"
+							VerticalAlignment="Center"/>
+					<Button Grid.Column="3"
+							Content="×"
+							Command="{Binding DismissSupportBannerCommand}"
+							Background="Transparent"
+							Foreground="{DynamicResource TextSecondaryBrush}"
+							BorderThickness="0"
+							Padding="6,2"
+							FontSize="16"
+							VerticalAlignment="Center"
+							ToolTip.Tip="{loc:Localize Support.BannerDismissTooltip}"/>
+				</Grid>
+			</Border>
+
 			<!-- Master-detail: siatka + panel (bez overlay/scrim) -->
-			<Grid Grid.Row="0">
+			<Grid Grid.Row="1">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="*"/>
 					<ColumnDefinition Width="{Binding IsBrowserDetailPanelVisible, Converter={StaticResource ModDetailColumnWidthConverter}}"/>
