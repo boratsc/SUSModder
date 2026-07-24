@@ -4,6 +4,11 @@
 .vscode/
 .sisyphus/
 .superpowers/
+.affine-migration/
+.cursor/skills/
+# DOC content lives in AFFiNE; only README stub is tracked
+DOC/**
+!DOC/README.md
 docs/
 # NOTE: .github/ must NOT be ignored — workflows live there for CI/CD
 
