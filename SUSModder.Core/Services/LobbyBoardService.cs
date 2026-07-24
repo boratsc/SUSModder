@@ -51,7 +51,11 @@ namespace SUSModder.Core.Services
         {
             _ = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _log = log ?? throw new ArgumentNullException(nameof(log));
-            _userHash = (hardwareIdProvider ?? throw new ArgumentNullException(nameof(hardwareIdProvider))).GetAnonymousUserHash();
+            var rawHash = (hardwareIdProvider ?? throw new ArgumentNullException(nameof(hardwareIdProvider)))
+                .GetAnonymousUserHash();
+            _userHash = AnonymousUserHash.EnsureValid(rawHash);
+            if (!string.Equals(rawHash, _userHash, StringComparison.Ordinal))
+                _log.Write($"[LobbyBoard] userHash znormalizowany (len {rawHash?.Length ?? 0} → {_userHash.Length})");
             _apiClient = apiClient ?? SUSModderApiClientProvider.TryGetDefault()
                 ?? new SUSModderApiClient(configuration, log);
         }

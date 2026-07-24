@@ -149,6 +149,9 @@
       "DeleteTitle": "Odinstaluj zestaw",
       "DeleteConfirmation": "Usunąć zestaw „{0}”?\n\nFolder:\n{1}",
       "DeleteFilesConfirmation": "Usunąć także folder instalacji z dysku? Tej operacji nie można cofnąć.",
+      "DeleteMapMismatch": "Nie można usunąć folderu — mapa instalacji wskazuje inną instancję. Usuń wpis bez kasowania plików albo sprawdź folder ręcznie.",
+      "InstanceNotFound": "Nie znaleziono lokalnego zestawu.",
+      "CloneMapMismatch": "Nie można sklonować — mapa instalacji nie pasuje do tej instancji.",
       "LaunchCatalogMissing": "Nie znaleziono moda w katalogu — nie można uruchomić zestawu.",
       "Origin": {
         "Manual": "Utworzony ręcznie",
@@ -1417,6 +1420,7 @@
     "Disabled": "Udostępnianie zestawów modów jest wyłączone w ustawieniach.",
     "SelectFullMod": "Wybierz mod główny.",
     "CreateFailed": "Nie udało się utworzyć zestawu.",
+    "InvalidCreatorHash": "Nieprawidłowy identyfikator urządzenia (creatorHash). Zrestartuj aplikację lub zaktualizuj do najnowszej wersji. Jeśli problem wraca, napisz na Discordzie SUSModder.",
     "ResumeFinalize": "Dokańczanie udostępniania…",
     "FinalizeRetryHint": "Paczka została już utworzona na serwerze. Kliknij ponownie „Utwórz”, aby dokończyć walidację — nie powstanie kolejna kopia.",
     "Shared": {

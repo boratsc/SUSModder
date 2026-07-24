@@ -149,6 +149,9 @@
       "DeleteTitle": "Uninstall pack",
       "DeleteConfirmation": "Remove pack \"{0}\"?\n\nFolder:\n{1}",
       "DeleteFilesConfirmation": "Also delete the installation folder from disk? This cannot be undone.",
+      "DeleteMapMismatch": "Cannot delete the folder — the installation map points to a different instance. Remove the entry without deleting files, or check the folder manually.",
+      "InstanceNotFound": "Local pack not found.",
+      "CloneMapMismatch": "Cannot clone — the installation map does not match this instance.",
       "LaunchCatalogMissing": "Mod not found in catalog — cannot launch this pack.",
       "Origin": {
         "Manual": "Created manually",
@@ -1417,6 +1420,7 @@
     "Disabled": "Mod pack sharing is disabled in settings.",
     "SelectFullMod": "Select a main mod.",
     "CreateFailed": "Failed to create pack.",
+    "InvalidCreatorHash": "Invalid device identifier (creatorHash). Restart the app or update to the latest version. If it persists, contact us on the SUSModder Discord.",
     "ResumeFinalize": "Finishing share…",
     "FinalizeRetryHint": "The pack was already created on the server. Click Create again to finish validation — another copy will not be created.",
     "Shared": {

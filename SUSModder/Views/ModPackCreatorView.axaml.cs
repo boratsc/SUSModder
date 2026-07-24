@@ -440,6 +440,22 @@ public partial class ModPackCreatorView : UserControl
         ErrorText.IsVisible = true;
     }
 
+    private string FormatCreatePackError(ModPackCreateResult result)
+    {
+        if (string.Equals(result.ErrorCode, "PACK_LIMIT_REACHED", StringComparison.OrdinalIgnoreCase))
+            return _loc.Get("ModPacks.PackLimitReached");
+
+        if (string.Equals(result.ErrorCode, "INVALID_CREATOR_HASH", StringComparison.OrdinalIgnoreCase) ||
+            (!string.IsNullOrEmpty(result.ErrorMessage) &&
+             result.ErrorMessage.Contains("creatorHash", StringComparison.OrdinalIgnoreCase) &&
+             result.ErrorMessage.Contains("64 hex", StringComparison.OrdinalIgnoreCase)))
+        {
+            return _loc.Get("ModPacks.InvalidCreatorHash");
+        }
+
+        return result.ErrorMessage ?? _loc.Get("ModPacks.CreateFailed");
+    }
+
     private void AppendFinalizeRetryHint()
     {
         var hint = _loc.Get("ModPacks.FinalizeRetryHint");
@@ -753,12 +769,7 @@ public partial class ModPackCreatorView : UserControl
             var result = await _modPackService.CreatePackAsync(request, ct);
             if (!result.Success)
             {
-                var msg = result.ErrorCode switch
-                {
-                    "PACK_LIMIT_REACHED" => _loc.Get("ModPacks.PackLimitReached"),
-                    _ => result.ErrorMessage ?? _loc.Get("ModPacks.CreateFailed")
-                };
-                ShowError(msg);
+                ShowError(FormatCreatePackError(result));
                 if (result.ErrorCode == "PACK_LIMIT_REACHED")
                     PackLimitReached?.Invoke();
                 return;
@@ -860,12 +871,7 @@ public partial class ModPackCreatorView : UserControl
             var result = await _modPackService.CreatePackAsync(request, ct);
             if (!result.Success)
             {
-                var msg = result.ErrorCode switch
-                {
-                    "PACK_LIMIT_REACHED" => _loc.Get("ModPacks.PackLimitReached"),
-                    _ => result.ErrorMessage ?? _loc.Get("ModPacks.CreateFailed")
-                };
-                ShowError(msg);
+                ShowError(FormatCreatePackError(result));
                 if (result.ErrorCode == "PACK_LIMIT_REACHED")
                     PackLimitReached?.Invoke();
                 return;

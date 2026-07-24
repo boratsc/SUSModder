@@ -56,6 +56,17 @@ namespace SUSModder.Core.Services
         {
             try
             {
+                if (!AnonymousUserHash.IsValid(CreatorHash))
+                {
+                    _log.Write($"[ModPack] Abort POST: invalid CreatorHash (len={CreatorHash?.Length ?? 0})");
+                    return new ModPackCreateResult
+                    {
+                        Success = false,
+                        ErrorCode = "INVALID_CREATOR_HASH",
+                        ErrorMessage = "Invalid creatorHash format (64 hex chars)"
+                    };
+                }
+
                 request.CreatorHash = CreatorHash;
                 var json = ModPackCreateRequestSerializer.ToJson(request);
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -72,11 +83,22 @@ namespace SUSModder.Core.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var err = ParseApiError(body);
-                    _log.Write($"[ModPack] POST failed ({response.StatusCode}): {body}");
+                    if (IsInvalidCreatorHashError(err, body))
+                    {
+                        var prefix = CreatorHash.Length >= 8 ? CreatorHash[..8] : CreatorHash;
+                        _log.Write($"[ModPack] API rejected creatorHash (len={CreatorHash.Length}, prefix={prefix}…): {body}");
+                    }
+                    else
+                    {
+                        _log.Write($"[ModPack] POST failed ({response.StatusCode}): {body}");
+                    }
+
                     return new ModPackCreateResult
                     {
                         Success = false,
-                        ErrorCode = err?.Code ?? response.StatusCode.ToString(),
+                        ErrorCode = NormalizeCreatorHashErrorCode(err, body)
+                            ?? err?.Code
+                            ?? response.StatusCode.ToString(),
                         ErrorMessage = err?.Message ?? body
                     };
                 }
@@ -790,6 +812,28 @@ namespace SUSModder.Core.Services
                 return null;
             }
         }
+
+        private static bool IsInvalidCreatorHashError(ApiErrorBody? err, string body)
+        {
+            if (string.Equals(err?.Code, "INVALID_CREATOR_HASH", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (string.Equals(err?.Code, "VALIDATION_ERROR", StringComparison.OrdinalIgnoreCase) &&
+                ContainsCreatorHashFormatMessage(err?.Message))
+            {
+                return true;
+            }
+
+            return ContainsCreatorHashFormatMessage(err?.Message) || ContainsCreatorHashFormatMessage(body);
+        }
+
+        private static string? NormalizeCreatorHashErrorCode(ApiErrorBody? err, string body) =>
+            IsInvalidCreatorHashError(err, body) ? "INVALID_CREATOR_HASH" : null;
+
+        private static bool ContainsCreatorHashFormatMessage(string? text) =>
+            !string.IsNullOrEmpty(text) &&
+            text.Contains("creatorHash", StringComparison.OrdinalIgnoreCase) &&
+            text.Contains("64 hex", StringComparison.OrdinalIgnoreCase);
 
         private static ModPack? ParsePackFromJson(string json)
         {
