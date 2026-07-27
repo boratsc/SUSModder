@@ -1,0 +1,56 @@
+<!--
+  Reference Artifact Configuration for SignPath portal.
+  Create a configuration with slug: velopack-channel
+  (or set GitHub variable SIGNPATH_ARTIFACT_CONFIGURATION_SLUG).
+
+  Input uploaded by CI (directory → ZIP via actions/upload-artifact):
+    Setup.exe
+    Update.exe
+    portable.zip   (Velopack Portable)
+    package.nupkg  (Velopack full package; treated as ZIP)
+
+  Deep-signs nested EXE inside Portable and nupkg, then top-level Setup/Update.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="Setup.exe">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="Update.exe">
+      <authenticode-sign />
+    </pe-file>
+
+    <zip-file path="portable.zip">
+      <pe-file path="*.exe" max-matches="unbounded">
+        <authenticode-sign />
+      </pe-file>
+      <pe-file path="*/*.exe" max-matches="unbounded">
+        <authenticode-sign />
+      </pe-file>
+      <pe-file path="*/*/*.exe" max-matches="unbounded">
+        <authenticode-sign />
+      </pe-file>
+      <pe-file path="*/*/*/*.exe" max-matches="unbounded">
+        <authenticode-sign />
+      </pe-file>
+    </zip-file>
+
+    <zip-file path="package.nupkg">
+      <pe-file path="*.exe" max-matches="unbounded">
+        <authenticode-sign />
+      </pe-file>
+      <pe-file path="*/*.exe" max-matches="unbounded">
+        <authenticode-sign />
+      </pe-file>
+      <pe-file path="*/*/*.exe" max-matches="unbounded">
+        <authenticode-sign />
+      </pe-file>
+      <pe-file path="*/*/*/*.exe" max-matches="unbounded">
+        <authenticode-sign />
+      </pe-file>
+      <pe-file path="*/*/*/*/*.exe" max-matches="unbounded">
+        <authenticode-sign />
+      </pe-file>
+    </zip-file>
+  </zip-file>
+</artifact-configuration>

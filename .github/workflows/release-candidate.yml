@@ -29,12 +29,23 @@ on:
         required: true
         type: choice
         options:
-          - none
           - signpath
-        default: none
+          - none
+        default: signpath
+      changelogMarkdown:
+        description: "User-facing changelog bullets for Discord (empty = announce without changes block)"
+        required: false
+        type: string
+        default: ""
+      discordTeaser:
+        description: "Optional Discord teaser line (e.g. Niedługo 3.0.13-beta)"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: release-candidate-${{ github.event.inputs.channel }}
@@ -43,27 +54,34 @@ concurrency:
 jobs:
   build-pack-publish:
     runs-on: windows-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: Enforce signing policy
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNPATH_ORGANIZATION_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          SIGNPATH_PROJECT_SLUG: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          SIGNPATH_SIGNING_POLICY_SLUG: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
         shell: pwsh
         run: |
-          $channel = "${{ github.event.inputs.channel }}"
           $signingMode = "${{ github.event.inputs.signingMode }}"
-
-          if ($channel -eq "beta" -and $signingMode -ne "none") {
-            throw "Policy: beta channel must use signingMode=none (unsigned)."
-          }
+          Write-Host "Channel=${{ github.event.inputs.channel }} SigningMode=$signingMode PublishTarget=${{ github.event.inputs.publishTarget }}"
 
           if ($signingMode -eq "signpath") {
-            throw "SignPath/OSSign is not wired yet. Use signingMode=none until the SignPath integration sprint."
+            $missing = @()
+            if ([string]::IsNullOrWhiteSpace($env:SIGNPATH_API_TOKEN)) { $missing += "secrets.SIGNPATH_API_TOKEN" }
+            if ([string]::IsNullOrWhiteSpace($env:SIGNPATH_ORGANIZATION_ID)) { $missing += "vars.SIGNPATH_ORGANIZATION_ID" }
+            if ([string]::IsNullOrWhiteSpace($env:SIGNPATH_PROJECT_SLUG)) { $missing += "vars.SIGNPATH_PROJECT_SLUG" }
+            if ([string]::IsNullOrWhiteSpace($env:SIGNPATH_SIGNING_POLICY_SLUG)) { $missing += "vars.SIGNPATH_SIGNING_POLICY_SLUG" }
+            if ($missing.Count -gt 0) {
+              throw ("SignPath selected but configuration is incomplete: {0}" -f ($missing -join ', '))
+            }
+            Write-Host "SignPath configuration present."
           }
-
-          Write-Host "Channel=$channel SigningMode=$signingMode PublishTarget=${{ github.event.inputs.publishTarget }}"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -108,16 +126,83 @@ jobs:
 
           if (-not (Test-Path $releasesDir)) { throw "Missing releases dir: $releasesDir" }
 
-          # publish-dual-channel temp dirs are cleaned after pack; inspect release EXEs instead.
-          Write-Host "=== Authenticode status ==="
+          Write-Host "=== Authenticode status (pre-sign) ==="
           $peFiles = @(Get-ChildItem -Path $releasesDir -Filter "*.exe" -File -ErrorAction SilentlyContinue)
-          if ($peFiles.Count -eq 0) {
-            Write-Host "WARNING: No EXE files found for Authenticode log in $releasesDir"
-          } else {
-            foreach ($pe in $peFiles) {
-              Write-Host "--- $($pe.Name) ---"
-              Get-AuthenticodeSignature $pe.FullName | Format-List Status, StatusMessage, SignerCertificate | Out-String | Write-Host
-            }
+          foreach ($pe in $peFiles) {
+            Write-Host "--- $($pe.Name) ---"
+            Get-AuthenticodeSignature $pe.FullName | Format-List Status, StatusMessage, SignerCertificate | Out-String | Write-Host
+          }
+
+          "releases_dir=$releasesDir" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "tag=v$version-$channel" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "channel=$channel" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Prepare SignPath unsigned bundle
+        if: github.event.inputs.signingMode == 'signpath'
+        id: signpath_prepare
+        shell: pwsh
+        run: |
+          $releasesDir = "${{ steps.pack.outputs.releases_dir }}"
+          $unsignedDir = Join-Path $PWD "signpath-unsigned"
+          & .\SKRYPTY\Build\Prepare-SignPathBundle.ps1 -ReleasesDir $releasesDir -OutputDir $unsignedDir
+          "unsigned_dir=$unsignedDir" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Upload unsigned artifact for SignPath
+        if: github.event.inputs.signingMode == 'signpath'
+        id: upload_unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: signpath-unsigned-${{ github.event.inputs.channel }}-${{ github.event.inputs.version }}
+          path: ${{ steps.signpath_prepare.outputs.unsigned_dir }}
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Submit SignPath signing request
+        if: github.event.inputs.signingMode == 'signpath'
+        id: signpath
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG != '' && vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG || 'velopack-channel' }}
+          github-artifact-id: ${{ steps.upload_unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 1800
+          output-artifact-directory: ${{ github.workspace }}\signpath-signed
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply signed artifacts
+        if: github.event.inputs.signingMode == 'signpath'
+        shell: pwsh
+        run: |
+          Write-Host "SignPath request: ${{ steps.signpath.outputs.signing-request-web-url }}"
+          $releasesDir = "${{ steps.pack.outputs.releases_dir }}"
+          $signedDir = Join-Path $PWD "signpath-signed"
+          $mapPath = Join-Path $releasesDir "signpath-map.json"
+          & .\SKRYPTY\Build\Apply-SignPathBundle.ps1 -SignedDir $signedDir -ReleasesDir $releasesDir -MapPath $mapPath
+          & .\SKRYPTY\Build\Assert-AuthenticodeSigned.ps1 -ReleasesDir $releasesDir
+
+      - name: Finalize release artifacts
+        id: finalize
+        shell: pwsh
+        run: |
+          $channel = "${{ steps.pack.outputs.channel }}"
+          $version = "${{ steps.pack.outputs.version }}"
+          $releasesDir = "${{ steps.pack.outputs.releases_dir }}"
+          $signingMode = "${{ github.event.inputs.signingMode }}"
+
+          # CI-only metadata — do not ship to server / GH draft bundle
+          $mapPath = Join-Path $releasesDir "signpath-map.json"
+          if (Test-Path $mapPath) { Remove-Item $mapPath -Force }
+
+          Write-Host "=== Authenticode status (final) ==="
+          $peFiles = @(Get-ChildItem -Path $releasesDir -Filter "*.exe" -File -ErrorAction SilentlyContinue)
+          foreach ($pe in $peFiles) {
+            Write-Host "--- $($pe.Name) ---"
+            Get-AuthenticodeSignature $pe.FullName | Format-List Status, StatusMessage, SignerCertificate | Out-String | Write-Host
           }
 
           $hashes = @()
@@ -129,20 +214,44 @@ jobs:
           $hashesPath = Join-Path $releasesDir "SHA256SUMS.txt"
           Set-Content -Path $hashesPath -Value ($hashes -join "`n") -Encoding UTF8
 
+          $ghAssetsDir = Join-Path $PWD "gh-release-assets"
+          if (Test-Path $ghAssetsDir) { Remove-Item $ghAssetsDir -Recurse -Force }
+          New-Item -ItemType Directory -Path $ghAssetsDir -Force | Out-Null
+
+          $installerUrl = "https://susmodder.app/releases/SUSModderInstaller.exe"
+          $installerDest = Join-Path $ghAssetsDir "SUSModderInstaller.exe"
+          Write-Host "Downloading stable installer: $installerUrl"
+          Invoke-WebRequest -Uri $installerUrl -OutFile $installerDest -UseBasicParsing
+          if (-not (Test-Path $installerDest) -or ((Get-Item $installerDest).Length -lt 1KB)) {
+            throw "Failed to download SUSModderInstaller.exe from $installerUrl"
+          }
+
+          $portable = Get-ChildItem $releasesDir -Filter "*Portable.zip" -File | Select-Object -First 1
+          if (-not $portable) { throw "Portable.zip not found in $releasesDir" }
+          Copy-Item $portable.FullName -Destination (Join-Path $ghAssetsDir $portable.Name) -Force
+
+          $setup = Get-ChildItem $releasesDir -Filter "*Setup.exe" -File | Select-Object -First 1
+          if (-not $setup) { throw "Setup.exe not found in $releasesDir" }
+          Copy-Item $setup.FullName -Destination (Join-Path $ghAssetsDir $setup.Name) -Force
+
+          Write-Host "GH draft assets ($channel): $($portable.Name) + $($setup.Name) + SUSModderInstaller.exe (signingMode=$signingMode)"
+
           $zipPath = Join-Path $PWD "SUSModder-$version-$channel-velopack.zip"
           if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
           Compress-Archive -Path (Get-ChildItem -Path $releasesDir -File | ForEach-Object FullName) -DestinationPath $zipPath -Force
 
           "releases_dir=$releasesDir" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "gh_assets_dir=$ghAssetsDir" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "zip_path=$zipPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "tag=v$version-$channel" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "tag=${{ steps.pack.outputs.tag }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "signing_mode=$signingMode" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Upload temporary workflow artifact
         if: github.event.inputs.publishTarget != 'none'
         uses: actions/upload-artifact@v7
         with:
           name: susmodder-${{ github.event.inputs.channel }}-${{ github.event.inputs.version }}
-          path: ${{ steps.pack.outputs.zip_path }}
+          path: ${{ steps.finalize.outputs.zip_path }}
           retention-days: 1
           if-no-files-found: error
 
@@ -150,21 +259,23 @@ jobs:
         if: contains(github.event.inputs.publishTarget, 'github-draft')
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ steps.pack.outputs.tag }}
+          tag_name: ${{ steps.finalize.outputs.tag }}
           name: SUSModder ${{ github.event.inputs.version }} (${{ github.event.inputs.channel }})
           draft: true
           prerelease: ${{ github.event.inputs.channel == 'beta' }}
+          fail_on_unmatched_files: false
           body: |
-            ## Signing / provenance
+            ${{ github.event.inputs.changelogMarkdown != '' && format('## Changelog\n\n{0}\n\n', github.event.inputs.changelogMarkdown) || '' }}## Signing / provenance
             - Channel: `${{ github.event.inputs.channel }}`
-            - Authenticode: **unsigned** (expected for beta; SignPath pending for release)
+            - Authenticode: `${{ github.event.inputs.signingMode }}` (signpath = SignPath Foundation / OSSign; none = unsigned)
             - Built by: GitHub Actions `${{ github.workflow }}` @ `${{ github.sha }}`
 
             ## Notes
-            - Velopack unpacked publish (`PublishSingleFile=false`)
-            - See `SHA256SUMS.txt` in assets for integrity hashes
+            - Always attached: `SUSModderInstaller.exe` (stable bootstrapper from https://susmodder.app/releases/SUSModderInstaller.exe)
+            - Also attached: `*Portable.zip` and built `*Setup.exe` (beta and release)
+            - Velopack packages (nupkg / RELEASES / manifests) are deployed to susmodder.app — not attached here
           files: |
-            ${{ steps.pack.outputs.releases_dir }}/*
+            ${{ steps.finalize.outputs.gh_assets_dir }}/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -231,3 +342,29 @@ jobs:
 
           & .\SKRYPTY\Build\deploy-to-server.ps1 @deployArgs
           if ($LASTEXITCODE -ne 0) { throw "deploy-to-server.ps1 failed with exit $LASTEXITCODE" }
+
+      - name: Announce on Discord
+        if: ${{ success() && contains(github.event.inputs.publishTarget, 'server') }}
+        env:
+          DC_WEBHOOK: ${{ secrets.DC_WEBHOOK }}
+          CHANGELOG_MARKDOWN: ${{ github.event.inputs.changelogMarkdown }}
+          DISCORD_TEASER: ${{ github.event.inputs.discordTeaser }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $channel = "${{ github.event.inputs.channel }}"
+          $version = "${{ github.event.inputs.version }}".Trim()
+          $tag = "${{ steps.pack.outputs.tag }}"
+
+          if ([string]::IsNullOrWhiteSpace($env:DC_WEBHOOK)) {
+            throw "DC_WEBHOOK secret is required for Discord announcement after server deploy."
+          }
+
+          & .\SKRYPTY\Build\Send-DiscordReleaseAnnouncement.ps1 `
+            -Channel $channel `
+            -Version $version `
+            -ReleaseTag $tag
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Send-DiscordReleaseAnnouncement.ps1 failed with exit $LASTEXITCODE"
+          }

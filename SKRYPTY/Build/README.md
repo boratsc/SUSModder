@@ -4,10 +4,31 @@
 
 | Kanał | Authenticode | Uwagi |
 |-------|--------------|--------|
-| `beta` | **unsigned** | Domyślny kanał testowy CI (`release-candidate.yml`) |
-| `release` | **signed** (SignPath/OSSign) | Pending integracji; lokalnie nadal unsigned |
+| `beta` | **SignPath** (domyślnie) | `signingMode=signpath` w RC; escape hatch: `none` |
+| `release` | **SignPath** (domyślnie) | to samo — oba kanały mogą być podpisane |
 
 Publiczne buildy Velopack **wymagają** `PublishSingleFile=false` (unpacked). Gate: `Assert-NotSingleFile.ps1`.
+
+### SignPath / Authenticode (CI)
+
+Domyślny `signingMode` w `release-candidate.yml`: **`signpath`** (beta i release).
+
+Wymagane GitHub configuration:
+
+| Typ | Nazwa | Opis |
+|-----|-------|------|
+| Secret | `SIGNPATH_API_TOKEN` | API token submittera SignPath |
+| Variable | `SIGNPATH_ORGANIZATION_ID` | UUID organizacji |
+| Variable | `SIGNPATH_PROJECT_SLUG` | slug projektu |
+| Variable | `SIGNPATH_SIGNING_POLICY_SLUG` | np. `test-signing` / `release-signing` |
+| Variable | `SIGNPATH_ARTIFACT_CONFIGURATION_SLUG` | opcjonalnie; domyślnie `velopack-channel` |
+
+W portalu SignPath utwórz Artifact Configuration o slug `velopack-channel` na podstawie XML:
+`.signpath/artifact-configurations/velopack-channel.xml`
+
+Flow CI: pack → upload unsigned bundle (Setup/Update/Portable/nupkg) → SignPath → apply → `Assert-AuthenticodeSigned.ps1` → deploy/draft.
+
+Skrypty: `Prepare-SignPathBundle.ps1`, `Apply-SignPathBundle.ps1`, `Assert-AuthenticodeSigned.ps1`.
 
 ## Sekrety (`Secrets.cs`)
 
@@ -23,6 +44,8 @@ Wymagane GitHub Secrets:
 - `SUSMODDER_DOWNLOAD_TOKEN` — plaintext token Authorization
 - `SUSMODDER_7Z_PASSWORD` — plaintext hasło legacy vanilla 7z
 - `DEPLOY_SSH_PRIVATE_KEY` — klucz do uploadu na VPS (release workflow). **Preferuj Base64** całego pliku klucza (jedna linia); workflow akceptuje też surowy PEM.
+- `DC_WEBHOOK` — Discord webhook URL; po udanym deployu na serwer (`release-candidate.yml`) wysyła ogłoszenie beta/release.
+- `SIGNPATH_API_TOKEN` — token SignPath (gdy `signingMode=signpath`)
 
 Opcjonalne Variables: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH`.
 
@@ -33,6 +56,32 @@ $env:SUSMODDER_7Z_PASSWORD = "..."
 ```
 
 Uwaga: GH Secrets chronią źródło w CI; wartości i tak trafiają do binarki klienta. Pełne usunięcie sekretów z desktopa = osobny POC.
+
+### Discord announce (RC)
+
+Po `Deploy to susmodder.app` workflow woła `Send-DiscordReleaseAnnouncement.ps1`.
+
+Inputy `workflow_dispatch`:
+
+- `changelogMarkdown` — user-facing punkty zmian (markdown). Puste = post bez bloku zmian.
+- `discordTeaser` — opcjonalna linia na końcu (np. „Niedługo 3.0.13-beta”).
+
+**GitHub draft assets** (nie mylić z deployem na serwer):
+
+- zawsze: `SUSModderInstaller.exe` (pobierany z `https://susmodder.app/releases/SUSModderInstaller.exe`)
+- zawsze (beta i release): `*Portable.zip` + zbudowany `*Setup.exe`
+- nupkg / RELEASES / json → tylko serwer
+
+Lokalny dry-run (wymaga `gh` + istniejącego draftu z Portable dla beta):
+
+```powershell
+.\SKRYPTY\Build\Send-DiscordReleaseAnnouncement.ps1 `
+  -Channel beta `
+  -Version 3.0.12 `
+  -ReleaseTag v3.0.12-beta `
+  -ChangelogMarkdown "* [3.0.12] Przykładowa zmiana" `
+  -DryRun
+```
 
 ## Aktualne użycie (lokalnie)
 
@@ -61,6 +110,8 @@ Output:
 - `build-velopack-test.ps1` — lokalne testy paczkowania Velopack.
 - `build-bootstrapper.ps1` — build bootstrappera/instalatora, jeśli jest potrzebny w release flow.
 - `deploy-to-server.ps1` — ręczny upload gotowych artefaktów; wymaga jawnych parametrów/klucza SSH i ostrożności.
+- `Send-DiscordReleaseAnnouncement.ps1` — post na Discord (webhook) po RC; szablony beta/release.
+- `Prepare-SignPathBundle.ps1` / `Apply-SignPathBundle.ps1` / `Assert-AuthenticodeSigned.ps1` — SignPath Authenticode w CI.
 - `build-release-2.2.0.ps1`, `sign-and-build.ps1`, `build-with-signing.ps1`, `post-sign-packages.ps1` — legacy/reference. Nie używać domyślnie.
 
 ## Zasady
