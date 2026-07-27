@@ -689,7 +689,7 @@ namespace SUSModder.ViewModels
             }
             catch (Exception ex)
             {
-                await ShowErrorDialogAsync(ex.Message, title);
+                await ShowErrorDialogAsync(FormatPackInstanceError(ex.Message), title);
             }
         }
 
@@ -732,6 +732,20 @@ namespace SUSModder.ViewModels
                 "clone" => "Clone",
                 "legacy" => "Legacy",
                 _ => "Manual"
+            };
+        }
+
+        private string FormatPackInstanceError(string? errorCodeOrMessage)
+        {
+            if (string.IsNullOrWhiteSpace(errorCodeOrMessage))
+                return _localizationService.Get("ModPacks.CreateFailed");
+
+            return errorCodeOrMessage switch
+            {
+                "mod_instance_delete_map_mismatch" => _localizationService.Get("UI.Packs.DeleteMapMismatch"),
+                "mod_instance_not_found" => _localizationService.Get("UI.Packs.InstanceNotFound"),
+                "mod_instance_clone_map_mismatch" => _localizationService.Get("UI.Packs.CloneMapMismatch"),
+                _ => errorCodeOrMessage
             };
         }
 

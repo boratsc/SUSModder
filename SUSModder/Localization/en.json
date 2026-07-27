@@ -78,6 +78,19 @@
       "LobbyChat": "Lobby chat",
       "Compat": {
         "Loading": "Loading compatibility…"
+      },
+      "ActionTiles": {
+        "Lobby": "Lobby",
+        "Dll": "DLL",
+        "Roles": "Roles",
+        "Folder": "Folder",
+        "Shortcut": "Shortcut",
+        "Pack": "Pack",
+        "Share": "Share",
+        "Delete": "Delete",
+        "SelectVersion": "Choose version…",
+        "LatestBadge": "latest",
+        "VersionsHint": "Click a version to install"
       }
     },
     "Actions": {
@@ -136,6 +149,9 @@
       "DeleteTitle": "Uninstall pack",
       "DeleteConfirmation": "Remove pack \"{0}\"?\n\nFolder:\n{1}",
       "DeleteFilesConfirmation": "Also delete the installation folder from disk? This cannot be undone.",
+      "DeleteMapMismatch": "Cannot delete the folder — the installation map points to a different instance. Remove the entry without deleting files, or check the folder manually.",
+      "InstanceNotFound": "Local pack not found.",
+      "CloneMapMismatch": "Cannot clone — the installation map does not match this instance.",
       "LaunchCatalogMissing": "Mod not found in catalog — cannot launch this pack.",
       "Origin": {
         "Manual": "Created manually",
@@ -825,6 +841,15 @@
     "Email": "Email",
     "Copyright": "© 2026 SUSModder - Software licensed under GPLv3. All rights reserved."
   },
+  "Support": {
+    "BannerMessage": "This project is free and open source. If you'd like to say thanks — you can buy me a virtual coffee.",
+    "BannerLink": "suppi.pl →",
+    "BannerDismissTooltip": "Hide for 7 days",
+    "CardTitle": "Support the project",
+    "CardMessage": "SUSModder is free and open source. If you'd like to thank me for the work, you can buy a virtual coffee — completely optional.",
+    "CardLink": "Open suppi.pl →",
+    "SettingsFooter": "☕ Buy me a coffee · suppi.pl"
+  },
   "Tools": {
     "TownOfUsTools": "Town Of Us Tools",
     "TownOfUsDescription": "You can manage things related to mods based on Town Of Us (ToU, Syzyf, Edited, etc.)",
@@ -1395,6 +1420,9 @@
     "Disabled": "Mod pack sharing is disabled in settings.",
     "SelectFullMod": "Select a main mod.",
     "CreateFailed": "Failed to create pack.",
+    "InvalidCreatorHash": "Invalid device identifier (creatorHash). Restart the app or update to the latest version. If it persists, contact us on the SUSModder Discord.",
+    "ResumeFinalize": "Finishing share…",
+    "FinalizeRetryHint": "The pack was already created on the server. Click Create again to finish validation — another copy will not be created.",
     "Shared": {
       "TabTitle": "Shared",
       "HeaderCount": "Active packs: {0}/{1}",

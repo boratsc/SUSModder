@@ -75,6 +75,9 @@ namespace SUSModder.Views
             }
         }
 
+        private void OpenSupport_Click(object? sender, RoutedEventArgs e)
+            => Services.ProjectSupport.Open();
+
         private void CheckForUpdatesButton_Click(object? sender, RoutedEventArgs e)
         {
             var mainWindow = this.FindLogicalAncestorOfType<MainWindow>();

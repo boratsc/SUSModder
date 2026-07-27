@@ -176,6 +176,124 @@ public class ModInstanceInstallerTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteInstance_WithMatchingMap_RemovesFilesAndRepositoryRow()
+    {
+        await using var db = await CreateInitializedDatabaseAsync();
+        var repo = new ModInstanceRepository(db);
+        var installPath = Path.Combine(_tempDir, "instance-delete-ok");
+        Directory.CreateDirectory(installPath);
+        File.WriteAllText(Path.Combine(installPath, "keep.txt"), "x");
+        var instance = CreateInstance("instance-delete-ok", installPath);
+        repo.AddInstance(instance);
+        await InstallationMapManager.SaveInstallationMapAsync(installPath, new InstallationMap
+        {
+            Version = "2.0",
+            InstanceId = instance.InstanceId,
+            DisplayName = instance.DisplayName
+        });
+        var service = new ModInstanceInstaller(repo, new FakeFullModInstaller());
+
+        await service.DeleteInstanceAsync(instance.InstanceId, deleteFiles: true);
+
+        Assert.False(Directory.Exists(installPath));
+        Assert.Null(repo.GetInstance(instance.InstanceId));
+    }
+
+    [Fact]
+    public async Task DeleteInstance_WithoutMap_StillRemovesFilesAndRepositoryRow()
+    {
+        await using var db = await CreateInitializedDatabaseAsync();
+        var repo = new ModInstanceRepository(db);
+        var installPath = Path.Combine(_tempDir, "instance-delete-no-map");
+        Directory.CreateDirectory(installPath);
+        File.WriteAllText(Path.Combine(installPath, "keep.txt"), "x");
+        var instance = CreateInstance("instance-delete-no-map", installPath);
+        repo.AddInstance(instance);
+        var service = new ModInstanceInstaller(repo, new FakeFullModInstaller());
+
+        await service.DeleteInstanceAsync(instance.InstanceId, deleteFiles: true);
+
+        Assert.False(Directory.Exists(installPath));
+        Assert.Null(repo.GetInstance(instance.InstanceId));
+    }
+
+    [Fact]
+    public async Task DeleteInstance_WithEmptyMapInstanceId_HealsAndRemoves()
+    {
+        await using var db = await CreateInitializedDatabaseAsync();
+        var repo = new ModInstanceRepository(db);
+        var installPath = Path.Combine(_tempDir, "instance-delete-empty-id");
+        Directory.CreateDirectory(installPath);
+        File.WriteAllText(Path.Combine(installPath, "keep.txt"), "x");
+        var instance = CreateInstance("instance-delete-empty-id", installPath);
+        repo.AddInstance(instance);
+        await InstallationMapManager.SaveInstallationMapAsync(installPath, new InstallationMap
+        {
+            Version = "1.0",
+            InstanceId = null,
+            DisplayName = instance.DisplayName
+        });
+        var service = new ModInstanceInstaller(repo, new FakeFullModInstaller());
+
+        await service.DeleteInstanceAsync(instance.InstanceId, deleteFiles: true);
+
+        Assert.False(Directory.Exists(installPath));
+        Assert.Null(repo.GetInstance(instance.InstanceId));
+    }
+
+    [Fact]
+    public async Task DeleteInstance_WithMismatchedMapInstanceId_ThrowsAndKeepsFiles()
+    {
+        await using var db = await CreateInitializedDatabaseAsync();
+        var repo = new ModInstanceRepository(db);
+        var installPath = Path.Combine(_tempDir, "instance-delete-mismatch");
+        Directory.CreateDirectory(installPath);
+        File.WriteAllText(Path.Combine(installPath, "keep.txt"), "x");
+        var instance = CreateInstance("instance-delete-mismatch", installPath);
+        repo.AddInstance(instance);
+        await InstallationMapManager.SaveInstallationMapAsync(installPath, new InstallationMap
+        {
+            Version = "2.0",
+            InstanceId = "other-instance-id",
+            DisplayName = instance.DisplayName
+        });
+        var service = new ModInstanceInstaller(repo, new FakeFullModInstaller());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.DeleteInstanceAsync(instance.InstanceId, deleteFiles: true));
+
+        Assert.Equal("mod_instance_delete_map_mismatch", ex.Message);
+        Assert.True(Directory.Exists(installPath));
+        Assert.NotNull(repo.GetInstance(instance.InstanceId));
+    }
+
+    [Fact]
+    public async Task DeleteInstance_FindsMapUnderEpicAmongUsSubdirectory()
+    {
+        await using var db = await CreateInitializedDatabaseAsync();
+        var repo = new ModInstanceRepository(db);
+        var installPath = Path.Combine(_tempDir, "instance-delete-epic");
+        var amongUsPath = Path.Combine(installPath, "AmongUs");
+        Directory.CreateDirectory(amongUsPath);
+        File.WriteAllText(Path.Combine(amongUsPath, "Among Us.exe"), "x");
+        var instance = CreateInstance("instance-delete-epic", installPath);
+        repo.AddInstance(instance);
+        await InstallationMapManager.SaveInstallationMapAsync(amongUsPath, new InstallationMap
+        {
+            Version = "2.0",
+            InstanceId = instance.InstanceId,
+            DisplayName = instance.DisplayName,
+            Platform = "epic"
+        });
+        var service = new ModInstanceInstaller(repo, new FakeFullModInstaller());
+
+        await service.DeleteInstanceAsync(instance.InstanceId, deleteFiles: true);
+
+        Assert.False(Directory.Exists(installPath));
+        Assert.Null(repo.GetInstance(instance.InstanceId));
+    }
+
+    [Fact]
     public async Task RenameInstance_UpdatesRepositoryAndInstallationMapMetadata()
     {
         await using var db = await CreateInitializedDatabaseAsync();

@@ -66,7 +66,8 @@ namespace SUSModder.Core.Data
                     mod_packs_enabled, mod_packs_auto_install,
                     mod_pack_share_creator_name, mod_pack_share_discord_invite,
                     glass_reduce_transparency,
-                    prefer_depot_downloader, developer_mode
+                    prefer_depot_downloader, developer_mode,
+                    support_banner_dismissed_at
                 ) VALUES (
                     1, @mode, @last_launch_id, @theme, @language, @telemetry_enabled,
                     @mods_install_path, @license_accepted, @first_run_date, @update_channel,
@@ -76,7 +77,8 @@ namespace SUSModder.Core.Data
                     @mod_packs_enabled, @mod_packs_auto_install,
                     @mod_pack_share_creator_name, @mod_pack_share_discord_invite,
                     @glass_reduce_transparency,
-                    @prefer_depot_downloader, @developer_mode
+                    @prefer_depot_downloader, @developer_mode,
+                    @support_banner_dismissed_at
                 )
                 ON CONFLICT(id) DO UPDATE SET
                     mode = excluded.mode,
@@ -102,7 +104,8 @@ namespace SUSModder.Core.Data
                     mod_pack_share_discord_invite = excluded.mod_pack_share_discord_invite,
                     glass_reduce_transparency = excluded.glass_reduce_transparency,
                     prefer_depot_downloader = excluded.prefer_depot_downloader,
-                    developer_mode = excluded.developer_mode;";
+                    developer_mode = excluded.developer_mode,
+                    support_banner_dismissed_at = excluded.support_banner_dismissed_at;";
 
             cmd.Parameters.AddWithValue("@mode", settings.Mode ?? string.Empty);
             cmd.Parameters.AddWithValue("@last_launch_id", settings.LastLaunchId);
@@ -128,6 +131,7 @@ namespace SUSModder.Core.Data
             cmd.Parameters.AddWithValue("@glass_reduce_transparency", settings.GlassReduceTransparency ? 1 : 0);
             cmd.Parameters.AddWithValue("@prefer_depot_downloader", settings.PreferDepotDownloader ? 1 : 0);
             cmd.Parameters.AddWithValue("@developer_mode", settings.DeveloperMode ? 1 : 0);
+            cmd.Parameters.AddWithValue("@support_banner_dismissed_at", settings.SupportBannerDismissedAt ?? string.Empty);
 
             cmd.ExecuteNonQuery();
 
@@ -153,7 +157,7 @@ namespace SUSModder.Core.Data
                 "settings_version", "active_sustats_guild_id",
                 "mod_packs_enabled", "mod_packs_auto_install", "glass_reduce_transparency",
                 "prefer_depot_downloader", "mod_pack_share_creator_name", "mod_pack_share_discord_invite",
-                "developer_mode"
+                "developer_mode", "support_banner_dismissed_at"
             };
 
             if (!allowedColumns.Contains(columnName))
@@ -223,7 +227,8 @@ namespace SUSModder.Core.Data
                 ModPackShareDiscordInvite = TryGetString(reader, "mod_pack_share_discord_invite", string.Empty),
                 GlassReduceTransparency = TryGetBool(reader, "glass_reduce_transparency", false),
                 PreferDepotDownloader = TryGetBool(reader, "prefer_depot_downloader", false),
-                DeveloperMode = TryGetBool(reader, "developer_mode", false)
+                DeveloperMode = TryGetBool(reader, "developer_mode", false),
+                SupportBannerDismissedAt = TryGetString(reader, "support_banner_dismissed_at", string.Empty)
             };
         }
 

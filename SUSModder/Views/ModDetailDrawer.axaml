@@ -4,11 +4,16 @@
              xmlns:local="using:SUSModder.Views"
              xmlns:loc="using:SUSModder.Services.Localization"
              xmlns:converters="using:SUSModder.Converters"
+             xmlns:models="clr-namespace:SUSModder.Core.Models;assembly=SUSModder.Core"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:fic="using:FluentIcons.Common"
              x:Class="SUSModder.Views.ModDetailDrawer"
+             x:Name="ModDetailDrawerRoot"
              x:DataType="vm:MainWindowViewModel">
 	<UserControl.Resources>
 		<converters:StringNotNullOrEmptyToBoolConverter x:Key="StringNotNullOrEmptyToBoolConverter"/>
 		<converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
+		<converters:ReferenceEqualsMultiConverter x:Key="ReferenceEqualsMultiConverter"/>
 	</UserControl.Resources>
 	<Border Classes="mod-detail-panel">
 		<Panel Classes="fade-in-panel" IsVisible="{Binding IsModSelected}">
@@ -109,7 +114,7 @@
 					</Grid>
 				</Border>
 
-				<!-- 2. Opis (stały, własny scroll przy długim tekście) -->
+				<!-- 2. Opis -->
 				<ScrollViewer Grid.Row="1"
 							  MaxHeight="96"
 							  VerticalScrollBarVisibility="Auto"
@@ -117,7 +122,7 @@
 					<StackPanel x:Name="DescriptionPanel" Orientation="Vertical"/>
 				</ScrollViewer>
 
-				<!-- 3. VirusTotal – uproszczony wskaźnik -->
+				<!-- 3. VirusTotal -->
 				<Button Grid.Row="2"
 						IsVisible="{Binding HasVtReport}"
 						Padding="8,4"
@@ -133,7 +138,6 @@
 								   Text="{loc:Localize SecurityScan.ScannedByVirusTotal}"
 								   Foreground="{DynamicResource TextSecondaryBrush}"
 								   VerticalAlignment="Center"/>
-						<!-- Link do raportu tylko jeśli jest permalink -->
 						<TextBlock IsVisible="{Binding HasVtPermalink}"
 								   FontSize="11"
 								   Text="{loc:Localize SecurityScan.OpenReport}"
@@ -143,7 +147,7 @@
 					</StackPanel>
 				</Button>
 
-				<!-- 4. Uruchom / Instaluj (stały) -->
+				<!-- 4. Sticky CTA + siatki akcji -->
 				<Border Grid.Row="3" Classes="mod-detail-sticky-cta" Margin="0,0,0,8" Padding="0,0,0,8">
 					<StackPanel Spacing="8">
 						<Button Content="{loc:Localize UI.Buttons.Launch}"
@@ -153,19 +157,112 @@
 								IsVisible="{Binding IsVanilla}"
 								IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
 								Command="{Binding $parent[local:ModDetailDrawer].DataContext.LaunchCommand}"/>
-						<Button Content="{loc:Localize UI.Buttons.Install}"
-								Classes="mod-detail-btn"
-								Background="{DynamicResource AccentBrush}"
-								Foreground="White"
-								IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
-								Command="{Binding $parent[local:ModDetailDrawer].DataContext.InstallCommand}">
-							<Button.IsVisible>
+
+						<SplitButton x:Name="InstallVersionSplit"
+									 Classes="mod-detail-split"
+									 Content="{loc:Localize UI.Buttons.Install}"
+									 IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+									 Command="{Binding $parent[local:ModDetailDrawer].DataContext.InstallCommand}">
+							<SplitButton.IsVisible>
 								<MultiBinding Converter="{x:Static BoolConverters.And}">
 									<Binding Path="InstallPath" Converter="{StaticResource StringNotNullOrEmptyToBoolConverter}" ConverterParameter="Invert"/>
 									<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
 								</MultiBinding>
-							</Button.IsVisible>
-						</Button>
+							</SplitButton.IsVisible>
+							<SplitButton.Flyout>
+								<Flyout Placement="Bottom"
+										ShowMode="Standard"
+										FlyoutPresenterClasses="mod-detail-version-flyout-presenter"
+										Opening="InstallVersionFlyout_Opening">
+									<Border Classes="mod-detail-version-flyout">
+										<StackPanel Spacing="8" Width="320">
+											<TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.VersionsHint}"
+													   FontSize="11"
+													   Opacity="0.7"
+													   Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+											<StackPanel IsVisible="{Binding #ModDetailDrawerRoot.((vm:MainWindowViewModel)DataContext).IsInstallVersionFlyoutLoading}"
+														Spacing="8"
+														HorizontalAlignment="Center"
+														Margin="0,16">
+												<ProgressBar IsIndeterminate="True" Width="140" Height="4"/>
+												<TextBlock Text="{loc:Localize Tools.VersionSelection.Loading}"
+														   FontSize="12"
+														   HorizontalAlignment="Center"
+														   Foreground="{DynamicResource TextSecondaryBrush}"/>
+											</StackPanel>
+
+											<Border IsVisible="{Binding #ModDetailDrawerRoot.((vm:MainWindowViewModel)DataContext).InstallVersionFlyoutHasError}"
+													Background="#20FF0000"
+													BorderBrush="#FF6B6B"
+													BorderThickness="1"
+													CornerRadius="8"
+													Padding="12">
+												<TextBlock Text="{Binding #ModDetailDrawerRoot.((vm:MainWindowViewModel)DataContext).InstallVersionFlyoutError}"
+														   FontSize="12"
+														   TextWrapping="Wrap"
+														   Foreground="{DynamicResource TextPrimaryBrush}"/>
+											</Border>
+
+											<ScrollViewer MaxHeight="320"
+														  VerticalScrollBarVisibility="Auto"
+														  IsVisible="{Binding #ModDetailDrawerRoot.((vm:MainWindowViewModel)DataContext).HasInstallVersionFlyoutVersions}">
+												<ItemsControl ItemsSource="{Binding #ModDetailDrawerRoot.((vm:MainWindowViewModel)DataContext).InstallVersionFlyoutVersions}">
+													<ItemsControl.ItemTemplate>
+														<DataTemplate x:DataType="models:ModVersionHistory">
+															<Button Classes="mod-detail-version-item"
+																	Click="InstallVersionItem_Click"
+																	Tag="{Binding}">
+																<Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+																	<TextBlock Grid.Row="0" Grid.Column="0"
+																			   FontSize="13"
+																			   FontWeight="SemiBold"
+																			   Foreground="{DynamicResource TextPrimaryBrush}"
+																			   TextWrapping="NoWrap"
+																			   TextTrimming="CharacterEllipsis">
+																		<Run Text="{loc:Localize Tools.VersionSelection.VersionLabel}"/>
+																		<Run Text=" "/>
+																		<Run Text="{Binding ModVersion}"/>
+																	</TextBlock>
+																	<Border Grid.Row="0" Grid.Column="1"
+																			Background="{DynamicResource AccentBrush}"
+																			CornerRadius="4"
+																			Padding="6,2"
+																			VerticalAlignment="Center"
+																			Margin="8,0,0,0">
+																		<Border.IsVisible>
+																			<MultiBinding Converter="{StaticResource ReferenceEqualsMultiConverter}">
+																				<Binding/>
+																				<Binding Path="#ModDetailDrawerRoot.((vm:MainWindowViewModel)DataContext).InstallVersionFlyoutLatest"/>
+																			</MultiBinding>
+																		</Border.IsVisible>
+																		<TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.LatestBadge}"
+																				   FontSize="9"
+																				   FontWeight="SemiBold"
+																				   Foreground="White"/>
+																	</Border>
+																	<TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+																			   FontSize="11"
+																			   Foreground="{DynamicResource TextSecondaryBrush}"
+																			   Margin="0,2,0,0"
+																			   Text="{Binding AmongVersion, StringFormat='Among Us: {0}'}"/>
+																	<TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+																			   FontSize="10"
+																			   Opacity="0.7"
+																			   Foreground="{DynamicResource TextSecondaryBrush}"
+																			   Text="{Binding FormattedDate}"/>
+																</Grid>
+															</Button>
+														</DataTemplate>
+													</ItemsControl.ItemTemplate>
+												</ItemsControl>
+											</ScrollViewer>
+										</StackPanel>
+									</Border>
+								</Flyout>
+							</SplitButton.Flyout>
+						</SplitButton>
+
 						<Button Content="{loc:Localize UI.Buttons.Launch}"
 								Classes="mod-detail-btn"
 								Background="{DynamicResource SuccessBrush}"
@@ -179,13 +276,167 @@
 								</MultiBinding>
 							</Button.IsVisible>
 						</Button>
-						<Button Content="{loc:Localize UI.Menu.LobbyBoard}"
-								Classes="mod-detail-btn"
-								Background="#7B1FA2"
-								Foreground="White"
-								IsVisible="{Binding IsVanilla, Converter={x:Static BoolConverters.Not}}"
-								IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
-								Command="{Binding $parent[local:ModDetailDrawer].DataContext.OpenInspectorLobbyCommand}"/>
+
+						<!-- Niezainstalowany: siatka 3×N -->
+						<UniformGrid Columns="3">
+							<UniformGrid.IsVisible>
+								<MultiBinding Converter="{x:Static BoolConverters.And}">
+									<Binding Path="InstallPath" Converter="{StaticResource StringNotNullOrEmptyToBoolConverter}" ConverterParameter="Invert"/>
+									<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+								</MultiBinding>
+							</UniformGrid.IsVisible>
+							<Button Classes="mod-detail-action-tile"
+									Margin="0,0,4,0"
+									IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+									Command="{Binding $parent[local:ModDetailDrawer].DataContext.OpenInspectorLobbyCommand}"
+									ToolTip.Tip="{loc:Localize UI.Menu.LobbyBoard}">
+								<StackPanel Spacing="4" HorizontalAlignment="Center">
+									<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Clipboard}" FontSize="18"
+												   HorizontalAlignment="Center"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.Lobby}"
+											   FontSize="10" TextAlignment="Center"
+											   TextWrapping="Wrap"/>
+								</StackPanel>
+							</Button>
+							<Button Classes="mod-detail-action-tile"
+									Margin="2,0"
+									IsVisible="{Binding IsFullMod}"
+									IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+									Command="{Binding $parent[local:ModDetailDrawer].DataContext.CreateLocalPackCommand}"
+									ToolTip.Tip="{loc:Localize UI.Packs.CreateLocal}">
+								<StackPanel Spacing="4" HorizontalAlignment="Center">
+									<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Box}" FontSize="18"
+												   HorizontalAlignment="Center"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.Pack}"
+											   FontSize="10" TextAlignment="Center"
+											   TextWrapping="Wrap"/>
+								</StackPanel>
+							</Button>
+							<Button Classes="mod-detail-action-tile"
+									Margin="4,0,0,0"
+									IsVisible="{Binding IsFullMod}"
+									IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+									Command="{Binding $parent[local:ModDetailDrawer].DataContext.CreateAndSharePackCommand}"
+									ToolTip.Tip="{loc:Localize UI.Packs.CreateAndShare}">
+								<StackPanel Spacing="4" HorizontalAlignment="Center">
+									<ic:SymbolIcon Symbol="{x:Static fic:Symbol.CloudArrowUp}" FontSize="18"
+												   HorizontalAlignment="Center"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.Share}"
+											   FontSize="10" TextAlignment="Center"
+											   TextWrapping="Wrap"/>
+								</StackPanel>
+							</Button>
+						</UniformGrid>
+
+						<!-- Zainstalowany: toolbar 4×N -->
+						<UniformGrid Columns="4">
+							<UniformGrid.IsVisible>
+								<MultiBinding Converter="{x:Static BoolConverters.And}">
+									<Binding Path="InstallPath" Converter="{StaticResource StringNotNullOrEmptyToBoolConverter}"/>
+									<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+								</MultiBinding>
+							</UniformGrid.IsVisible>
+							<Button Classes="mod-detail-action-tile"
+									Margin="0,0,3,4"
+									IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+									Command="{Binding $parent[local:ModDetailDrawer].DataContext.ShowDllSelectionCommand}"
+									ToolTip.Tip="{loc:Localize UI.Buttons.AddDll}">
+								<StackPanel Spacing="3" HorizontalAlignment="Center">
+									<ic:SymbolIcon Symbol="{x:Static fic:Symbol.PuzzlePiece}" FontSize="18"
+												   HorizontalAlignment="Center"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.Dll}"
+											   FontSize="9" TextAlignment="Center"/>
+								</StackPanel>
+							</Button>
+							<Button Classes="mod-detail-action-tile"
+									Margin="1.5,0,1.5,4"
+									Command="{Binding $parent[local:ModDetailDrawer].DataContext.ShowRolesCommand}"
+									ToolTip.Tip="{loc:Localize UI.Buttons.Roles}">
+								<Button.IsEnabled>
+									<MultiBinding Converter="{x:Static BoolConverters.And}">
+										<Binding Path="IsInstalling" Converter="{x:Static BoolConverters.Not}"/>
+										<Binding Path="HasRoles" FallbackValue="False"/>
+									</MultiBinding>
+								</Button.IsEnabled>
+								<StackPanel Spacing="3" HorizontalAlignment="Center">
+									<ic:SymbolIcon Symbol="{x:Static fic:Symbol.People}" FontSize="18"
+												   HorizontalAlignment="Center"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.Roles}"
+											   FontSize="9" TextAlignment="Center"/>
+								</StackPanel>
+							</Button>
+							<Button Classes="mod-detail-action-tile"
+									Margin="1.5,0,1.5,4"
+									IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+									Command="{Binding $parent[local:ModDetailDrawer].DataContext.OpenInspectorLobbyCommand}"
+									ToolTip.Tip="{loc:Localize UI.Menu.LobbyBoard}">
+								<StackPanel Spacing="3" HorizontalAlignment="Center">
+									<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Clipboard}" FontSize="18"
+												   HorizontalAlignment="Center"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.Lobby}"
+											   FontSize="9" TextAlignment="Center"/>
+								</StackPanel>
+							</Button>
+							<Button Classes="mod-detail-action-tile"
+									Margin="3,0,0,4"
+									Command="{Binding $parent[local:ModDetailDrawer].DataContext.OpenFolderCommand}"
+									ToolTip.Tip="{loc:Localize UI.Buttons.OpenFolder}">
+								<StackPanel Spacing="3" HorizontalAlignment="Center">
+									<ic:SymbolIcon Symbol="{x:Static fic:Symbol.FolderOpen}" FontSize="18"
+												   HorizontalAlignment="Center"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.Folder}"
+											   FontSize="9" TextAlignment="Center"/>
+								</StackPanel>
+							</Button>
+							<Button Classes="mod-detail-action-tile"
+									Margin="0,0,3,0"
+									Command="{Binding $parent[local:ModDetailDrawer].DataContext.CreateShortcutCommand}"
+									ToolTip.Tip="{loc:Localize UI.Buttons.CreateShortcut}">
+								<StackPanel Spacing="3" HorizontalAlignment="Center">
+									<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Link}" FontSize="18"
+												   HorizontalAlignment="Center"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.Shortcut}"
+											   FontSize="9" TextAlignment="Center"/>
+								</StackPanel>
+							</Button>
+							<Button Classes="mod-detail-action-tile"
+									Margin="1.5,0"
+									IsVisible="{Binding IsFullMod}"
+									IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+									Command="{Binding $parent[local:ModDetailDrawer].DataContext.CreateLocalPackCommand}"
+									ToolTip.Tip="{loc:Localize UI.Packs.CreateLocal}">
+								<StackPanel Spacing="3" HorizontalAlignment="Center">
+									<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Box}" FontSize="18"
+												   HorizontalAlignment="Center"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.Pack}"
+											   FontSize="9" TextAlignment="Center"/>
+								</StackPanel>
+							</Button>
+							<Button Classes="mod-detail-action-tile danger"
+									Margin="1.5,0,0,0"
+									IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+									Command="{Binding $parent[local:ModDetailDrawer].DataContext.UninstallCommand}"
+									ToolTip.Tip="{loc:Localize UI.Buttons.Delete}">
+								<StackPanel Spacing="3" HorizontalAlignment="Center">
+									<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Delete}" FontSize="18"
+												   HorizontalAlignment="Center"
+												   Foreground="{DynamicResource DangerBrush}"/>
+									<TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.Delete}"
+											   FontSize="9" TextAlignment="Center"
+											   Foreground="{DynamicResource DangerBrush}"/>
+								</StackPanel>
+							</Button>
+						</UniformGrid>
+
 						<Border IsVisible="{Binding ShowProgress}" Classes="mod-detail-section" Padding="10">
 							<StackPanel Spacing="6">
 								<TextBlock Text="{Binding InstallStatusMessage}"
@@ -201,139 +452,72 @@
 					</StackPanel>
 				</Border>
 
-				<!-- 4. Przewijalne sekcje -->
+				<!-- 5. Przewijalne sekcje -->
 				<ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto">
 					<StackPanel Spacing="10">
 
-						<!-- Dodatkowe akcje (zwijane) -->
 						<Border Classes="mod-detail-section"
-								IsVisible="{Binding IsVanilla, Converter={x:Static BoolConverters.Not}}">
-							<StackPanel Spacing="8">
+								IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.ShowCatalogInspectorCompatibleDlls}">
+							<StackPanel Spacing="6">
 								<Button Classes="inspector-expander-header"
-										Command="{Binding $parent[local:ModDetailDrawer].DataContext.ToggleInspectorMoreActionsCommand}">
+										Command="{Binding $parent[local:ModDetailDrawer].DataContext.ToggleCatalogCompatibleDllSectionCommand}">
 									<Grid ColumnDefinitions="*,Auto">
 										<TextBlock Grid.Column="0"
 												   Classes="inspector-section-title"
 												   Margin="0"
-												   Text="{loc:Localize UI.Inspector.MoreActions}"/>
-										<TextBlock Grid.Column="1" FontSize="10" Opacity="0.6" Text="▼"
-												   IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.IsInspectorMoreActionsExpanded}"/>
-										<TextBlock Grid.Column="1" FontSize="10" Opacity="0.6" Text="▶"
-												   IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.IsInspectorMoreActionsExpanded, Converter={x:Static BoolConverters.Not}}"/>
+												   Text="{loc:Localize UI.Inspector.CompatibleDlls}"/>
+										<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+											<TextBlock FontSize="11" Opacity="0.7"
+													   Text="{Binding $parent[local:ModDetailDrawer].DataContext.CatalogCompatibleDllLines.Count}"
+													   VerticalAlignment="Center"/>
+											<TextBlock FontSize="10" Opacity="0.6" Text="▼"
+													   IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.IsCatalogCompatibleDllSectionExpanded}"/>
+											<TextBlock FontSize="10" Opacity="0.6" Text="▶"
+													   IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.IsCatalogCompatibleDllSectionExpanded, Converter={x:Static BoolConverters.Not}}"/>
+										</StackPanel>
 									</Grid>
 								</Button>
-
-								<StackPanel Spacing="8"
-											IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.IsInspectorMoreActionsExpanded}">
-									<StackPanel Spacing="8">
-										<StackPanel.IsVisible>
-											<MultiBinding Converter="{x:Static BoolConverters.And}">
-												<Binding Path="InstallPath" Converter="{StaticResource StringNotNullOrEmptyToBoolConverter}" ConverterParameter="Invert"/>
-												<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
-											</MultiBinding>
-										</StackPanel.IsVisible>
-										<Button Content="{loc:Localize UI.Buttons.SelectVersion}"
-												Classes="mod-detail-btn"
-												Background="Transparent"
-												BorderBrush="{DynamicResource AccentBrush}"
-												BorderThickness="2"
-												Foreground="{DynamicResource AccentBrush}"
-												IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
-												Command="{Binding $parent[local:ModDetailDrawer].DataContext.InstallWithVersionSelectionCommand}"/>
-										<Button Content="{loc:Localize UI.Packs.CreateLocal}"
-												Classes="mod-detail-btn"
-												Background="Transparent"
-												BorderBrush="{DynamicResource AccentPrimaryBrush}"
-												BorderThickness="2"
-												IsVisible="{Binding IsFullMod}"
-												IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
-												Command="{Binding $parent[local:ModDetailDrawer].DataContext.CreateLocalPackCommand}"/>
-										<Button Content="{loc:Localize UI.Packs.CreateAndShare}"
-												Classes="mod-detail-btn"
-												Background="Transparent"
-												BorderBrush="{DynamicResource AccentPrimaryBrush}"
-												BorderThickness="2"
-												IsVisible="{Binding IsFullMod}"
-												IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
-												Command="{Binding $parent[local:ModDetailDrawer].DataContext.CreateAndSharePackCommand}"/>
-									</StackPanel>
-
-									<StackPanel Spacing="8"
-												IsVisible="{Binding InstallPath, Converter={StaticResource StringNotNullOrEmptyToBoolConverter}}">
-										<Button Content="{loc:Localize UI.Buttons.AddDll}"
-												Classes="mod-detail-btn"
-												Background="{DynamicResource DllButtonBrush}"
-												Foreground="White"
-												IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
-												Command="{Binding $parent[local:ModDetailDrawer].DataContext.ShowDllSelectionCommand}"/>
-										<Button Content="{loc:Localize UI.Buttons.Roles}"
-												Classes="mod-detail-btn"
-												Background="#1976D2"
-												Foreground="White"
-												Command="{Binding $parent[local:ModDetailDrawer].DataContext.ShowRolesCommand}">
-											<Button.IsEnabled>
-												<MultiBinding Converter="{x:Static BoolConverters.And}">
-													<Binding Path="IsInstalling" Converter="{x:Static BoolConverters.Not}"/>
-													<Binding Path="HasRoles" FallbackValue="False"/>
-												</MultiBinding>
-											</Button.IsEnabled>
-										</Button>
-										<Button Content="{loc:Localize UI.Buttons.Delete}"
-												Classes="mod-detail-btn"
-												Background="{DynamicResource DangerBrush}"
-												Foreground="White"
-												IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
-												Command="{Binding $parent[local:ModDetailDrawer].DataContext.UninstallCommand}"/>
-									</StackPanel>
+								<StackPanel Spacing="6"
+											IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.IsCatalogCompatibleDllSectionExpanded}">
+									<TextBlock Text="{loc:Localize UI.Inspector.Compat.Loading}"
+											   FontSize="12"
+											   Opacity="0.7"
+											   IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.IsCatalogCompatibleDllLoading}"/>
+									<ItemsControl ItemsSource="{Binding $parent[local:ModDetailDrawer].DataContext.CatalogCompatibleDllDisplayLines}"
+												  IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.HasCatalogCompatibleDllLines}">
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="vm:DllCompatibilityLineItem">
+												<Button Classes="mod-detail-btn"
+														Background="Transparent"
+														BorderThickness="0"
+														HorizontalAlignment="Stretch"
+														HorizontalContentAlignment="Left"
+														Padding="4,6"
+														Command="{Binding $parent[local:ModDetailDrawer].DataContext.OpenDllAddonFromCatalogCommand}"
+														CommandParameter="{Binding}">
+													<TextBlock FontSize="12">
+														<Run Text="{Binding StatusEmoji}"/>
+														<Run Text="{Binding TargetName}"/>
+														<Run Text=" — "/>
+														<Run Text="{Binding StatusLabel}"/>
+													</TextBlock>
+												</Button>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+									<Button Background="Transparent"
+											BorderThickness="0"
+											HorizontalAlignment="Left"
+											Padding="4,2"
+											FontSize="12"
+											Opacity="0.75"
+											Content="{Binding $parent[local:ModDetailDrawer].DataContext.CatalogCompatibleDllToggleLabel}"
+											Command="{Binding $parent[local:ModDetailDrawer].DataContext.ToggleCatalogCompatibleDllExpandedCommand}"
+											IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.ShowCatalogCompatibleDllToggle}"/>
 								</StackPanel>
 							</StackPanel>
 						</Border>
 
-						<!-- Kompatybilne DLL -->
-						<Border Classes="mod-detail-section"
-								IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.ShowCatalogInspectorCompatibleDlls}">
-							<StackPanel Spacing="6">
-								<TextBlock Classes="inspector-section-title"
-										   Text="{loc:Localize UI.Inspector.CompatibleDlls}"/>
-								<TextBlock Text="{loc:Localize UI.Inspector.Compat.Loading}"
-										   FontSize="12"
-										   Opacity="0.7"
-										   IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.IsCatalogCompatibleDllLoading}"/>
-								<ItemsControl ItemsSource="{Binding $parent[local:ModDetailDrawer].DataContext.CatalogCompatibleDllDisplayLines}"
-											  IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.HasCatalogCompatibleDllLines}">
-									<ItemsControl.ItemTemplate>
-										<DataTemplate x:DataType="vm:DllCompatibilityLineItem">
-											<Button Classes="mod-detail-btn"
-													Background="Transparent"
-													BorderThickness="0"
-													HorizontalAlignment="Stretch"
-													HorizontalContentAlignment="Left"
-													Padding="4,6"
-													Command="{Binding $parent[local:ModDetailDrawer].DataContext.OpenDllAddonFromCatalogCommand}"
-													CommandParameter="{Binding}">
-												<TextBlock FontSize="12">
-													<Run Text="{Binding StatusEmoji}"/>
-													<Run Text="{Binding TargetName}"/>
-													<Run Text=" — "/>
-													<Run Text="{Binding StatusLabel}"/>
-												</TextBlock>
-											</Button>
-										</DataTemplate>
-									</ItemsControl.ItemTemplate>
-								</ItemsControl>
-								<Button Background="Transparent"
-										BorderThickness="0"
-										HorizontalAlignment="Left"
-										Padding="4,2"
-										FontSize="12"
-										Opacity="0.75"
-										Content="{Binding $parent[local:ModDetailDrawer].DataContext.CatalogCompatibleDllToggleLabel}"
-										Command="{Binding $parent[local:ModDetailDrawer].DataContext.ToggleCatalogCompatibleDllExpandedCommand}"
-										IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.ShowCatalogCompatibleDllToggle}"/>
-							</StackPanel>
-						</Border>
-
-						<!-- Chat / kody lobby (zwijane) -->
 						<Border Classes="mod-detail-section"
 								IsVisible="{Binding IsVanilla, Converter={x:Static BoolConverters.Not}}">
 							<StackPanel Spacing="8">
@@ -373,7 +557,6 @@
 							</StackPanel>
 						</Border>
 
-						<!-- Auto-update -->
 						<Border Classes="mod-detail-section"
 								Padding="10,6"
 								IsVisible="{Binding IsAutoUpdateToggleVisible}">
@@ -387,27 +570,6 @@
 											  Click="AutoUpdateToggle_Click"/>
 							</Grid>
 						</Border>
-
-						<!-- Folder / skrót (tylko gdy zainstalowany) -->
-						<Grid ColumnDefinitions="*,8,*"
-							  IsVisible="{Binding InstallPath, Converter={StaticResource StringNotNullOrEmptyToBoolConverter}}">
-							<Button Grid.Column="0"
-									Content="{loc:Localize UI.Buttons.OpenFolder}"
-									Classes="mod-detail-btn"
-									Background="Transparent"
-									BorderBrush="{DynamicResource AccentBrush}"
-									BorderThickness="2"
-									Foreground="{DynamicResource AccentBrush}"
-									Command="{Binding $parent[local:ModDetailDrawer].DataContext.OpenFolderCommand}"/>
-							<Button Grid.Column="2"
-									Content="{loc:Localize UI.Buttons.CreateShortcut}"
-									Classes="mod-detail-btn"
-									Background="Transparent"
-									BorderBrush="{DynamicResource AccentBrush}"
-									BorderThickness="2"
-									Foreground="{DynamicResource AccentBrush}"
-									Command="{Binding $parent[local:ModDetailDrawer].DataContext.CreateShortcutCommand}"/>
-						</Grid>
 					</StackPanel>
 				</ScrollViewer>
 			</Grid>

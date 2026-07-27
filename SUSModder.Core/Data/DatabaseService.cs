@@ -214,7 +214,8 @@ namespace SUSModder.Core.Data
                     mod_pack_share_discord_invite TEXT NOT NULL DEFAULT '',
                     glass_reduce_transparency INTEGER NOT NULL DEFAULT 0,
                     prefer_depot_downloader INTEGER NOT NULL DEFAULT 0,
-                    developer_mode      INTEGER NOT NULL DEFAULT 0
+                    developer_mode      INTEGER NOT NULL DEFAULT 0,
+                    support_banner_dismissed_at TEXT NOT NULL DEFAULT ''
                 );";
             cmd.ExecuteNonQuery();
 
@@ -667,6 +668,32 @@ namespace SUSModder.Core.Data
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v12: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 13)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v13 – support_banner_dismissed_at...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+
+                    EnsureColumn(cmd, "user_settings", "support_banner_dismissed_at",
+                        "ALTER TABLE user_settings ADD COLUMN support_banner_dismissed_at TEXT NOT NULL DEFAULT '';");
+
+                    tx.Commit();
+                    SetUserVersion(conn, 13);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v13 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v13: {ex.Message}. Wycofywanie...");
                     try { tx.Rollback(); } catch { /* ignore */ }
                     throw;
                 }

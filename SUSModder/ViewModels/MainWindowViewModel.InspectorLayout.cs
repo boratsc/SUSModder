@@ -5,14 +5,7 @@ namespace SUSModder.ViewModels;
 
 public partial class MainWindowViewModel
 {
-    private bool _isInspectorMoreActionsExpanded;
     private bool _isInspectorLobbyExpanded;
-
-    public bool IsInspectorMoreActionsExpanded
-    {
-        get => _isInspectorMoreActionsExpanded;
-        private set => this.RaiseAndSetIfChanged(ref _isInspectorMoreActionsExpanded, value);
-    }
 
     public bool IsInspectorLobbyExpanded
     {
@@ -20,20 +13,13 @@ public partial class MainWindowViewModel
         private set => this.RaiseAndSetIfChanged(ref _isInspectorLobbyExpanded, value);
     }
 
-    public ReactiveCommand<Unit, Unit> ToggleInspectorMoreActionsCommand { get; private set; } = null!;
     public ReactiveCommand<Unit, Unit> ToggleInspectorLobbyCommand { get; private set; } = null!;
     public ReactiveCommand<Unit, Unit> OpenInspectorLobbyCommand { get; private set; } = null!;
 
     private void InitializeInspectorLayout()
     {
-        ToggleInspectorMoreActionsCommand = ReactiveCommand.Create(ToggleInspectorMoreActions);
         ToggleInspectorLobbyCommand = ReactiveCommand.Create(ToggleInspectorLobby);
         OpenInspectorLobbyCommand = ReactiveCommand.Create(OpenInspectorLobby);
-    }
-
-    private void ToggleInspectorMoreActions()
-    {
-        IsInspectorMoreActionsExpanded = !IsInspectorMoreActionsExpanded;
     }
 
     private void ToggleInspectorLobby()
@@ -53,8 +39,8 @@ public partial class MainWindowViewModel
 
     private void ResetInspectorSections()
     {
-        IsInspectorMoreActionsExpanded = false;
         IsInspectorLobbyExpanded = false;
+        IsCatalogCompatibleDllSectionExpanded = false;
         DisposeInspectorLobbyEmbedViewModel();
     }
 }

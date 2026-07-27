@@ -476,28 +476,40 @@
 				BorderThickness="0,1,0,0"
 				Padding="0,15,0,0"
 				Margin="0,10,0,0">
-			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
-				<Button Content="{local:Localize UI.Buttons.Close}"
-						Click="CancelButton_Click"
-						Background="{DynamicResource ModCardBackgroundBrush}"
-						Foreground="{DynamicResource TextPrimaryBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="1"
-						CornerRadius="6"
-						Padding="15,8"
-						FontSize="13"/>
-				<Button Content="{local:Localize UI.Buttons.Save}"
-						Command="{Binding SaveCommand}"
-						Background="{DynamicResource AccentBrush}"
-						Foreground="White"
-						BorderBrush="{DynamicResource AccentBrush}"
-						BorderThickness="1"
-						CornerRadius="6"
-						Padding="15,8"
-						FontSize="13"
-						FontWeight="SemiBold"
-						IsEnabled="{Binding HasUnsavedChanges}"/>
-			</StackPanel>
+			<Grid ColumnDefinitions="*,Auto">
+				<Button HorizontalAlignment="Left"
+						VerticalAlignment="Center"
+						Content="{local:Localize Support.SettingsFooter}"
+						Click="OpenSupport_Click"
+						Background="Transparent"
+						Foreground="{DynamicResource TextSecondaryBrush}"
+						BorderThickness="0"
+						Padding="0,4"
+						FontSize="12"
+						Cursor="Hand"/>
+				<StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+					<Button Content="{local:Localize UI.Buttons.Close}"
+							Click="CancelButton_Click"
+							Background="{DynamicResource ModCardBackgroundBrush}"
+							Foreground="{DynamicResource TextPrimaryBrush}"
+							BorderBrush="{DynamicResource ModCardBorderBrush}"
+							BorderThickness="1"
+							CornerRadius="6"
+							Padding="15,8"
+							FontSize="13"/>
+					<Button Content="{local:Localize UI.Buttons.Save}"
+							Command="{Binding SaveCommand}"
+							Background="{DynamicResource AccentBrush}"
+							Foreground="White"
+							BorderBrush="{DynamicResource AccentBrush}"
+							BorderThickness="1"
+							CornerRadius="6"
+							Padding="15,8"
+							FontSize="13"
+							FontWeight="SemiBold"
+							IsEnabled="{Binding HasUnsavedChanges}"/>
+				</StackPanel>
+			</Grid>
 		</Border>
 	</Grid>
 </UserControl>

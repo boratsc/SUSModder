@@ -12,6 +12,7 @@ namespace SUSModder.ViewModels
         private const int CompatPreviewCount = 4;
 
         private bool _isCatalogCompatibleDllExpanded;
+        private bool _isCatalogCompatibleDllSectionExpanded;
         private bool _isDllCompatibilityExpanded;
         private readonly ObservableCollection<DllCompatibilityLineItem> _catalogCompatibleDllDisplay = new();
         private readonly ObservableCollection<DllCompatibilityLineItem> _dllCompatibilityDisplay = new();
@@ -23,6 +24,12 @@ namespace SUSModder.ViewModels
         {
             get => _isCatalogCompatibleDllExpanded;
             private set => this.RaiseAndSetIfChanged(ref _isCatalogCompatibleDllExpanded, value);
+        }
+
+        public bool IsCatalogCompatibleDllSectionExpanded
+        {
+            get => _isCatalogCompatibleDllSectionExpanded;
+            private set => this.RaiseAndSetIfChanged(ref _isCatalogCompatibleDllSectionExpanded, value);
         }
 
         public bool IsDllCompatibilityExpanded
@@ -50,12 +57,19 @@ namespace SUSModder.ViewModels
                     DllCompatibilityLines.Count - CompatPreviewCount);
 
         public ReactiveCommand<Unit, Unit> ToggleCatalogCompatibleDllExpandedCommand { get; private set; } = null!;
+        public ReactiveCommand<Unit, Unit> ToggleCatalogCompatibleDllSectionCommand { get; private set; } = null!;
         public ReactiveCommand<Unit, Unit> ToggleDllCompatibilityExpandedCommand { get; private set; } = null!;
 
         private void InitializeInspectorCompatExpand()
         {
             ToggleCatalogCompatibleDllExpandedCommand = ReactiveCommand.Create(ToggleCatalogCompatibleDllExpanded);
+            ToggleCatalogCompatibleDllSectionCommand = ReactiveCommand.Create(ToggleCatalogCompatibleDllSection);
             ToggleDllCompatibilityExpandedCommand = ReactiveCommand.Create(ToggleDllCompatibilityExpanded);
+        }
+
+        private void ToggleCatalogCompatibleDllSection()
+        {
+            IsCatalogCompatibleDllSectionExpanded = !IsCatalogCompatibleDllSectionExpanded;
         }
 
         private void ToggleCatalogCompatibleDllExpanded()

@@ -190,17 +190,68 @@ namespace SUSModder.Core.Services
 
             if (deleteFiles && Directory.Exists(instance.InstallPath))
             {
-                var map = await InstallationMapManager.LoadInstallationMapAsync(instance.InstallPath);
-                if (!string.Equals(map?.InstanceId, instance.InstanceId, StringComparison.OrdinalIgnoreCase))
-                {
-                    throw new InvalidOperationException("mod_instance_delete_map_mismatch");
-                }
-
+                await EnsureSafeToDeleteInstanceFilesAsync(instance, log);
                 Directory.Delete(instance.InstallPath, recursive: true);
                 log.Write($"[ModInstanceInstaller] Usunięto folder instancji: {instance.InstallPath}");
             }
 
             _instances.DeleteInstance(instanceId);
+        }
+
+        /// <summary>
+        /// Chroni przed skasowaniem cudzego folderu (mapa z innym InstanceId).
+        /// Brak mapy lub puste InstanceId nie blokuje usuwania — tylko log + best-effort heal.
+        /// </summary>
+        private static async Task EnsureSafeToDeleteInstanceFilesAsync(ModInstance instance, IDiagnosticsOutput log)
+        {
+            var (map, mapDirectory) = await LoadInstallationMapForInstanceAsync(instance.InstallPath);
+
+            if (map != null &&
+                !string.IsNullOrWhiteSpace(map.InstanceId) &&
+                !string.Equals(map.InstanceId, instance.InstanceId, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("mod_instance_delete_map_mismatch");
+            }
+
+            if (map == null)
+            {
+                log.Write($"[ModInstanceInstaller] Brak Installation Map przy usuwaniu {instance.InstanceId} — kontynuuję.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(map.InstanceId) && !string.IsNullOrWhiteSpace(mapDirectory))
+            {
+                log.Write($"[ModInstanceInstaller] Mapa bez InstanceId przy usuwaniu {instance.InstanceId} — dopisuję i kontynuuję.");
+                try
+                {
+                    map.InstanceId = instance.InstanceId;
+                    map.Version = string.IsNullOrWhiteSpace(map.Version) ? "2.0" : map.Version;
+                    await InstallationMapManager.SaveInstallationMapAsync(mapDirectory, map);
+                }
+                catch (Exception ex)
+                {
+                    log.Write($"[ModInstanceInstaller] Nie udało się dopisać InstanceId do mapy: {ex.Message}");
+                }
+            }
+        }
+
+        private static async Task<(InstallationMap? Map, string? MapDirectory)> LoadInstallationMapForInstanceAsync(
+            string installPath)
+        {
+            var map = await InstallationMapManager.LoadInstallationMapAsync(installPath);
+            if (map != null)
+                return (map, installPath);
+
+            var actualPath = PathSettings.GetActualModPath(installPath);
+            if (!string.IsNullOrEmpty(actualPath) &&
+                !string.Equals(actualPath, installPath, StringComparison.OrdinalIgnoreCase))
+            {
+                map = await InstallationMapManager.LoadInstallationMapAsync(actualPath);
+                if (map != null)
+                    return (map, actualPath);
+            }
+
+            return (null, null);
         }
 
         public void MarkInstanceLaunched(string instanceId)

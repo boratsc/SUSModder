@@ -22,7 +22,7 @@ Wymagane GitHub Secrets:
 
 - `SUSMODDER_DOWNLOAD_TOKEN` — plaintext token Authorization
 - `SUSMODDER_7Z_PASSWORD` — plaintext hasło legacy vanilla 7z
-- `DEPLOY_SSH_PRIVATE_KEY` — klucz do uploadu na VPS (release workflow)
+- `DEPLOY_SSH_PRIVATE_KEY` — klucz do uploadu na VPS (release workflow). **Preferuj Base64** całego pliku klucza (jedna linia); workflow akceptuje też surowy PEM.
 
 Opcjonalne Variables: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH`.
 

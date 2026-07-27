@@ -1,33 +1,28 @@
 # Dokumentacja projektu SUSModder
 
-Ten katalog zawiera dokumentację roboczą i techniczną dla aktualnego repozytorium.
+**Źródło prawdy (SSOT):** AFFiNE — strona `SUSModder / INDEX` (MCP `affine`).
 
-## Aktualna struktura
+Treść `DOC/` **nie jest w gicie**. Lokalny katalog może istnieć jako prywatny mirror (gitignored); agent i ludzie czytają docs z Affine.
 
-- `Core/` — opis kluczowych obszarów `SUSModder.Core`.
-- `Frontend/` — dokumentacja warstwy Avalonia/MVVM.
-- `PLAN/` — miejsce na nowe aktywne plany; po cleanupie Beta 1 nie zawiera aktywnych planów funkcjonalnych.
-- `POC/` — tylko POC-e nadal otwarte lub świadomie post-beta.
-- `Updater/` — krótka dokumentacja legacy updatera; obecnym mechanizmem aktualizacji jest Velopack.
-- `_archive/` — zamknięte plany, stare refaktoryzacje, raporty review i historyczna dokumentacja.
+## Agent
 
-## Zasady porządku
+1. Skill: `affine-knowledge`
+2. `keyword_search` / `semantic_search` → `read_document`
+3. Indeksy: `INDEX / DOC / PLAN`, `INDEX / SKRYPTY / Build`, …
+4. Start: `SUSModder / INDEX` (`ZTnFn0_HoNHhWut1zwG9D`)
 
-1. Nowy aktywny plan dodawaj do `PLAN/` z jasnym statusem na początku pliku.
-2. Po zamknięciu funkcji lub review przenieś dokument do `_archive/PLAN/...` albo odpowiedniego katalogu archiwum.
-3. Wyniki lokalnych testów, zrzuty API i pliki tymczasowe nie powinny trafiać do `DOC/` ani `SKRYPTY/`.
-4. Dokumenty historyczne z nieaktualnymi instrukcjami build/release trzymaj w `_archive/`, nie w aktywnych katalogach.
+## Sync (opcjonalny lokalny mirror → Affine)
 
-## Beta 1
+```powershell
+.\SKRYPTY\Utilities\sync-to-affine.ps1 -All -SkipReadback -DelayMs 1200
+.\SKRYPTY\Utilities\generate-affine-folder-indexes.ps1
+```
 
-Review Beta 1 został zamknięty jako `READY FOR BETA 1`. Materiały z tego review przeniesiono do:
+Mapa (gitignored): `.affine-migration/map.json`
 
-- `_archive/PLAN/beta-1/`
-- `_archive/PLAN/discord-oauth2/`
-- `_archive/PLAN/stale-post-beta/`
+## CI w repo (executable)
 
-Po dodatkowej weryfikacji lokalnego kodu przeniesiono też zakończone plany, POC-e i frontend ideas do:
-
-- `_archive/PLAN/completed/`
-- `_archive/POC/completed/`
-- `_archive/Frontend/completed/2026-05-25 - frontend-ideas/`
+- `SKRYPTY/Build/generate-secrets.ps1`
+- `SKRYPTY/Build/build-dual-channel.ps1`
+- `SKRYPTY/Build/Assert-NotSingleFile.ps1`
+- `SKRYPTY/Build/deploy-to-server.ps1`

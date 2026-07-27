@@ -20,6 +20,9 @@ namespace SUSModder.Views
         private void OpenMail_Click(object? sender, RoutedEventArgs e)
             => OpenUrl($"mailto:{ContactEmail}");
 
+        private void OpenSupport_Click(object? sender, RoutedEventArgs e)
+            => Services.ProjectSupport.Open();
+
         private static void OpenUrl(string url)
         {
             try

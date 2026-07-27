@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Moq;
 using SUSModder.Core.Api;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Models;
 using SUSModder.Core.Services;
 using SUSModder.Core.Utilities;
 
@@ -207,6 +208,64 @@ public class ModPackServiceListAndDeleteTests
         var ok = await service.DeletePackAsync(PackCode);
 
         Assert.True(ok);
+    }
+
+    [Fact]
+    public void Constructor_NormalizesLegacyGuidFallbackTo64Hex()
+    {
+        var requests = new List<SusModderApiRequest>();
+        var api = CreateApi(requests, _ => JsonResponse(HttpStatusCode.OK, "{}"));
+        var rawGuid = Guid.NewGuid().ToString("N");
+        Assert.Equal(32, rawGuid.Length);
+
+        var config = new ConfigurationBuilder().Build();
+        var log = new Mock<IDiagnosticsOutput>();
+        var hardware = new Mock<IHardwareIdProvider>();
+        hardware.Setup(x => x.GetAnonymousUserHash()).Returns(rawGuid);
+        var service = new ModPackService(config, log.Object, hardware.Object, api.Object);
+
+        Assert.Equal(64, service.CreatorHash.Length);
+        Assert.True(AnonymousUserHash.IsValid(service.CreatorHash));
+        Assert.NotEqual(rawGuid, service.CreatorHash);
+    }
+
+    [Fact]
+    public async Task CreatePackAsync_SendsNormalizedCreatorHash_WhenHardwareReturnsGuidFallback()
+    {
+        var requests = new List<SusModderApiRequest>();
+        string? capturedBody = null;
+        var api = CreateApi(requests, request =>
+        {
+            capturedBody = request.Content?.ReadAsStringAsync().GetAwaiter().GetResult();
+            return JsonResponse(HttpStatusCode.OK, """
+            {
+              "data": {
+                "packCode": "ABCD-EFGH-JKLM",
+                "shareUrl": "https://example.test/p/ABCD-EFGH-JKLM",
+                "expiresAt": "2026-08-01T00:00:00Z"
+              }
+            }
+            """);
+        });
+        var rawGuid = "2a4bb6c85cd24aa280fd33dabe6cf6e8";
+        var config = new ConfigurationBuilder().Build();
+        var log = new Mock<IDiagnosticsOutput>();
+        var hardware = new Mock<IHardwareIdProvider>();
+        hardware.Setup(x => x.GetAnonymousUserHash()).Returns(rawGuid);
+        var service = new ModPackService(config, log.Object, hardware.Object, api.Object);
+
+        var result = await service.CreatePackAsync(new ModPackCreateRequest
+        {
+            FullModId = 1,
+            FullModVersion = "1.0.0",
+            ModName = "Test"
+        });
+
+        Assert.True(result.Success);
+        Assert.Single(requests);
+        Assert.Equal(service.CreatorHash, requests[0].UserHash);
+        Assert.Contains(service.CreatorHash, capturedBody);
+        Assert.DoesNotContain(rawGuid, capturedBody);
     }
 
     private static ModPackService CreateService(ISUSModderApiClient apiClient)
