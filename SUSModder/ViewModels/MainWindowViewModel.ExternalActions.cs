@@ -326,7 +326,7 @@ namespace SUSModder.ViewModels
                     if (process.ExitCode != 0)
                     {
                         throw new InvalidOperationException(
-                            string.Format(_localizationService.Get("UI.Repair.Certificates.CertutilError"), process.ExitCode));
+                            FormatCertutilFailureMessage(process.ExitCode));
                     }
                 }
 
@@ -363,8 +363,11 @@ namespace SUSModder.ViewModels
 
                     if (process.ExitCode != 0)
                     {
+                        var importError = CertificateRepairErrorMapper.Classify(process.ExitCode);
                         throw new InvalidOperationException(
-                            string.Format(_localizationService.Get("UI.Repair.Certificates.ImportError"), process.ExitCode));
+                            string.Format(
+                                _localizationService.Get("UI.Repair.Certificates.ImportError"),
+                                $"{importError.HexCode} ({importError.ExitCode})"));
                     }
                 }
 
@@ -406,6 +409,22 @@ namespace SUSModder.ViewModels
                     System.Diagnostics.Debug.WriteLine($"[FixCertificates] Nie udało się usunąć pliku tymczasowego: {ex.Message}");
                 }
             }
+        }
+
+        private string FormatCertutilFailureMessage(int exitCode)
+        {
+            var classified = CertificateRepairErrorMapper.Classify(exitCode);
+            var detailKey = CertificateRepairErrorMapper.GetDetailLocalizationKey(classified.Kind);
+            var detail = _localizationService.Get(detailKey);
+
+            if (string.IsNullOrWhiteSpace(detail) || detail == detailKey)
+                detail = _localizationService.Get("UI.Repair.Certificates.Errors.Unknown");
+
+            return string.Format(
+                _localizationService.Get("UI.Repair.Certificates.CertutilError"),
+                detail,
+                classified.HexCode,
+                classified.TechnicalName);
         }
 
         private async Task ExecuteFixRegionsAsync()

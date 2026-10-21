@@ -496,9 +496,19 @@ namespace SUSModder.Core.GameIntegration
             }
             Directory.CreateDirectory(gameBasePath);
             string tempExtractPath = Path.Combine(tempDirectory, "extractMod");
-            Directory.CreateDirectory(tempExtractPath);
 
             ProgressChanged?.Invoke(50, "Rozpakowywanie archiwum...");
+
+            try
+            {
+                await InstallPathWriteHelper.PrepareExtractionDirectoryAsync(tempExtractPath, _output);
+            }
+            catch (Exception ex) when (InstallPathWriteHelper.IsAccessDeniedException(ex))
+            {
+                Write($"ERROR podczas przygotowania katalogu rozpakowania: {ex.Message}");
+                ShowError(InstallPathWriteHelper.FormatExtractionAccessDeniedMessage(tempExtractPath, baseDirectory));
+                return false;
+            }
 
             try
             {
@@ -538,7 +548,16 @@ namespace SUSModder.Core.GameIntegration
             catch (Exception ex)
             {
                 Write($"ERROR podczas rozpakowywania: {ex.Message}");
-                ShowError($"Błąd podczas rozpakowywania archiwum: {ex.Message}");
+                if (InstallPathWriteHelper.IsAccessDeniedException(ex))
+                {
+                    var blockedPath = InstallPathWriteHelper.TryGetBlockedPathFromException(ex);
+                    ShowError(InstallPathWriteHelper.FormatExtractionAccessDeniedMessage(blockedPath, baseDirectory));
+                }
+                else
+                {
+                    ShowError($"Błąd podczas rozpakowywania archiwum: {ex.Message}");
+                }
+
                 return false;
             }
 

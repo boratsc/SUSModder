@@ -67,10 +67,12 @@ namespace SUSModder.Core.Utilities
                 var userSettingsService = new UserSettingsService();
                 var userSettings = userSettingsService.LoadUserSettings();
 
-                // Jeśli użytkownik ustawił własną ścieżkę, użyj jej
+                // Jeśli użytkownik ustawił własną ścieżkę, użyj jej (po walidacji)
                 if (!string.IsNullOrEmpty(userSettings.ModsInstallPath))
                 {
-                    _cachedModsInstallPath = Environment.ExpandEnvironmentVariables(userSettings.ModsInstallPath);
+                    _cachedModsInstallPath = ModsInstallPathGuard.ResolveSafeModsInstallPath(
+                        userSettings.ModsInstallPath,
+                        _defaultModsPath);
                     return _cachedModsInstallPath;
                 }
 

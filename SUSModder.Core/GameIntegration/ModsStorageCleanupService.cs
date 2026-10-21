@@ -89,6 +89,7 @@ public static class ModsStorageCleanupService
 
         try
         {
+            FileSystemUtilities.ClearReadOnlyAttributesRecursive(tempDirectory);
             Directory.Delete(tempDirectory, recursive: true);
             log?.Invoke($"[Cleanup] Usunięto katalog temp: {tempDirectory}");
             return true;

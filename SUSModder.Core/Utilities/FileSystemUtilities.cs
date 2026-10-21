@@ -125,6 +125,14 @@ namespace SUSModder.Core.Utilities
         }
 
         /// <summary>
+        /// Usuwa atrybut ReadOnly ze wszystkich plików i podkatalogów w podanym katalogu.
+        /// </summary>
+        public static void ClearReadOnlyAttributesRecursive(string directoryPath, IDiagnosticsOutput? diagnostics = null)
+        {
+            RemoveReadOnlyAttributes(directoryPath, diagnostics);
+        }
+
+        /// <summary>
         /// Usuwa atrybut ReadOnly ze wszystkich plików i podkatalogów w podanym katalogu
         /// </summary>
         private static void RemoveReadOnlyAttributes(string directoryPath, IDiagnosticsOutput? diagnostics = null)

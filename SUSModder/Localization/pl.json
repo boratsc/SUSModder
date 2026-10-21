@@ -324,11 +324,21 @@
         "AdminRequired": "Administrator",
         "ConfirmMessage": "Ta operacja wymaga uprawnień administratora. Czy chcesz kontynuować?",
         "Success": "Certyfikaty zostały zaimportowane pomyślnie.",
-        "Error": "Błąd podczas naprawy certyfikatów: {0}",
+        "Error": "Błąd podczas naprawy certyfikatów:\n\n{0}",
         "ProcessError": "Nie udało się uruchomić procesu.",
-        "CertutilError": "Certutil zakończył się kodem błędu: {0}",
-        "ImportError": "PowerShell zakończył się kodem błędu: {0}",
-        "SstNotFound": "Nie udało się utworzyć pliku SST z certyfikatami."
+        "CertutilError": "Nie udało się pobrać certyfikatów z Windows Update.\n\n{0}\n\nKod: {1} ({2})",
+        "ImportError": "Nie udało się zaimportować certyfikatów do magazynu systemowego.\n\nKod: {0}",
+        "SstNotFound": "Nie udało się utworzyć pliku SST z certyfikatami (pobranie z Windows Update mogło się nie powieść).",
+        "Errors": {
+          "Timeout": "Przekroczono limit czasu połączenia z Windows Update. Sprawdź internet, VPN, proxy lub firewall i spróbuj ponownie.",
+          "NameNotResolved": "Nie udało się rozwiązać nazwy serwera Windows Update (DNS). Sprawdź połączenie sieciowe i DNS.",
+          "CannotConnect": "Nie można połączyć się z Windows Update. Sprawdź internet, firewall lub proxy.",
+          "ConnectionError": "Połączenie z Windows Update zostało przerwane. Sprawdź stabilność sieci i spróbuj ponownie.",
+          "SecureFailure": "Błąd bezpiecznego połączenia z Windows Update (TLS/SSL). Sprawdź datę systemową, proxy SSL lub oprogramowanie antywirusowe.",
+          "AccessDenied": "Brak uprawnień do pobrania lub zapisania certyfikatów. Uruchom operację ponownie i zaakceptuj prompt UAC.",
+          "Cancelled": "Operacja została anulowana.",
+          "Unknown": "Nieznany błąd podczas komunikacji z Windows Update."
+        }
       },
       "Regions": {
         "Title": "Napraw regiony",
@@ -663,6 +673,8 @@
         "Browse": "Przeglądaj...",
         "Reset": "Przywróć domyślną",
         "Invalid": "Nieprawidłowa ścieżka",
+        "ProtectedLocation": "Katalog instalacji modów nie może znajdować się w Program Files, folderze gry Steam ani w instalacji Among Us.",
+        "NotWritable": "Brak uprawnień zapisu w wybranym katalogu. Wybierz folder w profilu użytkownika (np. %APPDATA%\\Among Us - Mody).",
         "Empty": "Ścieżka instalacji modów nie może być pusta",
         "Placeholder": "Wybierz katalog instalacji modów..."
       },
@@ -799,6 +811,8 @@
     "DiskFull": "Brak miejsca na dysku",
     "DownloadFailed": "Nie udało się pobrać pliku",
     "ExtractionFailed": "Nie udało się rozpakować archiwum",
+    "ExtractionAccessDenied": "Nie udało się rozpakować archiwum moda — brak dostępu do zapisu.",
+    "ExtractionAccessDeniedHints": "Zamknij Among Us, usuń folder temp, dodaj wykluczenie antywirusa lub sprawdź Controlled Folder Access.",
     "InvalidConfiguration": "Nieprawidłowa konfiguracja",
     "GameNotRunning": "Gra nie jest uruchomiona",
     "ModNotCompatible": "Mod nie jest kompatybilny z tą wersją gry",

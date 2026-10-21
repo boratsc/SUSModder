@@ -544,9 +544,8 @@ public partial class App : Application
             return;
         }
 
-        await Task.Delay(1200);
-
         var antivirusDetectionService = new AntivirusDetectionService();
+        // Detekcja od razu — LastDetectionResult jest dostępny przy błędach Access Denied podczas instalacji.
         var result = await Task.Run(antivirusDetectionService.DetectInstalledThirdPartyAntivirus);
         if (!result.HasThirdPartyAntivirus)
         {
@@ -562,6 +561,8 @@ public partial class App : Application
             Debug.WriteLine("[App] Ostrzeżenie antywirusowe już potwierdzone dla bieżącego zestawu AV.");
             return;
         }
+
+        await Task.Delay(1200);
 
         await Dispatcher.UIThread.InvokeAsync(async () =>
         {

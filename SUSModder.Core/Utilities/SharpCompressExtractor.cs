@@ -89,7 +89,10 @@ public class SharpCompressExtractor : IArchiveExtractor
                             extractedBytes, totalBytes,
                             reader.Entry.Key));
 
-                        reader.WriteEntryToDirectory(extractPath, options);
+                        InstallPathWriteHelper.RunWithWriteRetry(
+                            () => reader.WriteEntryToDirectory(extractPath, options),
+                            extractPath,
+                            reader.Entry.Key);
 
                         extractedBytes += reader.Entry.Size;
                         progress?.Report(new ExtractionProgress(
@@ -110,7 +113,10 @@ public class SharpCompressExtractor : IArchiveExtractor
                         progress?.Report(new ExtractionProgress(
                             extractedBytes, totalBytes, entry.Key));
 
-                        entry.WriteToDirectory(extractPath, options);
+                        InstallPathWriteHelper.RunWithWriteRetry(
+                            () => entry.WriteToDirectory(extractPath, options),
+                            extractPath,
+                            entry.Key);
 
                         extractedBytes += entry.Size;
                         progress?.Report(new ExtractionProgress(

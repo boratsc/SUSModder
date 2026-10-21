@@ -324,11 +324,21 @@
         "AdminRequired": "Administrator",
         "ConfirmMessage": "This operation requires administrator privileges. Do you want to continue?",
         "Success": "Certificates have been imported successfully.",
-        "Error": "Error while repairing certificates: {0}",
+        "Error": "Error while repairing certificates:\n\n{0}",
         "ProcessError": "Failed to start process.",
-        "CertutilError": "Certutil exited with error code: {0}",
-        "ImportError": "PowerShell exited with error code: {0}",
-        "SstNotFound": "Failed to create SST file with certificates."
+        "CertutilError": "Failed to download certificates from Windows Update.\n\n{0}\n\nCode: {1} ({2})",
+        "ImportError": "Failed to import certificates into the system store.\n\nCode: {0}",
+        "SstNotFound": "Failed to create the SST certificate file (Windows Update download may have failed).",
+        "Errors": {
+          "Timeout": "The connection to Windows Update timed out. Check your internet, VPN, proxy, or firewall and try again.",
+          "NameNotResolved": "Could not resolve the Windows Update server name (DNS). Check your network and DNS settings.",
+          "CannotConnect": "Could not connect to Windows Update. Check your internet, firewall, or proxy.",
+          "ConnectionError": "The connection to Windows Update was interrupted. Check network stability and try again.",
+          "SecureFailure": "Secure connection to Windows Update failed (TLS/SSL). Check system date, SSL proxy, or antivirus software.",
+          "AccessDenied": "Access was denied while downloading or saving certificates. Retry and accept the UAC prompt.",
+          "Cancelled": "The operation was cancelled.",
+          "Unknown": "An unknown error occurred while contacting Windows Update."
+        }
       },
       "Regions": {
         "Title": "Fix Regions",
@@ -663,6 +673,8 @@
         "Browse": "Browse...",
         "Reset": "Restore default",
         "Invalid": "Invalid path",
+        "ProtectedLocation": "The mods install folder cannot be under Program Files, a Steam game folder, or an Among Us installation.",
+        "NotWritable": "The selected folder is not writable. Choose a folder in your user profile (e.g. %APPDATA%\\Among Us - Mody).",
         "Empty": "Mods installation path cannot be empty",
         "Placeholder": "Select mods installation directory..."
       },
@@ -799,6 +811,8 @@
     "DiskFull": "Disk is full",
     "DownloadFailed": "Failed to download file",
     "ExtractionFailed": "Failed to extract archive",
+    "ExtractionAccessDenied": "Failed to extract mod archive — write access was denied.",
+    "ExtractionAccessDeniedHints": "Close Among Us, delete the temp folder, add an antivirus exclusion, or check Controlled Folder Access.",
     "InvalidConfiguration": "Invalid configuration",
     "GameNotRunning": "Game is not running",
     "ModNotCompatible": "Mod is not compatible with this game version",

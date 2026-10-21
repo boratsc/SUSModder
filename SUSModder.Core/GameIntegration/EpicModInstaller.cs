@@ -88,10 +88,30 @@ namespace SUSModder.Core.GameIntegration
 
                 progress.Report(55, "Rozpakowywanie archiwum...");
                 var tempExtractPath = Path.Combine(tempDirectory, "extractMod");
-                Directory.CreateDirectory(tempExtractPath);
 
-                var extractor = new SharpCompressExtractor();
-                await extractor.ExtractAsync(modFile, tempExtractPath, progress: null, ct: ct);
+                try
+                {
+                    await InstallPathWriteHelper.PrepareExtractionDirectoryAsync(tempExtractPath, log, ct);
+                }
+                catch (Exception ex) when (InstallPathWriteHelper.IsAccessDeniedException(ex))
+                {
+                    log.Write($"[EpicModInstaller] Prepare extract failed: {ex.Message}");
+                    return ModInstallResult.Failed(
+                        InstallPathWriteHelper.FormatExtractionAccessDeniedMessage(tempExtractPath, modsInstallPath));
+                }
+
+                try
+                {
+                    var extractor = new SharpCompressExtractor();
+                    await extractor.ExtractAsync(modFile, tempExtractPath, progress: null, ct: ct);
+                }
+                catch (Exception ex) when (InstallPathWriteHelper.IsAccessDeniedException(ex))
+                {
+                    log.Write($"[EpicModInstaller] Extract failed: {ex.Message}");
+                    var blockedPath = InstallPathWriteHelper.TryGetBlockedPathFromException(ex);
+                    return ModInstallResult.Failed(
+                        InstallPathWriteHelper.FormatExtractionAccessDeniedMessage(blockedPath, modsInstallPath));
+                }
 
                 var sourcePath = ResolveSourcePath(tempExtractPath);
                 if (string.IsNullOrWhiteSpace(sourcePath))

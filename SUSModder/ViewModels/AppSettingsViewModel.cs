@@ -570,9 +570,22 @@ namespace SUSModder.ViewModels
                 // Walidacja ścieżki
                 if (string.IsNullOrWhiteSpace(ModsInstallPath))
                 {
-                    await ShowErrorAsync("Błąd walidacji", "Ścieżka instalacji modów nie może być pusta.");
+                    var title = _localizationService?.Get("AppSettings.ValidationError") ?? "Validation error";
+                    var message = _localizationService?.Get("Settings.Paths.ModsInstallPath.Empty") ?? "Mods install path cannot be empty.";
+                    await ShowErrorAsync(title, message);
                     return;
                 }
+
+                var modsPathValidation = ModsInstallPathGuard.Validate(ModsInstallPath);
+                if (!modsPathValidation.IsValid)
+                {
+                    var title = _localizationService?.Get("AppSettings.ValidationError") ?? "Validation error";
+                    var message = GetLocalizedValidationMessage(modsPathValidation.ErrorCode);
+                    await ShowErrorAsync(title, message);
+                    return;
+                }
+
+                ModsInstallPath = modsPathValidation.Message;
 
                 // Sprawdź czy ścieżka jest dostępna (stwórz jeśli nie istnieje)
                 try
@@ -584,7 +597,10 @@ namespace SUSModder.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    await ShowErrorAsync("Błąd dostępu", $"Nie można utworzyć lub uzyskać dostępu do katalogu:\n{ModsInstallPath}\n\nBłąd: {ex.Message}");
+                    var title = _localizationService?.Get("AppSettings.AccessError") ?? "Access error";
+                    var messageTemplate = _localizationService?.Get("AppSettings.CannotAccessDirectory") ?? "Cannot create or access directory:\n{0}\n\nError: {1}";
+                    var message = string.Format(messageTemplate, ModsInstallPath, ex.Message);
+                    await ShowErrorAsync(title, message);
                     return;
                 }
 
@@ -667,8 +683,28 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error saving settings: {ex.Message}");
-                await ShowErrorAsync("Błąd zapisu", $"Nie udało się zapisać ustawień:\n{ex.Message}");
+                var title = _localizationService?.Get("AppSettings.SaveError") ?? "Save error";
+                var message = _localizationService?.Get("AppSettings.SaveErrorMessage") ?? "Failed to save settings.";
+                await ShowErrorAsync(title, string.Format(message, ex.Message));
             }
+        }
+
+        private string GetLocalizedValidationMessage(string? errorCode)
+        {
+            return errorCode switch
+            {
+                ModsInstallPathGuard.ErrorEmpty =>
+                    _localizationService?.Get("Settings.Paths.ModsInstallPath.Empty") ?? "Mods install path cannot be empty.",
+                ModsInstallPathGuard.ErrorInvalidPath =>
+                    _localizationService?.Get("Settings.Paths.ModsInstallPath.Invalid") ?? "Invalid path.",
+                ModsInstallPathGuard.ErrorProgramFiles or
+                ModsInstallPathGuard.ErrorSteamGameInstall or
+                ModsInstallPathGuard.ErrorGameInstallDirectory =>
+                    _localizationService?.Get("Settings.Paths.ModsInstallPath.ProtectedLocation") ?? "The mods install folder cannot be under Program Files, a Steam game folder, or an Among Us installation.",
+                ModsInstallPathGuard.ErrorNotWritable =>
+                    _localizationService?.Get("Settings.Paths.ModsInstallPath.NotWritable") ?? "The selected folder is not writable. Choose a folder in your user profile.",
+                _ => "Unknown validation error."
+            };
         }
 
         private async Task SaveAllSettingsToAppSettings()
