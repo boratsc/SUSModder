@@ -14,7 +14,7 @@ namespace SUSModder.Converters
         {
             if (value is string url && !string.IsNullOrWhiteSpace(url))
             {
-                return ReactiveUI.ReactiveCommand.Create(() => OpenUrl(url));
+                return ReactiveUI.Reactive.ReactiveCommand.Create(() => OpenUrl(url));
             }
             return null;
         }

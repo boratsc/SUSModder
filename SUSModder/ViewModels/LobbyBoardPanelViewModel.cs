@@ -237,13 +237,13 @@ namespace SUSModder.ViewModels
             CopyCodeCommand = ReactiveCommand.Create<LobbyBoardItemViewModel>(item => { /* clipboard handled in view */ });
 
             // Auto-refresh co 30s
-            Observable.Interval(TimeSpan.FromSeconds(30), RxApp.MainThreadScheduler)
+            Observable.Interval(TimeSpan.FromSeconds(30), RxSchedulers.MainThreadScheduler)
                 .Select(_ => Unit.Default)
                 .InvokeCommand(RefreshCommand)
                 .DisposeWith(Disposables);
 
             // Initial load
-            RxApp.MainThreadScheduler.Schedule(async () => await RefreshAsync());
+            RxSchedulers.MainThreadScheduler.Schedule(async () => await RefreshAsync());
         }
 
         // ══════════════════════════════════════════════════════
@@ -401,7 +401,7 @@ namespace SUSModder.ViewModels
                 return;
 
             // Auto-fill formularza na głównym wątku UI
-            RxApp.MainThreadScheduler.Schedule(() =>
+            RxSchedulers.MainThreadScheduler.Schedule(() =>
             {
                 CodeInput = e.Code;
                 SelectedRegion = e.Region;

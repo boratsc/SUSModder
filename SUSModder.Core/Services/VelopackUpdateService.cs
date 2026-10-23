@@ -149,9 +149,11 @@ namespace SUSModder.Core.Services
                 var latestVersion = latestFullRelease.Version.ToString();
                 _diagnosticsOutput.Write($"[Velopack] Channel switch target: {_currentVersion} -> {latestVersion} (channel: {targetChannel})");
                 
-                // CRITICAL: Utwórz "fake" UpdateInfo która wskazuje na full release z nowego kanału
-                // Velopack UpdateManager.ApplyUpdatesAsync() zaakceptuje to bez porównywania wersji
-                var updateInfo = new UpdateInfo(latestFullRelease, false);
+                // A lateral move/downgrade must be marked so Velopack removes newer
+                // cached packages and does not try applying deltas across channels.
+                var isDowngrade = SemanticVersion.TryParse(_currentVersion, out var currentVersion)
+                    && latestFullRelease.Version <= currentVersion;
+                var updateInfo = new UpdateInfo(latestFullRelease, isDowngrade);
                 
                 _diagnosticsOutput.Write($"[Velopack] Cross-channel update prepared (forced full download)");
                 return VelopackUpdateCheckResult.UpdateAvailable(_currentVersion, latestVersion, updateInfo);
@@ -206,7 +208,9 @@ namespace SUSModder.Core.Services
 
             _diagnosticsOutput.Write("[Velopack] Preparing to apply update and restart application...");
 
-            await _updateManager!.WaitExitThenApplyUpdatesAsync(updateInfo.TargetFullRelease, silent, restart, restartArgs).ConfigureAwait(false);
+            // Velopack 1.x exposes a synchronous launcher; it starts Update.exe
+            // waiting for this process to exit, rather than awaiting process exit.
+            _updateManager!.WaitExitThenApplyUpdates(updateInfo.TargetFullRelease, silent, restart, restartArgs);
         }
 
         /// <summary>

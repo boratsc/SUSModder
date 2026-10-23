@@ -50,6 +50,11 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+#if DEBUG
+        // Bridge for the standalone Avalonia Developer Tools (F12 in DEBUG).
+        // Replaces the legacy Avalonia.Diagnostics AttachDevTools() integration.
+        this.AttachDeveloperTools();
+#endif
         ConfigureServices();
     }
 

@@ -1,4 +1,9 @@
-- Bezpieczniejszy wybór katalogu instalacji modów: blokada folderów systemowych i instalacji gry oraz automatyczna korekta nieprawidłowej zapisanej ścieżki.
-- Poprawiona obsługa odmowy dostępu podczas rozpakowywania modów Steam i Epic: ponawianie zapisu, usuwanie atrybutu ReadOnly i wskazówki dotyczące antywirusa.
-- Dodatkowa ochrona instalacji Among Us podczas resetowania aplikacji.
-- Czytelniejsze błędy naprawy certyfikatów Windows Update, m.in. problemy z DNS, połączeniem i limitem czasu.
+**PL**
+- Aktualizacja bibliotek aplikacji i interfejsu, w tym Avalonia, ReactiveUI i Velopack.
+- Nowszy SQLite usuwa znaną podatność bezpieczeństwa.
+- Dostosowanie rozpakowywania archiwów oraz poprawki limitów czasu i anulowania pobierania aktualizacji.
+
+**EN**
+- Updated application and UI libraries, including Avalonia, ReactiveUI and Velopack.
+- Updated SQLite to address a known security vulnerability.
+- Updated archive extraction compatibility and fixed update download timeouts and cancellation.

@@ -18,6 +18,8 @@ namespace SUSModder.Core.Utilities;
 ///   który utrzymuje jeden kontekst dekompresji (O(n)).</description></item>
 ///   <item><description><b>Non-solid (ZIP)</b> — iteracja <c>archive.Entries</c> z per-entry
 ///   <c>WriteToDirectory</c>, każdy wpis niezależny (O(n)).</description></item>
+///   <item><description><b>Skompresowany TAR</b> — <c>ReaderFactory.OpenReader</c>,
+///   osobny przebieg dla sum postępu i osobny dla ekstrakcji (O(n)).</description></item>
 ///   <item><description>W obu ścieżkach progres raportowany per-plik z bajtami
 ///   i licznikiem plików.</description></item>
 /// </list>
@@ -61,6 +63,15 @@ public class SharpCompressExtractor : IArchiveExtractor
         // CPU-bound LZMA → ThreadPool (Task.Run zamiast async API)
         await Task.Run(() =>
         {
+            ct.ThrowIfCancellationRequested();
+            // SharpCompress 0.50 no longer exposes compressed TARs through IArchive.
+            // Keep content-based detection (downloads need not retain their extension).
+            if (ArchiveFactory.GetArchiveInformation(archivePath, readerOptions) is null)
+            {
+                ExtractStreamingTar(archivePath, extractPath, readerOptions, options, progress, ct);
+                return;
+            }
+
             using var archive = ArchiveFactory.OpenArchive(archivePath, readerOptions);
 
             // Pre-compute całkowity rozmiar i liczbę plików
@@ -79,27 +90,7 @@ public class SharpCompressExtractor : IArchiveExtractor
                 // jeden kontekst dekompresji (O(n)). MoveToNextEntry + WriteEntryToDirectory
                 // raportuje progres per-plik.
                 using var reader = archive.ExtractAllEntries();
-                while (reader.MoveToNextEntry())
-                {
-                    ct.ThrowIfCancellationRequested();
-                    if (!reader.Entry.IsDirectory)
-                    {
-                        fileIndex++;
-                        progress?.Report(new ExtractionProgress(
-                            extractedBytes, totalBytes,
-                            reader.Entry.Key));
-
-                        InstallPathWriteHelper.RunWithWriteRetry(
-                            () => reader.WriteEntryToDirectory(extractPath, options),
-                            extractPath,
-                            reader.Entry.Key);
-
-                        extractedBytes += reader.Entry.Size;
-                        progress?.Report(new ExtractionProgress(
-                            extractedBytes, totalBytes,
-                            $"({fileIndex}/{totalFiles}) {reader.Entry.Key}"));
-                    }
-                }
+                ExtractReader(reader, extractPath, options, totalBytes, totalFiles, progress, ct);
             }
             else
             {
@@ -131,5 +122,69 @@ public class SharpCompressExtractor : IArchiveExtractor
                 $"Rozpakowano {totalFiles} plików"));
 
         }, ct).ConfigureAwait(false);
+    }
+
+    private static void ExtractStreamingTar(
+        string archivePath,
+        string extractPath,
+        ReaderOptions readerOptions,
+        ExtractionOptions options,
+        IProgress<ExtractionProgress>? progress,
+        CancellationToken ct)
+    {
+        long totalBytes = 0;
+        long totalFiles = 0;
+        // As with archive.Entries, enumerate once for accurate progress totals.
+        using (var counter = ReaderFactory.OpenReader(archivePath, readerOptions))
+        {
+            if (counter.Type != ArchiveType.Tar)
+                throw new InvalidFormatException("Unsupported archive format.");
+
+            while (counter.MoveToNextEntry())
+            {
+                ct.ThrowIfCancellationRequested();
+                if (!counter.Entry.IsDirectory)
+                {
+                    totalBytes += counter.Entry.Size;
+                    totalFiles++;
+                }
+            }
+        }
+
+        ct.ThrowIfCancellationRequested();
+        progress?.Report(new ExtractionProgress(0, totalBytes, "Rozpakowywanie..."));
+        using var reader = ReaderFactory.OpenReader(archivePath, readerOptions);
+        ExtractReader(reader, extractPath, options, totalBytes, totalFiles, progress, ct);
+        progress?.Report(new ExtractionProgress(
+            totalBytes, totalBytes, $"Rozpakowano {totalFiles} plików"));
+    }
+
+    private static void ExtractReader(
+        IReader reader,
+        string extractPath,
+        ExtractionOptions options,
+        long totalBytes,
+        long totalFiles,
+        IProgress<ExtractionProgress>? progress,
+        CancellationToken ct)
+    {
+        long extractedBytes = 0;
+        int fileIndex = 0;
+        while (reader.MoveToNextEntry())
+        {
+            ct.ThrowIfCancellationRequested();
+            if (reader.Entry.IsDirectory)
+                continue;
+
+            fileIndex++;
+            progress?.Report(new ExtractionProgress(extractedBytes, totalBytes, reader.Entry.Key));
+            InstallPathWriteHelper.RunWithWriteRetry(
+                () => reader.WriteEntryToDirectory(extractPath, options),
+                extractPath,
+                reader.Entry.Key);
+            extractedBytes += reader.Entry.Size;
+            progress?.Report(new ExtractionProgress(
+                extractedBytes, totalBytes, $"({fileIndex}/{totalFiles}) {reader.Entry.Key}"));
+        }
     }
 }

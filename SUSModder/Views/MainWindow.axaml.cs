@@ -1,6 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.ReactiveUI;
+using ReactiveUI.Avalonia.Reactive;
 using ReactiveUI;
 using SUSModder.ViewModels;
 using System;

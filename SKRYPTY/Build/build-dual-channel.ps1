@@ -139,7 +139,7 @@ function Build-Channel {
         "--packAuthors", "SUSModder Team"
     ) + $iconArg + $splashArg
 
-    & vpk @packArgs
+    & (Join-Path $PSScriptRoot 'Invoke-Velopack.ps1') -Arguments $packArgs
 
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  ERROR: Velopack packaging failed for $ChannelName" -ForegroundColor Red
@@ -189,20 +189,7 @@ function Build-Channel {
 
 # Check Velopack CLI
 Write-Host "[0/5] Checking Velopack CLI..." -ForegroundColor Green
-$velopackPath = Get-Command "vpk" -ErrorAction SilentlyContinue
-
-if (-not $velopackPath) {
-    Write-Host "  Velopack CLI not found. Installing..." -ForegroundColor Yellow
-    dotnet tool install -g vpk
-
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-
-    $velopackPath = Get-Command "vpk" -ErrorAction SilentlyContinue
-    if (-not $velopackPath) {
-        Write-Host "  ERROR: Failed to install Velopack CLI" -ForegroundColor Red
-        exit 1
-    }
-}
+& (Join-Path $PSScriptRoot 'Invoke-Velopack.ps1') -RestoreOnly
 
 Write-Host "  OK: Velopack CLI found" -ForegroundColor Green
 Write-Host ""

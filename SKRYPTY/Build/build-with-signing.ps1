@@ -14,6 +14,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+& (Join-Path $PSScriptRoot 'Invoke-Velopack.ps1') -RestoreOnly
 
 # Paths
 $rootDir = $PSScriptRoot | Split-Path -Parent | Split-Path -Parent
@@ -116,13 +117,16 @@ function Build-Channel {
     # Step 5: Create Velopack package
     Write-Host "[5/6] Creating Velopack package..." -ForegroundColor Yellow
     
-    vpk pack `
-        --packId "SUSModder" `
-        --packVersion $ChannelVersion `
-        --packDir $publishDir `
-        --outputDir $releasesDir `
-        --channel $ChannelCode `
-        --icon "$rootDir\SUSModder\Assets\icon.ico" 2>&1 | Out-Null
+    $packArgs = @(
+        'pack',
+        '--packId', 'SUSModder',
+        '--packVersion', $ChannelVersion,
+        '--packDir', $publishDir,
+        '--outputDir', $releasesDir,
+        '--channel', $ChannelCode,
+        '--icon', "$rootDir\SUSModder\Assets\icon.ico"
+    )
+    & (Join-Path $PSScriptRoot 'Invoke-Velopack.ps1') -Arguments $packArgs 2>&1 | Out-Null
     
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  ERROR: Velopack pack failed`n" -ForegroundColor Red

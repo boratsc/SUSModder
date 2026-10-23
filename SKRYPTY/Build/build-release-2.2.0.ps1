@@ -26,6 +26,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+& (Join-Path $PSScriptRoot 'Invoke-Velopack.ps1') -RestoreOnly
 $ProjectFile = Join-Path $ProjectRoot "SUSModder\SUSModder.csproj"
 $UpdaterProject = Join-Path $ProjectRoot "Updater\Updater.csproj"
 
@@ -385,7 +386,7 @@ $packArgs = @(
     "--packAuthors", "SUSModder Team"
 ) + $iconArg + $splashArg
 
-& vpk @packArgs
+& (Join-Path $PSScriptRoot 'Invoke-Velopack.ps1') -Arguments $packArgs
 
 if ($LASTEXITCODE -ne 0) {
     throw "Velopack packaging failed"
@@ -500,7 +501,7 @@ $packArgs = @(
     "--packAuthors", "SUSModder Team"
 ) + $iconArg + $splashArg
 
-& vpk @packArgs
+& (Join-Path $PSScriptRoot 'Invoke-Velopack.ps1') -Arguments $packArgs
 
 if ($LASTEXITCODE -ne 0) {
     throw "Velopack packaging failed"

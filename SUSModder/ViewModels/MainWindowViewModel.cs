@@ -13,7 +13,6 @@ using SUSModder.Core.Services;
 using SUSModder.Core.Services.Localization;
 using SUSModder.Core.Configuration;
 using Avalonia.Controls;
-using DynamicData;
 using SUSModder.Core.Repositories;
 using SUSModder.Views;
 using Avalonia.Controls.ApplicationLifetimes;

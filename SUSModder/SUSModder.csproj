@@ -11,13 +11,6 @@
     <PublishDir>..\publish\</PublishDir>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <PlatformTarget>x64</PlatformTarget>
-    <!--
-      NU1903: SQLitePCLRaw.lib.e_sqlite3 is deprecated upstream (renamed to SourceGear.sqlite3)
-      but is still pulled in transitively by Microsoft.Data.Sqlite 10.0.x. There is no
-      fix available from Microsoft yet, so suppress the warning until the upstream
-      dependency is replaced. Track: https://github.com/advisories/GHSA-2m69-gcr7-jv3q
-    -->
-    <NoWarn>$(NoWarn);NU1903</NoWarn>
   </PropertyGroup>
   <!--
     Public Velopack releases require unpacked output (PublishSingleFile=false).
@@ -41,22 +34,22 @@
     <AvaloniaResource Include="Controls\SkeletonCard.axaml" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="12.0.3" />
-    <PackageReference Include="Avalonia.Desktop" Version="12.0.3" />
+    <PackageReference Include="Avalonia" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
     <PackageReference Include="Avalonia.Labs.Panels" Version="12.0.2" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.3" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.3" />
-    <PackageReference Include="Avalonia.Diagnostics" Version="11.3.16">
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.4" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3">
       <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.8" />
-    <PackageReference Include="FluentIcons.Avalonia" Version="2.1.328" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.8" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
-    <PackageReference Include="Xaml.Behaviors.Avalonia" Version="12.0.0.1" />
-    <PackageReference Include="Velopack" Version="0.0.1298" />
-    <PackageReference Include="Avalonia.Controls.WebView" Version="12.0.1" />
+    <PackageReference Include="ReactiveUI.Avalonia.Reactive" Version="12.1.6" />
+    <PackageReference Include="FluentIcons.Avalonia" Version="2.1.344" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
+    <PackageReference Include="Xaml.Behaviors.Avalonia" Version="12.0.7" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
+    <PackageReference Include="Avalonia.Controls.WebView" Version="12.1.1" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaXaml Remove="styles\*.axaml" />

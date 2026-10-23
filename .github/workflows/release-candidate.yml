@@ -60,6 +60,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Test release text encoding (Windows PowerShell 5.1)
+        shell: powershell
+        run: .\SKRYPTY\Test\test-release-text-encoding.ps1
+
+      - name: Test release text encoding (PowerShell 7)
+        shell: pwsh
+        run: .\SKRYPTY\Test\test-release-text-encoding.ps1
+
       - name: Enforce signing policy
         env:
           SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
@@ -91,8 +99,8 @@ jobs:
       - name: Install Velopack CLI
         shell: pwsh
         run: |
-          dotnet tool install -g vpk
-          echo "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          .\SKRYPTY\Test\test-velopack-toolchain.ps1
+          .\SKRYPTY\Build\Invoke-Velopack.ps1 -RestoreOnly
 
       - name: Generate Secrets.cs
         env:

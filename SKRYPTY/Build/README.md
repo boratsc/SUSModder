@@ -9,6 +9,26 @@
 
 Publiczne buildy Velopack **wymagają** `PublishSingleFile=false` (unpacked). Gate: `Assert-NotSingleFile.ps1`.
 
+### Przypięta wersja Velopack
+
+CLI `vpk` jest przypięte w `.config/dotnet-tools.json` do **1.2.161**.
+Skrypty pakowania korzystają z `Invoke-Velopack.ps1`: przywracają lokalne
+narzędzie, sprawdzają zgodność wersji z biblioteką w UI/Core i nie używają
+globalnego `vpk`. Nie trzeba aktualizować ani usuwać globalnej instalacji.
+
+```powershell
+.\SKRYPTY\Build\Invoke-Velopack.ps1 -RestoreOnly
+.\SKRYPTY\Build\Invoke-Velopack.ps1 -Arguments @('pack', '--help')
+# Test offline, bez instalacji/publikacji paczek:
+.\SKRYPTY\Test\test-velopack-toolchain.ps1
+```
+
+Velopack 1.x używa własnego `SemanticVersion`, synchronicznego
+`WaitExitThenApplyUpdates` i trybu generowania w `--delta` (nie ścieżki pliku).
+Nowy updater nie obsługuje starych delt bsdiff; przed publikacją trzeba sprawdzić
+przejście ze starego klienta, pełną paczkę, kanały beta/release oraz restart.
+Nie traktuj samego poprawnego builda jako testu rzeczywistej aktualizacji.
+
 ### SignPath / Authenticode (CI)
 
 Domyślny `signingMode` w `release-candidate.yml`: **`signpath`** (beta i release).
@@ -65,6 +85,44 @@ Inputy `workflow_dispatch`:
 
 - `changelogMarkdown` — user-facing punkty zmian (markdown). Puste = post bez bloku zmian.
 - `discordTeaser` — opcjonalna linia na końcu (np. „Niedługo 3.0.13-beta”).
+
+### Uruchamianie wydania z zachowaniem polskich znaków
+
+Changelog zapisuj jako **UTF-8**. Do uruchamiania RC używaj helpera
+`Start-ReleaseCandidate.ps1` (Windows PowerShell 5.1 i PowerShell 7):
+
+```powershell
+# Najpierw podgląd JSON — bez publikacji i bez wysyłania ogłoszenia
+.\SKRYPTY\Build\Start-ReleaseCandidate.ps1 -Version 3.0.14 -Channel beta `
+  -ChangelogPath .release-changelog.txt -DryRun
+
+# Właściwe uruchomienie workflow: SignPath, draft GitHub, serwer i Discord
+.\SKRYPTY\Build\Start-ReleaseCandidate.ps1 -Version 3.0.14 -Channel beta `
+  -Ref beta -ChangelogPath .release-changelog.txt
+```
+
+`-SigningMode none` wymaga świadomej decyzji o wydaniu bez podpisu.
+`-PublishTarget github-draft` pomija serwer i Discord; `none` pomija publikację.
+`-Ref` wskazuje gałąź/commit budowany przez workflow (domyślnie `beta`).
+
+**Nie przekazuj JSON przez `ConvertTo-Json | gh api ... --input -` w Windows
+PowerShell 5.1**: domyślny `$OutputEncoding` to ASCII, więc polskie litery stają
+się `?` już w inputach GitHub Actions (również w changelogu draftu GitHub).
+Helper czyta changelog i zapisuje JSON jako UTF-8 bez BOM, a `gh` odczytuje plik
+przez `--input <plik>` — bez zależności od kodowania konsoli/potoku.
+Nie naprawia to tekstu uszkodzonego wcześniej; źródłowy changelog musi być poprawny.
+Wysyłka webhooka Discord już używa bajtów UTF-8 i `charset=utf-8`.
+
+Testy offline (bez `gh`, webhooka, sekretów i publikacji):
+
+```powershell
+powershell -NoProfile -File .\SKRYPTY\Test\test-release-text-encoding.ps1
+pwsh -NoProfile -File .\SKRYPTY\Test\test-release-text-encoding.ps1
+```
+
+Workflow RC uruchamia oba testy przed buildem/publikacją. Test PowerShell 5.1
+sprawdza JSON dispatchu, a PowerShell 7 także pełną treść i bajty webhooka
+dla kanałów beta i release (polskie litery, emoji, cudzysłowy i nowe linie).
 
 **GitHub draft assets** (nie mylić z deployem na serwer):
 
