@@ -24,9 +24,44 @@ public partial class MainWindow
 
     private void SubscribeGlassThemeChanges(MainWindowViewModel vm, CompositeDisposable disposables)
     {
-        vm.WhenAnyValue(x => x.IsGlassTheme, x => x.GlassReduceTransparency)
-          .Subscribe(_ => RefreshGlassWindowChrome())
+        // CurrentTheme zmienia się przy każdym przełączeniu motywu (Dark/Light/Pink/Glass),
+        // więc klasa okna i szkliste tło odświeżają się spójnie.
+        vm.WhenAnyValue(x => x.CurrentTheme, x => x.GlassReduceTransparency)
+          // CurrentTheme notifies before ApplyTheme swaps the resource dictionary.
+          // Resolve chrome brushes after that synchronous swap has completed.
+          .Subscribe(_ => Avalonia.Threading.Dispatcher.UIThread.Post(
+              RefreshGlassWindowChrome,
+              Avalonia.Threading.DispatcherPriority.Background))
           .DisposeWith(disposables);
+    }
+
+    /// <summary>
+    /// Nadaje oknu dokładnie jedną klasę motywu: glass/dark/light/pink.
+    /// Style powierzchni (GlassSurfaceStyles, DarkSurfaceStyles) selekcjonują po tej klasie.
+    /// </summary>
+    private void ApplyThemeWindowClass(MainWindowViewModel vm)
+    {
+        Classes.Remove("glass-theme");
+        Classes.Remove("glass-opaque");
+        Classes.Remove("dark-theme");
+        Classes.Remove("light-theme");
+        Classes.Remove("pink-theme");
+
+        switch (vm.CurrentTheme)
+        {
+            case MainWindowViewModel.ThemeType.Glass:
+                Classes.Add("glass-theme");
+                break;
+            case MainWindowViewModel.ThemeType.Light:
+                Classes.Add("light-theme");
+                break;
+            case MainWindowViewModel.ThemeType.Pink:
+                Classes.Add("pink-theme");
+                break;
+            default:
+                Classes.Add("dark-theme");
+                break;
+        }
     }
 
     private void RefreshGlassWindowChrome()
@@ -50,16 +85,14 @@ public partial class MainWindow
 
     private void RefreshGlassWindowChromeCore(MainWindowViewModel vm)
     {
+        ApplyThemeWindowClass(vm);
+
         if (!vm.IsGlassTheme)
         {
-            Classes.Remove("glass-theme");
-            Classes.Remove("glass-opaque");
             TransparencyLevelHint = [WindowTransparencyLevel.None];
             Background = this.FindResource("WindowBackgroundBrush") as IBrush ?? Brushes.Transparent;
             return;
         }
-
-        Classes.Add("glass-theme");
 
         var useOpaque = _glassFallbackService.ShouldUseOpaqueFallback(
             vm.GlassReduceTransparency,

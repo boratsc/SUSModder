@@ -46,7 +46,7 @@
                             Padding="12,8"
                             CornerRadius="8"
                             Background="{DynamicResource AccentBrush}"
-                            Foreground="White"/>
+                            Foreground="{DynamicResource OnAccentTextBrush}"/>
                     <Button Content="{Binding BulkUpdateButtonLabel}"
                             Command="{Binding BulkUpdateSelectedCommand}"
                             IsVisible="{Binding ShowBulkUpdateButton}"
@@ -62,14 +62,14 @@
                             Padding="12,8"
                             CornerRadius="8"
                             Background="{DynamicResource DangerBrush}"
-                            Foreground="White"/>
+                            Foreground="{DynamicResource OnAccentTextBrush}"/>
                     <Button Content="{loc:Localize UI.Actions.AddTo}"
                             Command="{Binding BulkOpenSelectedDllInspectorCommand}"
                             IsVisible="{Binding ShowBulkDllInspectButton}"
                             Padding="12,8"
                             CornerRadius="8"
                             Background="{DynamicResource AccentBrush}"
-                            Foreground="White"/>
+                            Foreground="{DynamicResource OnAccentTextBrush}"/>
                 </StackPanel>
             </Grid>
         </StackPanel>

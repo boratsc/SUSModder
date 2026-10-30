@@ -132,7 +132,7 @@
 			<Button Content="{local:Localize Tools.LoadServerConfig.LoadButton}"
                     Click="OnLoadClick"
                     Background="{DynamicResource AccentBrush}"
-                    Foreground="White"
+                    Foreground="{DynamicResource OnAccentTextBrush}"
                     Padding="20,10"
                     CornerRadius="6"
                     FontSize="14"

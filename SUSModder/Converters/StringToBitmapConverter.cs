@@ -12,12 +12,11 @@ namespace SUSModder.Converters
 
         public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
-            if (value is string fileName && !string.IsNullOrWhiteSpace(fileName))
-            {
-                // Użyj serwisu preloadingu z cache
-                return ModIconPreloader.GetIcon(fileName);
-            }
-            return null;
+            // Memory-only for remote references; background loading signals IconAvailable.
+            const string prefix = "susmodder-icon:";
+            return value is string reference && reference.StartsWith(prefix, StringComparison.Ordinal)
+                ? ModIconPreloader.GetVersionedIcon(reference[prefix.Length..])
+                : ModIconPreloader.GetIcon(value as string);
         }
 
         public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

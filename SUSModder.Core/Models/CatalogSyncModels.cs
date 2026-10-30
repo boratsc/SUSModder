@@ -29,4 +29,10 @@ public sealed class CatalogSnapshotMetadata
     public DateTime? LastSuccessUtc { get; init; }
     public DateTime? NextAllowedAttemptUtc { get; init; }
     public int FailureCount { get; init; }
+
+    /// <summary>
+    /// Potwierdzona wersja schematu kontraktu przypisanego do tego klucza
+    /// (3.1-04: wersja kontraktu ikon). 0 = brak potwierdzonego schematu.
+    /// </summary>
+    public int SchemaVersion { get; init; }
 }

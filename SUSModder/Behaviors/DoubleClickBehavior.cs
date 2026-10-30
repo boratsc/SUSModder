@@ -1,10 +1,12 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Avalonia.Xaml.Interactivity;
 
 namespace SUSModder.Behaviors;
@@ -89,6 +91,17 @@ public class DoubleClickBehavior : Behavior<Control>
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        // Embedded actions (including favorite toggles) are not card activation clicks.
+        if (e.Source is Visual source && source.GetVisualAncestors().Prepend(source)
+                .TakeWhile(visual => visual != AssociatedObject)
+                .Any(visual => visual is Button or TextBox or ToggleSwitch or ComboBox or Slider))
+        {
+            _singleClickTimer?.Stop();
+            _isWaitingForDoubleClick = false;
+            _lastClickTime = DateTime.MinValue;
+            return;
+        }
+
         // Sprawdź czy to lewy przycisk myszy
         var point = e.GetCurrentPoint(AssociatedObject);
         if (!point.Properties.IsLeftButtonPressed)

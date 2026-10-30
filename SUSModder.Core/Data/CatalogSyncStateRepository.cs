@@ -18,7 +18,7 @@ public sealed class CatalogSyncStateRepository : ICatalogSyncStateRepository
         var conn = _db.GetConnection();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
-            SELECT key, etag, last_success_utc, failure_count, next_allowed_attempt_utc
+            SELECT key, etag, last_success_utc, failure_count, next_allowed_attempt_utc, schema_version
             FROM sync_state
             WHERE key = @key;";
         cmd.Parameters.AddWithValue("@key", key);
@@ -33,21 +33,22 @@ public sealed class CatalogSyncStateRepository : ICatalogSyncStateRepository
             ETag = reader.IsDBNull(1) ? null : reader.GetString(1),
             LastSuccessUtc = reader.IsDBNull(2) ? null : DateTime.Parse(reader.GetString(2)),
             FailureCount = reader.IsDBNull(3) ? 0 : reader.GetInt32(3),
-            NextAllowedAttemptUtc = reader.IsDBNull(4) ? null : DateTime.Parse(reader.GetString(4))
+            NextAllowedAttemptUtc = reader.IsDBNull(4) ? null : DateTime.Parse(reader.GetString(4)),
+            SchemaVersion = reader.IsDBNull(5) ? 0 : reader.GetInt32(5)
         };
     }
 
-    public void SaveSuccess(string key, string? etag, string? lastModified, DateTime successUtc)
+    public void SaveSuccess(string key, string? etag, string? lastModified, DateTime successUtc, int schemaVersion = 0)
     {
         var conn = _db.GetConnection();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
             INSERT INTO sync_state (
                 key, etag, last_modified, last_success_utc, last_attempt_utc,
-                last_error_code, failure_count, next_allowed_attempt_utc
+                last_error_code, failure_count, next_allowed_attempt_utc, schema_version
             ) VALUES (
                 @key, @etag, @last_modified, @last_success_utc, @last_attempt_utc,
-                NULL, 0, NULL
+                NULL, 0, NULL, @schema_version
             )
             ON CONFLICT(key) DO UPDATE SET
                 etag = excluded.etag,
@@ -56,12 +57,14 @@ public sealed class CatalogSyncStateRepository : ICatalogSyncStateRepository
                 last_attempt_utc = excluded.last_attempt_utc,
                 last_error_code = NULL,
                 failure_count = 0,
-                next_allowed_attempt_utc = NULL;";
+                next_allowed_attempt_utc = NULL,
+                schema_version = excluded.schema_version;";
         cmd.Parameters.AddWithValue("@key", key);
         cmd.Parameters.AddWithValue("@etag", (object?)etag ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@last_modified", (object?)lastModified ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@last_success_utc", successUtc.ToString("O"));
         cmd.Parameters.AddWithValue("@last_attempt_utc", successUtc.ToString("O"));
+        cmd.Parameters.AddWithValue("@schema_version", schemaVersion);
         cmd.ExecuteNonQuery();
     }
 

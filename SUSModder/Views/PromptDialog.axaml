@@ -52,7 +52,7 @@
                     IsDefault="True"
                     MinWidth="80"
                     Background="{DynamicResource AccentBrush}"
-                    Foreground="White"
+                    Foreground="{DynamicResource OnAccentTextBrush}"
                     Padding="10,8"
                     CornerRadius="4"/>
 			<Button Content="{loc:Localize UI.Buttons.Cancel}"

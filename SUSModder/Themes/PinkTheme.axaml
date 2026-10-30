@@ -62,4 +62,82 @@
 	<SolidColorBrush x:Key="WindowAccentGlowBrush" Color="Transparent"/>
 	<SolidColorBrush x:Key="WindowBulkGlowBrush" Color="Transparent"/>
 	<SolidColorBrush x:Key="SurfaceGlassFillBrush" Color="#E6FFFFFF"/>
+
+	<!-- Wspólne klucze palety (Glass/Dark redesign 2026-10) — Pink zachowuje wartości
+	     równe obecnym kolorom wtłoczonym w style, więc wygląd motywu się nie zmienia. -->
+	<Color x:Key="OnAccentTextColor">#FFFFFFFF</Color>
+	<Color x:Key="IconAccentColor">#00BCD4</Color>
+	<Color x:Key="AccentSoftFillColor">#183B9EFF</Color>
+	<Color x:Key="AccentSoftBorderColor">#553B9EFF</Color>
+	<Color x:Key="StatusIconModsColor">#4A148C</Color>
+	<Color x:Key="StatusIconStorageColor">#0288D1</Color>
+	<Color x:Key="UpdateAlertColor">#F44336</Color>
+	<Color x:Key="StatusInstalledTextColor">#4CAF50</Color>
+	<Color x:Key="StatusMissingTextColor">#FF5252</Color>
+	<Color x:Key="PrimaryActionColor">#3B82F6</Color>
+	<Color x:Key="PrimaryActionHoverColor">#2563EB</Color>
+	<Color x:Key="PrimaryActionPressedColor">#1D4ED8</Color>
+	<Color x:Key="PrimaryActionSoftColor">#203B82F6</Color>
+	<Color x:Key="PositiveActionColor">#10B981</Color>
+	<Color x:Key="PositiveActionHoverColor">#059669</Color>
+	<Color x:Key="PositiveActionPressedColor">#047857</Color>
+	<Color x:Key="PositiveActionSoftColor">#2010B981</Color>
+	<Color x:Key="DangerActionColor">#DC2626</Color>
+	<Color x:Key="DangerActionHoverColor">#B91C1C</Color>
+	<Color x:Key="DangerActionSoftColor">#20DC2626</Color>
+	<Color x:Key="DangerActionHoverBgColor">#E53E3E</Color>
+	<Color x:Key="DangerActionPressedColor">#C53030</Color>
+	<Color x:Key="PackIdentityColor">#A78BFA</Color>
+	<Color x:Key="PackIdentitySoftColor">#20A78BFA</Color>
+	<Color x:Key="ModDetailIconGlowColor">#1A3B9EFF</Color>
+	<Color x:Key="BadgeAlertColor">#E53935</Color>
+	<Color x:Key="BulkChipActiveFillColor">#208B5CF6</Color>
+	<!-- WIP surfaces (drawer/chat/storage) — Pink zachowuje obecne wartości -->
+	<Color x:Key="WarningTextColor">#FFF8D18B</Color>
+	<Color x:Key="ErrorChipFillColor">#20FF0000</Color>
+	<Color x:Key="ErrorChipBorderColor">#FF6B6B</Color>
+	<Color x:Key="InfoChipFillColor">#200288D1</Color>
+	<Color x:Key="InfoChipBorderColor">#4FA6E8</Color>
+	<Color x:Key="WarningBannerFillColor">#33FF9800</Color>
+	<Color x:Key="ErrorBannerFillColor">#33F44336</Color>
+	<SolidColorBrush x:Key="OnAccentTextBrush" Color="{StaticResource OnAccentTextColor}"/>
+	<SolidColorBrush x:Key="IconAccentBrush" Color="{StaticResource IconAccentColor}"/>
+	<SolidColorBrush x:Key="AccentSoftFillBrush" Color="{StaticResource AccentSoftFillColor}"/>
+	<SolidColorBrush x:Key="AccentSoftBorderBrush" Color="{StaticResource AccentSoftBorderColor}"/>
+	<SolidColorBrush x:Key="StatusIconModsBrush" Color="{StaticResource StatusIconModsColor}"/>
+	<SolidColorBrush x:Key="StatusIconStorageBrush" Color="{StaticResource StatusIconStorageColor}"/>
+	<SolidColorBrush x:Key="UpdateAlertBrush" Color="{StaticResource UpdateAlertColor}"/>
+	<SolidColorBrush x:Key="StatusInstalledTextBrush" Color="{StaticResource StatusInstalledTextColor}"/>
+	<SolidColorBrush x:Key="StatusMissingTextBrush" Color="{StaticResource StatusMissingTextColor}"/>
+	<SolidColorBrush x:Key="PrimaryActionBrush" Color="{StaticResource PrimaryActionColor}"/>
+	<SolidColorBrush x:Key="PrimaryActionHoverBrush" Color="{StaticResource PrimaryActionHoverColor}"/>
+	<SolidColorBrush x:Key="PrimaryActionPressedBrush" Color="{StaticResource PrimaryActionPressedColor}"/>
+	<SolidColorBrush x:Key="PrimaryActionSoftBrush" Color="{StaticResource PrimaryActionSoftColor}"/>
+	<SolidColorBrush x:Key="PositiveActionBrush" Color="{StaticResource PositiveActionColor}"/>
+	<SolidColorBrush x:Key="PositiveActionHoverBrush" Color="{StaticResource PositiveActionHoverColor}"/>
+	<SolidColorBrush x:Key="PositiveActionPressedBrush" Color="{StaticResource PositiveActionPressedColor}"/>
+	<SolidColorBrush x:Key="PositiveActionSoftBrush" Color="{StaticResource PositiveActionSoftColor}"/>
+	<SolidColorBrush x:Key="DangerActionBrush" Color="{StaticResource DangerActionColor}"/>
+	<SolidColorBrush x:Key="DangerActionHoverBrush" Color="{StaticResource DangerActionHoverColor}"/>
+	<SolidColorBrush x:Key="DangerActionSoftBrush" Color="{StaticResource DangerActionSoftColor}"/>
+	<SolidColorBrush x:Key="DangerActionHoverBgBrush" Color="{StaticResource DangerActionHoverBgColor}"/>
+	<SolidColorBrush x:Key="DangerActionPressedBrush" Color="{StaticResource DangerActionPressedColor}"/>
+	<SolidColorBrush x:Key="PackIdentityBrush" Color="{StaticResource PackIdentityColor}"/>
+	<SolidColorBrush x:Key="PackIdentitySoftBrush" Color="{StaticResource PackIdentitySoftColor}"/>
+	<SolidColorBrush x:Key="ModDetailIconGlowBrush" Color="{StaticResource ModDetailIconGlowColor}"/>
+	<SolidColorBrush x:Key="BadgeAlertBrush" Color="{StaticResource BadgeAlertColor}"/>
+	<SolidColorBrush x:Key="BulkChipActiveFillBrush" Color="{StaticResource BulkChipActiveFillColor}"/>
+	<SolidColorBrush x:Key="WarningTextBrush" Color="{StaticResource WarningTextColor}"/>
+	<SolidColorBrush x:Key="ErrorChipFillBrush" Color="{StaticResource ErrorChipFillColor}"/>
+	<SolidColorBrush x:Key="ErrorChipBorderBrush" Color="{StaticResource ErrorChipBorderColor}"/>
+	<SolidColorBrush x:Key="InfoChipFillBrush" Color="{StaticResource InfoChipFillColor}"/>
+	<SolidColorBrush x:Key="InfoChipBorderBrush" Color="{StaticResource InfoChipBorderColor}"/>
+	<SolidColorBrush x:Key="WarningBannerFillBrush" Color="{StaticResource WarningBannerFillColor}"/>
+	<SolidColorBrush x:Key="ErrorBannerFillBrush" Color="{StaticResource ErrorBannerFillColor}"/>
+	<LinearGradientBrush x:Key="ModDetailBorderGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+		<GradientStop Color="#663B9EFF" Offset="0"/>
+		<GradientStop Color="#402A4A6B" Offset="0.45"/>
+		<GradientStop Color="#553D4A63" Offset="1"/>
+	</LinearGradientBrush>
+	<CornerRadius x:Key="TileCornerRadius">12</CornerRadius>
 </ResourceDictionary>

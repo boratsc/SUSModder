@@ -37,7 +37,7 @@
             <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                 <Image Grid.Column="0"
                        Classes="browser-card-icon"
-                       Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"/>
+                       Source="{Binding IconSourceKey, Converter={StaticResource StringToBitmapConverter}}"/>
 
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
                     <TextBlock Classes="browser-card-title" Text="{Binding DisplayName}"/>

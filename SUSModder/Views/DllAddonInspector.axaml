@@ -20,7 +20,7 @@
                                 Classes="close-button"
                                 Command="{Binding CloseDllDetailCommand}"/>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="8,0,0,0">
-                            <Image Source="{Binding SelectedDllModPngFileName, Converter={StaticResource StringToBitmapConverter}}"
+                            <Image Source="{Binding SelectedDllModIconSourceKey, Converter={StaticResource StringToBitmapConverter}}"
                                    Width="56" Height="56"/>
                             <StackPanel VerticalAlignment="Center" Spacing="2">
                                 <TextBlock Text="{Binding SelectedDllModName}"

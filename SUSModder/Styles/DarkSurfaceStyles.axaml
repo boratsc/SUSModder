@@ -1,0 +1,132 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<!-- ============================================================
+	     Dark (płaski) — nadpisania warstwy "surface" dla motywu Dark.
+	     Kafelki: r10, ramka 1px #243B53, zaznaczenie = teal 1px, bez
+	     dużych cieni/gradientów. Glass ma własny plik (efekt szkła zostaje).
+	     Klasa okna ustawiana w MainWindow.GlassTheme.cs.
+	     ============================================================ -->
+
+	<!-- === Kafelki przeglądarki === -->
+	<Style Selector="Window.dark-theme Border.browser-card">
+		<Setter Property="ClipToBounds" Value="True"/>
+		<Setter Property="BoxShadow" Value="0 1 4 0 #26000000"/>
+		<Setter Property="Transitions">
+			<Transitions>
+				<BrushTransition Property="Background" Duration="0:0:0.2"/>
+				<BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
+				<BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2"/>
+			</Transitions>
+		</Setter>
+	</Style>
+
+	<Style Selector="Window.dark-theme Border.browser-card:pointerover">
+		<Setter Property="BorderBrush" Value="{DynamicResource AccentMutedBrush}"/>
+		<Setter Property="BoxShadow" Value="0 2 6 0 #26000000"/>
+	</Style>
+
+	<Style Selector="Window.dark-theme ListBoxItem:selected Border.browser-card">
+		<Setter Property="BorderBrush" Value="{DynamicResource SelectionBarBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="BoxShadow" Value="0 0 0 1 #3320C5C5"/>
+	</Style>
+
+	<Style Selector="Window.dark-theme ListBoxItem:selected Border.browser-card Border.browser-selection-bar">
+		<Setter Property="IsVisible" Value="True"/>
+		<Setter Property="Background" Value="{DynamicResource SelectionBarBrush}"/>
+		<Setter Property="BorderThickness" Value="0"/>
+		<Setter Property="BorderBrush" Value="Transparent"/>
+	</Style>
+
+	<!-- === Kafelki przeglądarki === -->
+
+	<Style Selector="Window.dark-theme ListBoxItem:selected Border.browser-card Border.browser-type-badge">
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+	</Style>
+
+	<Style Selector="Window.dark-theme Border.browser-card.bulk-checked">
+		<Setter Property="BorderBrush" Value="{DynamicResource BulkSelectionBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="BoxShadow" Value="0 0 0 1 #3317A2A2"/>
+	</Style>
+
+	<Style Selector="Window.dark-theme Border.browser-card ProgressBar">
+		<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+		<Setter Property="Foreground" Value="{DynamicResource StatusBusyBrush}"/>
+	</Style>
+
+	<!-- === Zakładki i wyszukiwarka: przyciski r6, input r6 === -->
+	<Style Selector="Window.dark-theme Button.browser-tab">
+		<Setter Property="CornerRadius" Value="6"/>
+	</Style>
+
+	<Style Selector="Window.dark-theme Border.browser-search-box">
+		<Setter Property="CornerRadius" Value="6"/>
+		<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+	</Style>
+
+	<!-- === Inspektor: płaskie panele bez poświaty === -->
+	<Style Selector="Window.dark-theme Border.mod-detail-host">
+		<Setter Property="CornerRadius" Value="10,0,0,10"/>
+		<Setter Property="BoxShadow" Value="0 0 0 0 #00000000"/>
+	</Style>
+
+	<Style Selector="Window.dark-theme Border.mod-detail-header">
+		<Setter Property="CornerRadius" Value="10"/>
+		<Setter Property="BoxShadow" Value="0 0 0 0 #00000000"/>
+	</Style>
+
+	<Style Selector="Window.dark-theme Border.mod-detail-version-flyout">
+		<Setter Property="BoxShadow" Value="0 6 18 0 #40000000"/>
+	</Style>
+
+	<!-- === Modale / menu === -->
+	<Style Selector="Window.dark-theme Border.tool-modal-card">
+		<Setter Property="CornerRadius" Value="10"/>
+		<Setter Property="BoxShadow" Value="0 8 24 0 #4D000000"/>
+	</Style>
+
+	<Style Selector="Window.dark-theme Border.glass-flyout-tip">
+		<Setter Property="CornerRadius" Value="10"/>
+		<Setter Property="BoxShadow" Value="0 6 18 0 #40000000"/>
+	</Style>
+
+	<Style Selector="Window.dark-theme Border.fab-menu-panel">
+		<Setter Property="CornerRadius" Value="10"/>
+		<Setter Property="BoxShadow" Value="0 6 20 0 #4D000000"/>
+	</Style>
+
+	<Style Selector="Window.dark-theme Border.fab-discord-promo-panel">
+		<Setter Property="BoxShadow" Value="0 4 14 0 #40000000"/>
+	</Style>
+
+	<!-- Group tint w FAB menu: cyan -> neutralna paleta -->
+	<Style Selector="Window.dark-theme Border.fab-menu-group">
+		<Setter Property="Background" Value="#33243B53"/>
+	</Style>
+
+	<!-- === Przyciski panelu szczegółów: r6 === -->
+	<Style Selector="Window.dark-theme Button.mod-detail-btn">
+		<Setter Property="CornerRadius" Value="6"/>
+	</Style>
+
+	<Style Selector="Window.dark-theme SplitButton.mod-detail-split">
+		<Setter Property="CornerRadius" Value="6"/>
+	</Style>
+
+	<Style Selector="Window.dark-theme Button.mod-detail-version-item">
+		<Setter Property="CornerRadius" Value="6"/>
+	</Style>
+
+	<!-- === Linki w palecie akcentu === -->
+	<Style Selector="Window.dark-theme Button.link">
+		<Setter Property="Foreground" Value="{DynamicResource AccentPrimaryBrush}"/>
+	</Style>
+
+	<Style Selector="Window.dark-theme Button.link:pointerover">
+		<Setter Property="Foreground" Value="{DynamicResource StatusBusyBrush}"/>
+	</Style>
+
+</Styles>

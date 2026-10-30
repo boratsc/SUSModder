@@ -5,6 +5,62 @@
     }
   },
   "UI": {
+    "Favorites": {
+      "InvalidMod": "Tego elementu nie można dodać do ulubionych.",
+      "StorageUnavailable": "Ulubione są chwilowo niedostępne. Spróbuj ponownie po odświeżeniu biblioteki.",
+      "Toggle": "Dodaj lub usuń z ulubionych",
+      "Filter": "★ Ulubione",
+      "ReadFailed": "Nie udało się odczytać ulubionych. Spróbuj odświeżyć bibliotekę.",
+      "WriteFailed": "Nie udało się zapisać ulubionego. Oznaczenie nie zostało zmienione."
+    },
+    "Storage": {
+      "Tile": {
+        "Calculating": "Obliczanie…", "FolderMissing": "brak katalogu", "NotAccessible": "brak dostępu",
+        "IsLink": "katalog jest dowiązaniem", "Unavailable": "pomiar niedostępny",
+        "Stale": "{0} · nieaktualne", "Partial": "{0} · niepełny"
+      },
+      "Overview": {
+        "Title": "Podsumowanie miejsca", "LibraryPathHeader": "Katalog biblioteki:",
+        "SummarySection": "Przegląd miejsca", "TotalHeader": "Zajęte przez bibliotekę",
+        "DriveFreeHeader": "Wolne miejsce na dysku", "DriveTotalHeader": "Rozmiar wolumenu",
+        "CategoriesList": "Kategorie danych", "LogicalUnitNote": "rozmiar logiczny",
+        "Measuring": "Pomiar w toku…", "Ready": "Pomiar zakończony", "Cancelled": "Pomiar przerwany",
+        "Error": "Pomiar nie powiódł się — sprawdź dostęp do katalogu biblioteki.",
+        "LibraryMissing": "Katalog biblioteki nie istnieje — nie ma czego mierzyć.",
+        "TotalPartial": "Część wpisów nie została przeczytana — suma jest zaniżona.",
+        "TotalStale": "Wartość nieaktualna — użyj „Ponów pomiar”.",
+        "TotalNotAccessible": "Brak dostępu do katalogu biblioteki — suma nie została zmierzona.",
+        "TotalIsLink": "Katalog biblioteki jest dowiązaniem — nie mierzymy go, aby nie wyjść poza zakres.",
+        "TotalUnavailable": "Suma nie mogła zostać zmierzona — nie pokazujemy zera.",
+        "SpaceUnknown": "brak danych", "LastMeasured": "Ostatni pomiar: {0}",
+        "MeasurementOnlyBanner": "Podsumowanie miejsca mierzy i klasyfikuje — nic nie usuwa.",
+        "NoCleanupExplanation": "Ta wersja nie oferuje ręcznego sprzątania ani automatycznego kasowania pozostałości przy starcie i zamykaniu. Bez dowodu bezpiecznego usunięcia dane pozostają. Instalator nadal zarządza własnymi plikami w trakcie operacji.",
+        "Refresh": "Ponów pomiar", "Cancel": "Przerwij", "Close": "Zamknij", "EntryCount": "Pozycji: {0}",
+        "RowUnmeasured": "brak dostępu — nie zmierzono", "RowUnmeasuredCount": "Nieodczytane pozycje: {0}",
+        "RowPartialCount": "Częściowo odczytane pozycje: {0}"
+      },
+      "Category": {
+        "ModInstallations": "Instalacje modów", "VanillaArchive": "Archiwa vanilla (cache)",
+        "VanillaExtractedCache": "Rozpakowany cache vanilla", "InstallWorkspace": "Katalogi robocze instalacji",
+        "Unclassified": "Dane nieklasyfikowane", "Unknown": "Inne"
+      },
+      "Eligibility": { "MeasurementOnly": "tylko pomiar" },
+      "Reason": {
+        "vanilla_archive_redundant": "Archiwum ma rozpakowany cache — mimo to w tej wersji nie jest usuwane.",
+        "vanilla_archive_cache_not_proven": "Nie dowiedziono poprawności rozpakowanego cache — archiwum pozostaje.",
+        "install_workspace_active_use_unprovable": "Nie da się udowodnić braku aktywnej instalacji — katalog roboczy pozostaje.",
+        "mod_installation": "Dane instalacji moda — chronione.", "protected_data": "Dane chronione — poza zakresem sprzątania.",
+        "unclassified_data": "Brak właściciela i klasyfikacji — traktowane jako chronione.",
+        "linked_entry_not_followed": "Dowiązanie (junction/symlink) — cel nie jest śledzony.",
+        "safety_not_proven": "Bezpieczeństwo usunięcia nieudowodnione — pozycja tylko do pomiaru."
+      },
+      "Open": "Podsumowanie miejsca na dysku",
+      "StatusUnavailable": "Rozmiar niedostępny",
+      "StatusPartial": "{0} (pomiar częściowy)",
+      "StatusSummary": "{0} / {1} wolne",
+      "StatusTooltip": "Biblioteka: {0}\nWolne miejsce: {1}\nŚcieżka: {2}",
+      "LogicalSizeHint": "Logiczny rozmiar katalogu wraz z dodatkami i konfiguracją; nie jest rozmiarem pobierania ani gwarancją odzyskania miejsca."
+    },
     "Buttons": {
       "Install": "Instaluj",
       "Launch": "Uruchom",
@@ -75,12 +131,10 @@
       "ShowMore": "Pokaż więcej ({0})",
       "ShowLess": "Pokaż mniej",
       "MoreActions": "Dodatkowe akcje",
-      "LobbyChat": "Chat lobby",
       "Compat": {
         "Loading": "Ładowanie kompatybilności…"
       },
       "ActionTiles": {
-        "Lobby": "Lobby",
         "Dll": "DLL",
         "Roles": "Role",
         "Folder": "Folder",
@@ -119,7 +173,6 @@
       "CloneOptionsLabel": "Kopiuj",
       "CloneCopyDlls": "Mody DLL",
       "CloneCopyTouConfig": "Config Town of Us (z bazy instancji)",
-      "CloneCopyIntegration": "susmodder-integration.dll",
       "CloneCopyPinnedVersion": "Przypiętą wersję i ustawienia auto-aktualizacji",
       "CloneSuggestedName": "{0} (kopia)",
       "CloneSuccess": "Zestaw został sklonowany.",
@@ -194,14 +247,60 @@
       "Exit": "Wyjdź",
       "RecommendedDiscords": "Discord / społeczność",
       "Info": "Informacje",
-      "CheckModUpdates": "Sprawdź aktualizacje modów",
-      "LobbyBoard": "Tablica Lobby"
+      "CheckModUpdates": "Sprawdź aktualizacje modów"
     },
-    "LobbyBoard": {
+    "CommunityChat": {
+      "Title": "Czat",
+      "Subtitle": "Wspólny dla wszystkich modów",
+      "Placeholder": "Napisz wiadomość…",
+      "Send": "Wyślij",
+      "Refresh": "Odśwież",
+      "OwnBadge": "Ty",
+      "Loading": "Ładowanie...",
+      "Empty": "Brak aktywnych wiadomości. Napisz pierwszą!",
+      "OfflineHint": "Brak połączenia. Spróbuj odświeżyć.",
+      "NewMessages": "{0} nowych wiadomości",
       "Time": {
         "JustNow": "Przed chwilą",
         "MinutesAgo": "{0} min temu",
-        "HoursAgo": "{0}h temu"
+        "HoursAgo": "{0}h temu",
+        "DaysAgo": "{0} dni temu",
+        "NoDate": "—"
+      },
+      "PublicHint": "Wiadomości są publiczne i wygasają po czasie.",
+      "Report": {
+        "Button": "Zgłoś",
+        "Hint": "Treść pozostaje widoczna do czasu decyzji moderacji.",
+        "Done": "Zgłoszono do moderacji"
+      },
+      "Delete": {
+        "Button": "Usuń",
+        "Confirm": "Na pewno usunąć tę wiadomość?",
+        "ConfirmTitle": "Usuń wiadomość"
+      },
+      "Error": {
+        "TooShort": "Wiadomość za krótka (minimum {0} znaków)",
+        "TooLong": "Wiadomość za długa (maksimum {0} znaków)",
+        "Newline": "Wiadomość nie może zawierać znaków nowej linii",
+        "ControlCharacters": "Wiadomość zawiera niedozwolone znaki sterujące",
+        "DisallowedUrl": "Dozwolone są tylko linki discord.gg",
+        "TooManyLinks": "Maksymalnie 1 link Discord",
+        "Auth": "Brak autoryzacji — zaloguj się do SUSModder Hub.",
+        "Forbidden": "Nie masz uprawnień do tej operacji.",
+        "RateLimited": "Zbyt wiele żądań — odczekaj chwilę.",
+        "RateLimitedSeconds": "Zbyt wiele żądań — ponów za {0} s.",
+        "Server": "Błąd serwera — spróbuj ponownie później",
+        "Network": "Błąd sieci — sprawdź połączenie",
+        "Protocol": "Nieoczekiwana odpowiedź serwera",
+        "SendUncertain": "Nie udało się potwierdzić wysłania. Wiadomość mogła zostać zapisana — sprawdź historię przed ponownym wysłaniem.",
+        "AuthorUnavailable": "Serwer nie może teraz przypisać autora wiadomości. Spróbuj później.",
+        "NotFound": "Wiadomość już wygasła lub została usunięta.",
+        "Rejected": "Serwer odrzucił żądanie.",
+        "Duplicate": "Identyczna treść już istnieje",
+        "DailyLimit": "Osiągnięto dzienny limit wpisów",
+        "Banned": "Konto tymczasowo zablokowane przez moderację",
+        "Blocked": "Treść nie przeszła moderacji",
+        "Unknown": "Nieznany błąd — spróbuj ponownie"
       }
     },
     "Fab": {
@@ -434,6 +533,10 @@
     "HiddenIncompatibleTargets": "zestawów ukryto (niekompatybilne)"
   },
   "Dialogs": {
+    "BulkUpdate": {
+      "Title": "Podsumowanie zbiorczej aktualizacji",
+      "Warning": "Część dodatków DLL wymaga uwagi — szczegóły poniżej."
+    },
     "Success": {
       "Title": "Sukces"
     },
@@ -482,7 +585,25 @@
       "DownloadSize": "Rozmiar do pobrania: ~{0}",
       "UnknownVersion": "Nieznana",
       "UpdateButton": "Aktualizuj",
-      "CancelButton": "Anuluj"
+      "CancelButton": "Anuluj",
+      "Preview": {
+        "Header": "Podsumowanie aktualizacji",
+        "Loading": "Przygotowywanie podsumowania…",
+        "Failed": "Nie udało się przygotować podsumowania aktualizacji.",
+        "AddonsHeader": "Dodatki DLL",
+        "AddonsNone": "Brak dodatków DLL",
+        "Addon": {
+          "Retained": "{0} — planowane przywrócenie",
+          "RetainedUnknown": "{0} — planowane przywrócenie, zgodność z docelową wersją nieznana",
+          "Incompatible": "{0} — niezgodny z docelową wersją",
+          "MissingCatalog": "{0} — brak w katalogu, nie zostanie przywrócony",
+          "CustomFile": "{0} — plik niestandardowy, nie zostanie przywrócony",
+          "Unknown": "{0} — brak danych o stanie dodatku"
+        },
+        "ConfigHeader": "Konfiguracja",
+        "ConfigNotGuaranteed": "Aktualizacja zastępuje katalog moda. Pliki konfiguracji nie są przenoszone; aplikacja próbuje przywrócić dodatki DLL z katalogu.",
+        "ConfigUnknown": "Nie można ocenić stanu konfiguracji."
+      }
     },
     "Info": {
       "Title": "Informacja",
@@ -614,6 +735,9 @@
     }
   },
   "Toast": {
+    "ModUpdateTargetChanged": "{0}: docelowa wersja zmieniła się — aktualizacja wstrzymana",
+    "ModUpdateTargetUnavailable": "{0}: nie udało się potwierdzić wersji docelowej — aktualizacja wstrzymana",
+    "ModUpdateTargetsChanged": "Pominięto aktualizacje ze zmienioną wersją docelową.",
     "ModInstalled": "{0} zainstalowany pomyślnie",
     "ModInstalledDesc": "Wersja: {0}",
     "ModUpdated": "{0} zaktualizowany do wersji {1}",
@@ -1226,6 +1350,7 @@
     "EpicErrorTitle": "Błąd Epic Games"
   },
   "Updates": {
+    "TargetDrift": "Docelowa wersja zmieniła się — aktualizacja wstrzymana.",
     "CheckError": "Błąd podczas sprawdzania aktualizacji: {0}",
     "UpdateSummaryTitle": "📊 Podsumowanie aktualizacji\n",
     "SuccessfulUpdates": "✅ Pomyślnie zaktualizowano ({0}):",
@@ -1328,61 +1453,81 @@
       "DontShowAgain": "Nie pokazuj więcej"
     }
   },
-  "Lobby": {
-    "Panel": {
-      "Title": "Lobby",
-      "TabCodes": "Kody ({0})",
-      "TabMessages": "Ogłoszenia ({0})",
-      "Refresh": "Odśwież",
-      "NoCodes": "Brak aktywnych kodów",
-      "NoMessages": "Brak ogłoszeń",
-      "Loading": "Ładowanie...",
-      "ServiceUnavailable": "Usługa niedostępna. Spróbuj ponownie później.",
-      "SelectModFirst": "Wybierz najpierw moda z listy"
-    },
-    "Code": {
-      "CopyButton": "Kopiuj",
-      "PublishButton": "Udostępnij kod",
-      "DeleteButton": "Usuń mój kod",
-      "InvalidFormat": "Nieprawidłowy format kodu lobby (4-6 znaków A-Z, 0-9)",
-      "RateLimited": "Poczekaj przed kolejnym udostępnieniem (limit 5 min)",
-      "PublishSuccess": "Kod udostępniony!",
-      "Copied": "Skopiowano!"
-    },
-    "Message": {
-      "Placeholder": "Szukam graczy, reklamuję serwer... (max 280 znaków)",
-      "PublishButton": "Opublikuj ogłoszenie",
-      "DeleteButton": "Usuń moje ogłoszenie",
-      "TooShort": "Wiadomość za krótka (minimum 10 znaków)",
-      "TooLong": "Wiadomość za długa (maksimum 280 znaków)",
-      "DisallowedUrl": "Dozwolone tylko linki discord.gg",
-      "TooManyLinks": "Maksymalnie 1 link Discord",
-      "ContentBlocked": "Treść nie przeszła moderacji",
-      "Duplicate": "Identyczna treść już istnieje",
-      "DailyLimitReached": "Osiągnięto dzienny limit wpisów (20)",
-      "UserBanned": "Konto tymczasowo zablokowane",
-      "PublishSuccess": "Ogłoszenie opublikowane!",
-      "ModerationWarning": "Uwaga: kolejne naruszenia zablokują konto."
-    },
-    "Report": {
-      "Button": "Zgłoś",
-      "Spam": "Spam",
-      "Inappropriate": "Nieodpowiednia treść",
-      "Scam": "Oszustwo",
-      "Done": "Zgłoszono"
-    },
-    "Region": {
-      "ModdedEU": "Modded EU",
-      "ModdedNA": "Modded NA",
-      "ModdedAsia": "Modded Asia"
-    },
-    "Error": {
-      "Internal": "Błąd serwera — spróbuj ponownie później",
-      "Unknown": "Nieznany błąd — spróbuj ponownie",
-      "Network": "Błąd sieci — sprawdź połączenie"
-    }
-  },
   "ModPacks": {
+    "Wizard": {
+      "MissingInstanceForShare": "Nie znaleziono utworzonego zestawu. Sprawdź „Moje zestawy” przed kontynuowaniem udostępniania.",
+      "Stopping": "Zatrzymywanie po zakończeniu bieżącego etapu…",
+      "StepCounter": "Krok {0} z {1}", "Next": "Dalej", "Back": "Wstecz", "Confirm": "Potwierdź",
+      "Finish": "Zakończ", "Change": "Zmień", "Stop": "Zatrzymaj", "Retry": "Spróbuj ponownie", "Resume": "Wznów",
+      "OutOfCatalog": "Spoza katalogu", "TtlQuestion": "Jak długo znajomi mogą pobrać zestaw?",
+      "TtlMeaning": "Ważność dotyczy linku udostępnienia, nie czasu działania zestawu na Twoim dysku.",
+      "CreateUncertain": "Nie udało się potwierdzić utworzenia zestawu na serwerze. Sprawdź listę udostępnionych zestawów przed ponowieniem — nie tworzymy drugiej kopii w ciemno.",
+      "Stopped": "Zatrzymano kreator. Utworzone elementy pozostają — sprawdź listę „Moje zestawy”.",
+      "StoppedTitle": "Kreator zatrzymany",
+      "StoppedWithCode": "Zestaw powstał na serwerze (kod {0}), ale udostępnienie nie zostało sfinalizowane. Możesz wznowić je w kreatorze lub usunąć wśród udostępnionych zestawów.",
+      "Step": {
+        "Goal": { "Title": "Po co ten zestaw?", "Desc": "Wybierz, co chcesz zrobić. Później możesz zmienić decyzję — kreator zachowa Twoje wybory." },
+        "MainMod": { "Title": "Mod główny", "Desc": "To baza zestawu — mod działający na Among Us. Reszta jest opcjonalna." },
+        "Addons": { "Title": "Dodatki", "Desc": "Dodaj mody wspierające główny mod albo przejdź dalej bez dodatków." },
+        "NameSettings": { "Title": "Nazwa i ustawienia", "Desc": "Nazwa to etykieta zestawu. Ustawienia dotyczą wybranej zawartości." },
+        "Summary": { "Title": "Podsumowanie", "Desc": "Sprawdź skład i skutek przycisku, zanim zaczniemy." },
+        "Execution": { "Title": "Wykonanie", "Desc": "Etapy idą po kolei. Zatrzymanie nie cofa już wykonanych kroków." }
+      },
+      "Goal": {
+        "Friends": "Przygotuj zestaw dla znajomych", "FriendsDesc": "Zestaw zainstalujesz u siebie, a potem utworzysz kod i link do pobrania.",
+        "Self": "Stwórz zestaw tylko dla siebie", "SelfDesc": "Instalacja lokalna. Nie utworzymy zestawu na serwerze udostępniania."
+      },
+      "Main": {
+        "Selected": "✓ Wybrano: {0}",
+        "SelectPrompt": "Wybierz mod z listy.",
+        "AddFromGithub": "Nie ma tutaj Twojego moda? Dodaj z GitHuba",
+        "UrlExample": "Wklej bezpośredni link do pliku wydania, np. https://github.com/owner/repo/releases/download/v1.0/Mod.zip",
+        "AmongVersionWhy": "Podaj wersję Among Us, na której działa ten mod — nie zgadujemy zgodności.",
+        "ConfirmRequired": "Najpierw potwierdź dane własnego moda głównego w podkroku powyżej."
+      },
+      "Addons": {
+        "Desc": "Zaznacz mody, które mają znaleźć się w zestawie, albo przejdź dalej bez dodatków.",
+        "ReviewTitle": "Po zmianie moda głównego sprawdziliśmy dodatki — rozstrzygnij oznaczone:",
+        "SourceReloaded": "Zmieniono źródło zestawu — dodatki i ustawienia zostały przeładowane z nowego źródła.",
+        "VersionMismatch": "inna wersja Among Us niż nowy mod główny", "Keep": "Zostaw",
+        "UnverifiedNote": "Brak danych o zgodności (sprawdź stronę moda):", "KeptWithWarning": "zachowany mimo ostrzeżenia",
+        "UnresolvedDecisions": "Rozstrzygnij oznaczone dodatki (Zostaw albo Usuń), zanim pójdziesz dalej."
+      },
+      "Name": { "Hint": "Nazwa to etykieta na Twoim dysku i w linku udostępnienia." },
+      "Tou": { "Unavailable": "Brak zapisanych ustawień Town of Us w tym źródle — konfiguracja nie zostanie dołączona." },
+      "Github": {
+        "UrlExample": "Wklej bezpośredni link do pliku DLL z wydania GitHub, np. https://github.com/owner/repo/releases/download/v1.0/Addon.dll",
+        "UrlRequired": "Podaj link do pliku wydania GitHub."
+      },
+      "Summary": {
+        "Composition": "Skład zestawu", "MainMod": "Mod główny", "Addons": "Dodatki z katalogu: {0}", "Scope": "Zakres operacji",
+        "Platform": "Wariant dla Twojej platformy: {0}. Jeden kod zestawu obsługuje Steam i Epic, jeśli wariant istnieje.",
+        "LocalInstallYes": "Zestaw zostanie zainstalowany lokalnie na tym komputerze.",
+        "LocalInstallNo": "Bez instalacji lokalnej — powstanie tylko kod i link do Twojego zestawu.",
+        "TouAttached": "Ustawienia Town of Us: dołączone (z zapisanej konfiguracji źródła).",
+        "TouDetached": "Ustawienia Town of Us: nie dołączamy zapisanej konfiguracji.",
+        "UploadNotice": "Udostępnienie wyśle: odwołania katalogowe do moda i dodatków, pliki spoza katalogu (lista powyżej) oraz metadane zestawu.",
+        "Share": "Udostępnianie", "ShareNote": "Udostępnienie zapisuje wybrane wersje, nie synchronizuje automatycznie zestawów znajomych."
+      },
+      "Stage": {
+        "InstallMain": "Instalacja moda głównego", "InstallAddons": "Instalacja dodatków", "CopyCustom": "Kopiowanie plików spoza katalogu",
+        "CreateShare": "Tworzenie zestawu na serwerze", "ResumeShare": "Dokańczanie już utworzonego zestawu",
+        "SendCustom": "Przesyłanie i skanowanie plików spoza katalogu", "Finalize": "Finalna walidacja zestawu", "SkippedNothing": "nic do zainstalowania"
+      },
+      "State": { "Pending": "oczekuje", "Running": "w toku", "Done": "gotowe", "Failed": "błąd", "Stopped": "zatrzymane", "Skipped": "pominięte" },
+      "Result": {
+        "ShareReady": "Zestaw gotowy — za chwilę zobaczysz kod i link do przesłania znajomym.",
+        "LocalReady": "Zestaw zainstalowany lokalnie. Znajdziesz go w „Moje zestawy”.", "Partial": "Operacja nie zakończyła się w pełni — oto realny stan:",
+        "Running": "Operacja w toku…", "InstanceCreated": "• instancja zestawu została utworzona lokalnie",
+        "AddonsFailed": "• dodatki, których nie udało się zainstalować: {0}", "CustomFilesFailed": "• pliki spoza katalogu, których nie skopiowano: {0}"
+      },
+      "Action": { "InstallPack": "Zainstaluj zestaw", "InstallAndLink": "Zainstaluj i utwórz link", "CreateLink": "Utwórz link" },
+      "CloseConfirm": {
+        "Title": "Zamknąć kreator?", "Body": "Niezapisane wybory z tego okna przepadną. Nic nie zostało jeszcze zainstalowane ani wysłane.",
+        "RunningBody": "Operacja jest w toku. Zamknięcie zatrzyma kolejne etapy i NIE cofnie wykonanych kroków — utworzone elementy pozostaną.",
+        "Stay": "Zostań", "Discard": "Odrzuć zmiany i zamknij", "StopAndClose": "Zatrzymaj i zamknij"
+      }
+    },
     "MenuGroup": "Zestawy modów",
     "ShareMenu": "Udostępnij zestaw modów",
     "EnterCodeMenu": "Wklej kod zestawu",
@@ -1394,7 +1539,6 @@
     "VersionLabel": "Wersja",
     "DllModsLabel": "Mody DLL",
     "TouConfigLabel": "Dołącz config Town of Us",
-    "IntegrationLabel": "Dołącz susmodder-integration.dll",
     "DiscordLabel": "Serwer Discord",
     "CreateButton": "Utwórz zestaw",
     "CreatedTitle": "Zestaw utworzony!",
@@ -1478,7 +1622,8 @@
     "TouConfigNotSupportedYet": "Dołączanie configu ToU z tego okna będzie dostępne wkrótce — na razie utwórz paczkę bez configu.",
     "CustomDlls": {
       "Title": "Własne pliki DLL",
-      "AddFiles": "Dodaj pliki DLL",
+      "AddFiles": "Dodaj własne pliki DLL…",
+      "MultipleHint": "Możesz wybrać kilka plików naraz lub dodawać kolejne. Przy udostępnianiu wszystkie DLL są przesyłane na serwer do skanowania; zestaw czeka na wynik clean.",
       "RemoveFile": "Usuń",
       "ServerScanNotice": "Pliki zostaną przesłane na serwer SUSModder i sprawdzone przez VirusTotal przed udostępnieniem zestawu.",
       "LocalNotice": "Własne pliki DLL zostaną skopiowane do folderu BepInEx/plugins. Po przetestowaniu zestawu możesz go udostępnić online — pliki zostaną wtedy przesłane na serwer.",

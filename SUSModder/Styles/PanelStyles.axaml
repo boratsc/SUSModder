@@ -31,7 +31,7 @@
     <Style Selector="TextBlock.header-title">
         <Setter Property="FontSize" Value="20"/>
         <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
 
@@ -39,7 +39,7 @@
     <Style Selector="Button.close-button">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
         <Setter Property="FontSize" Value="20"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="Padding" Value="8"/>

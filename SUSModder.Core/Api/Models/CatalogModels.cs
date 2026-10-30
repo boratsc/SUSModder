@@ -22,6 +22,17 @@ public sealed class CatalogItemDto
     [JsonPropertyName("iconUrl")]
     public string? IconUrl { get; init; }
 
+    [JsonPropertyName("icon")]
+    public CatalogIconDto? Icon { get; init; }
+
+    /// <summary>
+    /// True, gdy ładunek JSON zawierał człon <c>icon</c> (obiekt albo jawne null).
+    /// Rozróżnia „pole nieobecne” (zachowaj ostatnie przypisanie) od
+    /// „jawnie usunięte przypisanie” (usuń). Uzupełniane przez warstwę transportową.
+    /// </summary>
+    [JsonIgnore]
+    public bool IconMemberPresent { get; set; }
+
     [JsonPropertyName("installPath")]
     public string? InstallPath { get; init; }
 
@@ -61,6 +72,15 @@ public sealed class CatalogAmongVersionDto
 
 public sealed class CatalogMetaDto
 {
+    [JsonPropertyName("iconsSchemaVersion")]
+    public int? IconsSchemaVersion { get; init; }
+
+    [JsonPropertyName("iconsRevision")]
+    public string? IconsRevision { get; init; }
+
+    [JsonPropertyName("icons")]
+    public CatalogGlobalIconsDto? Icons { get; init; }
+
     [JsonPropertyName("catalogRevision")]
     public string? CatalogRevision { get; init; }
 
@@ -72,6 +92,37 @@ public sealed class CatalogMetaDto
 
     [JsonPropertyName("serverTimeUtc")]
     public string? ServerTimeUtc { get; init; }
+}
+
+public sealed class CatalogIconDto
+{
+    [JsonPropertyName("assetId")]
+    public string AssetId { get; init; } = string.Empty;
+    [JsonPropertyName("url")]
+    public string Url { get; init; } = string.Empty;
+    [JsonPropertyName("sha256")]
+    public string Sha256 { get; init; } = string.Empty;
+    [JsonPropertyName("contentType")]
+    public string ContentType { get; init; } = string.Empty;
+    [JsonPropertyName("sizeBytes")]
+    public long SizeBytes { get; init; }
+}
+
+public sealed class CatalogGlobalIconsDto
+{
+    [JsonPropertyName("vanilla")]
+    public CatalogIconDto? Vanilla { get; init; }
+
+    /// <summary>True, gdy ładunek zawierał człon <c>vanilla</c> (także jako jawne null).</summary>
+    [JsonIgnore]
+    public bool VanillaMemberPresent { get; set; }
+
+    [JsonPropertyName("dll")]
+    public CatalogIconDto? Dll { get; init; }
+
+    /// <summary>True, gdy ładunek zawierał człon <c>dll</c> (także jako jawne null).</summary>
+    [JsonIgnore]
+    public bool DllMemberPresent { get; set; }
 }
 
 public sealed class CatalogVersionsDto

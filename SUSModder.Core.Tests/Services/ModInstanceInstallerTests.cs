@@ -156,7 +156,6 @@ public class ModInstanceInstallerTests : IDisposable
             {
                 NewDisplayName = "ToU - copy",
                 CopyDlls = false,
-                CopyIntegrationDll = false,
                 CopyTouConfig = false,
                 CopyPinnedVersion = false
             });
@@ -166,7 +165,8 @@ public class ModInstanceInstallerTests : IDisposable
         Assert.NotEqual(sourcePath, clone.InstallPath);
         Assert.True(Directory.Exists(clone.InstallPath));
         Assert.False(File.Exists(Path.Combine(clone.InstallPath, "BepInEx", "plugins", "Extra.dll")));
-        Assert.False(File.Exists(Path.Combine(clone.InstallPath, "BepInEx", "plugins", "integration.dll")));
+        // Abandoned integration files are now ordinary user files, not selectively deleted.
+        Assert.True(File.Exists(Path.Combine(clone.InstallPath, "BepInEx", "plugins", "integration.dll")));
         Assert.Empty(repo.GetDlls(clone.InstanceId));
         Assert.Equal(2, repo.GetAllInstances().Count);
 

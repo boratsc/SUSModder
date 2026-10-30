@@ -7,7 +7,7 @@
         <Setter Property="Height" Value="56"/>
         <Setter Property="CornerRadius" Value="28"/>
         <Setter Property="Background" Value="{DynamicResource AccentButtonBackground}"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Padding" Value="0"/>
@@ -184,7 +184,7 @@
 
     <Style Selector="Button.fab-discord-promo-join">
         <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="CornerRadius" Value="6"/>
         <Setter Property="Padding" Value="12,6"/>
@@ -219,7 +219,7 @@
 
     <!-- FAB badge (update counter) -->
     <Style Selector="Border.fab-badge">
-        <Setter Property="Background" Value="#E53935"/>
+        <Setter Property="Background" Value="{DynamicResource BadgeAlertBrush}"/>
         <Setter Property="CornerRadius" Value="9"/>
         <Setter Property="MinWidth" Value="18"/>
         <Setter Property="MinHeight" Value="18"/>
@@ -232,7 +232,7 @@
 
     <!-- Menu item badge (inline with icon) -->
     <Style Selector="Border.fab-menu-item-badge">
-        <Setter Property="Background" Value="#E53935"/>
+        <Setter Property="Background" Value="{DynamicResource BadgeAlertBrush}"/>
         <Setter Property="CornerRadius" Value="7"/>
         <Setter Property="MinWidth" Value="14"/>
         <Setter Property="MinHeight" Value="14"/>

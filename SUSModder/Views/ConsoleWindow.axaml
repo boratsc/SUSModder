@@ -50,7 +50,7 @@
                            Text="{local:Localize Console.Header}"
                            FontSize="16"
                            FontWeight="Bold"
-                           Foreground="White"
+                           Foreground="{DynamicResource OnAccentTextBrush}"
                            VerticalAlignment="Center"/>
 
 				<TextBlock Grid.Column="1"

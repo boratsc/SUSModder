@@ -6,7 +6,8 @@
 		<Setter Property="Background" Value="{DynamicResource GlassPanelStrongFillBrush}"/>
 		<Setter Property="BorderBrush" Value="{DynamicResource GlassStrokeBrush}"/>
 		<Setter Property="BorderThickness" Value="1"/>
-		<Setter Property="BoxShadow" Value="0 12 36 0 #88000000"/>
+		<Setter Property="CornerRadius" Value="10"/>
+		<Setter Property="BoxShadow" Value="0 8 28 0 #66000000"/>
 	</Style>
 
 	<Style Selector="MenuItem">

@@ -4,6 +4,8 @@ using System.Linq;
 using System.Reactive;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using ReactiveUI;
 using SUSModder.Core.Configuration;
@@ -15,6 +17,7 @@ using SUSModder.Core.Services;
 using SUSModder.Core.Utilities;
 using SUSModder.Services;
 using SUSModder.ViewModels.Helpers;
+using SUSModder.Views;
 
 namespace SUSModder.ViewModels
 {
@@ -326,8 +329,26 @@ namespace SUSModder.ViewModels
             var updatesByName = check.InstalledModUpdates
                 .ToDictionary(u => u.ModName, StringComparer.OrdinalIgnoreCase);
 
-            await RunBulkQueueAsync(
-                selected.Select(m => new ModQueueItem
+            // 3.1-06: jedno wspólne podsumowanie dla całej paczki (bez modala na mod).
+            var bulkUpdates = selected
+                .Select(m => updatesByName.TryGetValue(m.Name, out var info) ? info : null)
+                .Where(info => info != null)
+                .Select(info => info!)
+                .ToList();
+
+            if (bulkUpdates.Count == 0)
+                return;
+
+            var approval = await ApproveBulkUpdateTargetsAsync(bulkUpdates);
+            if (approval == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[BulkUpdate] Anulowano wspólne podsumowanie aktualizacji.");
+                return;
+            }
+
+            var skippedUpdates = approval.Skipped.ToList();
+            var results = await RunBulkQueueAsync(
+                selected.Where(m => approval.Targets.ContainsKey(m.Name)).Select(m => new ModQueueItem
                 {
                     ModId = m.Id,
                     ModName = m.Name,
@@ -336,7 +357,7 @@ namespace SUSModder.ViewModels
                 async (item, _) =>
                 {
                     var mod = Mods.FirstOrDefault(m => m.Id == item.ModId);
-                    if (mod == null || !updatesByName.TryGetValue(item.ModName, out var updateInfo))
+                    if (mod == null)
                     {
                         return new ModInstallQueueItemResult
                         {
@@ -346,15 +367,172 @@ namespace SUSModder.ViewModels
                         };
                     }
 
-                    var success = await UpdateSingleModWithDialogAsync(mod, updateInfo, progressDialog: null);
+                    if (!approval.Targets.TryGetValue(item.ModName, out var approved))
+                    {
+                        // Pozycja pominięta z powodu dryftu celu (albo brak danych o aktualizacji).
+                        return new ModInstallQueueItemResult
+                        {
+                            ModName = item.ModName,
+                            Success = false,
+                            ErrorMessage = approval.Skipped.Contains(item.ModName)
+                                ? "Target version changed — update skipped"
+                                : "No update info"
+                        };
+                    }
+
+                    // 3.1-06: instalacja dokładnie zatwierdzonej pary (wersja moda, wersja gry).
+                    var success = await UpdateSingleModWithDialogAsync(
+                        mod,
+                        approved.UpdateInfo,
+                        progressDialog: null,
+                        approvedTarget: approved,
+                        onTargetDrift: () => skippedUpdates.Add(item.ModName));
+
                     return new ModInstallQueueItemResult
                     {
                         ModName = item.ModName,
-                        Success = success
+                        Success = success,
+                        ErrorMessage = success ? null : "Update failed"
                     };
                 });
 
+            // 3.1-06: pokazujemy rzeczywisty wynik operacji (nie plan z podsumowania).
+            var successful = new List<CompletedModUpdate>();
+            var failed = new List<string>();
+            ApprovedUpdateTarget? approvedTarget = null;
+
+            foreach (var result in results)
+            {
+                approvedTarget = approval.Targets.TryGetValue(result.ModName, out var approvedOk)
+                    ? approvedOk
+                    : null;
+
+                if (result.Success)
+                {
+                    successful.Add(new CompletedModUpdate(
+                        approvedTarget?.UpdateInfo.LocalMod?.Id ?? 0,
+                        result.ModName,
+                        approvedTarget?.UpdateInfo.CurrentVersion ?? string.Empty,
+                        approvedTarget?.Version ?? string.Empty));
+                }
+                else if (!skippedUpdates.Contains(result.ModName))
+                {
+                    failed.Add(result.ModName);
+                }
+            }
+
+            if (successful.Any() || failed.Any() || skippedUpdates.Any())
+            {
+                await ShowUpdateSummaryAsync(successful, failed, skippedUpdates);
+            }
+
             await CheckForModUpdatesForStatusBarAsync(force: true);
+        }
+
+        /// <summary>
+        /// 3.1-06 — wspólne zatwierdzenie paczki aktualizacji.
+        ///
+        /// Kolejność: odświeżenie wersji docelowych ze świeżego katalogu → jedno podsumowanie
+        /// dla wszystkich modów → potwierdzenie → przypięcie pary (wersja moda, wersja gry)
+        /// dla każdej pozycji. Pozycje, których cel zmienił się po podsumowaniu,
+        /// są pomijane (bez modala) i raportowane w toaście.
+        /// </summary>
+        private async Task<BulkUpdateApproval?> ApproveBulkUpdateTargetsAsync(IReadOnlyList<ModUpdateInfo> updates)
+        {
+            if (updates == null || updates.Count == 0)
+                return null;
+
+            // 1) Wersje docelowe pokazujemy te, które są aktualnie w katalogu.
+            // Katalog pobieramy raz dla całej paczki — bez round-tripu na mod.
+            var catalog = await LoadRemoteCatalogAsync();
+
+            var refreshed = new List<ModUpdateInfo>(updates.Count);
+            foreach (var update in updates)
+            {
+                var fresh = catalog != null
+                    ? RefreshUpdateInfoFromCatalog(update, catalog)
+                    : null;
+                refreshed.Add(fresh ?? update);
+            }
+
+            // 2) Jedno podsumowanie dla całej paczki.
+            var previews = await BuildUpdatePreviewsAsync(refreshed);
+
+            var entries = new List<BulkUpdateSummaryEntry>(refreshed.Count);
+            for (int i = 0; i < refreshed.Count; i++)
+            {
+                var update = refreshed[i];
+                entries.Add(new BulkUpdateSummaryEntry
+                {
+                    ModName = update.ModName,
+                    CurrentVersion = update.CurrentVersion,
+                    TargetVersion = update.NewVersion,
+                    TargetAmongVersion = update.RemoteMod?.AmongVersion ?? string.Empty,
+                    Preview = i < previews.Count ? previews[i] : null
+                });
+            }
+
+            var confirmed = await ShowBulkUpdateSummaryDialogAsync(entries);
+            if (!confirmed)
+                return null;
+
+            // 3) Po potwierdzeniu — ponowna walidacja celu i przypięcie pary wersji.
+            var confirmedCatalog = await LoadRemoteCatalogAsync();
+            var targets = new Dictionary<string, ApprovedUpdateTarget>(StringComparer.OrdinalIgnoreCase);
+            var skipped = new List<string>();
+
+            foreach (var update in refreshed)
+            {
+                string version = update.NewVersion;
+                string? amongVersion = update.RemoteMod?.AmongVersion;
+
+                if (IsPinnableVersion(version))
+                {
+                    var validation = ValidateApprovedTargetAgainstCatalog(
+                        confirmedCatalog,
+                        update,
+                        version,
+                        amongVersion);
+
+                    if (UpdateTargetApproval.Decide(validation) != UpdateTargetApproval.Decision.Approved)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[BulkUpdate] {update.ModName}: wersja docelowa zmieniła się " +
+                            $"({version} → {validation.AvailableVersion}) — pozycja pominięta.");
+                        skipped.Add(update.ModName);
+                        continue;
+                    }
+                }
+
+                targets[update.ModName] = new ApprovedUpdateTarget(update, version, amongVersion);
+            }
+
+            if (skipped.Count > 0)
+            {
+                string message = _localizationService.Get("Toast.ModUpdateTargetsChanged");
+                await Dispatcher.UIThread.InvokeAsync(() => ToastService.ShowWarning(message));
+            }
+
+            return new BulkUpdateApproval
+            {
+                Targets = targets,
+                Skipped = skipped
+            };
+        }
+
+        private async Task<bool> ShowBulkUpdateSummaryDialogAsync(IReadOnlyList<BulkUpdateSummaryEntry> entries)
+        {
+            return await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                var dialog = new BulkUpdateSummaryDialog(entries);
+                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+                if (mainWindow == null)
+                    return false;
+
+                await dialog.ShowDialog(mainWindow);
+                return dialog.Result;
+            });
         }
 
         private async Task BulkUninstallSelectedAsync()
@@ -541,12 +719,12 @@ namespace SUSModder.ViewModels
             }
         }
 
-        private async Task RunBulkQueueAsync(
+        private async Task<IReadOnlyList<ModInstallQueueItemResult>> RunBulkQueueAsync(
             IReadOnlyList<ModQueueItem> items,
             Func<ModQueueItem, CancellationToken, Task<ModInstallQueueItemResult>> processItemAsync)
         {
             if (items.Count == 0)
-                return;
+                return Array.Empty<ModInstallQueueItemResult>();
 
             IsBulkSelectionMode = false;
             IsBulkQueueRunning = true;
@@ -566,7 +744,7 @@ namespace SUSModder.ViewModels
 
             try
             {
-                await _modInstallQueue.RunAsync(items, processItemAsync, progress);
+                return await _modInstallQueue.RunAsync(items, processItemAsync, progress);
             }
             finally
             {

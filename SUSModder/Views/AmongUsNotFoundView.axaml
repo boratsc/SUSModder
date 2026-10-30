@@ -58,7 +58,7 @@
 			        Padding="20,12"
 			        CornerRadius="8"
 			        Background="{DynamicResource AccentBrush}"
-			        Foreground="White"
+			        Foreground="{DynamicResource OnAccentTextBrush}"
 			        BorderThickness="0"
 			        Content="{Binding BrowseButton}"/>
 

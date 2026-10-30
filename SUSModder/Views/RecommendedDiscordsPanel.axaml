@@ -59,13 +59,13 @@
 							<Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="16,14,16,16">
 								<WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
 									<Border Background="{DynamicResource AccentBrush}" Opacity="0.95" CornerRadius="12" Padding="10,4" Margin="0,0,8,8">
-										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Tags.Support}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
+										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Tags.Support}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource OnAccentTextBrush}"/>
 									</Border>
 									<Border Background="{DynamicResource AccentBrush}" Opacity="0.95" CornerRadius="12" Padding="10,4" Margin="0,0,8,8">
-										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Tags.Lobby}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
+										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Tags.Lobby}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource OnAccentTextBrush}"/>
 									</Border>
 									<Border Background="{DynamicResource AccentBrush}" Opacity="0.95" CornerRadius="12" Padding="10,4" Margin="0,0,8,8">
-										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Tags.ModdingChat}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
+										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Tags.ModdingChat}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource OnAccentTextBrush}"/>
 									</Border>
 								</WrapPanel>
 
@@ -74,7 +74,7 @@
 										Padding="18,8"
 										CornerRadius="8"
 										Background="{DynamicResource AccentBrush}"
-										Foreground="White"
+										Foreground="{DynamicResource OnAccentTextBrush}"
 										FontWeight="SemiBold"
 										Command="{Binding OpenOfficialDiscordHubCommand}"/>
 							</Grid>
@@ -114,7 +114,7 @@
 														   FontSize="22"
 														   HorizontalAlignment="Center"
 														   VerticalAlignment="Center"
-														   Foreground="White"/>
+														   Foreground="{DynamicResource OnAccentTextBrush}"/>
 											</Border>
 
 											<Border Width="56" Height="56"
@@ -136,7 +136,7 @@
 														   FontSize="12"
 														   HorizontalAlignment="Center"
 														   VerticalAlignment="Center"
-														   Foreground="White"/>
+														   Foreground="{DynamicResource OnAccentTextBrush}"/>
 											</Border>
 										</Grid>
 
@@ -169,7 +169,7 @@
 											Padding="12,8"
 											CornerRadius="6"
 											Background="{DynamicResource AccentBrush}"
-											Foreground="White"
+											Foreground="{DynamicResource OnAccentTextBrush}"
 											FontWeight="SemiBold"
 											Command="{Binding #Root.DataContext.OpenDiscordLinkCommand}"
 											CommandParameter="{Binding InviteLink}"/>

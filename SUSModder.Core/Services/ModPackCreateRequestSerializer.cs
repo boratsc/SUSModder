@@ -25,7 +25,7 @@ internal static class ModPackCreateRequestSerializer
             FullModVersion = request.FullModVersion,
             ModName = request.ModName,
             DiscordInvite = request.DiscordInvite,
-            IncludeIntegrationDll = request.IncludeIntegrationDll,
+            IncludeIntegrationDll = false, // Legacy wire field; abandoned integration is never enabled.
             TtlDays = request.TtlDays,
             DllMods = request.DllMods,
             TouConfig = request.TouConfig,

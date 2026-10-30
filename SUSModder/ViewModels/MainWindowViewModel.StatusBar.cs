@@ -2,6 +2,8 @@ using ReactiveUI;
 using SUSModder.Core.Api;
 using SUSModder.Core.Utilities;
 using SUSModder.Core.Services;
+using SUSModder.Core.Storage;
+using System.Globalization;
 using SUSModder.Models;
 using System;
 using System.Collections.Generic;
@@ -58,6 +60,20 @@ namespace SUSModder.ViewModels
         private double _freeDiskSpaceGB;
         private double _diskUsagePercentage;
         private string _diskSpaceDetailsTooltip = string.Empty;
+        private string _libraryStorageStatusText = "—";
+        private int _diskStatisticsGeneration;
+
+        private void OnLibraryLanguageChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (!_disposed && (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName == "CurrentCulture"))
+                _ = UpdateDiskSpaceStatisticsAsync();
+        }
+
+        public string LibraryStorageStatusText
+        {
+            get => _libraryStorageStatusText;
+            private set => this.RaiseAndSetIfChanged(ref _libraryStorageStatusText, value);
+        }
 
         public double ModsFolderSizeGB
         {
@@ -241,9 +257,9 @@ public int AvailableUpdatesCount
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 UpdateModsStatistics();
-                UpdateDiskSpaceStatistics();
             });
 
+            await UpdateDiskSpaceStatisticsAsync();
             await CheckApiConnectionAsync();
         }
 
@@ -343,87 +359,52 @@ public int AvailableUpdatesCount
         /// <summary>
         /// Oblicza zajętość dysku przez folder z modami
         /// </summary>
-        private void UpdateDiskSpaceStatistics()
+        private async Task UpdateDiskSpaceStatisticsAsync()
         {
+            var generation = Interlocked.Increment(ref _diskStatisticsGeneration);
+            var modsPath = PathSettings.ModsInstallPath;
             try
             {
-                var modsPath = PathSettings.ModsInstallPath;
-
-                if (string.IsNullOrEmpty(modsPath) || !Directory.Exists(modsPath))
+                var measurements = App.GetService<IStorageSizeMeasurementService>();
+                var result = await measurements.MeasureAsync(modsPath,
+                    cancellationToken: _statusBarCts?.Token ?? CancellationToken.None).ConfigureAwait(false);
+                var disk = await Task.Run(() =>
                 {
-                    ModsFolderSizeGB = 0;
-                    TotalDiskSpaceGB = 0;
+                    var drive = new DriveInfo(Path.GetPathRoot(modsPath)!);
+                    return (Free: drive.AvailableFreeSpace, Total: drive.TotalSize);
+                }).ConfigureAwait(false);
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (_disposed || generation != _diskStatisticsGeneration ||
+                        !string.Equals(modsPath, PathSettings.ModsInstallPath, StringComparison.OrdinalIgnoreCase) ||
+                        result.Revision != measurements.GetRevision(modsPath)) return;
+                    var culture = CultureInfo.GetCultureInfo(_localizationService.CurrentCulture);
+                    var size = result.HasValue
+                        ? StorageSizeFormatter.Format(result.LogicalBytes, culture)
+                        : _localizationService.Get("UI.Storage.StatusUnavailable");
+                    if (result.HasValue && result.State != StorageSizeState.Complete)
+                        size = _localizationService.GetFormatted("UI.Storage.StatusPartial", size);
+                    var free = StorageSizeFormatter.Format(disk.Free, culture);
+                    LibraryStorageStatusText = _localizationService.GetFormatted("UI.Storage.StatusSummary", size, free);
+                    ModsFolderSizeGB = result.HasValue ? result.LogicalBytes / (1024d * 1024 * 1024) : 0;
+                    FreeDiskSpaceGB = disk.Free / (1024d * 1024 * 1024);
+                    TotalDiskSpaceGB = disk.Total / (1024d * 1024 * 1024);
+                    var denominator = disk.Free + (double)result.LogicalBytes;
+                    DiskUsagePercentage = result.HasValue && denominator > 0 ? result.LogicalBytes / denominator * 100 : 0;
+                    DiskSpaceDetailsTooltip = _localizationService.GetFormatted("UI.Storage.StatusTooltip", size, free, modsPath);
+                });
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception)
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (_disposed || generation != _diskStatisticsGeneration) return;
+                    LibraryStorageStatusText = _localizationService.Get("UI.Storage.StatusUnavailable");
                     DiskUsagePercentage = 0;
-                    DiskSpaceDetailsTooltip = _localizationService.Get("UI.StatusBar.ModsFolderNotExist");
-                    return;
-                }
-
-                // Oblicz rozmiar folderu z modami
-                var directoryInfo = new DirectoryInfo(modsPath);
-                long totalSize = CalculateDirectorySize(directoryInfo);
-                ModsFolderSizeGB = totalSize / (1024.0 * 1024.0 * 1024.0); // Bytes to GB
-
-                // Pobierz dostępną przestrzeń na dysku
-                var driveInfo = new DriveInfo(Path.GetPathRoot(modsPath) ?? "C:\\");
-                TotalDiskSpaceGB = driveInfo.TotalSize / (1024.0 * 1024.0 * 1024.0);
-                FreeDiskSpaceGB = driveInfo.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
-
-                // Oblicz procent zajętości (względem wolnego miejsca + zajętego przez mody)
-                // tj. ile % z dostępnej przestrzeni zajmują mody
-                double totalAvailableSpace = FreeDiskSpaceGB + ModsFolderSizeGB;
-                DiskUsagePercentage = totalAvailableSpace > 0 
-                    ? (ModsFolderSizeGB / totalAvailableSpace) * 100 
-                    : 0;
-
-                // Tooltip ze szczegółami
-                DiskSpaceDetailsTooltip = $"{_localizationService.GetFormatted("UI.StatusBar.ModsFolder", ModsFolderSizeGB)}\n" +
-                                         $"{_localizationService.GetFormatted("UI.StatusBar.FreeSpace", FreeDiskSpaceGB)}\n" +
-                                         $"{_localizationService.GetFormatted("UI.StatusBar.TotalSpace", TotalDiskSpaceGB)}\n" +
-                                         $"{_localizationService.GetFormatted("UI.StatusBar.Path", modsPath)}";
+                    DiskSpaceDetailsTooltip = _localizationService.Get("UI.Storage.StatusUnavailable");
+                });
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error calculating disk space: {ex.Message}");
-                ModsFolderSizeGB = 0;
-                TotalDiskSpaceGB = 0;
-                DiskUsagePercentage = 0;
-                DiskSpaceDetailsTooltip = _localizationService.GetFormatted("UI.StatusBar.Error", ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Rekurencyjnie oblicza rozmiar katalogu
-        /// </summary>
-        private long CalculateDirectorySize(DirectoryInfo directory)
-        {
-            long size = 0;
-
-            try
-            {
-                // Rozmiar plików w bieżącym katalogu
-                FileInfo[] files = directory.GetFiles();
-                foreach (FileInfo file in files)
-                {
-                    size += file.Length;
-                }
-
-                // Rekurencyjnie dla podkatalogów
-                DirectoryInfo[] subdirs = directory.GetDirectories();
-                foreach (DirectoryInfo subdir in subdirs)
-                {
-                    size += CalculateDirectorySize(subdir);
-                }
-            }
-            catch (UnauthorizedAccessException)
-            {
-                // Ignoruj katalogi bez dostępu
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error calculating directory size: {ex.Message}");
-            }
-
-            return size;
         }
 
         /// <summary>

@@ -5,6 +5,62 @@
     }
   },
   "UI": {
+    "Favorites": {
+      "InvalidMod": "This item cannot be added to favorites.",
+      "StorageUnavailable": "Favorites are temporarily unavailable. Try again after refreshing the library.",
+      "Toggle": "Add or remove favorite",
+      "Filter": "★ Favorites",
+      "ReadFailed": "Favorites could not be loaded. Try refreshing the library.",
+      "WriteFailed": "The favorite could not be saved. Your selection was not changed."
+    },
+    "Storage": {
+      "Tile": {
+        "Calculating": "Calculating…", "FolderMissing": "folder missing", "NotAccessible": "no access",
+        "IsLink": "folder is a link", "Unavailable": "measurement unavailable",
+        "Stale": "{0} · outdated", "Partial": "{0} · partial"
+      },
+      "Overview": {
+        "Title": "Storage overview", "LibraryPathHeader": "Library folder:",
+        "SummarySection": "Space summary", "TotalHeader": "Used by library",
+        "DriveFreeHeader": "Free space on disk", "DriveTotalHeader": "Volume size",
+        "CategoriesList": "Data categories", "LogicalUnitNote": "logical size",
+        "Measuring": "Measuring…", "Ready": "Measurement complete", "Cancelled": "Measurement cancelled",
+        "Error": "Measurement failed — check access to the library folder.",
+        "LibraryMissing": "The library folder does not exist — nothing to measure.",
+        "TotalPartial": "Some entries could not be read — the total is underestimated.",
+        "TotalStale": "Value is outdated — use Re-measure.",
+        "TotalNotAccessible": "No access to the library folder — the total was not measured.",
+        "TotalIsLink": "The library folder is a link — it is not measured to avoid scanning outside scope.",
+        "TotalUnavailable": "The total could not be measured — zero is not shown.",
+        "SpaceUnknown": "no data", "LastMeasured": "Last measured: {0}",
+        "MeasurementOnlyBanner": "The storage overview measures and classifies — it deletes nothing.",
+        "NoCleanupExplanation": "This version offers no manual cleanup or automatic deletion of leftovers at startup or shutdown. Data stays unless removal safety is proven. Installers still manage their own files during operations.",
+        "Refresh": "Re-measure", "Cancel": "Cancel", "Close": "Close", "EntryCount": "Items: {0}",
+        "RowUnmeasured": "no access — not measured", "RowUnmeasuredCount": "Unreadable items: {0}",
+        "RowPartialCount": "Partially read items: {0}"
+      },
+      "Category": {
+        "ModInstallations": "Mod installations", "VanillaArchive": "Vanilla archives (cache)",
+        "VanillaExtractedCache": "Extracted vanilla cache", "InstallWorkspace": "Installer working folders",
+        "Unclassified": "Unclassified data", "Unknown": "Other"
+      },
+      "Eligibility": { "MeasurementOnly": "measurement only" },
+      "Reason": {
+        "vanilla_archive_redundant": "The archive has an extracted cache — still not removed in this version.",
+        "vanilla_archive_cache_not_proven": "Extracted cache validity not proven — the archive stays.",
+        "install_workspace_active_use_unprovable": "Absence of an active install cannot be proven — the workspace stays.",
+        "mod_installation": "Mod installation data — protected.", "protected_data": "Protected data — outside cleanup scope.",
+        "unclassified_data": "No owner or classification — treated as protected.",
+        "linked_entry_not_followed": "Link (junction/symlink) — target never followed.",
+        "safety_not_proven": "Removal safety not proven — item stays measurement-only."
+      },
+      "Open": "Disk space overview",
+      "StatusUnavailable": "Size unavailable",
+      "StatusPartial": "{0} (partial measurement)",
+      "StatusSummary": "{0} / {1} free",
+      "StatusTooltip": "Library: {0}\nFree space: {1}\nPath: {2}",
+      "LogicalSizeHint": "Logical directory size including addons and configuration; not the download size or a guarantee of reclaimable space."
+    },
     "Buttons": {
       "Install": "Install",
       "Launch": "Launch",
@@ -75,12 +131,10 @@
       "ShowMore": "Show more ({0})",
       "ShowLess": "Show less",
       "MoreActions": "More actions",
-      "LobbyChat": "Lobby chat",
       "Compat": {
         "Loading": "Loading compatibility…"
       },
       "ActionTiles": {
-        "Lobby": "Lobby",
         "Dll": "DLL",
         "Roles": "Roles",
         "Folder": "Folder",
@@ -119,7 +173,6 @@
       "CloneOptionsLabel": "Copy",
       "CloneCopyDlls": "DLL mods",
       "CloneCopyTouConfig": "Town of Us config (from instance store)",
-      "CloneCopyIntegration": "susmodder-integration.dll",
       "CloneCopyPinnedVersion": "Pinned version and auto-update settings",
       "CloneSuggestedName": "{0} (copy)",
       "CloneSuccess": "Pack cloned successfully.",
@@ -194,14 +247,60 @@
       "Exit": "Exit",
       "RecommendedDiscords": "Discord / community",
       "Info": "Information",
-      "CheckModUpdates": "Check mod updates",
-      "LobbyBoard": "Lobby Board"
+      "CheckModUpdates": "Check mod updates"
     },
-    "LobbyBoard": {
+    "CommunityChat": {
+      "Title": "Chat",
+      "Subtitle": "Shared across all mods",
+      "Placeholder": "Write a message…",
+      "Send": "Send",
+      "Refresh": "Refresh",
+      "OwnBadge": "You",
+      "Loading": "Loading...",
+      "Empty": "No active messages. Be the first!",
+      "OfflineHint": "No connection. Try refreshing.",
+      "NewMessages": "{0} new messages",
       "Time": {
         "JustNow": "Just now",
         "MinutesAgo": "{0} min ago",
-        "HoursAgo": "{0}h ago"
+        "HoursAgo": "{0}h ago",
+        "DaysAgo": "{0} days ago",
+        "NoDate": "—"
+      },
+      "PublicHint": "Messages are public and expire over time.",
+      "Report": {
+        "Button": "Report",
+        "Hint": "Content stays visible until moderation decides.",
+        "Done": "Reported to moderation"
+      },
+      "Delete": {
+        "Button": "Delete",
+        "Confirm": "Delete this message?",
+        "ConfirmTitle": "Delete message"
+      },
+      "Error": {
+        "TooShort": "Message too short (minimum {0} characters)",
+        "TooLong": "Message too long (maximum {0} characters)",
+        "Newline": "Message cannot contain newline characters",
+        "ControlCharacters": "Message contains forbidden control characters",
+        "DisallowedUrl": "Only discord.gg links are allowed",
+        "TooManyLinks": "Maximum 1 Discord link",
+        "Auth": "Not authorized — sign in to SUSModder Hub.",
+        "Forbidden": "You don't have permission for this operation.",
+        "RateLimited": "Too many requests — wait a moment.",
+        "RateLimitedSeconds": "Too many requests — retry in {0} s.",
+        "Server": "Server error — try again later",
+        "Network": "Network error — check your connection",
+        "Protocol": "Unexpected server response",
+        "SendUncertain": "Sending could not be confirmed. The message may have been saved — check the history before sending again.",
+        "AuthorUnavailable": "The server cannot assign a message author right now. Try again later.",
+        "NotFound": "The message has expired or was already removed.",
+        "Rejected": "Request rejected by server.",
+        "Duplicate": "Identical content already exists",
+        "DailyLimit": "Daily post limit reached",
+        "Banned": "Account temporarily blocked by moderation",
+        "Blocked": "Content rejected by moderation",
+        "Unknown": "Unknown error — please try again"
       }
     },
     "Fab": {
@@ -434,6 +533,10 @@
     "HiddenIncompatibleTargets": "packs hidden (incompatible)"
   },
   "Dialogs": {
+    "BulkUpdate": {
+      "Title": "Bulk update summary",
+      "Warning": "Some DLL add-ons need attention — details below."
+    },
     "Success": {
       "Title": "Success"
     },
@@ -482,7 +585,25 @@
       "DownloadSize": "Download size: ~{0}",
       "UnknownVersion": "Unknown",
       "UpdateButton": "Update",
-      "CancelButton": "Cancel"
+      "CancelButton": "Cancel",
+      "Preview": {
+        "Header": "Update summary",
+        "Loading": "Preparing the update summary…",
+        "Failed": "Could not prepare the update summary.",
+        "AddonsHeader": "DLL add-ons",
+        "AddonsNone": "No DLL add-ons",
+        "Addon": {
+          "Retained": "{0} — restoration planned",
+          "RetainedUnknown": "{0} — restoration planned, compatibility with the target version unknown",
+          "Incompatible": "{0} — incompatible with the target version",
+          "MissingCatalog": "{0} — not in the catalog, will not be restored",
+          "CustomFile": "{0} — custom file, will not be restored",
+          "Unknown": "{0} — no data about this add-on"
+        },
+        "ConfigHeader": "Configuration",
+        "ConfigNotGuaranteed": "The update replaces the mod folder. Configuration files are not carried over; the app attempts to restore catalogued DLL add-ons.",
+        "ConfigUnknown": "The configuration state cannot be assessed."
+      }
     },
     "Info": {
       "Title": "Information",
@@ -614,6 +735,9 @@
     }
   },
   "Toast": {
+    "ModUpdateTargetChanged": "{0}: target version changed — update skipped",
+    "ModUpdateTargetUnavailable": "{0}: could not confirm target version — update skipped",
+    "ModUpdateTargetsChanged": "Updates with changed target versions were skipped.",
     "ModInstalled": "{0} installed successfully",
     "ModInstalledDesc": "Version: {0}",
     "ModUpdated": "{0} updated to version {1}",
@@ -1226,6 +1350,7 @@
     "EpicErrorTitle": "Epic Games Error"
   },
   "Updates": {
+    "TargetDrift": "Target version changed — update stopped.",
     "CheckError": "Error checking for updates: {0}",
     "UpdateSummaryTitle": "📊 Update Summary\n",
     "SuccessfulUpdates": "✅ Successfully updated ({0}):",
@@ -1328,61 +1453,80 @@
       "DontShowAgain": "Don't show again"
     }
   },
-  "Lobby": {
-    "Panel": {
-      "Title": "Lobby",
-      "TabCodes": "Codes ({0})",
-      "TabMessages": "Announcements ({0})",
-      "Refresh": "Refresh",
-      "NoCodes": "No active codes",
-      "NoMessages": "No announcements",
-      "Loading": "Loading...",
-      "ServiceUnavailable": "Service unavailable. Please try again later.",
-      "SelectModFirst": "Select a mod first"
-    },
-    "Code": {
-      "CopyButton": "Copy",
-      "PublishButton": "Share code",
-      "DeleteButton": "Remove my code",
-      "InvalidFormat": "Invalid lobby code format (4-6 characters A-Z, 0-9)",
-      "RateLimited": "Please wait before sharing again (5 min cooldown)",
-      "PublishSuccess": "Code shared!",
-      "Copied": "Copied!"
-    },
-    "Message": {
-      "Placeholder": "Looking for players, advertising server... (max 280 chars)",
-      "PublishButton": "Post announcement",
-      "DeleteButton": "Remove my announcement",
-      "TooShort": "Message too short (minimum 10 characters)",
-      "TooLong": "Message too long (maximum 280 characters)",
-      "DisallowedUrl": "Only discord.gg links are allowed",
-      "TooManyLinks": "Maximum 1 Discord link",
-      "ContentBlocked": "Content blocked by moderation",
-      "Duplicate": "Identical content already exists",
-      "DailyLimitReached": "Daily post limit reached (20)",
-      "UserBanned": "Account temporarily blocked",
-      "PublishSuccess": "Announcement posted!",
-      "ModerationWarning": "Warning: further violations will block the account."
-    },
-    "Report": {
-      "Button": "Report",
-      "Spam": "Spam",
-      "Inappropriate": "Inappropriate content",
-      "Scam": "Scam",
-      "Done": "Reported"
-    },
-    "Region": {
-      "ModdedEU": "Modded EU",
-      "ModdedNA": "Modded NA",
-      "ModdedAsia": "Modded Asia"
-    },
-    "Error": {
-      "Internal": "Server error — please try again later",
-      "Unknown": "Unknown error — please try again",
-      "Network": "Network error — check your connection"
-    }
-  },
   "ModPacks": {
+    "Wizard": {
+      "MissingInstanceForShare": "The created pack instance was not found. Check My packs before continuing sharing.",
+      "Stopping": "Stopping after the current stage finishes…",
+      "StepCounter": "Step {0} of {1}", "Next": "Next", "Back": "Back", "Confirm": "Confirm",
+      "Finish": "Finish", "Change": "Change", "Stop": "Stop", "Retry": "Try again", "Resume": "Resume",
+      "OutOfCatalog": "Outside the catalog", "TtlQuestion": "How long can friends download this pack?",
+      "TtlMeaning": "Expiry applies to the sharing link, not to how long the pack works on your disk.",
+      "CreateUncertain": "Pack creation on the server could not be confirmed. Check your shared packs before retrying — a second copy is not created automatically.",
+      "Stopped": "The wizard was stopped. Created items remain — check My packs.", "StoppedTitle": "Wizard stopped",
+      "StoppedWithCode": "The pack was created on the server (code {0}), but sharing was not finalized. Resume it in the wizard or remove it from your shared packs.",
+      "Step": {
+        "Goal": { "Title": "What is this pack for?", "Desc": "Choose what you want to do. You can change your mind later — the wizard keeps your choices." },
+        "MainMod": { "Title": "Main mod", "Desc": "The base of your pack — a mod running on Among Us. Everything else is optional." },
+        "Addons": { "Title": "Add-ons", "Desc": "Add supporting mods or continue without add-ons." },
+        "NameSettings": { "Title": "Name and settings", "Desc": "The name is your pack label. Settings apply to the selected contents." },
+        "Summary": { "Title": "Summary", "Desc": "Check the contents and what the button does before starting." },
+        "Execution": { "Title": "Execution", "Desc": "Stages run in order. Stopping does not undo completed stages." }
+      },
+      "Goal": {
+        "Friends": "Prepare a pack for friends", "FriendsDesc": "Install the pack locally, then create a download code and link.",
+        "Self": "Create a pack just for yourself", "SelfDesc": "Local installation. No pack is created on the sharing server."
+      },
+      "Main": {
+        "Selected": "✓ Selected: {0}",
+        "SelectPrompt": "Select a mod from the list.",
+        "AddFromGithub": "Your mod is not listed? Add it from GitHub",
+        "UrlExample": "Paste a direct release file link, e.g. https://github.com/owner/repo/releases/download/v1.0/Mod.zip",
+        "AmongVersionWhy": "Enter the Among Us version this mod supports — compatibility is not guessed.",
+        "ConfirmRequired": "Confirm your custom main mod details in the section above first."
+      },
+      "Addons": {
+        "Desc": "Select the mods to include, or continue without add-ons.",
+        "ReviewTitle": "Add-ons were checked after changing the main mod — review the marked items:",
+        "SourceReloaded": "The pack source changed — add-ons and settings were reloaded from the new source.",
+        "VersionMismatch": "different Among Us version from the new main mod", "Keep": "Keep",
+        "UnverifiedNote": "Compatibility unknown (check the mod page):", "KeptWithWarning": "kept despite the warning",
+        "UnresolvedDecisions": "Resolve marked add-ons (Keep or Remove) before continuing."
+      },
+      "Name": { "Hint": "The name labels the pack on your disk and in the sharing link." },
+      "Tou": { "Unavailable": "No saved Town of Us settings in this source — configuration will not be included." },
+      "Github": {
+        "UrlExample": "Paste a direct GitHub release DLL link, e.g. https://github.com/owner/repo/releases/download/v1.0/Addon.dll",
+        "UrlRequired": "Enter a GitHub release file link."
+      },
+      "Summary": {
+        "Composition": "Pack contents", "MainMod": "Main mod", "Addons": "Catalog add-ons: {0}", "Scope": "Operation scope",
+        "Platform": "Variant for your platform: {0}. One pack code supports Steam and Epic when a variant exists.",
+        "LocalInstallYes": "The pack will be installed locally on this computer.",
+        "LocalInstallNo": "No local installation — only a code and link for your pack will be created.",
+        "TouAttached": "Town of Us settings: included from the saved source configuration.",
+        "TouDetached": "Town of Us settings: saved configuration is not included.",
+        "UploadNotice": "Sharing sends catalog references for the main mod and add-ons, custom files listed above, and pack metadata.",
+        "Share": "Sharing", "ShareNote": "Sharing records selected versions; it does not automatically synchronize friends' packs."
+      },
+      "Stage": {
+        "InstallMain": "Installing the main mod", "InstallAddons": "Installing add-ons", "CopyCustom": "Copying custom files",
+        "CreateShare": "Creating the pack on the server", "ResumeShare": "Finishing the existing pack",
+        "SendCustom": "Uploading and scanning custom files", "Finalize": "Final pack validation", "SkippedNothing": "nothing to install"
+      },
+      "State": { "Pending": "pending", "Running": "running", "Done": "done", "Failed": "failed", "Stopped": "stopped", "Skipped": "skipped" },
+      "Result": {
+        "ShareReady": "The pack is ready — its code and sharing link will appear shortly.",
+        "LocalReady": "The pack is installed locally. Find it in My packs.", "Partial": "The operation did not finish completely — actual result:",
+        "Running": "Operation in progress…", "InstanceCreated": "• the pack instance was created locally",
+        "AddonsFailed": "• add-ons that could not be installed: {0}", "CustomFilesFailed": "• custom files that were not copied: {0}"
+      },
+      "Action": { "InstallPack": "Install pack", "InstallAndLink": "Install and create link", "CreateLink": "Create link" },
+      "CloseConfirm": {
+        "Title": "Close the wizard?", "Body": "Unsaved choices in this window will be lost. Nothing has been installed or sent yet.",
+        "RunningBody": "An operation is running. Closing stops later stages and does NOT undo completed steps — created items remain.",
+        "Stay": "Stay", "Discard": "Discard and close", "StopAndClose": "Stop and close"
+      }
+    },
     "MenuGroup": "Mod packs",
     "ShareMenu": "Share mod pack",
     "EnterCodeMenu": "Enter pack code",
@@ -1394,7 +1538,6 @@
     "VersionLabel": "Version",
     "DllModsLabel": "DLL mods",
     "TouConfigLabel": "Include Town of Us config",
-    "IntegrationLabel": "Include susmodder-integration.dll",
     "DiscordLabel": "Discord server",
     "CreateButton": "Create pack",
     "CreatedTitle": "Pack created!",
@@ -1478,7 +1621,8 @@
     "TouConfigNotSupportedYet": "Including ToU config from this dialog is coming soon — create the pack without config for now.",
     "CustomDlls": {
       "Title": "Custom DLL files",
-      "AddFiles": "Add DLL files",
+      "AddFiles": "Add custom DLL files…",
+      "MultipleHint": "Select several files at once or add more later. When sharing, every DLL is uploaded for server-side scanning; the pack waits for a clean result.",
       "RemoveFile": "Remove",
       "ServerScanNotice": "Files will be uploaded to the SUSModder server and checked by VirusTotal before the pack is shared.",
       "LocalNotice": "Custom DLL files will be copied to BepInEx/plugins. After testing the pack locally, you can share it online — the files will then be uploaded to the server.",

@@ -63,12 +63,12 @@
 		
 		<!-- Hover effect dla przycisku usuwania -->
 		<Style Selector="Button.delete-button:pointerover">
-			<Setter Property="Background" Value="#E53E3E"/>
-			<Setter Property="BorderBrush" Value="#C53030"/>
+			<Setter Property="Background" Value="{DynamicResource DangerActionHoverBgBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource DangerActionPressedBrush}"/>
 		</Style>
 		
 		<Style Selector="Button.delete-button:pressed">
-			<Setter Property="Background" Value="#C53030"/>
+			<Setter Property="Background" Value="{DynamicResource DangerActionPressedBrush}"/>
 		</Style>
 		
 		<!-- Hover effect dla przycisku anuluj -->
@@ -85,8 +85,8 @@
 					Classes="trash-icon"
 					Width="80" Height="80"
 					CornerRadius="40"
-					Background="#20DC2626"
-					BorderBrush="#DC2626"
+					Background="{DynamicResource DangerActionSoftBrush}"
+					BorderBrush="{DynamicResource DangerActionBrush}"
 					BorderThickness="2"
 					HorizontalAlignment="Center"
 					Margin="0,0,0,20">
@@ -166,9 +166,9 @@
 						Classes="delete-button"
 						Content="{local:Localize Dialogs.Uninstall.ConfirmButton}"
 						Width="160" Height="38"
-						Background="#DC2626"
-						Foreground="White"
-						BorderBrush="#B91C1C"
+						Background="{DynamicResource DangerActionBrush}"
+						Foreground="{DynamicResource OnAccentTextBrush}"
+						BorderBrush="{DynamicResource DangerActionHoverBrush}"
 						BorderThickness="2"
 						CornerRadius="8"
 						FontWeight="Bold"

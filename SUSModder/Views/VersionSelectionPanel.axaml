@@ -28,7 +28,7 @@
                     <TextBlock Text="{Binding ModName}"
                                FontSize="20"
                                FontWeight="Bold"
-                               Foreground="White"
+                               Foreground="{DynamicResource OnAccentTextBrush}"
                                TextWrapping="Wrap"/>
                     <TextBlock FontSize="12" Foreground="#E0FFFFFF">
                         <Run Text="{loc:Localize Tools.VersionSelection.CurrentVersion}"/>
@@ -192,7 +192,7 @@
                             FontSize="13"
                             FontWeight="Bold"
                             Background="{DynamicResource AccentBrush}"
-                            Foreground="White"/>
+                            Foreground="{DynamicResource OnAccentTextBrush}"/>
                 </Grid>
             </Grid>
         </Border>

@@ -292,7 +292,6 @@ namespace SUSModder.Core.Services
 
             var dllRows = _instances.GetDlls(instanceId).ToList();
             var dllAutoUpdateFlags = await CaptureDllAutoUpdateFlagsAsync(instance);
-            var preserveIntegration = IntegrationDllExists(installPath);
 
             log.Write($"[ModInstanceInstaller] Aktualizuję instancję '{instance.DisplayName}' ({instance.FullModVersion} → {updatedFullMod.ModVersion})");
 
@@ -318,8 +317,6 @@ namespace SUSModder.Core.Services
 
             await SaveInstallationMapV2Async(instance, updatedFullMod, log);
 
-            if (preserveIntegration)
-                TryRestoreIntegrationDll(installPath, log);
 
             if (_dllInstaller != null && dllRows.Count > 0)
             {
@@ -414,9 +411,6 @@ namespace SUSModder.Core.Services
             log.Write($"[ModInstanceInstaller] Klonuję '{source.DisplayName}' → '{newDisplayName}' ({targetPath})");
             progress.Report(10, "copy");
             CopyDirectoryRecursive(source.InstallPath, targetPath);
-
-            if (!options.CopyIntegrationDll)
-                TryDeleteIntegrationDll(targetPath);
 
             var sourceDllRows = _instances.GetDlls(sourceInstanceId);
             if (!options.CopyDlls)
@@ -565,14 +559,6 @@ namespace SUSModder.Core.Services
             }
         }
 
-        private static void TryDeleteIntegrationDll(string installPath)
-        {
-            var actual = PathSettings.GetActualModPath(installPath);
-            var path = Path.Combine(actual, "BepInEx", "plugins", "integration.dll");
-            if (File.Exists(path))
-                File.Delete(path);
-        }
-
         private static void TryDeleteDllFile(string installPath, string? relativePath)
         {
             if (string.IsNullOrWhiteSpace(relativePath))
@@ -680,39 +666,6 @@ namespace SUSModder.Core.Services
             map.Origin = instance.Origin;
             map.SourcePackCode = instance.SourcePackCode;
             await InstallationMapManager.SaveInstallationMapAsync(instance.InstallPath, map);
-        }
-
-        private static bool IntegrationDllExists(string installPath)
-        {
-            var actualPath = PathSettings.GetActualModPath(installPath);
-            var path = Path.Combine(actualPath, "BepInEx", "plugins", "integration.dll");
-            return File.Exists(path);
-        }
-
-        private static void TryRestoreIntegrationDll(string installPath, IDiagnosticsOutput log)
-        {
-            var integrationCandidates = new[]
-            {
-                Path.Combine(installPath, "BepInEx", "plugins", "integration.dll"),
-                Path.Combine(PathSettings.ModsInstallPath, "integration.dll")
-            };
-
-            var source = integrationCandidates.FirstOrDefault(File.Exists);
-            if (source == null)
-                return;
-
-            try
-            {
-                var actualPath = PathSettings.GetActualModPath(installPath);
-                var dest = Path.Combine(actualPath, "BepInEx", "plugins", "integration.dll");
-                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-                File.Copy(source, dest, overwrite: true);
-                log.Write("[ModInstanceInstaller] Przywrócono integration.dll po aktualizacji.");
-            }
-            catch (Exception ex)
-            {
-                log.Write($"[ModInstanceInstaller] integration.dll: {ex.Message}");
-            }
         }
 
         private static string TryGetRelativePath(string root, string path)

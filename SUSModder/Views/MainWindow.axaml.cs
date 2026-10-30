@@ -217,6 +217,12 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                   .Subscribe(_ => UpdateFabMenuLayout())
                   .DisposeWith(disposables);
 
+                // Prawa kolumna: wiersz szczegółów zwija się, gdy brak wybranego elementu —
+                // wtedy czat ogólny zajmuje całą wysokość kolumny.
+                vm.WhenAnyValue(x => x.IsBrowserDetailPanelVisible)
+                  .Subscribe(ApplyBrowserDetailsRowHeight)
+                  .DisposeWith(disposables);
+
                 vm.WhenAnyValue(x => x.IsDiscordPromoStatusBarMode, x => x.IsSystemStatusBarMode)
                   .Subscribe(_ => UpdateFabMenuLayout())
                   .DisposeWith(disposables);
@@ -234,6 +240,52 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         if (change.Property == ActualTransparencyLevelProperty)
             OnGlassTransparencyLevelChanged();
+
+        if (change.Property == IsVisibleProperty || change.Property == WindowStateProperty)
+            UpdateCommunityChatLifecycle();
+    }
+
+    // ── Czat ogólny: lifecycle + podział prawej kolumny ──────
+
+    /// <summary>
+    /// Pauzuje polling czatu, gdy okno jest ukryte (tray) lub zminimalizowane;
+    /// po powrocie wznawia z kontrolowanym odświeżeniem. Brak agresywnego pollingu w tle.
+    /// </summary>
+    private void UpdateCommunityChatLifecycle()
+    {
+        var vm = ViewModel ?? DataContext as MainWindowViewModel;
+        if (vm?.CommunityChat is null)
+            return;
+
+        var hidden = !IsVisible || WindowState == WindowState.Minimized;
+        if (hidden)
+            vm.CommunityChat.Pause();
+        else
+            vm.CommunityChat.Resume();
+    }
+
+    /// <summary>Zapamiętana wysokość wiersza szczegółów (po ewentualnym dragu GridSplittera).</summary>
+    private GridLength? _detailsRowRemembered;
+
+    private void ApplyBrowserDetailsRowHeight(bool detailsVisible)
+    {
+        var grid = this.FindControl<Grid>("RightColumnGrid");
+        if (grid is null || grid.RowDefinitions.Count == 0)
+            return;
+
+        var row = grid.RowDefinitions[0];
+        if (detailsVisible)
+        {
+            row.Height = _detailsRowRemembered ?? new GridLength(3, GridUnitType.Star);
+        }
+        else
+        {
+            // Nie zapamiętujemy stanu startowego (0px) — tylko realny rozmiar użytkownika.
+            if (row.Height.IsStar || row.Height.Value > 0)
+                _detailsRowRemembered = row.Height;
+
+            row.Height = new GridLength(0);
+        }
     }
 
     /// <summary>
@@ -934,6 +986,12 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         }
 
     cleanup:
+        if (DataContext is MainWindowViewModel vm && vm.IsModPackCreatorVisible &&
+            vm.ModPackCreatorContent is ModPackCreatorView creator && !creator.TryBeginHostClose())
+        {
+            e.Cancel = true;
+            return;
+        }
         // Zwalnianie zasobów ViewModel (timery, bitmapy, background taski)
         if (DataContext is IDisposable disposableViewModel)
         {
@@ -962,16 +1020,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     /// Używane przez App.axaml.cs do przekazania serwisu do ViewModel.
     /// </summary>
     public SystemTrayService? SystemTrayService => _systemTrayService;
-
-    private void OnLobbyBoardHeaderClick(object? sender, RoutedEventArgs e)
-    {
-        if (ViewModel != null)
-        {
-            ViewModel.IsInfoPanelVisible = false;
-            ViewModel.IsAdditionalActionsVisible = false;
-            ViewModel.ShowLobbyBoard();
-        }
-    }
 
     // ── Launch diagnostics actions ────────────────────────────
 

@@ -1,0 +1,213 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:fic="using:FluentIcons.Common"
+             x:Class="SUSModder.Views.CommunityChatPanel"
+             x:DataType="vm:CommunityChatPanelViewModel"
+             MinHeight="200">
+	<UserControl.Styles>
+		<Style Selector="Border.chat-entry">
+			<Setter Property="Background" Value="{DynamicResource ModCardBackgroundBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="Padding" Value="10,8"/>
+			<Setter Property="Margin" Value="0,0,0,6"/>
+			<Setter Property="MaxWidth" Value="520"/>
+			<Setter Property="HorizontalAlignment" Value="Left"/>
+		</Style>
+		<Style Selector="Border.chat-entry.own">
+			<Setter Property="HorizontalAlignment" Value="Right"/>
+			<Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
+		</Style>
+		<Style Selector="Border.chat-banner">
+			<Setter Property="CornerRadius" Value="6"/>
+			<Setter Property="Padding" Value="10,6"/>
+			<Setter Property="Margin" Value="0,0,0,6"/>
+		</Style>
+		<Style Selector="TextBox.chat-input">
+			<Setter Property="MinHeight" Value="38"/>
+		</Style>
+		<Style Selector="Button.chat-new-messages">
+			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
+			<Setter Property="CornerRadius" Value="12"/>
+			<Setter Property="Padding" Value="10,4"/>
+		</Style>
+	</UserControl.Styles>
+
+	<Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="6" Margin="10,8,10,8">
+
+		<!-- ══════════ Nagłówek ══════════ -->
+		<Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+			<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+					<TextBlock Text="💬" FontSize="14" VerticalAlignment="Center"/>
+					<TextBlock Text="{loc:Localize UI.CommunityChat.Title}"
+							   FontSize="14" FontWeight="Bold"
+							   VerticalAlignment="Center"
+							   Foreground="{DynamicResource TextPrimaryBrush}"/>
+			</StackPanel>
+			<Button Grid.Column="1"
+					Padding="6"
+					VerticalAlignment="Top"
+					IsEnabled="{Binding IsBusy, Converter={x:Static BoolConverters.Not}}"
+					Command="{Binding RefreshCommand}"
+					ToolTip.Tip="{loc:Localize UI.CommunityChat.Refresh}">
+				<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowSync}" FontSize="16"
+							   Foreground="{DynamicResource TextSecondaryBrush}"/>
+			</Button>
+		</Grid>
+
+		<!-- ══════════ Banner stanu (błędy / limity / info) ══════════ -->
+		<Panel Grid.Row="1" IsVisible="{Binding HasBanner}" Opacity="{Binding BannerOpacity}">
+			<Panel.Transitions>
+				<Transitions>
+					<DoubleTransition Property="Opacity" Duration="0:0:0.4"/>
+				</Transitions>
+			</Panel.Transitions>
+			<Border Classes="chat-banner" Background="{DynamicResource TertiaryBackgroundBrush}"
+					IsVisible="{Binding BannerIsInfo}">
+				<TextBlock Text="{Binding BannerText}" TextWrapping="Wrap" FontSize="11"
+						   Foreground="{DynamicResource TextSecondaryBrush}"/>
+			</Border>
+			<Border Classes="chat-banner" Background="{DynamicResource WarningBannerFillBrush}"
+					IsVisible="{Binding BannerIsWarning}">
+				<TextBlock Text="{Binding BannerText}" TextWrapping="Wrap" FontSize="11"
+						   Foreground="{DynamicResource TextPrimaryBrush}"/>
+			</Border>
+			<Border Classes="chat-banner" Background="{DynamicResource ErrorBannerFillBrush}"
+					IsVisible="{Binding BannerIsError}">
+				<TextBlock Text="{Binding BannerText}" TextWrapping="Wrap" FontSize="11"
+						   Foreground="{DynamicResource TextPrimaryBrush}"/>
+			</Border>
+		</Panel>
+
+		<!-- ══════════ Lista wiadomości (własny obszar przewijania) ══════════ -->
+		<Panel Grid.Row="2">
+			<ScrollViewer x:Name="MessagesScroll"
+						  VerticalScrollBarVisibility="Auto"
+						  HorizontalScrollBarVisibility="Disabled">
+				<ItemsControl ItemsSource="{Binding Messages}"
+							  Margin="0,0,4,0">
+					<ItemsControl.ItemTemplate>
+						<DataTemplate x:DataType="vm:CommunityChatMessageViewModel">
+							<Border Classes="chat-entry" Classes.own="{Binding IsOwn}">
+								<StackPanel Spacing="4">
+									<TextBlock Text="{Binding AuthorDisplay}" FontSize="11"
+									           FontWeight="SemiBold" TextWrapping="Wrap"
+									           Foreground="{DynamicResource TextSecondaryBrush}"/>
+									<!-- Treść jako zwykły, selektorowalny tekst (bez HTML/Markdown) -->
+									<SelectableTextBlock Text="{Binding Content}"
+														 TextWrapping="Wrap"
+														 FontSize="13"
+														 Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+										<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+											<TextBlock Text="{Binding TimeAgoDisplay}"
+													   FontSize="10"
+													   Foreground="{DynamicResource TextSecondaryBrush}"/>
+											<TextBlock Text="{loc:Localize UI.CommunityChat.OwnBadge}"
+													   FontSize="10"
+													   FontWeight="SemiBold"
+													   IsVisible="{Binding IsOwn}"
+													   Foreground="{DynamicResource AccentBrush}"/>
+										</StackPanel>
+										<StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+											<Button Content="{loc:Localize UI.CommunityChat.Report.Button}"
+													Padding="6,2" FontSize="10"
+													Background="Transparent"
+													Foreground="{DynamicResource TextSecondaryBrush}"
+													BorderBrush="{DynamicResource ModCardBorderBrush}"
+													BorderThickness="1"
+													CornerRadius="4"
+													IsEnabled="{Binding $parent[ItemsControl].DataContext.IsBusy, Converter={x:Static BoolConverters.Not}}"
+													Command="{Binding $parent[ItemsControl].DataContext.ReportCommand}"
+													CommandParameter="{Binding}"
+													ToolTip.Tip="{loc:Localize UI.CommunityChat.Report.Hint}"/>
+											<Button Content="{loc:Localize UI.CommunityChat.Delete.Button}"
+													Padding="6,2" FontSize="10"
+													Background="Transparent"
+													Foreground="{DynamicResource DangerBrush}"
+													BorderBrush="{DynamicResource ModCardBorderBrush}"
+													BorderThickness="1"
+													CornerRadius="4"
+													IsVisible="{Binding CanDelete}"
+													IsEnabled="{Binding $parent[ItemsControl].DataContext.IsBusy, Converter={x:Static BoolConverters.Not}}"
+													Command="{Binding $parent[ItemsControl].DataContext.DeleteCommand}"
+													CommandParameter="{Binding}"/>
+										</StackPanel>
+									</Grid>
+								</StackPanel>
+							</Border>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+			</ScrollViewer>
+
+			<!-- Stany pustej / ładowania / braku połączenia -->
+			<TextBlock IsVisible="{Binding IsInitialLoading}"
+					   Text="{loc:Localize UI.CommunityChat.Loading}"
+					   FontStyle="Italic" FontSize="12"
+					   Foreground="{DynamicResource TextSecondaryBrush}"
+					   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+			<TextBlock IsVisible="{Binding ShowEmptyState}"
+					   Text="{loc:Localize UI.CommunityChat.Empty}"
+					   FontStyle="Italic" FontSize="12"
+					   Foreground="{DynamicResource TextSecondaryBrush}"
+					   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+			<TextBlock IsVisible="{Binding ShowDisconnectedState}"
+					   Text="{loc:Localize UI.CommunityChat.OfflineHint}"
+					   FontStyle="Italic" FontSize="12" TextWrapping="Wrap" TextAlignment="Center"
+					   Foreground="{DynamicResource TextSecondaryBrush}"
+					   HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12"/>
+
+			<!-- Przycisk „nowe wiadomości" — gdy czytaliśmy starsze treści -->
+			<Button HorizontalAlignment="Center" VerticalAlignment="Bottom"
+					Margin="0,0,8,8"
+					Classes="chat-new-messages"
+					IsVisible="{Binding HasNewMessages}"
+					Click="OnNewMessagesClick">
+				<StackPanel Orientation="Horizontal" Spacing="6">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ChevronDown}" FontSize="12"/>
+					<TextBlock Text="{Binding NewMessagesText}" FontSize="11"/>
+				</StackPanel>
+			</Button>
+		</Panel>
+
+		<!-- ══════════ Pole pisania ══════════ -->
+		<Border Grid.Row="3"
+				Background="{DynamicResource SecondaryBackgroundBrush}"
+				BorderBrush="{DynamicResource BorderBrush}"
+				BorderThickness="1"
+				CornerRadius="8"
+				Padding="8,6">
+			<Grid ColumnDefinitions="*,Auto" RowDefinitions="*,Auto" ColumnSpacing="8" RowSpacing="4">
+				<TextBox Grid.Row="0" Grid.Column="0"
+						 x:Name="InputBox"
+						 Classes="chat-input"
+						 Text="{Binding Draft, Mode=TwoWay}"
+						 AcceptsReturn="False"
+						 TextWrapping="Wrap"
+						 MaxHeight="84"
+						 FontSize="13"
+						 PlaceholderText="{loc:Localize UI.CommunityChat.Placeholder}"
+						 KeyDown="OnInputKeyDown"/>
+				<Button Grid.Row="0" Grid.Column="1"
+						Content="{loc:Localize UI.CommunityChat.Send}"
+						Command="{Binding SendCommand}"
+						VerticalAlignment="Stretch"
+						Padding="12,4"
+						CornerRadius="6"
+						Background="{DynamicResource AccentBrush}"
+						Foreground="{DynamicResource OnAccentTextBrush}"/>
+				<TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+						   HorizontalAlignment="Right"
+						   FontSize="10"
+						   Foreground="{DynamicResource TextSecondaryBrush}"
+						   Text="{Binding CharCountText}"/>
+			</Grid>
+		</Border>
+	</Grid>
+</UserControl>

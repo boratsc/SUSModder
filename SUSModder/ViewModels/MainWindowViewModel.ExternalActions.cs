@@ -58,32 +58,6 @@ namespace SUSModder.ViewModels
             }
         }
 
-        private void ShowLobbyBoardFromMenu()
-        {
-            IsPaneOpen = false;
-            if (SelectedMod == null)
-            {
-                var loc = App.GetService<ILocalizationService>();
-                ToastService.ShowInfo(
-                    loc.Get("Lobby.Panel.SelectModFirst") ?? "Wybierz najpierw moda z listy",
-                    autoCloseMs: 3000);
-                return;
-            }
-
-            // Zamknij inne panele
-            IsInfoPanelVisible = false;
-            IsAdditionalActionsVisible = false;
-            IsDllModificationsVisible = false;
-            IsSUStatsConfigVisible = false;
-            IsAppSettingsVisible = false;
-            IsRecommendedDiscordsVisible = false;
-            IsRepairOptionsVisible = false;
-            CloseDllSelectionModal();
-            IsVersionSelectionModalVisible = false;
-
-            ShowLobbyBoard();
-        }
-
         #endregion
 
         #region Game Settings & Tools

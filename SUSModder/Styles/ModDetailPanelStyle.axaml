@@ -1,18 +1,13 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Styles.Resources>
-        <LinearGradientBrush x:Key="ModDetailBorderGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
-            <GradientStop Color="#663B9EFF" Offset="0"/>
-            <GradientStop Color="#402A4A6B" Offset="0.45"/>
-            <GradientStop Color="#553D4A63" Offset="1"/>
-        </LinearGradientBrush>
-    </Styles.Resources>
+    <!-- ModDetailBorderGradientBrush definiowany w słownikach motywów
+         (DynamicResource — klucz musi istnieć we wszystkich 4 motywach) -->
 
     <Style Selector="Border.mod-detail-host">
         <Setter Property="Margin" Value="0,10,10,10"/>
         <Setter Property="Background" Value="{DynamicResource SurfaceGlassFillBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource ModDetailBorderGradientBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ModDetailBorderGradientBrush}"/>
         <Setter Property="BorderThickness" Value="1,0,1,1"/>
         <Setter Property="CornerRadius" Value="12,0,0,12"/>
         <Setter Property="ClipToBounds" Value="True"/>
@@ -33,7 +28,7 @@
 
     <Style Selector="Border.mod-detail-header">
         <Setter Property="Background" Value="{DynamicResource SurfaceGlassFillBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource ModDetailBorderGradientBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ModDetailBorderGradientBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="12"/>
         <Setter Property="Padding" Value="14"/>
@@ -58,7 +53,7 @@
     </Style>
 
     <Style Selector="Ellipse.mod-detail-icon-glow">
-        <Setter Property="Fill" Value="#1A3B9EFF"/>
+        <Setter Property="Fill" Value="{DynamicResource ModDetailIconGlowBrush}"/>
         <Setter Property="Opacity" Value="0.9"/>
     </Style>
 
@@ -89,7 +84,7 @@
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
 

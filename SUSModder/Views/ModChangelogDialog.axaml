@@ -71,8 +71,8 @@
 			        Classes="mod-changelog-header-icon"
 			        Width="72" Height="72"
 			        CornerRadius="36"
-			        Background="#20A78BFA"
-			        BorderBrush="#A78BFA"
+			        Background="{DynamicResource PackIdentitySoftBrush}"
+			        BorderBrush="{DynamicResource PackIdentityBrush}"
 			        BorderThickness="2"
 			        HorizontalAlignment="Center"
 			        Margin="0,0,0,16">

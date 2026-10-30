@@ -138,6 +138,10 @@ namespace SUSModder.ViewModels
 
         private async Task LoadDllMods()
         {
+            var generation = System.Threading.Interlocked.Increment(ref _dllBrowserRefreshGeneration);
+            var navigationVersion = _browserNavigationVersion;
+            if (IsDllAddonsTab && SelectedDllMod != null)
+                _browserSession.For(ModBrowserTab.DllAddons).ModId = SelectedDllMod.Id;
             try
             {
                 var dllConfigs = _dllModificationService.GetDllMods();
@@ -148,7 +152,7 @@ namespace SUSModder.ViewModels
                     .ToList();
                 var catalog = new ConfigService().LoadConfig();
 
-                DllMods.Clear();
+                var refreshedItems = new List<ModItem>();
                 // Pobierz listę zainstalowanych modów FULL (dla InstallationMap)
                 var fullMods = catalog
                     .Where(c => c.ModType == "full" && !string.IsNullOrEmpty(c.InstallPath))
@@ -171,20 +175,27 @@ namespace SUSModder.ViewModels
                     item.DllAutoUpdateNotInstalled = autoUpdateState == InstallationMapManager.DllAutoUpdateState.NotInstalled;
                     item.DllAutoUpdateIsMixed = autoUpdateState == InstallationMapManager.DllAutoUpdateState.Mixed;
                     item.DllAutoUpdateEnabled = autoUpdateState == InstallationMapManager.DllAutoUpdateState.Enabled;
-                    DllMods.Add(item);
+                    refreshedItems.Add(item);
                 }
 
-                if (SelectedDllMod != null)
-                {
-                    var refreshed = DllMods.FirstOrDefault(d => d.Id == SelectedDllMod.Id);
-                    SelectedDllMod = refreshed;
-                    if (SelectedDllMod != null)
-                        LoadDllInstallTargets();
-                    else
-                        CloseDllDetail();
-                }
+                if (generation != _dllBrowserRefreshGeneration)
+                    return;
+                var preserveView = IsDllAddonsTab && navigationVersion == _browserNavigationVersion;
+                var liveSelectedId = preserveView ? SelectedDllMod?.Id : null;
+                if (preserveView) BrowserScrollCaptureRequested?.Invoke(ModBrowserTab.DllAddons);
+                foreach (var old in DllMods)
+                    old.PropertyChanged -= OnDllItemAutoUpdateChanged;
+                DllMods.Clear();
+                foreach (var item in refreshedItems)
+                    DllMods.Add(item);
 
                 CaptureDllModsSnapshot();
+                if (preserveView)
+                {
+                    SelectedDllMod = DllMods.FirstOrDefault(item => item.Id == liveSelectedId);
+                    BrowserScrollRestoreRequested?.Invoke(ModBrowserTab.DllAddons,
+                        _browserSession.For(ModBrowserTab.DllAddons).ScrollOffset);
+                }
                 SubscribeToDllAutoUpdateChanges();
                 System.Diagnostics.Debug.WriteLine($"Loaded {DllMods.Count} DLL mods");
             }
@@ -492,6 +503,7 @@ namespace SUSModder.ViewModels
                     _localizationService.GetFormatted("UI.DllManager.InstallError", ex.Message),
                     _localizationService.Get("UI.DllManager.InstallTitle"));
             }
+            finally { NotifyStorageFilesChanged(); }
         }
 
         private async Task UninstallDllFromMod(ModItem targetMod)
@@ -540,6 +552,7 @@ namespace SUSModder.ViewModels
                     _localizationService.GetFormatted("UI.DllManager.UninstallError", ex.Message),
                     _localizationService.Get("UI.DllManager.UninstallTitle"));
             }
+            finally { NotifyStorageFilesChanged(); }
         }
 
         private async Task<bool> IsDllInstallBlockedForTargetAsync(ModConfiguration targetConfig)

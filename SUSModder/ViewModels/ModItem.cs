@@ -46,6 +46,42 @@ namespace SUSModder.ViewModels
         private string? _targetInstanceId;
         private string _installedInSummary = string.Empty;
         private int _installedInCount;
+        private bool _isFavorite;
+        private string _directorySizeText = string.Empty;
+        private string? _versionedIconKey;
+
+        // Presentation-only assignment; never written back through ModItemAdapter to game/catalog data.
+        public string? VersionedIconKey
+        {
+            get => _versionedIconKey;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _versionedIconKey, value);
+                this.RaisePropertyChanged(nameof(IconSourceKey));
+            }
+        }
+
+        public string IconSourceKey => VersionedIconKey is { } key ? "susmodder-icon:" + key : PngFileName;
+
+        public bool IsFavorite
+        {
+            get => _isFavorite;
+            set => this.RaiseAndSetIfChanged(ref _isFavorite, value);
+        }
+
+        public bool CanFavorite => Id > 0;
+
+        public string DirectorySizeText
+        {
+            get => _directorySizeText;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _directorySizeText, value);
+                this.RaisePropertyChanged(nameof(HasDirectorySize));
+            }
+        }
+
+        public bool HasDirectorySize => !string.IsNullOrEmpty(DirectorySizeText);
 
         /// <summary>
         /// Gdy ustawione — instalacja DLL dotyczy lokalnej instancji modpacka (Moje zestawy).
@@ -151,7 +187,11 @@ namespace SUSModder.ViewModels
         public int Id
         {
             get => _id;
-            set => this.RaiseAndSetIfChanged(ref _id, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _id, value);
+                this.RaisePropertyChanged(nameof(CanFavorite));
+            }
         }
 
         public string Name
@@ -173,6 +213,7 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _pngFileName, value);
                 this.RaisePropertyChanged(nameof(IconPath));
+                this.RaisePropertyChanged(nameof(IconSourceKey));
             }
         }
 

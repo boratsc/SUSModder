@@ -15,6 +15,19 @@ namespace SUSModder.ViewModels
         private bool _hasUpdateAvailable;
         private bool _isCheckedForBulk;
         private ModPackUpdateInfo? _packUpdateInfo;
+        private string? _versionedIconKey;
+
+        public string? VersionedIconKey
+        {
+            get => _versionedIconKey;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _versionedIconKey, value);
+                this.RaisePropertyChanged(nameof(IconSourceKey));
+            }
+        }
+
+        public string IconSourceKey => VersionedIconKey is { } key ? "susmodder-icon:" + key : PngFileName;
 
         public ModInstanceItem(ModInstance instance, string? pngFileName, int dllCount, bool hasTouConfig)
         {

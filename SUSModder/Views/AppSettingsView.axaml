@@ -500,7 +500,7 @@
 					<Button Content="{local:Localize UI.Buttons.Save}"
 							Command="{Binding SaveCommand}"
 							Background="{DynamicResource AccentBrush}"
-							Foreground="White"
+							Foreground="{DynamicResource OnAccentTextBrush}"
 							BorderBrush="{DynamicResource AccentBrush}"
 							BorderThickness="1"
 							CornerRadius="6"

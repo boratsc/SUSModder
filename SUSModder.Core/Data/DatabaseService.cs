@@ -20,7 +20,9 @@ namespace SUSModder.Core.Data
 
         // Aktualna wersja schematu bazy danych.
         // Zwiększaj przy każdej zmianie schematu (CREATE TABLE, ALTER TABLE, etc.).
-        private const int LatestSchemaVersion = 12;
+        // v14 – favorite_mods (ulubione mody, 3.1-05).
+        // v15 – icon_assignments + sync_state.schema_version (3.1-04).
+        private const int LatestSchemaVersion = 15;
 
         public DatabaseService()
         {
@@ -281,8 +283,10 @@ namespace SUSModder.Core.Data
 
             CreateModInstanceTables(conn);
             CreateSyncTables(conn);
+            CreateFavoriteModsTable(conn);
+            CreateIconAssignmentsTable(conn);
 
-            System.Diagnostics.Debug.WriteLine("[DatabaseService] Wszystkie tabele utworzone (v8 – sync/cache).");
+            System.Diagnostics.Debug.WriteLine("[DatabaseService] Wszystkie tabele utworzone (v15 – icon_assignments).");
         }
 
         /// <summary>
@@ -698,6 +702,104 @@ namespace SUSModder.Core.Data
                     throw;
                 }
             }
+
+            if (currentVersion < 14)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v14 – favorite_mods (ulubione mody)...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    // Osobna tabela ulubionych: preferencja użytkownika powinna przetrwać
+                    // odświeżenie katalogu, instalację, aktualizację i usunięcie moda.
+                    // Brak klucza obcego do `mods` – zapisane Id nieznanego katalogu
+                    // ma zostać zachowane, a nie skasowane.
+                    CreateFavoriteModsTable(conn, tx);
+
+                    tx.Commit();
+                    SetUserVersion(conn, 14);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v14 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v14: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 15)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v15 – icon_assignments + sync_state.schema_version...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+
+                    // Potwierdzona wersja schematu kontraktu ikon — potrzebna do interpretacji
+                    // odpowiedzi 304 metadanych po restarcie (tryb legacy vs. wersjonowany).
+                    EnsureColumn(cmd, "sync_state", "schema_version",
+                        "ALTER TABLE sync_state ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 0;");
+
+                    CreateIconAssignmentsTable(conn, tx);
+
+                    tx.Commit();
+                    SetUserVersion(conn, 15);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v15 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v15: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tworzy tabelę oczekiwanych referencji ikon (3.1-04).
+        /// Przechowuje wyłącznie metadane zasobu — bajty obrazu pozostają w cache plikowym.
+        /// Brak klucza obcego do `mods`: przypisanie przeżywa odświeżenie katalogu,
+        /// instalację, aktualizację i usunięcie moda.
+        /// </summary>
+        private static void CreateIconAssignmentsTable(SqliteConnection conn, SqliteTransaction? tx = null)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"
+                CREATE TABLE IF NOT EXISTS icon_assignments (
+                    assignment_key TEXT    PRIMARY KEY NOT NULL,
+                    is_removed     INTEGER NOT NULL DEFAULT 0,
+                    asset_id       TEXT    NOT NULL DEFAULT '',
+                    url            TEXT    NOT NULL DEFAULT '',
+                    sha256         TEXT    NOT NULL DEFAULT '',
+                    content_type   TEXT    NOT NULL DEFAULT '',
+                    size_bytes     INTEGER NOT NULL DEFAULT 0,
+                    schema_version INTEGER NOT NULL DEFAULT 0,
+                    updated_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+                );";
+            cmd.ExecuteNonQuery();
+        }
+
+        /// <summary>
+        /// Tworzy tabelę ulubionych modów (3.1-05).
+        /// Przechowuje wyłącznie katalogowe Id moda – bez odwołania do `mods`,
+        /// aby zapis przetrwał zmianę lub usunięcie wpisu w katalogu.
+        /// </summary>
+        private static void CreateFavoriteModsTable(SqliteConnection conn, SqliteTransaction? tx = null)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"
+                CREATE TABLE IF NOT EXISTS favorite_mods (
+                    mod_id     INTEGER PRIMARY KEY NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                );";
+            cmd.ExecuteNonQuery();
         }
 
         private static void CreateSyncTables(SqliteConnection conn, SqliteTransaction? tx = null)
@@ -714,7 +816,8 @@ namespace SUSModder.Core.Data
                     last_attempt_utc TEXT NULL,
                     last_error_code TEXT NULL,
                     failure_count INTEGER NOT NULL DEFAULT 0,
-                    next_allowed_attempt_utc TEXT NULL
+                    next_allowed_attempt_utc TEXT NULL,
+                    schema_version INTEGER NOT NULL DEFAULT 0
                 );";
             cmd.ExecuteNonQuery();
 

@@ -180,25 +180,17 @@ private async Task ShowModPackCreatorDialogAsync(ModPackCreatorMode mode)
             return;
 
 
-
-        if (result.Mode == ModPackCreatorMode.CreateAndShare && !string.IsNullOrEmpty(result.CreatedInstanceId))
-
+        // Instancja powstała w kreatorze (dowolny faktyczny tryb — cel można zmienić w kroku „Cel”).
+        if (!string.IsNullOrEmpty(result.CreatedInstanceId))
         {
-
             await RefreshPackInstancesAsync();
-
             ActiveBrowserTab = ModBrowserTab.MyPacks;
-
             SelectedPackInstance = PackInstances.FirstOrDefault(p => p.InstanceId == result.CreatedInstanceId);
-
         }
 
 
-
-        if ((result.Mode == ModPackCreatorMode.ShareExisting || result.Mode == ModPackCreatorMode.CreateAndShare) &&
-
-            result.ShareResult?.Success == true &&
-
+        // Sfinalizowane udostępnienie — istniejące okienko kodu/linka (deeplink safety zachowany).
+        if (result.ShareResult?.Success == true &&
             !string.IsNullOrEmpty(result.ShareResult.PackCode))
 
         {
@@ -207,37 +199,34 @@ private async Task ShowModPackCreatorDialogAsync(ModPackCreatorMode mode)
 
             await EnsureModPackProtocolRegisteredAsync();
 
-            return;
-
         }
 
 
-
-        if (result.Mode == ModPackCreatorMode.InstallLocal && !string.IsNullOrEmpty(result.CreatedInstanceId))
-
+        if (result.WasCancelled)
         {
-
-            await RefreshPackInstancesAsync();
-
-            ActiveBrowserTab = ModBrowserTab.MyPacks;
-
-            SelectedPackInstance = PackInstances.FirstOrDefault(p => p.InstanceId == result.CreatedInstanceId);
-
+            // Częściowy stan jest JAWNY: bez rollbacku, bez udawania, że nic nie powstało.
             var message = result.FailedDllNames.Count > 0
-
-                ? string.Format(
-
-                    _localizationService.Get("UI.Packs.CreateLocalPartial"),
-
+                ? string.Format(_localizationService.Get("UI.Packs.CreateLocalPartial"),
                     string.Join(", ", result.FailedDllNames))
-
-                : _localizationService.Get("UI.Packs.CreateLocalSuccess");
+                : !string.IsNullOrEmpty(result.CreatedPackCodeBeforeStop)
+                    ? string.Format(_localizationService.Get("ModPacks.Wizard.StoppedWithCode"),
+                        result.CreatedPackCodeBeforeStop)
+                    : _localizationService.Get("ModPacks.Wizard.Stopped");
 
             await ShowMessageAsync(
+                _localizationService.Get("ModPacks.Wizard.StoppedTitle"),
+                message);
 
-                message,
+            return;
+        }
 
-                _localizationService.Get("UI.Packs.CreateLocalTitle"));
+
+        if (result.Mode == ModPackCreatorMode.InstallLocal && !string.IsNullOrEmpty(result.CreatedInstanceId))
+        {
+
+            await ShowMessageAsync(
+                _localizationService.Get("UI.Packs.CreateLocalTitle"),
+                _localizationService.Get("UI.Packs.CreateLocalSuccess"));
 
         }
 

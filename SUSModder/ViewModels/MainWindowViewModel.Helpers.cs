@@ -116,27 +116,27 @@ namespace SUSModder.ViewModels
             _suppressSelectedModPanelReset = true;
             try
             {
-                var currentMods = Mods.ToList();
-
-                var sorted = currentMods
-                    .OrderBy(m => !m.IsVanilla ? 1 : 0)
-                    .ThenBy(m => string.IsNullOrEmpty(m.InstallPath) ? 1 : 0)
-                    .ThenBy(m => m.Name)
-                    .ToList();
-
-                Mods.Clear();
-                foreach (var mod in sorted)
-                    Mods.Add(mod);
-
-                SelectedMod = Mods.FirstOrDefault(m => m.Id == selectedMod.Id)
-                                ?? Mods.FirstOrDefault(m => m.Name == selectedMod.Name);
-
-                CaptureCatalogModsSnapshot();
+                // Mods is a filtered projection: never replace the complete snapshot with that subset.
+                _catalogModsSnapshot = SortCatalogSnapshot(_catalogModsSnapshot, Mods);
+                ApplyBrowserSearchFilter();
+                if (IsCatalogTab)
+                    SelectedMod = Mods.FirstOrDefault(m => m.Id == selectedMod.Id);
             }
             finally
             {
                 _suppressSelectedModPanelReset = false;
             }
+            ClearFilteredBrowserSelection();
+            NotifyStorageFilesChanged();
+        }
+
+        internal static List<ModItem> SortCatalogSnapshot(IEnumerable<ModItem> snapshot, IEnumerable<ModItem> displayed)
+        {
+            var complete = snapshot.ToList();
+            return (complete.Count > 0 ? complete : displayed)
+                .OrderBy(m => !m.IsVanilla ? 1 : 0)
+                .ThenBy(m => string.IsNullOrEmpty(m.InstallPath) ? 1 : 0)
+                .ThenBy(m => m.Name).ToList();
         }
 
         private void SyncModsListInPlace(IReadOnlyList<ModConfiguration> sortedConfigs)

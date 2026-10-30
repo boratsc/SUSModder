@@ -32,7 +32,6 @@ namespace SUSModder.ViewModels
         public bool IsAnyToolModalOpen =>
             IsInfoPanelVisible ||
             IsAdditionalActionsVisible ||
-            IsLobbyBoardVisible ||
             IsDllModalVisible ||
             IsDllSelectionModalVisible ||
             IsVersionSelectionModalVisible ||
@@ -55,11 +54,6 @@ namespace SUSModder.ViewModels
         {
             get
             {
-                if (IsLobbyBoardVisible)
-                {
-                    return _localizationService.Get("UI.Menu.LobbyBoard");
-                }
-
                 if (IsDllModalVisible)
                 {
                     return _localizationService.Get("UI.Menu.DllMods");
@@ -183,12 +177,12 @@ namespace SUSModder.ViewModels
 
         private void CloseToolModalCore()
         {
+            if (IsModPackCreatorVisible && ModPackCreatorContent is SUSModder.Views.ModPackCreatorView creator &&
+                !creator.TryBeginHostClose())
+                return;
+
             IsInfoPanelVisible = false;
             IsAdditionalActionsVisible = false;
-            IsLobbyBoardVisible = false;
-            LobbyBoardViewModel?.Dispose();
-            LobbyBoardViewModel = null;
-            SetLobbyTickerSource(InspectorLobbyEmbedViewModel);
             IsDllModificationsVisible = false;
             IsSUStatsConfigVisible = false;
             IsAppSettingsVisible = false;
@@ -249,7 +243,6 @@ namespace SUSModder.ViewModels
         private bool IsAnyNonAiSupportToolModalOpen() =>
             IsInfoPanelVisible ||
             IsAdditionalActionsVisible ||
-            IsLobbyBoardVisible ||
             IsDllModalVisible ||
             IsDllSelectionModalVisible ||
             IsVersionSelectionModalVisible ||

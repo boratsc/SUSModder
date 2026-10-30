@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
+using SUSModder.Core.Api.Json;
 using SUSModder.Core.Api.Models;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Diagnostics;
@@ -18,7 +19,14 @@ public sealed class SUSModderApiClient : ISUSModderApiClient
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        NumberHandling = JsonNumberHandling.AllowReadingFromString
+        NumberHandling = JsonNumberHandling.AllowReadingFromString,
+        // Obecność członów "icon"/"vanilla"/"dll" (3.1-04): odróżniamy pole nieobecne
+        // od jawnego null — tylko jawne null usuwa przypisanie ikony.
+        Converters =
+        {
+            new CatalogItemDtoPresenceConverter(),
+            new CatalogGlobalIconsDtoPresenceConverter()
+        }
     };
 
     private readonly HttpClient _httpClient;

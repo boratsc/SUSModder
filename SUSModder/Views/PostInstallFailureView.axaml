@@ -77,7 +77,7 @@
 			        Padding="14,9"
 			        CornerRadius="8"
 			        Background="{DynamicResource AccentBrush}"
-			        Foreground="White"
+			        Foreground="{DynamicResource OnAccentTextBrush}"
 			        BorderThickness="0"
 			        Content="{Binding OpenAiSupportButton}"/>
 
@@ -99,7 +99,7 @@
 		        Padding="20,12"
 		        CornerRadius="8"
 		        Background="{DynamicResource AccentBrush}"
-		        Foreground="White"
+		        Foreground="{DynamicResource OnAccentTextBrush}"
 		        BorderThickness="0"
 		        Content="{Binding CloseButton}"/>
 
