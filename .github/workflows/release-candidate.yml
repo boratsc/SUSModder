@@ -273,7 +273,10 @@ jobs:
           prerelease: ${{ github.event.inputs.channel == 'beta' }}
           fail_on_unmatched_files: false
           body: |
-            ${{ github.event.inputs.changelogMarkdown != '' && format('## Changelog\n\n{0}\n\n', github.event.inputs.changelogMarkdown) || '' }}## Signing / provenance
+            ${{ github.event.inputs.changelogMarkdown != '' && '## Changelog' || '' }}
+            ${{ github.event.inputs.changelogMarkdown }}
+
+            ## Signing / provenance
             - Channel: `${{ github.event.inputs.channel }}`
             - Authenticode: `${{ github.event.inputs.signingMode }}` (signpath = SignPath Foundation / OSSign; none = unsigned)
             - Built by: GitHub Actions `${{ github.workflow }}` @ `${{ github.sha }}`
