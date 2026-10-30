@@ -22,6 +22,7 @@ $testState = @{
     FailDispatch = $false
     PostCalls = 0
     PostedPayload = $null
+    ReleaseDraft = $false
 }
 
 function gh {
@@ -42,7 +43,23 @@ function gh {
         return
     }
     if ($arguments[0] -eq 'release' -and $arguments[1] -eq 'view') {
-        return '{"assets":[{"name":"SUSModder-Portable.zip","url":"https://example.invalid/Portable.zip"},{"name":"SUSModder-Setup.exe","url":"https://example.invalid/Setup.exe"}]}'
+        $tag = [string]$arguments[2]
+        $isDraft = [bool]$testState.ReleaseDraft
+        $releaseUrl = 'https://github.com/boratsc/SUSModder/releases/tag/' + $tag
+        $downloadTag = $tag
+        if ($isDraft) {
+            $releaseUrl = 'https://github.com/boratsc/SUSModder/releases/tag/untagged-test'
+            $downloadTag = 'untagged-test'
+        }
+        $payload = [ordered]@{
+            isDraft = $isDraft
+            url     = $releaseUrl
+            assets  = @(
+                [ordered]@{ name = 'SUSModder-Portable.zip'; url = "https://github.com/boratsc/SUSModder/releases/download/$downloadTag/SUSModder-Portable.zip" }
+                [ordered]@{ name = 'SUSModder-Setup.exe'; url = "https://github.com/boratsc/SUSModder/releases/download/$downloadTag/SUSModder-Setup.exe" }
+            )
+        }
+        return ($payload | ConvertTo-Json -Depth 5 -Compress)
     }
     throw 'Unexpected gh command in offline test.'
 }
@@ -87,6 +104,23 @@ try {
     $dryRunJson = & $dispatchScript -Version '3.0.14' -Channel beta -ChangelogPath $changelogPath -DryRun
     Assert-Equal $changelog ($dryRunJson | ConvertFrom-Json).inputs.changelogMarkdown 'dry-run Unicode preserved'
     Assert-Equal 2 $testState.DispatchCalls 'dry-run did not dispatch'
+
+    # Draft/untagged releases must be rejected before any Discord POST.
+    if ($PSVersionTable.PSVersion.Major -ge 7) {
+        $testState.ReleaseDraft = $true
+        $draftRejected = $false
+        try {
+            & $announceScript -Channel beta -Version '3.0.14' -WebhookUrl 'https://example.invalid/webhook'
+        }
+        catch {
+            if ($_.Exception.Message -notlike '*draft*') { throw }
+            $draftRejected = $true
+        }
+        if (-not $draftRejected) { throw 'Draft release must be rejected before Discord announcement.' }
+        Assert-Equal 2 $testState.PostCalls 'draft release must not post'
+        $testState.ReleaseDraft = $false
+        $global:LASTEXITCODE = 0
+    }
 
     $emptyJson = & $dispatchScript -Version '3.0.14' -Channel release -DryRun
     Assert-Equal '' ($emptyJson | ConvertFrom-Json).inputs.changelogMarkdown 'optional changelog remains empty'
