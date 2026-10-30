@@ -9,6 +9,17 @@
 
 Publiczne buildy Velopack **wymagają** `PublishSingleFile=false` (unpacked). Gate: `Assert-NotSingleFile.ps1`.
 
+## Zasady publikacji i ogłaszania (twarde)
+
+Kolejność jest obowiązkowa: **build → GitHub Release (draft) → publikacja / pre-release → deploy → Discord**.
+
+1. **Nie wolno wysyłać linku ani posta na Discord, dopóki GitHub Release nie jest opublikowany** (`draft=false`) jako release albo pre-release. Draft i adresy `untagged-…` zwracają 404 — linki w poście są martwe.
+2. Beta publikujemy jako **pre-release**, stabilną jako release (najlepiej `latest`). Tag musi wskazywać commit wydania (`target_commitish = github.sha`), nigdy domyślny `main`.
+3. Linki do paczek w ogłoszeniu muszą być linkami pobierania **opublikowanego** wydania (`https://github.com/<repo>/releases/download/<tag>/…`), nie adresami API ani `untagged-…`.
+4. `Send-DiscordReleaseAnnouncement.ps1` odmawia pracy, gdy release jest draftem albo URL zawiera `untagged-`; workflow publikuje wydanie przed krokiem Discord.
+5. Jeśli wydanie nie może zostać opublikowane, **nie ogłaszamy go** — zostaje draft i brak posta.
+6. Po publikacji strona wydania i assety muszą zwracać HTTP 200; brak 200 = brak ogłoszenia.
+
 ### Przypięta wersja Velopack
 
 CLI `vpk` jest przypięte w `.config/dotnet-tools.json` do **1.2.161**.
@@ -79,7 +90,7 @@ Uwaga: GH Secrets chronią źródło w CI; wartości i tak trafiają do binarki 
 
 ### Discord announce (RC)
 
-Po `Deploy to susmodder.app` workflow woła `Send-DiscordReleaseAnnouncement.ps1`.
+Workflow publikuje GitHub Release (beta = pre-release) **przed** ogłoszeniem; dopiero potem woła `Send-DiscordReleaseAnnouncement.ps1`. Draft i `untagged-…` są blokowane przez skrypt.
 
 Inputy `workflow_dispatch`:
 

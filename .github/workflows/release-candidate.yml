@@ -268,6 +268,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.finalize.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           name: SUSModder ${{ github.event.inputs.version }} (${{ github.event.inputs.channel }})
           draft: true
           prerelease: ${{ github.event.inputs.channel == 'beta' }}
@@ -353,6 +354,30 @@ jobs:
 
           & .\SKRYPTY\Build\deploy-to-server.ps1 @deployArgs
           if ($LASTEXITCODE -ne 0) { throw "deploy-to-server.ps1 failed with exit $LASTEXITCODE" }
+
+      - name: Publish GitHub Release before announce
+        if: ${{ success() && contains(github.event.inputs.publishTarget, 'server') }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $repo = "${{ github.repository }}"
+          $tag = "${{ steps.finalize.outputs.tag }}"
+          $channel = "${{ github.event.inputs.channel }}"
+
+          $release = gh release view $tag --repo $repo --json isDraft,url | ConvertFrom-Json
+          if ($release.isDraft) {
+            $editArgs = @('release', 'edit', $tag, '--repo', $repo, '--draft=false')
+            if ($channel -eq 'beta') { $editArgs += '--prerelease' } else { $editArgs += '--latest' }
+            & gh @editArgs
+            if ($LASTEXITCODE -ne 0) { throw "Failed to publish GitHub release $tag" }
+          }
+
+          $release = gh release view $tag --repo $repo --json isDraft,url | ConvertFrom-Json
+          if ($release.isDraft -or $release.url -match 'untagged-') {
+            throw "Release $tag is still draft/untagged; refusing to announce on Discord."
+          }
+          Write-Host "Published release: $($release.url)"
 
       - name: Announce on Discord
         if: ${{ success() && contains(github.event.inputs.publishTarget, 'server') }}

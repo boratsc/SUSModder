@@ -5,9 +5,11 @@
 
 .DESCRIPTION
   Szablony beta/release. Changelog jest opcjonalny (pusty = post bez bloku zmian).
-  Beta/release: Portable.zip + zbudowany Setup.exe z draftu GH + stały bootstrapper.
+  Beta/release: Portable.zip + zbudowany Setup.exe z OPUBLIKOWANEGO wydania GH
+  (draft/untagged jest odrzucany) + stały bootstrapper.
   Bootstrapper: https://susmodder.app/releases/SUSModderInstaller.exe (nie przebudowywany w RC).
   Release dodatkowo: susmodder.app + GitHub releases/latest.
+  Zasada: najpierw publikacja release/pre-release, dopiero potem link i post na Discord.
 
 .EXAMPLE
   .\Send-DiscordReleaseAnnouncement.ps1 -Channel beta -Version 3.0.12 -ReleaseTag v3.0.12-beta -DryRun
@@ -64,12 +66,23 @@ function Resolve-ChannelDownloadUrls {
         throw "ReleaseTag is required to resolve GitHub asset download URLs."
     }
 
-    $json = & gh release view $Tag --repo $Repository --json assets 2>&1
+    # Twarda zasada: ogłaszamy wyłącznie opublikowane wydanie. Draft i linki
+    # untagged-… kończą się 404 dla użytkowników.
+    $json = & gh release view $Tag --repo $Repository --json isDraft,url,assets 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "gh release view failed for tag '$Tag': $json"
     }
 
     $parsed = $json | ConvertFrom-Json
+    if ([bool]$parsed.isDraft) {
+        throw "Release '$Tag' is still a draft. Publish it as release/pre-release before announcing; draft links do not work."
+    }
+
+    $releaseUrl = [string]$parsed.url
+    if ($releaseUrl -match 'untagged-') {
+        throw "Release '$Tag' resolves to an untagged URL ($releaseUrl). Publish the release before announcing."
+    }
+
     $assets = @($parsed.assets)
     if ($assets.Count -eq 0) {
         throw "Release '$Tag' has no assets (expected Portable.zip + Setup.exe)."
@@ -83,6 +96,13 @@ function Resolve-ChannelDownloadUrls {
     if (-not $portable -or -not $setup) {
         $names = ($assets | ForEach-Object { $_.name }) -join ', '
         throw "Could not find Portable.zip / Setup.exe on release '$Tag'. Assets: $names"
+    }
+
+    foreach ($asset in @($portable, $setup)) {
+        $url = [string]$asset.url
+        if ($url -notmatch '^https://github\.com/[^/]+/[^/]+/releases/download/[^/]+/' -or $url -match 'untagged-') {
+            throw "Asset '$($asset.name)' does not have a published download URL: $url"
+        }
     }
 
     return [pscustomobject]@{
