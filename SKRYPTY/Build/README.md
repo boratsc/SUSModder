@@ -19,6 +19,7 @@ Kolejność jest obowiązkowa: **build → GitHub Release (draft) → publikacja
 4. `Send-DiscordReleaseAnnouncement.ps1` odmawia pracy, gdy release jest draftem albo URL zawiera `untagged-`; workflow publikuje wydanie przed krokiem Discord.
 5. Jeśli wydanie nie może zostać opublikowane, **nie ogłaszamy go** — zostaje draft i brak posta.
 6. Po publikacji strona wydania i assety muszą zwracać HTTP 200; brak 200 = brak ogłoszenia.
+7. Publikacja po fakcie **nie naprawia** już wysłanego posta — linki `untagged-…` pozostają 404. Kolejność trzeba zachować przed wysyłką, a nie po niej.
 
 ### Przypięta wersja Velopack
 
