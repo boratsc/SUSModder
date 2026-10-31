@@ -183,6 +183,56 @@ public class CatalogSyncServiceTests : IDisposable
         Assert.True(vanilla!.IsRemoved);
     }
 
+    [Fact]
+    public async Task RefreshIconAssignmentsFromCatalogAsync_AppliesModIconsWithoutCatalogWrite()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var modRepo = new RecordingModRepository(db);
+        var syncState = new CatalogSyncStateRepository(db);
+        var compatCache = new CompatibilityCacheRepository(db);
+        var icons = new IconAssignmentRepository(db);
+
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (_, _) => new SusModderApiResult<List<CatalogItemDto>>
+            {
+                StatusCode = 200,
+                ETag = "catalog-icons-39",
+                Data =
+                [
+                    new CatalogItemDto
+                    {
+                        Id = 7,
+                        Name = "Syzyfowy ToU",
+                        Type = "full",
+                        CurrentVersion = "7.2.7",
+                        Icon = ValidIcon("icon_25409cc1018ca8fb", 'b'),
+                        IconMemberPresent = true
+                    }
+                ]
+            },
+            MetaHandler = _ => new SusModderApiResult<CatalogMetaDto>
+            {
+                StatusCode = 200,
+                ETag = "meta-icons-39",
+                Data = new CatalogMetaDto { IconsSchemaVersion = 1, IconsRevision = "39" }
+            }
+        };
+
+        var service = CreateService(api, modRepo, syncState, compatCache, icons);
+        await service.RefreshIconAssignmentsFromCatalogAsync();
+
+        var modIcon = icons.GetForMod(7);
+        Assert.NotNull(modIcon);
+        Assert.False(modIcon!.IsRemoved);
+        Assert.Equal("icon_25409cc1018ca8fb", modIcon.AssetId);
+
+        // Ikony nie mogą zużyć ETagu katalogu ani nadpisać listy modów.
+        Assert.Equal(0, modRepo.ApplyCount);
+        Assert.Null(syncState.Get(CatalogSyncService.CatalogStateKey));
+        Assert.False(service.IsIconMetadataStale("39"));
+    }
+
     private static CatalogIconDto ValidIcon(string assetId, char hexChar) => new()
     {
         AssetId = assetId,

@@ -35,27 +35,29 @@ public partial class MainWindowViewModel
             _catalogIconSync = App.GetService<CatalogSyncService>();
             _catalogIconSync.IconAssignmentsChanged += OnIconAssignmentsChanged;
             _ = RefreshVersionedIconAssetsAsync();
-            _ = RefreshIconMetadataFromServerAsync();
+            _ = RefreshIconAssignmentsAtStartupAsync();
         }
         catch (InvalidOperationException) { } // Design-time services need not exist.
     }
 
     /// <summary>
     /// 3.1-04: zmiana ikony w susadmin nie musi zmieniać wersji moda, więc nie może
-    /// czekać na pełny cykl katalogu. Sprawdzamy metadane ikon od razu przy starcie;
+    /// czekać na pełny cykl katalogu. Ikony modów przychodzą w pozycjach katalogu,
+    /// dlatego przy starcie robimy warunkowe (ETag) pobranie katalogu wyłącznie
+    /// na potrzeby przypisań ikon — bez zapisu katalogu i bez ruszania listy modów.
     /// UI odświeży się zdarzeniem <see cref="CatalogSyncService.IconAssignmentsChanged"/>.
     /// </summary>
-    private async Task RefreshIconMetadataFromServerAsync()
+    private async Task RefreshIconAssignmentsAtStartupAsync()
     {
         if (_catalogIconSync is null) return;
         try
         {
-            await _catalogIconSync.RefreshIconAssignmentsAsync(_iconAssetsCts.Token);
+            await _catalogIconSync.RefreshIconAssignmentsFromCatalogAsync(_iconAssetsCts.Token);
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"ICON_METADATA_REFRESH_FAILED: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"ICON_ASSIGNMENT_REFRESH_FAILED: {ex.Message}");
         }
     }
 

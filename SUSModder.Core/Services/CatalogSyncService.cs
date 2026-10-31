@@ -116,6 +116,50 @@ public sealed class CatalogSyncService
         await SyncIconAssignmentsAsync(null, catalogComplete: false, cancellationToken);
     }
 
+    /// <summary>
+    /// Odświeża przypisania ikon — globalne i per-mod — bez zapisywania katalogu
+    /// do repozytorium. Ikony modów przychodzą wyłącznie w pozycjach katalogu,
+    /// więc samo <c>catalog-meta</c> nie wystarcza. Żądanie katalogu jest warunkowe
+    /// (ETag), a stan katalogu pozostaje nietknięty, aby normalny sync nadal
+    /// wykrył zmiany wersji i odświeżył listę modów.
+    /// </summary>
+    public async Task RefreshIconAssignmentsFromCatalogAsync(CancellationToken cancellationToken = default)
+    {
+        if (IsInBackoff(IconMetaStateKey) || IsInBackoff(CatalogStateKey))
+            return;
+
+        if (!await _catalogFlight.WaitAsync(TimeSpan.FromSeconds(30), cancellationToken))
+            return;
+
+        try
+        {
+            var state = _syncState.Get(CatalogStateKey);
+            var fetch = await FetchCatalogAsync(state?.ETag, cancellationToken);
+
+            if (fetch.NotModified)
+            {
+                // Katalog bez zmian: mogą zmienić się tylko role globalne.
+                await SyncIconAssignmentsAsync(null, catalogComplete: false, cancellationToken);
+                return;
+            }
+
+            if (fetch.Complete && fetch.Items.Count > 0)
+                await SyncIconAssignmentsAsync(fetch.Items, catalogComplete: true, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _log.Write($"[CatalogSync] icon catalog refresh failed: {ex.Message}");
+        }
+        finally
+        {
+            _catalogFlight.Release();
+        }
+    }
+
     public async Task<CatalogSyncResult> RefreshCatalogIfDueAsync(
         bool force = false,
         CancellationToken cancellationToken = default)

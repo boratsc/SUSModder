@@ -454,7 +454,7 @@ public int AvailableUpdatesCount
                     {
                         try
                         {
-                            await iconSync.RefreshIconAssignmentsAsync();
+                            await iconSync.RefreshIconAssignmentsFromCatalogAsync();
                         }
                         catch (Exception ex)
                         {
