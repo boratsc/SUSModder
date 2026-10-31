@@ -326,6 +326,7 @@ namespace SUSModder.ViewModels
                                             mod.DisableAutoUpdatePrompt = installMap.FullMod.DisableAutoUpdatePrompt;
                                             mod.AutoUpdateEnabled = installMap.FullMod.AutoUpdateEnabled;
                                             mod.PinnedInstallVersion = installMap.FullMod.PinnedInstallVersion;
+                                            mod.IsInstalledBeta = installMap.FullMod.IsBeta;
                                         });
                                     }
                                     else
@@ -335,6 +336,7 @@ namespace SUSModder.ViewModels
                                             mod.DisableAutoUpdatePrompt = false;
                                             mod.AutoUpdateEnabled = false;
                                             mod.PinnedInstallVersion = null;
+                                            mod.IsInstalledBeta = false;
                                         });
                                     }
                                 }
@@ -345,6 +347,7 @@ namespace SUSModder.ViewModels
                                         mod.DisableAutoUpdatePrompt = false;
                                         mod.AutoUpdateEnabled = false;
                                         mod.PinnedInstallVersion = null;
+                                        mod.IsInstalledBeta = false;
                                     });
                                 }
                             }
@@ -355,6 +358,7 @@ namespace SUSModder.ViewModels
                                     mod.DisableAutoUpdatePrompt = false;
                                     mod.AutoUpdateEnabled = false;
                                     mod.PinnedInstallVersion = null;
+                                    mod.IsInstalledBeta = false;
                                 });
                             }
 

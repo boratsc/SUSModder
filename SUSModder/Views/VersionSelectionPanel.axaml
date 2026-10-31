@@ -113,6 +113,20 @@
                                                     <Run Text=" "/>
                                                     <Run Text="{Binding ModVersion}"/>
                                                 </TextBlock>
+                                                <Border Grid.Row="0"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Center"
+                                                        Background="{DynamicResource ErrorChipFillBrush}"
+                                                        BorderBrush="{DynamicResource ErrorChipBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="4"
+                                                        Padding="6,2"
+                                                        IsVisible="{Binding IsBeta}">
+                                                    <TextBlock Text="{loc:Localize UI.Beta.Badge}"
+                                                               FontSize="9"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                </Border>
                                                 <TextBlock Grid.Row="1"
                                                            Text="{Binding AmongVersion, StringFormat='Among Us: {0}'}"
                                                            FontSize="12"

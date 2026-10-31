@@ -83,6 +83,39 @@ public sealed class CatalogSyncService
     /// <summary>Przypisanie ikony globalnej (vanilla / dll, albo null).</summary>
     public IconAssignment? GetGlobalIconAssignment(IconGlobalRole role) => _iconAssignments?.GetGlobal(role);
 
+    /// <summary>
+    /// True, gdy zapisana rewizja ikon różni się od podanej (np. z lekkiego pingu
+    /// metadanych statusu API). Pozwala odświeżyć same ikony bez czekania na
+    /// pełny, 15-minutowy cykl katalogu.
+    /// </summary>
+    public bool IsIconMetadataStale(string? iconsRevision)
+    {
+        var state = _syncState.Get(IconMetaStateKey);
+        if (state is null)
+            return true;
+
+        // Rewizja rośnie przy każdej zmianie roli globalnej; to najczulszy sygnał.
+        if (!string.Equals(state.LastModified, iconsRevision, StringComparison.Ordinal))
+            return true;
+
+        // Potwierdzony schemat 0 przy tej samej rewizji to świadomy tryb legacy —
+        // nie odpyłujemy backendu co 30 s.
+        return false;
+    }
+
+    /// <summary>
+    /// Odświeża wyłącznie metadane ikon (role globalne), z własnym ETagiem
+    /// i bez pobierania katalogu. Przypisania modów pozostają z ostatniej
+    /// kompletnej migawki katalogu.
+    /// </summary>
+    public async Task RefreshIconAssignmentsAsync(CancellationToken cancellationToken = default)
+    {
+        if (IsInBackoff(IconMetaStateKey))
+            return;
+
+        await SyncIconAssignmentsAsync(null, catalogComplete: false, cancellationToken);
+    }
+
     public async Task<CatalogSyncResult> RefreshCatalogIfDueAsync(
         bool force = false,
         CancellationToken cancellationToken = default)

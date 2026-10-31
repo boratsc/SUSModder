@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using SUSModder.Core.Api.Models;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Models;
@@ -25,8 +27,48 @@ public static class CatalogMapper
             LastUpdated = item.LastUpdated,
             HasRoles = item.HasRoles,
             LobbyRegionBaseUrl = item.LobbyRegionBaseUrl,
-            SupportsLobbySharing = item.SupportsLobbySharing
+            SupportsLobbySharing = item.SupportsLobbySharing,
+            IsBeta = item.IsBeta ?? false,
+            LatestStableVersion = item.LatestStableVersion,
+            LatestBetaVersion = item.LatestBetaVersion,
+            AvailableReleases = ToModReleases(item.AvailableReleases)
         };
+    }
+
+    /// <summary>
+    /// Mapuje addytywną listę wydań katalogu (3.1-11). Brak pola w odpowiedzi
+    /// (null) oznacza tryb legacy i daje pustą listę — bez zgadywania wydań.
+    /// </summary>
+    public static List<ModRelease> ToModReleases(List<CatalogReleaseDto>? releases)
+    {
+        if (releases is null || releases.Count == 0)
+            return new List<ModRelease>();
+
+        var result = new List<ModRelease>(releases.Count);
+        foreach (var release in releases)
+        {
+            result.Add(new ModRelease
+            {
+                ReleaseId = release.ReleaseId,
+                Version = release.Version,
+                IsBeta = release.IsBeta,
+                AmongVersion = release.AmongVersion ?? string.Empty,
+                IsCurrent = release.IsCurrent,
+                Variants = (release.Variants ?? new List<CatalogModVariantDto>())
+                    .Select(v => new ModReleaseVariant
+                    {
+                        Platform = v.Platform,
+                        Architecture = v.Architecture,
+                        Version = v.Version,
+                        DownloadUrl = v.DownloadUrl,
+                        Sha256 = v.Sha256,
+                        FileSizeBytes = v.FileSizeBytes
+                    })
+                    .ToList()
+            });
+        }
+
+        return result;
     }
 
     public static ModVersionHistory ToModVersionHistory(CatalogVersionEntryDto entry, int modId)
@@ -37,6 +79,7 @@ public static class CatalogMapper
             ModId = modId,
             ModVersion = entry.Version,
             AmongVersion = entry.AmongVersion,
+            IsBeta = entry.IsBeta,
             CreatedAt = entry.CreatedAt,
             CreatedBy = entry.CreatedBy,
             Notes = entry.Notes

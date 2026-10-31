@@ -16,7 +16,7 @@ public class FavoriteModsMigrationTests : IDisposable
     /// </summary>
     private const int FavoritesSchemaVersion = 14;
 
-    private const int ExpectedSchemaVersion = 15;
+    private const int ExpectedSchemaVersion = 16;
 
     private readonly string _tempDir;
 

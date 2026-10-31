@@ -213,6 +213,13 @@
         "Legacy": "Legacy migration"
       }
     },
+    "Beta": {
+      "Badge": "BETA",
+      "Available": "Beta available: {0}",
+      "ConfirmTitle": "Beta version installation",
+      "ConfirmMessage": "Install beta {1} of {0}?\nGame version: {2}.\n\nBetas may be unstable. Auto-update will be disabled and returning to stable will require a separate decision.",
+      "InstallHint": "Installing a beta is a deliberate choice. Later betas and returning to stable require a separate decision; auto-update never switches the channel in the background."
+    },
     "Labels": {
       "InstalledMods": "Installed mods",
       "InstalledIn": "Installed in",

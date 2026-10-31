@@ -22,7 +22,8 @@ namespace SUSModder.Core.Data
         // Zwiększaj przy każdej zmianie schematu (CREATE TABLE, ALTER TABLE, etc.).
         // v14 – favorite_mods (ulubione mody, 3.1-05).
         // v15 – icon_assignments + sync_state.schema_version (3.1-04).
-        private const int LatestSchemaVersion = 15;
+        // v16 – mods.IsBeta/Latest*Version/AvailableReleases (3.1-11).
+        private const int LatestSchemaVersion = 16;
 
         public DatabaseService()
         {
@@ -171,6 +172,10 @@ namespace SUSModder.Core.Data
                     HasRoles        INTEGER,
                     LobbyRegionBaseUrl TEXT,
                     SupportsLobbySharing INTEGER NOT NULL DEFAULT 0,
+                    IsBeta          INTEGER NOT NULL DEFAULT 0,
+                    LatestStableVersion TEXT,
+                    LatestBetaVersion TEXT,
+                    AvailableReleases TEXT NOT NULL DEFAULT '[]',
                     VtScanStatus    TEXT,
                     VtPermalink     TEXT,
                     VtLastCheckedAt TEXT,
@@ -754,6 +759,38 @@ namespace SUSModder.Core.Data
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v15: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 16)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v16 – wersje beta w katalogu (3.1-11)...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+
+                    EnsureColumn(cmd, "mods", "IsBeta",
+                        "ALTER TABLE mods ADD COLUMN IsBeta INTEGER NOT NULL DEFAULT 0;");
+                    EnsureColumn(cmd, "mods", "LatestStableVersion",
+                        "ALTER TABLE mods ADD COLUMN LatestStableVersion TEXT;");
+                    EnsureColumn(cmd, "mods", "LatestBetaVersion",
+                        "ALTER TABLE mods ADD COLUMN LatestBetaVersion TEXT;");
+                    EnsureColumn(cmd, "mods", "AvailableReleases",
+                        "ALTER TABLE mods ADD COLUMN AvailableReleases TEXT NOT NULL DEFAULT '[]';");
+
+                    tx.Commit();
+                    SetUserVersion(conn, 16);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v16 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v16: {ex.Message}. Wycofywanie...");
                     try { tx.Rollback(); } catch { /* ignore */ }
                     throw;
                 }

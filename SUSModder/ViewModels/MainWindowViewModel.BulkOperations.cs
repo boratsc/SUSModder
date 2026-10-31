@@ -73,7 +73,7 @@ namespace SUSModder.ViewModels
 
         public int BulkUpdateEligibleCount => IsBulkPacksContext
             ? GetBulkSelectedPacks().Count(p => p.HasUpdateAvailable)
-            : GetBulkSelectedMods().Count(m => m.IsInstalled && m.HasUpdateAvailable);
+            : GetBulkSelectedMods().Count(m => m.IsInstalled && m.HasUpdateAvailable && !m.IsInstalledBeta);
 
         public int BulkUninstallEligibleCount => IsBulkPacksContext
             ? GetBulkSelectedPacks().Count
@@ -314,8 +314,9 @@ namespace SUSModder.ViewModels
                 return;
             }
 
+            // 3.1-11: bety są jednorazowym, świadomym wyborem — bulk ich nie podmienia.
             var selected = GetBulkSelectedMods()
-                .Where(m => m.HasUpdateAvailable && m.IsInstalled)
+                .Where(m => m.HasUpdateAvailable && m.IsInstalled && !m.IsInstalledBeta)
                 .ToList();
 
             if (selected.Count == 0)

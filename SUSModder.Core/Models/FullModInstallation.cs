@@ -77,5 +77,12 @@ namespace SUSModder.Core.Models
         /// </summary>
         [JsonPropertyName("pinnedInstallVersion")]
         public string? PinnedInstallVersion { get; set; }
+
+        /// <summary>
+        /// True, gdy zainstalowano świadomie wydanie beta (3.1-11).
+        /// Brak pola w starych mapach oznacza kanał nieznany — traktujemy jako stabilny.
+        /// </summary>
+        [JsonPropertyName("isBeta")]
+        public bool IsBeta { get; set; }
     }
 }

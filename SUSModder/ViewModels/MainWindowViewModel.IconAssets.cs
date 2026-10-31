@@ -35,8 +35,28 @@ public partial class MainWindowViewModel
             _catalogIconSync = App.GetService<CatalogSyncService>();
             _catalogIconSync.IconAssignmentsChanged += OnIconAssignmentsChanged;
             _ = RefreshVersionedIconAssetsAsync();
+            _ = RefreshIconMetadataFromServerAsync();
         }
         catch (InvalidOperationException) { } // Design-time services need not exist.
+    }
+
+    /// <summary>
+    /// 3.1-04: zmiana ikony w susadmin nie musi zmieniać wersji moda, więc nie może
+    /// czekać na pełny cykl katalogu. Sprawdzamy metadane ikon od razu przy starcie;
+    /// UI odświeży się zdarzeniem <see cref="CatalogSyncService.IconAssignmentsChanged"/>.
+    /// </summary>
+    private async Task RefreshIconMetadataFromServerAsync()
+    {
+        if (_catalogIconSync is null) return;
+        try
+        {
+            await _catalogIconSync.RefreshIconAssignmentsAsync(_iconAssetsCts.Token);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ICON_METADATA_REFRESH_FAILED: {ex.Message}");
+        }
     }
 
     public void DisposeIconAssets()
@@ -97,7 +117,27 @@ public partial class MainWindowViewModel
     {
         var key = item.IsVanilla ? IconAssignmentKeys.GlobalVanilla
             : item.IsDllMod ? IconAssignmentKeys.GlobalDll : IconAssignmentKeys.ForMod(item.Id);
-        return _versionedIconSchemaActive && _versionedIconAssignments.ContainsKey(key) ? key : null;
+        return ResolveIconKey(_versionedIconSchemaActive, _versionedIconAssignments, key);
+    }
+
+    /// <summary>
+    /// Decyduje, czy dla stabilnego klucza pokazywać ikonę wersjonowaną.
+    /// Tombstone klucza moda oznacza celowy placeholder, ale usunięcie roli globalnej
+    /// jest zdjęciem nadpisania: Vanilla wraca do ikony bundlowanej, DLL do ikon per-mod.
+    /// </summary>
+    internal static string? ResolveIconKey(
+        bool versionedActive,
+        IReadOnlyDictionary<string, IconAssignment> assignments,
+        string key)
+    {
+        if (!versionedActive || !assignments.TryGetValue(key, out var assignment))
+            return null;
+
+        if (assignment.IsRemoved &&
+            (key == IconAssignmentKeys.GlobalVanilla || key == IconAssignmentKeys.GlobalDll))
+            return null;
+
+        return key;
     }
 
     private void ApplyCurrentIconKeys()
@@ -110,7 +150,7 @@ public partial class MainWindowViewModel
         {
             var baseMod = mods.FirstOrDefault(m => m.Id == pack.BaseModId);
             var key = baseMod?.IsVanilla == true ? IconAssignmentKeys.GlobalVanilla : IconAssignmentKeys.ForMod(pack.BaseModId);
-            pack.VersionedIconKey = _versionedIconSchemaActive && _versionedIconAssignments.ContainsKey(key) ? key : null;
+            pack.VersionedIconKey = ResolveIconKey(_versionedIconSchemaActive, _versionedIconAssignments, key);
         }
         this.RaisePropertyChanged(nameof(SelectedDllModIconSourceKey));
     }

@@ -56,6 +56,55 @@ public sealed class CatalogItemDto
 
     [JsonPropertyName("supportsLobbySharing")]
     public bool SupportsLobbySharing { get; init; }
+
+    /// <summary>
+    /// True, gdy katalog oznacza <c>currentVersion</c> jako wydanie beta.
+    /// Nullable: brak pola oznacza serwer w trybie legacy (tylko stabilne wydania).
+    /// </summary>
+    [JsonPropertyName("isBeta")]
+    public bool? IsBeta { get; init; }
+
+    [JsonPropertyName("latestStableVersion")]
+    public string? LatestStableVersion { get; init; }
+
+    [JsonPropertyName("latestBetaVersion")]
+    public string? LatestBetaVersion { get; init; }
+
+    /// <summary>
+    /// Addytywna lista wydań (stabilne + beta). Brak pola = tryb legacy;
+    /// pusta lista = serwer jawnie deklaruje brak wydań poza bieżącym.
+    /// </summary>
+    [JsonPropertyName("availableReleases")]
+    public List<CatalogReleaseDto>? AvailableReleases { get; init; }
+}
+
+/// <summary>
+/// Pojedyncze wydanie moda z katalogu (3.1-11). <c>releaseId</c> jest nieprzezroczystym,
+/// niezmiennym identyfikatorem; numer wersji może się powtarzać w różnych kanałach.
+/// </summary>
+public sealed class CatalogReleaseDto
+{
+    [JsonPropertyName("releaseId")]
+    public string ReleaseId { get; init; } = string.Empty;
+
+    [JsonPropertyName("version")]
+    public string Version { get; init; } = string.Empty;
+
+    [JsonPropertyName("isBeta")]
+    public bool IsBeta { get; init; }
+
+    [JsonPropertyName("amongVersion")]
+    public string? AmongVersion { get; init; }
+
+    [JsonPropertyName("isCurrent")]
+    public bool IsCurrent { get; init; }
+
+    /// <summary>
+    /// Warianty pobierania dla tego wydania. Obecne tylko w odpowiedzi szczegółów
+    /// (<c>GET /catalog/{id}</c>); lista katalogu ich nie zwraca.
+    /// </summary>
+    [JsonPropertyName("variants")]
+    public List<CatalogModVariantDto>? Variants { get; init; }
 }
 
 public sealed class CatalogAmongVersionDto
@@ -136,6 +185,14 @@ public sealed class CatalogVersionsDto
     [JsonPropertyName("currentVersion")]
     public string CurrentVersion { get; init; } = string.Empty;
 
+    /// <summary>Najnowsze stabilne wydanie; null gdy serwer w trybie legacy.</summary>
+    [JsonPropertyName("latestStableVersion")]
+    public string? LatestStableVersion { get; init; }
+
+    /// <summary>Najnowsze wydanie beta; null/brak = brak bety lub tryb legacy.</summary>
+    [JsonPropertyName("latestBetaVersion")]
+    public string? LatestBetaVersion { get; init; }
+
     [JsonPropertyName("versions")]
     public List<CatalogVersionEntryDto> Versions { get; init; } = [];
 }
@@ -150,6 +207,10 @@ public sealed class CatalogVersionEntryDto
 
     [JsonPropertyName("amongVersion")]
     public string AmongVersion { get; init; } = string.Empty;
+
+    /// <summary>Czy ta wersja historyczna jest wydaniem beta (3.1-11).</summary>
+    [JsonPropertyName("isBeta")]
+    public bool IsBeta { get; init; }
 
     [JsonPropertyName("createdAt")]
     public DateTime CreatedAt { get; init; }
@@ -171,6 +232,18 @@ public sealed class CatalogModDetailDto
 
     [JsonPropertyName("currentVersion")]
     public string CurrentVersion { get; init; } = string.Empty;
+
+    [JsonPropertyName("isBeta")]
+    public bool? IsBeta { get; init; }
+
+    [JsonPropertyName("latestStableVersion")]
+    public string? LatestStableVersion { get; init; }
+
+    [JsonPropertyName("latestBetaVersion")]
+    public string? LatestBetaVersion { get; init; }
+
+    [JsonPropertyName("availableReleases")]
+    public List<CatalogReleaseDto>? AvailableReleases { get; init; }
 
     [JsonPropertyName("variants")]
     public List<CatalogModVariantDto> Variants { get; init; } = [];

@@ -444,6 +444,25 @@ public int AvailableUpdatesCount
                     ApiStatus = ApiConnectionStatus.Online;
                     ApiPingMs = (int)stopwatch.ElapsedMilliseconds;
 
+                    // 3.1-04: zmiana ikony w susadmin zmienia tylko rewizję ikon.
+                    // Ten sam ping metadanych wykrywa ją w ~30 s bez czekania na
+                    // pełny cykl katalogu (15 min).
+                    var iconSync = CatalogSyncServiceProvider.TryGetDefault();
+                    if (iconSync is not null
+                        && metaResponse.Data is { } liveMeta
+                        && iconSync.IsIconMetadataStale(liveMeta.IconsRevision))
+                    {
+                        try
+                        {
+                            await iconSync.RefreshIconAssignmentsAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[Icons] Live refresh failed: {ex.Message}");
+                        }
+                    }
+
+
                     var nowUtc = DateTime.UtcNow;
                     if (nowUtc - _lastConfigSyncUtc >= ConfigSyncInterval)
                     {

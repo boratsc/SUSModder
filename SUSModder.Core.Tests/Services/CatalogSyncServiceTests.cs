@@ -109,12 +109,96 @@ public class CatalogSyncServiceTests : IDisposable
         Assert.Equal(1, modRepo.ApplyCount);
     }
 
+    [Fact]
+    public async Task RefreshIconAssignmentsAsync_UpdateGlobalVanillaRole()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var modRepo = new RecordingModRepository(db);
+        var syncState = new CatalogSyncStateRepository(db);
+        var compatCache = new CompatibilityCacheRepository(db);
+        var icons = new IconAssignmentRepository(db);
+
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (_, _) => new SusModderApiResult<List<CatalogItemDto>> { StatusCode = 200, Data = [] },
+            MetaHandler = _ => new SusModderApiResult<CatalogMetaDto>
+            {
+                StatusCode = 200,
+                ETag = "meta-27",
+                Data = new CatalogMetaDto
+                {
+                    IconsSchemaVersion = 1,
+                    IconsRevision = "27",
+                    Icons = new CatalogGlobalIconsDto
+                    {
+                        Vanilla = ValidIcon("icon_vanilla", 'a'),
+                        VanillaMemberPresent = true
+                    }
+                }
+            }
+        };
+
+        var service = CreateService(api, modRepo, syncState, compatCache, icons);
+        await service.RefreshIconAssignmentsAsync();
+
+        var vanilla = icons.GetGlobal(IconGlobalRole.Vanilla);
+        Assert.NotNull(vanilla);
+        Assert.False(vanilla!.IsRemoved);
+        Assert.Equal("icon_vanilla", vanilla.AssetId);
+        Assert.Equal(1, vanilla.SchemaVersion);
+        Assert.False(service.IsIconMetadataStale("27"));
+        Assert.True(service.IsIconMetadataStale("28"));
+    }
+
+    [Fact]
+    public async Task RefreshIconAssignmentsAsync_ExplicitNullRole_KeepsTombstone()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var modRepo = new RecordingModRepository(db);
+        var syncState = new CatalogSyncStateRepository(db);
+        var compatCache = new CompatibilityCacheRepository(db);
+        var icons = new IconAssignmentRepository(db);
+
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (_, _) => new SusModderApiResult<List<CatalogItemDto>> { StatusCode = 200, Data = [] },
+            MetaHandler = _ => new SusModderApiResult<CatalogMetaDto>
+            {
+                StatusCode = 200,
+                ETag = "meta-26",
+                Data = new CatalogMetaDto
+                {
+                    IconsSchemaVersion = 1,
+                    IconsRevision = "26",
+                    Icons = new CatalogGlobalIconsDto { Vanilla = null, VanillaMemberPresent = true }
+                }
+            }
+        };
+
+        var service = CreateService(api, modRepo, syncState, compatCache, icons);
+        await service.RefreshIconAssignmentsAsync();
+
+        var vanilla = icons.GetGlobal(IconGlobalRole.Vanilla);
+        Assert.NotNull(vanilla);
+        Assert.True(vanilla!.IsRemoved);
+    }
+
+    private static CatalogIconDto ValidIcon(string assetId, char hexChar) => new()
+    {
+        AssetId = assetId,
+        Url = $"https://susmodder-cdn.ovh/assets/icons/{new string(hexChar, 64)}.png",
+        Sha256 = new string(hexChar, 64),
+        ContentType = "image/png",
+        SizeBytes = 1024
+    };
+
     private static CatalogSyncService CreateService(
         ISUSModderApiClient api,
         IModRepository modRepo,
         ICatalogSyncStateRepository syncState,
-        ICompatibilityCacheRepository compatCache) =>
-        new(api, modRepo, syncState, compatCache, new NullDiagnostics());
+        ICompatibilityCacheRepository compatCache,
+        IIconAssignmentRepository? iconAssignments = null) =>
+        new(api, modRepo, syncState, compatCache, new NullDiagnostics(), iconAssignments);
 
     private async Task<DatabaseService> CreateDatabaseAsync()
     {
@@ -174,6 +258,7 @@ public class CatalogSyncServiceTests : IDisposable
     private sealed class FakeApiClient : ISUSModderApiClient
     {
         public required Func<CatalogQuery?, string?, SusModderApiResult<List<CatalogItemDto>>> CatalogHandler;
+        public Func<string?, SusModderApiResult<CatalogMetaDto>>? MetaHandler;
 
         public string BaseUrl => "https://example.test/v2";
         public string StaticAssetsBaseUrl => "https://example.test";
@@ -189,7 +274,10 @@ public class CatalogSyncServiceTests : IDisposable
         public string BuildModDownloadUrl(int modId, string version, string platform, string arch = "x86") =>
             $"{BaseUrl}/downloads/mod/{modId}/{version}?platform={platform}";
         public Task<List<ModConfiguration>> GetCatalogAsModConfigurationsAsync(CancellationToken cancellationToken = default) => Task.FromResult(new List<ModConfiguration>());
-        public Task<SusModderApiResult<CatalogMetaDto>> GetCatalogMetaAsync(string? ifNoneMatch = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<SusModderApiResult<CatalogMetaDto>> GetCatalogMetaAsync(string? ifNoneMatch = null, CancellationToken cancellationToken = default) =>
+            MetaHandler is { } handler
+                ? Task.FromResult(handler(ifNoneMatch))
+                : throw new NotImplementedException();
         public Task<SusModderApiResult<CatalogModDetailDto>> GetCatalogModDetailAsync(int modId, string? ifNoneMatch = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<SusModderApiResult<CatalogVersionsDto>> GetCatalogVersionsAsync(int modId, string? ifNoneMatch = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<SusModderApiResult<List<CatalogChangelogEntryDto>>> GetCatalogChangelogAsync(int modId, string lang = "pl", int limit = 5, string? ifNoneMatch = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();

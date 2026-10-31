@@ -18,7 +18,7 @@ public sealed class CatalogSyncStateRepository : ICatalogSyncStateRepository
         var conn = _db.GetConnection();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
-            SELECT key, etag, last_success_utc, failure_count, next_allowed_attempt_utc, schema_version
+            SELECT key, etag, last_success_utc, failure_count, next_allowed_attempt_utc, schema_version, last_modified
             FROM sync_state
             WHERE key = @key;";
         cmd.Parameters.AddWithValue("@key", key);
@@ -31,6 +31,7 @@ public sealed class CatalogSyncStateRepository : ICatalogSyncStateRepository
         {
             Key = reader.GetString(0),
             ETag = reader.IsDBNull(1) ? null : reader.GetString(1),
+            LastModified = reader.IsDBNull(6) ? null : reader.GetString(6),
             LastSuccessUtc = reader.IsDBNull(2) ? null : DateTime.Parse(reader.GetString(2)),
             FailureCount = reader.IsDBNull(3) ? 0 : reader.GetInt32(3),
             NextAllowedAttemptUtc = reader.IsDBNull(4) ? null : DateTime.Parse(reader.GetString(4)),

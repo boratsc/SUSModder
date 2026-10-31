@@ -35,6 +35,12 @@ namespace SUSModder.Core.Models
         public string AmongVersion { get; set; } = string.Empty;
 
         /// <summary>
+        /// Czy ta wersja historyczna jest wydaniem beta (3.1-11).
+        /// </summary>
+        [JsonPropertyName("IsBeta")]
+        public bool IsBeta { get; set; }
+
+        /// <summary>
         /// Link do pobrania dla Steam
         /// </summary>
         [JsonPropertyName("GitHubRepoOrLink")]

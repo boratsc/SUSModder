@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using SUSModder.Core.Api;
+using SUSModder.Core.Models;
 using SUSModder.Core.Utilities;
 using SUSModder.Core.Repositories;
 using SUSModder.Core.Services;
@@ -165,6 +166,30 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         [JsonPropertyName("SupportsLobbySharing")]
         public bool SupportsLobbySharing { get; set; } = false;
+
+        // ── Wersje beta (3.1-11) — dane katalogu, nie stan instalacji ──
+
+        /// <summary>
+        /// True, gdy katalogowy <see cref="ModVersion"/> jest wydaniem beta.
+        /// Stan zainstalowanego kanału żyje w Installation Map (FullMod.IsBeta).
+        /// </summary>
+        [JsonPropertyName("IsBeta")]
+        public bool IsBeta { get; set; }
+
+        /// <summary>Najnowsze stabilne wydanie z katalogu (null = brak danych/legacy).</summary>
+        [JsonPropertyName("LatestStableVersion")]
+        public string? LatestStableVersion { get; set; }
+
+        /// <summary>Najnowsze wydanie beta z katalogu (null = brak bety lub tryb legacy).</summary>
+        [JsonPropertyName("LatestBetaVersion")]
+        public string? LatestBetaVersion { get; set; }
+
+        /// <summary>
+        /// Addytywna lista wydań katalogowych. Pusta lista = brak danych
+        /// (tryb legacy lub serwer nie zwrócił pola) — nie oznacza braku wersji.
+        /// </summary>
+        [JsonPropertyName("AvailableReleases")]
+        public List<ModRelease> AvailableReleases { get; set; } = new();
 
         // ── VirusTotal cache (DB-only, nie z API) ──
 

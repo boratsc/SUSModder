@@ -213,6 +213,13 @@
         "Legacy": "Migracja legacy"
       }
     },
+    "Beta": {
+      "Badge": "BETA",
+      "Available": "Dostępna beta: {0}",
+      "ConfirmTitle": "Instalacja wersji beta",
+      "ConfirmMessage": "Zainstalować betę {1} moda {0}?\nWersja gry: {2}.\n\nBeta może być niestabilna. Auto-aktualizacja zostanie wyłączona, a powrót do stabilnej będzie wymagał osobnej decyzji.",
+      "InstallHint": "Instalacja bety jest świadomym wyborem. Kolejne bety i powrót do stabilnej wymagają osobnej decyzji; auto-aktualizacja nie przełączy wersji w tle."
+    },
     "Labels": {
       "InstalledMods": "Zainstalowanych modów",
       "InstalledIn": "Zainstalowano w",

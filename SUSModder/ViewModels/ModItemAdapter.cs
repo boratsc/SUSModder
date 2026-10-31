@@ -14,6 +14,9 @@ namespace SUSModder.Core.Configuration
                 PngFileName = config.PngFileName,
                 ModVersion = config.ModVersion,
                 AmongVersion = config.AmongVersion,
+                LatestStableVersion = config.LatestStableVersion,
+                LatestBetaVersion = config.LatestBetaVersion,
+                AvailableReleases = config.AvailableReleases,
                 InstallPath = config.InstallPath,
                 GitHubRepoOrLink = config.GitHubRepoOrLink,
                 EpicGitHubRepoOrLink = config.EpicGitHubRepoOrLink,
@@ -43,6 +46,9 @@ namespace SUSModder.Core.Configuration
             item.PngFileName = config.PngFileName;
             item.ModVersion = config.ModVersion;
             item.AmongVersion = config.AmongVersion;
+            item.LatestStableVersion = config.LatestStableVersion;
+            item.LatestBetaVersion = config.LatestBetaVersion;
+            item.AvailableReleases = config.AvailableReleases;
             item.InstallPath = config.InstallPath;
             item.GitHubRepoOrLink = config.GitHubRepoOrLink;
             item.EpicGitHubRepoOrLink = config.EpicGitHubRepoOrLink;
@@ -78,7 +84,10 @@ namespace SUSModder.Core.Configuration
                 LastUpdated = item.LastUpdated,
                 HasRoles = item.HasRoles,
                 LobbyRegionBaseUrl = item.LobbyRegionBaseUrl,
-                SupportsLobbySharing = item.SupportsLobbySharing
+                SupportsLobbySharing = item.SupportsLobbySharing,
+                LatestStableVersion = item.LatestStableVersion,
+                LatestBetaVersion = item.LatestBetaVersion,
+                AvailableReleases = item.AvailableReleases
             };
         }
     }

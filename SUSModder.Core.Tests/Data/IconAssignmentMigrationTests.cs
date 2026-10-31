@@ -10,7 +10,7 @@ namespace SUSModder.Core.Tests.Data;
 /// </summary>
 public class IconAssignmentMigrationTests : IDisposable
 {
-    private const int ExpectedSchemaVersion = 15;
+    private const int ExpectedSchemaVersion = 16;
 
     private readonly string _tempDir;
 

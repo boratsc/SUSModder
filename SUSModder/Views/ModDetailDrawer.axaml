@@ -62,6 +62,32 @@
 									<Run Text=":"/>
 									<Run Text="{Binding ModVersion}"/>
 								</TextBlock>
+								<StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2,0,0">
+									<Border Background="{DynamicResource ErrorChipFillBrush}"
+											BorderBrush="{DynamicResource ErrorChipBorderBrush}"
+											BorderThickness="1"
+											CornerRadius="4"
+											Padding="6,1"
+											VerticalAlignment="Center"
+											IsVisible="{Binding ShowBetaInstalledBadge}">
+										<TextBlock Text="{Binding BetaBadgeText}"
+												   FontSize="9"
+												   FontWeight="SemiBold"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+									</Border>
+									<Button Content="{Binding AvailableBetaText}"
+											IsVisible="{Binding HasAvailableBeta}"
+											Command="{Binding $parent[local:ModDetailDrawer].DataContext.InstallAvailableBetaCommand}"
+											CommandParameter="{Binding}"
+											Background="Transparent"
+											BorderThickness="0"
+											Padding="0"
+											FontSize="10"
+											VerticalAlignment="Center"
+											Foreground="{DynamicResource AccentBrush}"
+											Cursor="Hand"
+											ToolTip.Tip="{loc:Localize UI.Beta.InstallHint}"/>
+								</StackPanel>
 								<TextBlock FontSize="10"
 										   Foreground="{DynamicResource WarningTextBrush}"
 										   IsVisible="{Binding IsPinnedVersionInstall}"
@@ -180,6 +206,12 @@
 													   FontSize="11"
 													   Opacity="0.7"
 													   Foreground="{DynamicResource TextSecondaryBrush}"/>
+											<TextBlock Text="{loc:Localize UI.Beta.InstallHint}"
+													   FontSize="10"
+													   Opacity="0.7"
+													   TextWrapping="Wrap"
+													   Foreground="{DynamicResource TextSecondaryBrush}"
+													   IsVisible="{Binding #ModDetailDrawerRoot.((vm:MainWindowViewModel)DataContext).SelectedMod.HasAvailableBeta}"/>
 
 											<StackPanel IsVisible="{Binding #ModDetailDrawerRoot.((vm:MainWindowViewModel)DataContext).IsInstallVersionFlyoutLoading}"
 														Spacing="8"
@@ -224,23 +256,37 @@
 																		<Run Text=" "/>
 																		<Run Text="{Binding ModVersion}"/>
 																	</TextBlock>
-																	<Border Grid.Row="0" Grid.Column="1"
-																			Background="{DynamicResource AccentBrush}"
-																			CornerRadius="4"
-																			Padding="6,2"
-																			VerticalAlignment="Center"
-																			Margin="8,0,0,0">
-																		<Border.IsVisible>
-																			<MultiBinding Converter="{StaticResource ReferenceEqualsMultiConverter}">
-																				<Binding/>
-																				<Binding Path="#ModDetailDrawerRoot.((vm:MainWindowViewModel)DataContext).InstallVersionFlyoutLatest"/>
-																			</MultiBinding>
-																		</Border.IsVisible>
-																		<TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.LatestBadge}"
-																				   FontSize="9"
-																				   FontWeight="SemiBold"
-																				   Foreground="{DynamicResource OnAccentTextBrush}"/>
-																	</Border>
+																	<StackPanel Grid.Row="0" Grid.Column="1"
+																				Orientation="Horizontal"
+																				Spacing="4"
+																				VerticalAlignment="Center"
+																				Margin="8,0,0,0">
+																		<Border Background="{DynamicResource ErrorChipFillBrush}"
+																				BorderBrush="{DynamicResource ErrorChipBorderBrush}"
+																				BorderThickness="1"
+																				CornerRadius="4"
+																				Padding="6,2"
+																				IsVisible="{Binding IsBeta}">
+																			<TextBlock Text="{loc:Localize UI.Beta.Badge}"
+																					   FontSize="9"
+																					   FontWeight="SemiBold"
+																					   Foreground="{DynamicResource TextPrimaryBrush}"/>
+																		</Border>
+																		<Border Background="{DynamicResource AccentBrush}"
+																				CornerRadius="4"
+																				Padding="6,2">
+																			<Border.IsVisible>
+																				<MultiBinding Converter="{StaticResource ReferenceEqualsMultiConverter}">
+																					<Binding/>
+																					<Binding Path="#ModDetailDrawerRoot.((vm:MainWindowViewModel)DataContext).InstallVersionFlyoutLatest"/>
+																				</MultiBinding>
+																			</Border.IsVisible>
+																			<TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.LatestBadge}"
+																					   FontSize="9"
+																					   FontWeight="SemiBold"
+																					   Foreground="{DynamicResource OnAccentTextBrush}"/>
+																		</Border>
+																	</StackPanel>
 																	<TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
 																			   FontSize="11"
 																			   Foreground="{DynamicResource TextSecondaryBrush}"

@@ -314,7 +314,10 @@ namespace SUSModder.Core.Services
             bool pngChanged = string.IsNullOrEmpty(local.PngFileName) && !string.IsNullOrEmpty(remote.PngFileName);
             bool dllPathChanged = string.IsNullOrEmpty(local.DllInstallPath) && !string.IsNullOrEmpty(remote.DllInstallPath);
 
-            bool hasChanged = nameChanged || versionChanged || descChanged || githubChanged || epicChanged || pngChanged || dllPathChanged;
+            bool hasChanged = nameChanged || versionChanged || descChanged || githubChanged || epicChanged || pngChanged || dllPathChanged
+                || local.IsBeta != remote.IsBeta
+                || !string.Equals(local.LatestStableVersion, remote.LatestStableVersion, StringComparison.Ordinal)
+                || !string.Equals(local.LatestBetaVersion, remote.LatestBetaVersion, StringComparison.Ordinal);
 
             // DEBUGUJ KONKRETNE ZMIANY
             if (hasChanged)
@@ -349,6 +352,12 @@ namespace SUSModder.Core.Services
                 target.EpicGitHubRepoOrLink = source.EpicGitHubRepoOrLink;
             target.AmongVersion = source.AmongVersion;
             target.ModType = source.ModType;
+
+            // 3.1-11: metadane wersji beta pochodzą wyłącznie z katalogu.
+            target.IsBeta = source.IsBeta;
+            target.LatestStableVersion = source.LatestStableVersion;
+            target.LatestBetaVersion = source.LatestBetaVersion;
+            target.AvailableReleases = source.AvailableReleases;
 
             // UZUPEŁNIJ BRAKUJĄCE POLA
             if (string.IsNullOrEmpty(target.PngFileName) && !string.IsNullOrEmpty(source.PngFileName))

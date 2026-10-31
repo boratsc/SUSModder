@@ -39,4 +39,38 @@ public class ModPresentationTests
         Assert.True(item.IsFavorite);
         Assert.Equal(12, item.Id);
     }
+
+    [Fact]
+    public void AvailableBetaIsHiddenOnceItIsTheInstalledVersion()
+    {
+        var item = new ModItem { Id = 13, ModType = "full", ModVersion = "1.7.3" };
+        Assert.False(item.HasAvailableBeta);
+
+        item.LatestBetaVersion = "1.6.3-beta2";
+        Assert.True(item.HasAvailableBeta);
+        Assert.Equal("Beta available: 1.6.3-beta2", item.AvailableBetaText);
+
+        item.ModVersion = "1.6.3-beta2";
+        Assert.False(item.HasAvailableBeta);
+    }
+
+    [Fact]
+    public void BetaInstalledBadgeRequiresInstallationAndBetaFlag()
+    {
+        var item = new ModItem { Id = 13, ModType = "full", InstallPath = @"C:\Games\Mira" };
+        Assert.False(item.ShowBetaInstalledBadge);
+
+        item.IsInstalledBeta = true;
+        Assert.True(item.ShowBetaInstalledBadge);
+
+        item.InstallPath = null;
+        Assert.False(item.ShowBetaInstalledBadge);
+    }
+
+    [Fact]
+    public void VanillaNeverOffersBeta()
+    {
+        var item = new ModItem { ModType = "Vanilla", LatestBetaVersion = "2026.6" };
+        Assert.False(item.HasAvailableBeta);
+    }
 }
