@@ -5,6 +5,7 @@ using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
 using ReactiveUI;
 using SUSModder.Core.Models;
+using SUSModder.Core.Services;
 using SUSModder.Tests.Support;
 using SUSModder.ViewModels;
 
@@ -21,8 +22,10 @@ public sealed class CommunityChatPanelViewModelTests
     private static CommunityChatPanelViewModel NewVm(
         FakeCommunityChatService fake,
         FakeLocalizationService loc,
-        TimeSpan? pollInterval = null) =>
-        new(fake, loc, pollInterval ?? TimeSpan.FromMilliseconds(30), TimeSpan.FromMilliseconds(200));
+        TimeSpan? pollInterval = null,
+        IChatRulesStateStore? rulesState = null) =>
+        new(fake, loc, pollInterval ?? TimeSpan.FromMilliseconds(30), TimeSpan.FromMilliseconds(200),
+            rulesState: rulesState);
 
     private static async Task WaitUntilAsync(Func<bool> condition, string because, int timeoutMs = 4000)
     {
@@ -928,5 +931,112 @@ public sealed class CommunityChatPanelViewModelTests
         Assert.Equal("Niedokończony szkic", vm.Draft);
         Assert.Equal("UI.CommunityChat.NewMessages|0", vm.NewMessagesText); // rekoмputed, nie zerowane
         vm.Dispose();
+    }
+
+    // ══════════════════════════════════════════════════════
+    // Zasady czatu i lokalna heurystyka
+    // ══════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task Rules_AreVisibleOnFirstUse_AndAcknowledgementIsPersisted()
+    {
+        var store = new FakeRulesStateStore();
+        using var vm = NewVm(new FakeCommunityChatService(), new FakeLocalizationService(), rulesState: store);
+
+        Assert.True(vm.IsRulesVisible);
+        Assert.False(vm.IsRulesAcknowledged);
+        Assert.Equal("UI.CommunityChat.Rules.Acknowledge", vm.RulesButtonLabel);
+
+        await vm.AcknowledgeRulesCommand.Execute().ToTask();
+
+        Assert.False(vm.IsRulesVisible);
+        Assert.True(vm.IsRulesAcknowledged);
+        Assert.Equal("UI.CommunityChat.Rules.Close", vm.RulesButtonLabel);
+        Assert.Equal(CommunityChatRules.Version, store.Version);
+    }
+
+    [Fact]
+    public void Rules_AreHiddenWhenCurrentVersionWasAlreadyAcknowledged()
+    {
+        var store = new FakeRulesStateStore { Version = CommunityChatRules.Version };
+
+        using var vm = NewVm(new FakeCommunityChatService(), new FakeLocalizationService(), rulesState: store);
+
+        Assert.False(vm.IsRulesVisible);
+        Assert.True(vm.IsRulesAcknowledged);
+    }
+
+    [Fact]
+    public async Task Send_WithHeuristicWarning_RequiresConfirmationAndKeepsDraft()
+    {
+        var fake = new FakeCommunityChatService();
+        using var vm = NewVm(fake, new FakeLocalizationService());
+        vm.Draft = "chujchujchuj";
+
+        await vm.SendCommand.Execute().ToTask();
+
+        Assert.True(vm.IsHeuristicPromptVisible);
+        Assert.Equal(0, fake.SendCalls);
+        Assert.Equal("chujchujchuj", vm.Draft);
+
+        await vm.SendAnywayCommand.Execute().ToTask();
+
+        Assert.False(vm.IsHeuristicPromptVisible);
+        Assert.Equal(1, fake.SendCalls);
+        Assert.Equal("chujchujchuj", fake.LastSentContent);
+    }
+
+    [Fact]
+    public async Task EditingDraftAfterWarning_HidesPromptAndRequiresReevaluation()
+    {
+        var fake = new FakeCommunityChatService();
+        using var vm = NewVm(fake, new FakeLocalizationService());
+        vm.Draft = "chujchujchuj";
+        await vm.SendCommand.Execute().ToTask();
+        Assert.True(vm.IsHeuristicPromptVisible);
+
+        vm.Draft = "chujchujchuj!";
+
+        Assert.False(vm.IsHeuristicPromptVisible);
+        await vm.SendCommand.Execute().ToTask();
+        Assert.True(vm.IsHeuristicPromptVisible);
+        Assert.Equal(0, fake.SendCalls);
+    }
+
+    [Fact]
+    public async Task NormalMessage_SkipsHeuristicPrompt()
+    {
+        var fake = new FakeCommunityChatService();
+        using var vm = NewVm(fake, new FakeLocalizationService());
+        vm.Draft = "Cześć, szukam ekipy do gry :)";
+
+        await vm.SendCommand.Execute().ToTask();
+
+        Assert.False(vm.IsHeuristicPromptVisible);
+        Assert.Equal(1, fake.SendCalls);
+    }
+
+    [Fact]
+    public async Task DismissHeuristic_KeepsDraftAndDoesNotSend()
+    {
+        var fake = new FakeCommunityChatService();
+        using var vm = NewVm(fake, new FakeLocalizationService());
+        vm.Draft = "chujchujchuj";
+        await vm.SendCommand.Execute().ToTask();
+
+        await vm.DismissHeuristicCommand.Execute().ToTask();
+
+        Assert.False(vm.IsHeuristicPromptVisible);
+        Assert.Equal(0, fake.SendCalls);
+        Assert.Equal("chujchujchuj", vm.Draft);
+    }
+
+    private sealed class FakeRulesStateStore : IChatRulesStateStore
+    {
+        public int Version { get; set; }
+
+        public int GetAcknowledgedVersion() => Version;
+
+        public void SetAcknowledgedVersion(int version) => Version = version;
     }
 }

@@ -166,5 +166,13 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         [JsonPropertyName("supportBannerDismissedAt")]
         public string SupportBannerDismissedAt { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Wersja zasad czatu, którą użytkownik już zobaczył i potwierdził.
+        /// 0 = nigdy nie pokazano. Porównywane z <c>CommunityChatRules.Version</c>.
+        /// To znacznik zapoznania się, nie formalna zgoda prawna.
+        /// </summary>
+        [JsonPropertyName("chatRulesAcknowledgedVersion")]
+        public int ChatRulesAcknowledgedVersion { get; set; } = 0;
     }
 }

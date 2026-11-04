@@ -20,6 +20,7 @@ public partial class CommunityChatPanel : UserControl
 {
     private CommunityChatPanelViewModel? _boundViewModel;
     private ScrollViewer? _messagesScroll;
+    private TextBox? _inputBox;
 
     /// <summary>
     /// Intencja „trzymaj dół”: ustawiana przy żądaniu przewinięcia, kasowana po
@@ -56,6 +57,7 @@ public partial class CommunityChatPanel : UserControl
             return;
 
         _boundViewModel.ScrollToBottomRequested += OnScrollToBottomRequested;
+        _boundViewModel.FocusInputRequested += OnFocusInputRequested;
     }
 
     private void DetachViewModel()
@@ -64,7 +66,14 @@ public partial class CommunityChatPanel : UserControl
             return;
 
         _boundViewModel.ScrollToBottomRequested -= OnScrollToBottomRequested;
+        _boundViewModel.FocusInputRequested -= OnFocusInputRequested;
         _boundViewModel = null;
+    }
+
+    private void OnFocusInputRequested()
+    {
+        _inputBox ??= this.FindControl<TextBox>("InputBox");
+        _inputBox?.Focus();
     }
 
     private void OnScrollToBottomRequested()

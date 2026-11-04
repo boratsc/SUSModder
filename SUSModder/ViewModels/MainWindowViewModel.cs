@@ -695,10 +695,14 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
             // Inicjalizuj serwis powiadomień toast (singleton z DI)
             ToastService = App.GetService<ToastService>();
 
+            // Ustawienia użytkownika — potrzebne m.in. do znacznika zasad czatu.
+            _userSettingsService = new UserSettingsService();
+
             // Globalny komunikator — jedna instancja na okno, niezależna od zaznaczenia.
             CommunityChat = new CommunityChatPanelViewModel(
                 App.GetService<ICommunityChatService>(),
-                _localizationService);
+                _localizationService,
+                rulesState: new UserSettingsChatRulesStateStore(_userSettingsService));
             CommunityChat.DeleteConfirmation = async message =>
                 await ShowConfirmDialogAsync(
                     message,
@@ -715,9 +719,6 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
                 action => Avalonia.Threading.Dispatcher.UIThread.Post(action),
                 onClose: CloseModPackManager);
 
-            // Inicjalizuj UserSettingsService
-            _userSettingsService = new UserSettingsService();
-            
             _userInteractionService = new UserInteractionService(
                 ShowConfirmDialogAsync,
                 ShowMessageAsync,

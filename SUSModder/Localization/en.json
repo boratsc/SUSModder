@@ -275,6 +275,18 @@
         "NoDate": "—"
       },
       "PublicHint": "Messages are public and expire over time.",
+      "Rules": {
+        "Button": "Chat rules",
+        "Title": "Chat rules",
+        "Acknowledge": "I understand",
+        "Close": "Close",
+        "Text": "1. Respect others — no harassment, threats, hate speech or personal attacks.\n2. Do not spam or post repeated messages.\n3. Do not share your personal data or anyone else's.\n4. Do not post sexual or illegal content.\n5. Links are limited to one discord.gg invite per message.\n6. Messages may be moderated, and violations may result in restricted access."
+      },
+      "Heuristic": {
+        "Warning": "This message may violate the chat rules. Please review it.",
+        "Review": "Edit",
+        "SendAnyway": "Send anyway"
+      },
       "Report": {
         "Button": "Report",
         "Hint": "Content stays visible until moderation decides.",

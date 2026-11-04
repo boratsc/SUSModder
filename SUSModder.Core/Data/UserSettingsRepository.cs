@@ -67,7 +67,8 @@ namespace SUSModder.Core.Data
                     mod_pack_share_creator_name, mod_pack_share_discord_invite,
                     glass_reduce_transparency,
                     prefer_depot_downloader, developer_mode,
-                    support_banner_dismissed_at
+                    support_banner_dismissed_at,
+                    chat_rules_acknowledged_version
                 ) VALUES (
                     1, @mode, @last_launch_id, @theme, @language, @telemetry_enabled,
                     @mods_install_path, @license_accepted, @first_run_date, @update_channel,
@@ -78,7 +79,8 @@ namespace SUSModder.Core.Data
                     @mod_pack_share_creator_name, @mod_pack_share_discord_invite,
                     @glass_reduce_transparency,
                     @prefer_depot_downloader, @developer_mode,
-                    @support_banner_dismissed_at
+                    @support_banner_dismissed_at,
+                    @chat_rules_acknowledged_version
                 )
                 ON CONFLICT(id) DO UPDATE SET
                     mode = excluded.mode,
@@ -105,7 +107,8 @@ namespace SUSModder.Core.Data
                     glass_reduce_transparency = excluded.glass_reduce_transparency,
                     prefer_depot_downloader = excluded.prefer_depot_downloader,
                     developer_mode = excluded.developer_mode,
-                    support_banner_dismissed_at = excluded.support_banner_dismissed_at;";
+                    support_banner_dismissed_at = excluded.support_banner_dismissed_at,
+                    chat_rules_acknowledged_version = excluded.chat_rules_acknowledged_version;";
 
             cmd.Parameters.AddWithValue("@mode", settings.Mode ?? string.Empty);
             cmd.Parameters.AddWithValue("@last_launch_id", settings.LastLaunchId);
@@ -132,6 +135,7 @@ namespace SUSModder.Core.Data
             cmd.Parameters.AddWithValue("@prefer_depot_downloader", settings.PreferDepotDownloader ? 1 : 0);
             cmd.Parameters.AddWithValue("@developer_mode", settings.DeveloperMode ? 1 : 0);
             cmd.Parameters.AddWithValue("@support_banner_dismissed_at", settings.SupportBannerDismissedAt ?? string.Empty);
+            cmd.Parameters.AddWithValue("@chat_rules_acknowledged_version", settings.ChatRulesAcknowledgedVersion);
 
             cmd.ExecuteNonQuery();
 
@@ -157,7 +161,8 @@ namespace SUSModder.Core.Data
                 "settings_version", "active_sustats_guild_id",
                 "mod_packs_enabled", "mod_packs_auto_install", "glass_reduce_transparency",
                 "prefer_depot_downloader", "mod_pack_share_creator_name", "mod_pack_share_discord_invite",
-                "developer_mode", "support_banner_dismissed_at"
+                "developer_mode", "support_banner_dismissed_at",
+                "chat_rules_acknowledged_version"
             };
 
             if (!allowedColumns.Contains(columnName))
@@ -228,8 +233,22 @@ namespace SUSModder.Core.Data
                 GlassReduceTransparency = TryGetBool(reader, "glass_reduce_transparency", false),
                 PreferDepotDownloader = TryGetBool(reader, "prefer_depot_downloader", false),
                 DeveloperMode = TryGetBool(reader, "developer_mode", false),
-                SupportBannerDismissedAt = TryGetString(reader, "support_banner_dismissed_at", string.Empty)
+                SupportBannerDismissedAt = TryGetString(reader, "support_banner_dismissed_at", string.Empty),
+                ChatRulesAcknowledgedVersion = TryGetInt(reader, "chat_rules_acknowledged_version", 0)
             };
+        }
+
+        private static int TryGetInt(SqliteDataReader reader, string column, int defaultValue)
+        {
+            try
+            {
+                var ordinal = reader.GetOrdinal(column);
+                return reader.IsDBNull(ordinal) ? defaultValue : reader.GetInt32(ordinal);
+            }
+            catch
+            {
+                return defaultValue;
+            }
         }
 
         private static string TryGetString(SqliteDataReader reader, string column, string defaultValue)

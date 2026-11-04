@@ -275,6 +275,18 @@
         "NoDate": "—"
       },
       "PublicHint": "Wiadomości są publiczne i wygasają po czasie.",
+      "Rules": {
+        "Button": "Zasady czatu",
+        "Title": "Zasady czatu",
+        "Acknowledge": "Rozumiem",
+        "Close": "Zamknij",
+        "Text": "1. Szanuj innych — bez nękania, gróźb, mowy nienawiści i obrażania osób.\n2. Nie spamuj ani nie publikuj powtarzających się wiadomości.\n3. Nie udostępniaj danych osobowych swoich ani innych osób.\n4. Nie publikuj treści seksualnych ani nielegalnych.\n5. Linki są ograniczone do jednego zaproszenia discord.gg na wiadomość.\n6. Wiadomości mogą być moderowane, a naruszenia mogą skutkować ograniczeniem dostępu."
+      },
+      "Heuristic": {
+        "Warning": "Ta wiadomość może naruszać zasady czatu. Sprawdź jej treść.",
+        "Review": "Popraw",
+        "SendAnyway": "Wyślij mimo to"
+      },
       "Report": {
         "Button": "Zgłoś",
         "Hint": "Treść pozostaje widoczna do czasu decyzji moderacji.",

@@ -23,7 +23,7 @@ namespace SUSModder.Core.Data
         // v14 – favorite_mods (ulubione mody, 3.1-05).
         // v15 – icon_assignments + sync_state.schema_version (3.1-04).
         // v16 – mods.IsBeta/Latest*Version/AvailableReleases (3.1-11).
-        private const int LatestSchemaVersion = 16;
+        private const int LatestSchemaVersion = 17;
 
         public DatabaseService()
         {
@@ -222,7 +222,8 @@ namespace SUSModder.Core.Data
                     glass_reduce_transparency INTEGER NOT NULL DEFAULT 0,
                     prefer_depot_downloader INTEGER NOT NULL DEFAULT 0,
                     developer_mode      INTEGER NOT NULL DEFAULT 0,
-                    support_banner_dismissed_at TEXT NOT NULL DEFAULT ''
+                    support_banner_dismissed_at TEXT NOT NULL DEFAULT '',
+                    chat_rules_acknowledged_version INTEGER NOT NULL DEFAULT 0
                 );";
             cmd.ExecuteNonQuery();
 
@@ -791,6 +792,32 @@ namespace SUSModder.Core.Data
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v16: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 17)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v17 – chat_rules_acknowledged_version...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+
+                    EnsureColumn(cmd, "user_settings", "chat_rules_acknowledged_version",
+                        "ALTER TABLE user_settings ADD COLUMN chat_rules_acknowledged_version INTEGER NOT NULL DEFAULT 0;");
+
+                    tx.Commit();
+                    SetUserVersion(conn, 17);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v17 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v17: {ex.Message}. Wycofywanie...");
                     try { tx.Rollback(); } catch { /* ignore */ }
                     throw;
                 }

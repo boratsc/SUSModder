@@ -22,6 +22,17 @@ namespace SUSModder.Core.Models
     }
 
     /// <summary>
+    /// Wersja zasad czatu prezentowanych użytkownikowi.
+    /// Podniesienie numeru powoduje ponowne pokazanie panelu zasad po aktualizacji.
+    /// Znacznik zapoznania się nie jest dowodem formalnej zgody.
+    /// </summary>
+    public static class CommunityChatRules
+    {
+        /// <summary>Aktualna wersja treści zasad.</summary>
+        public const int Version = 1;
+    }
+
+    /// <summary>
     /// Limity treści i historii wspólnego kanału — jedyne źródło prawdy dla Core i UI.
     /// Liczba znaków jest liczona w jednostkach UTF-16 po usunięciu spacji brzegowych.
     /// </summary>

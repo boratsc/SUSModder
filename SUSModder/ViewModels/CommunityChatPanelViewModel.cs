@@ -42,6 +42,7 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
 {
     private readonly ICommunityChatService _service;
     private readonly ILocalizationService _loc;
+    private readonly IChatRulesStateStore? _rulesState;
     private readonly TimeSpan _pollInterval;
     private readonly TimeSpan _maxBackoff;
 
@@ -78,6 +79,12 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
     // wysłana — edycja pola w trakcie trwającego POST nie jest kasowana.
     private int _draftRevision;
 
+    // Ostrzeżenie heurystyki dotyczy konkretnej rewizji szkicu. Potwierdzenie
+    // „Wyślij mimo to” nie przenosi się na zmienioną treść.
+    private int? _heuristicConfirmedRevision;
+
+    private int _acknowledgedRulesVersion;
+
     private readonly Dictionary<string, CommunityChatMessageViewModel> _itemsById =
         new(StringComparer.Ordinal);
 
@@ -99,25 +106,43 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
         ILocalizationService loc,
         TimeSpan? pollInterval = null,
         TimeSpan? maxBackoff = null,
-        TimeSpan? bannerDisplayDuration = null)
+        TimeSpan? bannerDisplayDuration = null,
+        IChatRulesStateStore? rulesState = null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _loc = loc ?? throw new ArgumentNullException(nameof(loc));
+        _rulesState = rulesState;
         _pollInterval = pollInterval ?? TimeSpan.FromSeconds(30);
         _maxBackoff = maxBackoff ?? TimeSpan.FromMinutes(5);
         _bannerDisplayDuration = bannerDisplayDuration ?? TimeSpan.FromSeconds(5);
         _lifecycleCts = new CancellationTokenSource();
 
+        _acknowledgedRulesVersion = _rulesState?.GetAcknowledgedVersion() ?? 0;
+        _isRulesVisible = !IsRulesAcknowledged;
+
         ReportCommand = ReactiveCommand.CreateFromTask<CommunityChatMessageViewModel>(ReportAsync);
         DeleteCommand = ReactiveCommand.CreateFromTask<CommunityChatMessageViewModel>(DeleteAsync);
         RefreshCommand = ReactiveCommand.CreateFromTask(async () =>
             await RefreshOnceAsync(ActiveToken));
+        OpenRulesCommand = ReactiveCommand.Create(() => { IsRulesVisible = true; });
+        AcknowledgeRulesCommand = ReactiveCommand.Create(AcknowledgeRules);
+        DismissHeuristicCommand = ReactiveCommand.Create(() =>
+        {
+            IsHeuristicPromptVisible = false;
+            FocusInputRequested?.Invoke();
+        });
 
         var canSend = this.WhenAnyValue(
             x => x.Draft,
             x => x.IsSending,
             (draft, sending) => !sending && !string.IsNullOrWhiteSpace(draft));
         SendCommand = ReactiveCommand.CreateFromTask(SendAsync, canSend);
+
+        var canSendAnyway = this.WhenAnyValue(
+            x => x.IsHeuristicPromptVisible,
+            x => x.IsSending,
+            (visible, sending) => visible && !sending);
+        SendAnywayCommand = ReactiveCommand.CreateFromTask(SendAnywayAsync, canSendAnyway);
 
         Messages.CollectionChanged += OnMessagesCollectionChanged;
 
@@ -146,6 +171,8 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
 
             this.RaiseAndSetIfChanged(ref _draft, next);
             _draftRevision++;
+            _heuristicConfirmedRevision = null;
+            IsHeuristicPromptVisible = false;
             this.RaisePropertyChanged(nameof(CharCountText));
             this.RaisePropertyChanged(nameof(CanShowCharCounterWarning));
         }
@@ -258,12 +285,58 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
     /// <summary>Widok ma przewinąć listę na sam dół (nowe wiadomości przy pozycji na dole).</summary>
     public event Action? ScrollToBottomRequested;
 
+    /// <summary>Widok ma przenieść fokus do pola pisania (np. po zamknięciu panelu zasad).</summary>
+    public event Action? FocusInputRequested;
+
     /// <summary>
     /// Potwierdzenie usunięcia własnej wiadomości (treść dialogu → wynik).
     /// Bez dostarczyciela usunięcie jest odmówione — bezpieczny domyślny;
     /// MainWindow podpinuje dialog potwierdzenia.
     /// </summary>
     public Func<string, Task<bool>>? DeleteConfirmation { get; set; }
+
+    // ══════════════════════════════════════════════════════
+    // Zasady czatu (panel informacyjny)
+    // ══════════════════════════════════════════════════════
+
+    private bool _isRulesVisible;
+
+    /// <summary>Panel zasad jest otwarty (przy pierwszym wejściu lub przez przycisk).</summary>
+    public bool IsRulesVisible
+    {
+        get => _isRulesVisible;
+        private set => this.RaiseAndSetIfChanged(ref _isRulesVisible, value);
+    }
+
+    /// <summary>Użytkownik potwierdził aktualną wersję zasad (lokalny znacznik, nie zgoda prawna).</summary>
+    public bool IsRulesAcknowledged => _acknowledgedRulesVersion >= CommunityChatRules.Version;
+
+    public string RulesTitle => _loc.Get("UI.CommunityChat.Rules.Title");
+
+    /// <summary>Treść zasad — jeden zlokalizowany tekst z listą punktów.</summary>
+    public string RulesText => _loc.Get("UI.CommunityChat.Rules.Text");
+
+    /// <summary>„Rozumiem” przed potwierdzeniem, „Zamknij” przy ponownym otwarciu.</summary>
+    public string RulesButtonLabel => IsRulesAcknowledged
+        ? _loc.Get("UI.CommunityChat.Rules.Close")
+        : _loc.Get("UI.CommunityChat.Rules.Acknowledge");
+
+    // ══════════════════════════════════════════════════════
+    // Lokalna heurystyka — ostrzeżenie przed wysłaniem
+    // ══════════════════════════════════════════════════════
+
+    private bool _isHeuristicPromptVisible;
+
+    /// <summary>Ostrzeżenie o możliwym naruszeniu zasad; wymaga wyboru „Popraw” lub „Wyślij mimo to”.</summary>
+    public bool IsHeuristicPromptVisible
+    {
+        get => _isHeuristicPromptVisible;
+        private set => this.RaiseAndSetIfChanged(ref _isHeuristicPromptVisible, value);
+    }
+
+    public string HeuristicWarningText => _loc.Get("UI.CommunityChat.Heuristic.Warning");
+    public string HeuristicReviewLabel => _loc.Get("UI.CommunityChat.Heuristic.Review");
+    public string HeuristicSendAnywayLabel => _loc.Get("UI.CommunityChat.Heuristic.SendAnyway");
 
     // ══════════════════════════════════════════════════════
     // Komendy
@@ -273,6 +346,10 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
     public ReactiveCommand<CommunityChatMessageViewModel, Unit> DeleteCommand { get; }
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> SendCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenRulesCommand { get; }
+    public ReactiveCommand<Unit, Unit> AcknowledgeRulesCommand { get; }
+    public ReactiveCommand<Unit, Unit> DismissHeuristicCommand { get; }
+    public ReactiveCommand<Unit, Unit> SendAnywayCommand { get; }
 
     /// <summary>Przycisk „Nowe wiadomości” — kasuje licznik i zleca przewinięcie.</summary>
     public void OnNewMessagesButton()
@@ -600,6 +677,18 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
             return;
         }
 
+        // Lokalna heurystyka to wyłącznie ostrzeżenie: wymaga potwierdzenia dla
+        // konkretnej wersji szkicu. Nie blokuje wysyłki i nie zastępuje serwera.
+        if (_heuristicConfirmedRevision != _draftRevision)
+        {
+            var heuristic = CommunityChatHeuristics.Analyze(content);
+            if (heuristic.ShouldWarn)
+            {
+                IsHeuristicPromptVisible = true;
+                return;
+            }
+        }
+
         var ct = ActiveToken;
         var submittedRevision = _draftRevision;
         _sendInFlight = true;
@@ -671,6 +760,35 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
             IsSending = false;
             _sendInFlight = false;
         }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // Zasady i lokalna heurystyka
+    // ══════════════════════════════════════════════════════
+
+    private void AcknowledgeRules()
+    {
+        _acknowledgedRulesVersion = CommunityChatRules.Version;
+        _rulesState?.SetAcknowledgedVersion(_acknowledgedRulesVersion);
+        IsRulesVisible = false;
+
+        this.RaisePropertyChanged(nameof(IsRulesAcknowledged));
+        this.RaisePropertyChanged(nameof(RulesButtonLabel));
+        FocusInputRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Użytkownik świadomie wysyła treść mimo ostrzeżenia. Potwierdzenie dotyczy
+    /// wyłącznie bieżącej rewizji szkicu — edycja wymaga ponownej oceny.
+    /// </summary>
+    private async Task SendAnywayAsync()
+    {
+        if (_disposed || !IsHeuristicPromptVisible)
+            return;
+
+        _heuristicConfirmedRevision = _draftRevision;
+        IsHeuristicPromptVisible = false;
+        await SendAsync();
     }
 
     // ══════════════════════════════════════════════════════
@@ -830,6 +948,12 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
         // Etykiety i względny czas — historia i szkic zostają nietknięte.
         this.RaisePropertyChanged(nameof(BannerText));
         this.RaisePropertyChanged(nameof(NewMessagesText));
+        this.RaisePropertyChanged(nameof(RulesTitle));
+        this.RaisePropertyChanged(nameof(RulesText));
+        this.RaisePropertyChanged(nameof(RulesButtonLabel));
+        this.RaisePropertyChanged(nameof(HeuristicWarningText));
+        this.RaisePropertyChanged(nameof(HeuristicReviewLabel));
+        this.RaisePropertyChanged(nameof(HeuristicSendAnywayLabel));
         foreach (var item in Messages)
             item.RefreshLocalizedDisplay();
     }

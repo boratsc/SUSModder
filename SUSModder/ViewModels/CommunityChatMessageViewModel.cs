@@ -2,6 +2,7 @@ using System;
 using ReactiveUI;
 using SUSModder.Core.Models;
 using SUSModder.Core.Services.Localization;
+using SUSModder.Services;
 
 namespace SUSModder.ViewModels;
 
@@ -34,11 +35,24 @@ public sealed class CommunityChatMessageViewModel : ReactiveObject
     public string Id { get; }
 
     private string _content = string.Empty;
-    /// <summary>Treść wyświetlana jako zwykły tekst (bez HTML/Markdown).</summary>
+    /// <summary>Oryginalna treść wiadomości (bez HTML/Markdown) — źródło prawdy.</summary>
     public string Content
     {
         get => _content;
         private set => this.RaiseAndSetIfChanged(ref _content, value);
+    }
+
+    private string _displayContent = string.Empty;
+
+    /// <summary>
+    /// Treść prezentacyjna z emotikonami ASCII zamienionymi na emoji.
+    /// Zmienia się wyłącznie przy nowej treści z serwera, więc zaznaczenie tekstu
+    /// nie jest resetowane przy każdym pollingu.
+    /// </summary>
+    public string DisplayContent
+    {
+        get => _displayContent;
+        private set => this.RaiseAndSetIfChanged(ref _displayContent, value);
     }
 
     private DateTimeOffset? _publishedAt;
@@ -83,7 +97,10 @@ public sealed class CommunityChatMessageViewModel : ReactiveObject
         }
 
         if (!string.Equals(Content, message.Content, StringComparison.Ordinal))
+        {
             Content = message.Content;
+            DisplayContent = CommunityChatEmojiRenderer.Render(message.Content);
+        }
 
         if (PublishedAt != message.PublishedAt)
             PublishedAt = message.PublishedAt;
