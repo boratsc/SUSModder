@@ -37,6 +37,7 @@ namespace SUSModder.Core.GameIntegration
         private readonly string manifestDirectory;
         private readonly string installDirectory;
         private const string EpicAppId = "963137e4c29d4c79a81323b8fab03a40";
+        private const string NoBaseUrlsErrorMarker = "No base URLs found";
         private readonly string appSettingsFilePath;
         private readonly string logFilePath;
         private readonly string legendaryLogFilePath;
@@ -324,6 +325,22 @@ namespace SUSModder.Core.GameIntegration
         {
             public string app_name { get; set; } = string.Empty;
             public string install_path { get; set; } = string.Empty;
+        }
+
+        private sealed class LegendaryRunResult
+        {
+            private readonly IReadOnlyList<string> _standardError;
+
+            public LegendaryRunResult(int exitCode, IReadOnlyList<string> standardError)
+            {
+                ExitCode = exitCode;
+                _standardError = standardError;
+            }
+
+            public int ExitCode { get; }
+
+            public bool ContainsError(string marker)
+                => _standardError.Any(line => line.Contains(marker, StringComparison.OrdinalIgnoreCase));
         }
 
         private class OwnedGame
@@ -1307,7 +1324,10 @@ namespace SUSModder.Core.GameIntegration
                 }
 
                 LogToFile($"Repair nie powiódł się → fallback install: {installArgs}");
-                await RunLegendaryCommandAsync(installArgs);
+                if (modConfig.Id == 0)
+                    await RunLegendaryCommandAsync(installArgs);
+                else
+                    await RunPinnedManifestInstallAsync(installArgs);
 
                 foundPath = basePath;
             }
@@ -1552,6 +1572,7 @@ namespace SUSModder.Core.GameIntegration
             }
             Directory.CreateDirectory(installDirectory);
             string commandArguments;
+            bool usesPinnedManifest = false;
 
             if (modConfig.Id == 0)
             {
@@ -1566,8 +1587,13 @@ namespace SUSModder.Core.GameIntegration
                     return;
                 }
                 commandArguments = $"install {EpicAppId} -y --manifest \"{manifestFilePath}\" --base-path \"{installDirectory}\"";
+                usesPinnedManifest = true;
             }
-            await RunLegendaryCommandAsync(commandArguments);
+
+            if (usesPinnedManifest)
+                await RunPinnedManifestInstallAsync(commandArguments);
+            else
+                await RunLegendaryCommandAsync(commandArguments);
 
             if (modConfig.Id != 0)
                 EnsureEpicPayloadInsideGameDirectory(installDirectory);
@@ -1593,6 +1619,12 @@ namespace SUSModder.Core.GameIntegration
         }
 
         public async Task RunLegendaryCommandAsync(string commandArguments)
+        {
+            var result = await RunLegendaryCommandCoreAsync(commandArguments);
+            HandleFailedLaunch(commandArguments, result);
+        }
+
+        private async Task<LegendaryRunResult> RunLegendaryCommandCoreAsync(string commandArguments, TimeSpan? timeout = null)
         {
             try
             {
@@ -1643,50 +1675,158 @@ namespace SUSModder.Core.GameIntegration
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
 
-                await Task.Run(() => process.WaitForExit());
+                bool timedOut = false;
+                if (timeout.HasValue)
+                {
+                    using var cts = new System.Threading.CancellationTokenSource(timeout.Value);
+                    try
+                    {
+                        await process.WaitForExitAsync(cts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        timedOut = true;
+                        Write($"legendary.exe przekroczył limit {timeout.Value.TotalSeconds:0} s - kończę proces");
+                        try { process.Kill(entireProcessTree: true); } catch { }
+                        await process.WaitForExitAsync();
+                    }
+                }
+                else
+                {
+                    await Task.Run(() => process.WaitForExit());
+                }
+
+                if (timedOut)
+                    return new LegendaryRunResult(-1, stderrLines);
 
                 var exitMsg = $"Process exited with code {process.ExitCode}";
                 LegendaryOutput?.Invoke(exitMsg);
                 Write(exitMsg);
 
-                // Sprawdź czy wystąpił błąd uruchamiania
-                if (process.ExitCode == 1 && commandArguments.Contains("launch"))
-                {
-                    // Sprawdź czy to konkretnie błąd FileNotFoundError
-                    bool isFileNotFoundError = stderrLines.Any(line =>
-                        line.Contains("FileNotFoundError") ||
-                        line.Contains("Nie można odnaleźć określonego pliku") ||
-                        line.Contains("[WinError 2]"));
-
-                    if (isFileNotFoundError)
-                    {
-                        Write("Wykryto błąd FileNotFoundError - pliki gry nie zostały znalezione");
-                    }
-
-                    _hasLaunchError = true;
-
-                    // Jeśli nie jesteśmy w trakcie retry, nie zgłaszaj jeszcze błędu do frontu
-                    if (!_isRetryingInstallation)
-                    {
-                        Write("Błąd uruchamiania zostanie obsłużony przez automatyczną reinstalację");
-                    }
-                    else
-                    {
-                        // Jeśli to już druga próba (po reinstalacji), zgłoś błąd
-                        string logContent = GetLegendaryLogContent();
-                        string modName = ExtractModNameFromLaunchCommand(commandArguments);
-                        Write($"Błąd uruchamiania po reinstalacji dla moda: {modName}");
-                        EpicLaunchError?.Invoke(modName, logContent);
-                    }
-                }
+                return new LegendaryRunResult(process.ExitCode, stderrLines);
             }
             catch (Exception ex)
             {
                 Write($"ERROR running legendary.exe {commandArguments}: {ex}");
                 Write($"Wystąpił błąd podczas uruchamiania legendary.exe: {ex.Message}");
-                throw; // Przekaż wyjątek wyżej
+                throw;
             }
         }
+
+        private void HandleFailedLaunch(string commandArguments, LegendaryRunResult result)
+        {
+            // Sprawdź czy wystąpił błąd uruchamiania
+            if (result.ExitCode == 1 && commandArguments.Contains("launch"))
+            {
+                // Sprawdź czy to konkretnie błąd FileNotFoundError
+                bool isFileNotFoundError = result.ContainsError("FileNotFoundError") ||
+                                           result.ContainsError("Nie można odnaleźć określonego pliku") ||
+                                           result.ContainsError("[WinError 2]");
+
+                if (isFileNotFoundError)
+                {
+                    Write("Wykryto błąd FileNotFoundError - pliki gry nie zostały znalezione");
+                }
+
+                _hasLaunchError = true;
+
+                // Jeśli nie jesteśmy w trakcie retry, nie zwracaj jeszcze błędu do frontu
+                if (!_isRetryingInstallation)
+                {
+                    Write("Błąd uruchamiania zostanie obsłużony przez automatyczną reinstalację");
+                }
+                else
+                {
+                    // Jeśli to już druga próba (po reinstalacji), wywala błąd
+                    string logContent = GetLegendaryLogContent();
+                    string modName = ExtractModNameFromLaunchCommand(commandArguments);
+                    Write($"Błąd uruchamiania po reinstalacji dla moda: {modName}");
+                    EpicLaunchError?.Invoke(modName, logContent);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Instalacja z przypiętym manifestem (<c>--manifest &lt;plik lokalny&gt;</c>).
+        /// legendary nie odpytuje wtedy API CDN, więc korzysta wyłącznie z <c>base_urls</c> zapisanych
+        /// w metadanych gry - a te są czyszczone przy każdym odświeżeniu metadanych Epic
+        /// (np. po wydaniu nowej wersji Among Us, także przez <c>legendary list-games</c>).
+        /// Bez tego zabezpieczenia instalacja kończy się błędem "No base URLs found, please try again.".
+        /// </summary>
+        private async Task RunPinnedManifestInstallAsync(string commandArguments)
+        {
+            await EnsureLegendaryBaseUrlsAsync();
+
+            var result = await RunLegendaryCommandCoreAsync(commandArguments);
+            HandleFailedLaunch(commandArguments, result);
+
+            if (result.ExitCode == 0 || !result.ContainsError(NoBaseUrlsErrorMarker))
+                return;
+
+            Write("legendary zgłosił brak base_urls w metadanych - uzupełniam je i ponawiam instalację...");
+
+            if (!await EnsureLegendaryBaseUrlsAsync(forceRefresh: true))
+            {
+                Write("BŁĄD: brak base_urls - nie można pobrać plików gry z przypiętego manifestu.");
+                return;
+            }
+
+            var retryResult = await RunLegendaryCommandCoreAsync(commandArguments);
+            HandleFailedLaunch(commandArguments, retryResult);
+
+            if (retryResult.ExitCode != 0 && retryResult.ContainsError(NoBaseUrlsErrorMarker))
+                Write("Ponowna próba instalacji również zgłosiła brak base_urls.");
+        }
+
+        /// <summary>
+        /// Uzupełnia <c>base_urls</c> w metadanych legendary. Wymusza jednorazowe pobranie manifestu
+        /// z CDN (instalacja z filtrem, który nie pasuje do żadnego pliku - nic nie jest pobierane),
+        /// dzięki czemu legendary zapisuje aktualne adresy CDN do metadanych.
+        /// </summary>
+        private async Task<bool> EnsureLegendaryBaseUrlsAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && HasLegendaryBaseUrls())
+                return true;
+
+            Write("[BaseUrls] Uzupełnianie brakujących base_urls w metadanych legendary...");
+
+            string warmupDirectory = Path.Combine(Path.GetTempPath(), "SUSModder", "legendary-warmup");
+            try
+            {
+                Directory.CreateDirectory(warmupDirectory);
+
+                // Prefix ustawia w legendary tryb --no-install i nie pobiera plików
+                string warmupArguments =
+                    $"install {EpicAppId} -y --skip-dlcs " +
+                    $"--base-path \"{warmupDirectory}\" " +
+                    $"--prefix \"susmodder-warmup-{Guid.NewGuid():N}\"";
+
+                // Kod wyjścia bywa != 0 (legendary wywala AttributeError przy zerowym rozmiarze pobierania)
+                var result = await RunLegendaryCommandCoreAsync(warmupArguments, TimeSpan.FromMinutes(2));
+                LogToFile($"[BaseUrls] Odświeżenie metadanych z CDN zakończone kodem {result.ExitCode}");
+            }
+            catch (Exception ex)
+            {
+                LogToFile($"[BaseUrls] Nie udało się odświeżyć metadanych: {ex.Message}");
+            }
+            finally
+            {
+                TryDeleteEmptyDirectory(warmupDirectory);
+            }
+
+            bool hasBaseUrls = HasLegendaryBaseUrls();
+            if (hasBaseUrls)
+                Write("[BaseUrls] base_urls w metadanych legendary są dostępne.");
+            else
+                Write("OSTRZEŻENIE: Nie udało się uzupełnić base_urls - instalacja z przypiętym manifestem może się nie powieść.");
+
+            return hasBaseUrls;
+        }
+
+        private static bool HasLegendaryBaseUrls()
+            => LegendaryBaseUrlState.HasBaseUrls(
+                LegendaryBaseUrlState.ResolveConfigDirectory(),
+                EpicAppId);
 
         private void ParseAndReportProgress(string logLine)
         {
