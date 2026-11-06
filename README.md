@@ -45,6 +45,11 @@ Działa z grą ze **Steama** i **Epic Games**. Nie musisz szukać plików, wersj
   <em>Instalacja i start gry - kilka kliknięć</em>
 </p>
 
+<p align="center">
+  <img src="DOC/readme/screenshot-my-packs.png" alt="Moje zestawy modów" width="700"><br>
+  <em>Własne zestawy modów</em>
+</p>
+
 ---
 
 ## Co potrafi?
@@ -118,6 +123,11 @@ Works with **Steam** and **Epic Games**. No hunting for files, versions, or YouT
   &nbsp;
   <img src="DOC/readme/screenshot-launch.png" alt="Launching the game" width="340"><br>
   <em>Install and launch - just a few clicks</em>
+</p>
+
+<p align="center">
+  <img src="DOC/readme/screenshot-my-packs.png" alt="My mod packs" width="700"><br>
+  <em>Your own mod packs</em>
 </p>
 
 ---
