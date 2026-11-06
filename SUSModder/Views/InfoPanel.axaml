@@ -157,6 +157,25 @@
 							</StackPanel>
 						</Grid>
 					</Border>
+
+					<Border Classes="person-row">
+						<Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+							<Border Width="28"
+									Height="28"
+									Background="#2E7D5B"
+									CornerRadius="14"
+									VerticalAlignment="Center">
+								<TextBlock Text="🤝" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+							</Border>
+							<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+								<TextBlock Text="pxtrez"
+										   FontSize="14"
+										   FontWeight="SemiBold"
+										   Foreground="{DynamicResource TextPrimaryBrush}"/>
+								<TextBlock Text="{loc:Localize About.FirstCommunityLabel}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+							</StackPanel>
+						</Grid>
+					</Border>
 				</StackPanel>
 			</Border>
 

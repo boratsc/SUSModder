@@ -114,6 +114,117 @@
 					</StackPanel>
 				</Border>
 
+				<!-- Epic: wersja narzędzia legendary.exe -->
+				<Border Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="8"
+						Padding="15"
+						IsVisible="{Binding IsEpicLegendarySectionVisible}">
+					<StackPanel Spacing="12">
+						<TextBlock Text="{local:Localize Settings.LegendaryVersion.Label}"
+								   FontSize="15" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<TextBlock Text="{local:Localize Settings.LegendaryVersion.Description}"
+								   FontSize="12"
+								   TextWrapping="Wrap"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+						<TextBlock Text="{Binding LegendaryCurrentSummary}"
+								   FontSize="12"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+						<TextBlock Text="{local:Localize Settings.LegendaryVersion.CheckingState}"
+								   FontSize="11"
+								   TextWrapping="Wrap"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   IsVisible="{Binding IsLegendaryChecking}"/>
+						<Grid ColumnDefinitions="*,Auto"
+							  IsVisible="{Binding HasLegendaryStateError}">
+							<TextBlock Grid.Column="0"
+									   Text="{Binding LegendaryStateError}"
+									   FontSize="11"
+									   TextWrapping="Wrap"
+									   VerticalAlignment="Center"
+									   Foreground="{DynamicResource DangerBrush}"/>
+							<Button Grid.Column="1"
+									Content="{local:Localize Settings.LegendaryVersion.Retry}"
+									Command="{Binding RetryLegendaryStateCommand}"
+									FontSize="11"
+									Padding="10,4"
+									Margin="8,0,0,0"/>
+						</Grid>
+
+						<StackPanel Spacing="12" IsEnabled="{Binding IsLegendarySectionReady}">
+
+						<StackPanel Spacing="6" IsEnabled="{Binding !IsLegendarySwitching}">
+							<RadioButton x:Name="LegendaryPinnedRadioButton"
+										 Content="{local:Localize Settings.LegendaryVersion.Pinned}"
+										 IsChecked="{Binding LegendaryModePinned}"
+										 Foreground="{DynamicResource TextPrimaryBrush}"/>
+							<RadioButton x:Name="LegendaryManualRadioButton"
+										 Content="{local:Localize Settings.LegendaryVersion.Manual}"
+										 IsChecked="{Binding LegendaryModeManual}"
+										 Foreground="{DynamicResource TextPrimaryBrush}"/>
+						</StackPanel>
+
+						<StackPanel Spacing="8" IsVisible="{Binding IsLegendaryManualVisible}">
+							<ComboBox ItemsSource="{Binding LegendaryReleases}"
+									  SelectedItem="{Binding SelectedLegendaryRelease, Mode=TwoWay}"
+									  PlaceholderText="{local:Localize Settings.LegendaryVersion.SelectRelease}"
+									  Width="240"
+									  HorizontalAlignment="Left"
+									  FontSize="12"
+									  Padding="10,8"
+									  Background="{DynamicResource SecondaryBackgroundBrush}"
+									  BorderBrush="{DynamicResource BorderBrush}"
+									  BorderThickness="1"
+									  CornerRadius="4"
+									  IsEnabled="{Binding !IsLegendarySwitching}">
+								<ComboBox.ItemTemplate>
+									<DataTemplate>
+										<TextBlock Text="{Binding DisplayName}"/>
+									</DataTemplate>
+								</ComboBox.ItemTemplate>
+							</ComboBox>
+
+							<TextBlock Text="{local:Localize Settings.LegendaryVersion.Loading}"
+									   FontSize="11"
+									   Foreground="{DynamicResource TextSecondaryBrush}"
+									   IsVisible="{Binding IsLegendaryReleasesLoading}"/>
+
+							<Grid ColumnDefinitions="*,Auto"
+								  IsVisible="{Binding HasLegendaryReleasesError}">
+								<TextBlock Grid.Column="0"
+										   Text="{Binding LegendaryReleasesError}"
+										   FontSize="11"
+										   TextWrapping="Wrap"
+										   VerticalAlignment="Center"
+										   Foreground="{DynamicResource DangerBrush}"/>
+								<Button Grid.Column="1"
+										Content="{local:Localize Settings.LegendaryVersion.Retry}"
+										Command="{Binding ReloadLegendaryReleasesCommand}"
+										FontSize="11"
+										Padding="10,4"
+										Margin="8,0,0,0"/>
+							</Grid>
+
+							<Button Content="{local:Localize Settings.LegendaryVersion.Apply}"
+									Command="{Binding ApplyLegendaryVersionCommand}"
+									HorizontalAlignment="Left"
+									IsEnabled="{Binding !IsLegendarySwitching}"/>
+						</StackPanel>
+
+						<StackPanel Spacing="4" IsVisible="{Binding IsLegendarySwitching}">
+							<ProgressBar IsIndeterminate="True" Height="4"/>
+							<TextBlock Text="{Binding LegendarySwitchStatus}"
+									   FontSize="11"
+									   Foreground="{DynamicResource TextSecondaryBrush}"/>
+						</StackPanel>
+
+						</StackPanel>
+					</StackPanel>
+				</Border>
+
 				<!-- Sekcja wyboru języka -->
 				<Border Background="{DynamicResource ModCardBackgroundBrush}"
 						BorderBrush="{DynamicResource ModCardBorderBrush}"

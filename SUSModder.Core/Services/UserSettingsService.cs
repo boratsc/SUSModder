@@ -76,13 +76,13 @@ namespace SUSModder.Core.Services
         public UserSettings LoadUserSettings()
         {
             if (_cachedSettings != null)
-                return _cachedSettings;
+                return _cachedSettings.Copy();
 
             try
             {
                 if (UseSqlite)
                 {
-                    _cachedSettings = _repository!.LoadSettings();
+                    _cachedSettings = _repository!.LoadSettings().Copy();
                     DetectAndUpdateChannelIfNeeded(_cachedSettings);
                     RunMigrations(_cachedSettings);
                     if (SanitizeModsInstallPathIfNeeded(_cachedSettings))
@@ -110,13 +110,13 @@ namespace SUSModder.Core.Services
                     }
                 }
 
-                return _cachedSettings;
+                return _cachedSettings.Copy();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[UserSettingsService] Błąd wczytywania ustawień: {ex.Message}");
                 _cachedSettings = new UserSettings();
-                return _cachedSettings;
+                return _cachedSettings.Copy();
             }
         }
 
@@ -129,22 +129,42 @@ namespace SUSModder.Core.Services
         {
             try
             {
+                bool updateTelemetry = _cachedSettings == null || settings.TelemetryEnabled != _cachedSettings.TelemetryEnabled;
                 if (UseSqlite)
                 {
-                    _repository!.SaveSettings(settings);
+                    if (_repository is UserSettingsRepository sqliteRepository)
+                    {
+                        sqliteRepository.SaveSettings(settings, updateTelemetry);
+                        _cachedSettings = sqliteRepository.LoadSettings().Copy();
+                    }
+                    else
+                    {
+                        var toSave = settings.Copy();
+                        if (!updateTelemetry)
+                            toSave.TelemetryEnabled = _repository!.LoadSettings().TelemetryEnabled;
+                        _repository!.SaveSettings(toSave);
+                        _cachedSettings = toSave.Copy();
+                    }
                 }
                 else
                 {
                     EnsureAppDataFolderExists();
 
+                    var toSave = settings.Copy();
+                    if (!updateTelemetry && File.Exists(UserSettingsPath))
+                    {
+                        var current = JsonSerializer.Deserialize<UserSettings>(File.ReadAllText(UserSettingsPath));
+                        if (current != null)
+                            toSave.TelemetryEnabled = current.TelemetryEnabled;
+                    }
                     var options = new JsonSerializerOptions { WriteIndented = true };
-                    var json = JsonSerializer.Serialize(settings, options);
+                    var json = JsonSerializer.Serialize(toSave, options);
                     File.WriteAllText(UserSettingsPath, json);
+                    _cachedSettings = toSave.Copy();
 
                     System.Diagnostics.Debug.WriteLine($"[UserSettingsService] Zapisano ustawienia do JSON: {UserSettingsPath}");
                 }
 
-                _cachedSettings = settings;
             }
             catch (Exception ex)
             {

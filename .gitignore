@@ -9,6 +9,14 @@
 # DOC content lives in AFFiNE; only README stub is tracked
 DOC/**
 !DOC/README.md
+# README screenshots are part of the public repository
+!DOC/readme/
+DOC/readme/*
+!DOC/readme/logo.png
+!DOC/readme/screenshot-main.png
+!DOC/readme/screenshot-install.png
+!DOC/readme/screenshot-launch.png
+!DOC/readme/screenshot-my-packs.png
 docs/
 # NOTE: .github/ must NOT be ignored — workflows live there for CI/CD
 

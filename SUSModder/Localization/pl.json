@@ -874,6 +874,40 @@
         "Description": "Wyłączone: paczki 7z SUSModder (domyślnie). Włączone: pobieranie plików gry z konta Steam po zeskanowaniu kodu QR."
       }
     },
+    "LegendaryVersion": {
+      "Label": "Wersja programu Legendary",
+      "Description": "Legendary to program, którego SUSModder używa z grą Among Us w Epic Games. Wersja zalecana to domyślna wersja Legendary w SUSModder — aplikacja jest z nią skonfigurowana. Inne wersje wybieraj tylko wtedy, gdy wiesz, po co ich potrzebujesz.",
+      "Pinned": "Wersja zalecana (domyślna)",
+      "Manual": "Inna wersja (dla zaawansowanych)",
+      "CurrentFormat": "Obecnie: {0}",
+      "SelectRelease": "Wybierz wersję…",
+      "Loading": "Ładowanie wersji…",
+      "Retry": "Spróbuj ponownie",
+      "Apply": "Zainstaluj wybraną wersję",
+      "Switching": "Instalowanie wersji {0}…",
+      "ConfirmSwitch": "Inne wersje niż zalecana mogą nie działać poprawnie. SUSModder nie sprawdza, czy wybrana wersja nadaje się do gry — upewni się tylko, czy plik pobrał się w całości. Zainstalować wersję {0}?",
+      "ConfirmPinned": "Wrócić do wersji zalecanej ({0})? To wersja, z której SUSModder korzysta domyślnie.",
+      "Success": "Zainstalowano wersję {0}.",
+      "NoReleases": "Nie ma innych wersji do wyboru.",
+      "LoadError": "Nie udało się wczytać listy wersji. Sprawdź połączenie z internetem i spróbuj ponownie.",
+      "CheckingState": "Sprawdzanie wersji Legendary…",
+      "StateError": "Nie udało się sprawdzić wersji Legendary. Spróbuj ponownie.",
+      "NoBinary": "Nie udało się ustalić obecnej wersji Legendary. Wybierz wersję i zainstaluj ją.",
+      "Phases": {
+        "Downloading": "Pobieranie pliku…",
+        "Verifying": "Sprawdzanie pobranego pliku…",
+        "Installing": "Wymiana programu Legendary…"
+      },
+      "Errors": {
+        "Offline": "Brak internetu — nie da się pobrać wersji.",
+        "GitHubUnavailable": "Serwer z listą wersji nie odpowiada. Spróbuj później.",
+        "NoWindowsAsset": "Ta wersja nie ma pliku na komputery z Windows.",
+        "ToolBusy": "Legendary jest teraz używany (np. gra właśnie się pobiera lub uruchamia). Poczekaj chwilę i spróbuj ponownie.",
+        "HashMismatch": "Pobrany plik jest uszkodzony albo niezgodny z oczekiwanym. SUSModder go nie zainstalował.",
+        "Failed": "Nie udało się zmienić wersji.",
+        "Unknown": "Nieznany błąd: {0}"
+      }
+    },
     "Advanced": {
       "Title": "Ustawienia deweloperskie",
       "DeveloperMode": {
@@ -1004,11 +1038,12 @@
     "ThirdPartyLibraries": "Biblioteki zewnętrzne",
     "CreatorLabel": "TWÓRCA APLIKACJI",
     "GraphicsLabel": "GRAFIKI",
+    "FirstCommunityLabel": "PIERWSZY WSPÓŁTWÓRCA ZE SPOŁECZNOŚCI",
     "TestersLabel": "TESTERZY",
     "TestersCommunity": "Społeczność Psychopatyczna",
     "SpecialThanksLabel": "SPECJALNE PODZIĘKOWANIA",
     "SpecialThanksMessage": "Dzięki za pomoc przy testach, feedbacku i rozwoju projektu.",
-    "CreatorAndGraphicsHeader": "TWÓRCA APLIKACJI I GRAFIKI",
+    "CreatorAndGraphicsHeader": "TWÓRCY I WSPÓŁTWÓRCY",
     "VersionShort": "Wersja v{0}",
     "Tagline": "Among Us Mod Manager",
     "Email": "E-mail",

@@ -24,12 +24,12 @@ namespace SUSModder.Core.Data
         {
             // Zwróć z cache jeśli dostępne
             if (_cachedSettings != null)
-                return _cachedSettings;
+                return _cachedSettings.Copy();
 
             lock (_cacheLock)
             {
                 if (_cachedSettings != null)
-                    return _cachedSettings;
+                    return _cachedSettings.Copy();
 
                 var conn = _db.GetConnection();
                 using var cmd = conn.CreateCommand();
@@ -43,16 +43,23 @@ namespace SUSModder.Core.Data
                 else
                 {
                     // Wstaw domyślny wiersz jeśli nie istnieje
-                    _cachedSettings = new UserSettings();
-                    SaveSettings(_cachedSettings);
+                    var defaults = new UserSettings();
+                    SaveSettings(defaults);
+                    _cachedSettings = defaults;
                 }
 
-                return _cachedSettings;
+                _cachedSettings.LegendaryBaseline = _cachedSettings.LegendarySelection;
+                return _cachedSettings.Copy();
             }
         }
 
         /// <inheritdoc/>
         public void SaveSettings(UserSettings settings)
+        {
+            SaveSettings(settings, true);
+        }
+
+        internal void SaveSettings(UserSettings settings, bool updateTelemetry)
         {
             var conn = _db.GetConnection();
             using var cmd = conn.CreateCommand();
@@ -68,7 +75,9 @@ namespace SUSModder.Core.Data
                     glass_reduce_transparency,
                     prefer_depot_downloader, developer_mode,
                     support_banner_dismissed_at,
-                    chat_rules_acknowledged_version
+                    chat_rules_acknowledged_version,
+                    legendary_use_pinned, legendary_release_source, legendary_release_tag,
+                    legendary_release_asset, legendary_release_sha256
                 ) VALUES (
                     1, @mode, @last_launch_id, @theme, @language, @telemetry_enabled,
                     @mods_install_path, @license_accepted, @first_run_date, @update_channel,
@@ -80,14 +89,16 @@ namespace SUSModder.Core.Data
                     @glass_reduce_transparency,
                     @prefer_depot_downloader, @developer_mode,
                     @support_banner_dismissed_at,
-                    @chat_rules_acknowledged_version
+                    @chat_rules_acknowledged_version,
+                    @legendary_use_pinned, @legendary_release_source, @legendary_release_tag,
+                    @legendary_release_asset, @legendary_release_sha256
                 )
                 ON CONFLICT(id) DO UPDATE SET
                     mode = excluded.mode,
                     last_launch_id = excluded.last_launch_id,
                     theme = excluded.theme,
                     language = excluded.language,
-                    telemetry_enabled = excluded.telemetry_enabled,
+                    telemetry_enabled = CASE WHEN @telemetry_changed THEN excluded.telemetry_enabled ELSE telemetry_enabled END,
                     mods_install_path = excluded.mods_install_path,
                     license_accepted = excluded.license_accepted,
                     first_run_date = excluded.first_run_date,
@@ -108,13 +119,19 @@ namespace SUSModder.Core.Data
                     prefer_depot_downloader = excluded.prefer_depot_downloader,
                     developer_mode = excluded.developer_mode,
                     support_banner_dismissed_at = excluded.support_banner_dismissed_at,
-                    chat_rules_acknowledged_version = excluded.chat_rules_acknowledged_version;";
+                    chat_rules_acknowledged_version = excluded.chat_rules_acknowledged_version,
+                    legendary_use_pinned = CASE WHEN @legendary_changed THEN excluded.legendary_use_pinned ELSE legendary_use_pinned END,
+                    legendary_release_source = CASE WHEN @legendary_changed THEN excluded.legendary_release_source ELSE legendary_release_source END,
+                    legendary_release_tag = CASE WHEN @legendary_changed THEN excluded.legendary_release_tag ELSE legendary_release_tag END,
+                    legendary_release_asset = CASE WHEN @legendary_changed THEN excluded.legendary_release_asset ELSE legendary_release_asset END,
+                    legendary_release_sha256 = CASE WHEN @legendary_changed THEN excluded.legendary_release_sha256 ELSE legendary_release_sha256 END;";
 
             cmd.Parameters.AddWithValue("@mode", settings.Mode ?? string.Empty);
             cmd.Parameters.AddWithValue("@last_launch_id", settings.LastLaunchId);
             cmd.Parameters.AddWithValue("@theme", settings.Theme ?? "dark");
             cmd.Parameters.AddWithValue("@language", settings.Language ?? string.Empty);
             cmd.Parameters.AddWithValue("@telemetry_enabled", settings.TelemetryEnabled ? 1 : 0);
+            cmd.Parameters.AddWithValue("@telemetry_changed", updateTelemetry ? 1 : 0);
             cmd.Parameters.AddWithValue("@mods_install_path", settings.ModsInstallPath ?? string.Empty);
             cmd.Parameters.AddWithValue("@license_accepted", settings.LicenseAccepted ? 1 : 0);
             cmd.Parameters.AddWithValue("@first_run_date", settings.FirstRunDate ?? string.Empty);
@@ -136,14 +153,23 @@ namespace SUSModder.Core.Data
             cmd.Parameters.AddWithValue("@developer_mode", settings.DeveloperMode ? 1 : 0);
             cmd.Parameters.AddWithValue("@support_banner_dismissed_at", settings.SupportBannerDismissedAt ?? string.Empty);
             cmd.Parameters.AddWithValue("@chat_rules_acknowledged_version", settings.ChatRulesAcknowledgedVersion);
+            cmd.Parameters.AddWithValue("@legendary_use_pinned", settings.LegendaryUsePinned ? 1 : 0);
+            cmd.Parameters.AddWithValue("@legendary_release_source", settings.LegendaryReleaseSource ?? string.Empty);
+            cmd.Parameters.AddWithValue("@legendary_release_tag", settings.LegendaryReleaseTag ?? string.Empty);
+            cmd.Parameters.AddWithValue("@legendary_release_asset", settings.LegendaryReleaseAsset ?? string.Empty);
+            cmd.Parameters.AddWithValue("@legendary_release_sha256", settings.LegendaryReleaseSha256 ?? string.Empty);
+            bool legendaryChanged = settings.LegendaryBaseline is null || settings.LegendaryBaseline.Value != settings.LegendarySelection;
+            cmd.Parameters.AddWithValue("@legendary_changed", legendaryChanged ? 1 : 0);
 
             cmd.ExecuteNonQuery();
 
             // Aktualizuj cache
             lock (_cacheLock)
             {
-                _cachedSettings = settings;
+                _cachedSettings = null;
             }
+            if (legendaryChanged)
+                settings.LegendaryBaseline = settings.LegendarySelection;
 
             System.Diagnostics.Debug.WriteLine("[UserSettingsRepository] Ustawienia zapisane do SQLite.");
         }
@@ -162,7 +188,9 @@ namespace SUSModder.Core.Data
                 "mod_packs_enabled", "mod_packs_auto_install", "glass_reduce_transparency",
                 "prefer_depot_downloader", "mod_pack_share_creator_name", "mod_pack_share_discord_invite",
                 "developer_mode", "support_banner_dismissed_at",
-                "chat_rules_acknowledged_version"
+                "chat_rules_acknowledged_version",
+                "legendary_use_pinned", "legendary_release_source", "legendary_release_tag",
+                "legendary_release_asset", "legendary_release_sha256"
             };
 
             if (!allowedColumns.Contains(columnName))
@@ -234,7 +262,12 @@ namespace SUSModder.Core.Data
                 PreferDepotDownloader = TryGetBool(reader, "prefer_depot_downloader", false),
                 DeveloperMode = TryGetBool(reader, "developer_mode", false),
                 SupportBannerDismissedAt = TryGetString(reader, "support_banner_dismissed_at", string.Empty),
-                ChatRulesAcknowledgedVersion = TryGetInt(reader, "chat_rules_acknowledged_version", 0)
+                ChatRulesAcknowledgedVersion = TryGetInt(reader, "chat_rules_acknowledged_version", 0),
+                LegendaryUsePinned = TryGetBool(reader, "legendary_use_pinned", true),
+                LegendaryReleaseSource = TryGetString(reader, "legendary_release_source", string.Empty),
+                LegendaryReleaseTag = TryGetString(reader, "legendary_release_tag", string.Empty),
+                LegendaryReleaseAsset = TryGetString(reader, "legendary_release_asset", string.Empty),
+                LegendaryReleaseSha256 = TryGetString(reader, "legendary_release_sha256", string.Empty)
             };
         }
 

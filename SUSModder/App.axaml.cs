@@ -149,6 +149,18 @@ public partial class App : Application
         // Rejestracja diagnostyki
         services.AddSingleton<IDiagnosticsOutput>(_ => DebugDiagnosticsOutput.Instance);
 
+        // Selektor wersji legendary.exe (Settings, tylko Epic).
+        // Backend: SUSModder.Core.GameIntegration.LegendaryVersionService (Core nie zna typów UI,
+        // więc adapter mapuje wyniki na kontrakt SUSModder.Services).
+        services.AddSingleton<SUSModder.Core.GameIntegration.ILegendaryVersionProvider>(
+            sp => new SUSModder.Core.GameIntegration.LegendaryVersionService(
+                sp.GetRequiredService<IUserSettingsRepository>(),
+                httpClient: null,
+                sp.GetRequiredService<IDiagnosticsOutput>()));
+        services.AddSingleton<ILegendaryVersionService>(sp =>
+            new CoreLegendaryVersionService(
+                sp.GetRequiredService<SUSModder.Core.GameIntegration.ILegendaryVersionProvider>()));
+
         services.AddSingleton<ISUSModderApiClient>(sp =>
         {
             var config = sp.GetRequiredService<IConfiguration>();
@@ -386,11 +398,25 @@ public partial class App : Application
                 }
             }
 
-            // KROK 1.7: Jeśli tryb Epic – zweryfikuj logowanie (pobierz legendary jeśli trzeba)
+            // KROK 1.7: Jeśli tryb Epic – zweryfikuj logowanie (pobierz legendary jeśli trzeba).
+            // Uwaga: tryb może się tu zmienić (user wybiera Steam albo zamyka aplikację),
+            // dlatego po tym kroku czytamy tryb PONOWNIE z ustawień.
+            var modeBeforeAuth = userSettingsService.LoadUserSettings().Mode;
+            if (string.Equals(modeBeforeAuth, "epic", StringComparison.OrdinalIgnoreCase))
+            {
+                await HandleEpicAuthenticationAsync(userSettingsService);
+            }
+
+            // KROK 1.8: Aktualizacja wersji legendary.exe w tle — tylko gdy tryb Epic
+            // został OSTATECZNIE potwierdzony (po odrzuceniu logowania może być Steam).
+            // Aktualizacja respektuje świadomy wybór ręczny i nie nadpisuje go przypiętą wersją.
             var finalMode = userSettingsService.LoadUserSettings().Mode;
             if (string.Equals(finalMode, "epic", StringComparison.OrdinalIgnoreCase))
             {
-                await HandleEpicAuthenticationAsync(userSettingsService);
+                SUSModder.Core.GameIntegration.LegendaryBackgroundUpdater.Schedule(
+                    finalMode,
+                    _serviceProvider?.GetService<SUSModder.Core.GameIntegration.ILegendaryVersionProvider>(),
+                    _serviceProvider?.GetService<IDiagnosticsOutput>());
             }
 
             // KROK 2: Inicjalizacja ConsoleLogger (20%)
@@ -636,6 +662,23 @@ public partial class App : Application
             // Pobierz legendary.exe jeśli nie istnieje
             _splashWindow?.UpdateProgress(0.1, "Przygotowywanie Epic Games...");
             await epicManager.EnsureLegendaryExistsAsync();
+
+            // Uszkodzony lub nieznany plik naprawiamy przed logowaniem, nigdy go nie uruchamiając.
+            var legendaryProvider = _serviceProvider?.GetService<SUSModder.Core.GameIntegration.ILegendaryVersionProvider>();
+            if (legendaryProvider != null)
+            {
+                var inspection = await legendaryProvider.InspectInstalledAsync();
+                if (inspection.Trust is SUSModder.Core.GameIntegration.LegendaryToolTrust.Untrusted
+                    or SUSModder.Core.GameIntegration.LegendaryToolTrust.Missing)
+                {
+                    var repair = await legendaryProvider.EnsureInstalledAsync();
+                    if (!repair.Success)
+                    {
+                        Debug.WriteLine($"[App] Nie udało się przygotować Legendary: {repair.ErrorCode}");
+                        return;
+                    }
+                }
+            }
 
             // Sprawdź status logowania
             _splashWindow?.UpdateProgress(0.12, "Weryfikacja sesji Epic Games...");
