@@ -342,6 +342,7 @@ public partial class App : Application
             }
 
             var currentMode = userSettingsService.LoadUserSettings().Mode;
+            var firstSetupCompletedThisSession = false;
             if (forceOnboarding || string.IsNullOrEmpty(currentMode))
             {
                 // Platforma nie jest ustawiona - pokaż dialog wyboru (wymagany wybór!)
@@ -368,6 +369,9 @@ public partial class App : Application
                     });
                     return;
                 }
+
+                // Pierwsza konfiguracja (język + platforma) została ukończona w tym przebiegu.
+                firstSetupCompletedThisSession = true;
             }
 
             if (forceOnboarding)
@@ -452,7 +456,7 @@ public partial class App : Application
                 mainWindow.UpdateTrayModsList();
 
                 // Po załadowaniu głównego okna uruchom zadania post-startowe.
-                _ = RunPostStartupTasksAsync(mainWindow, viewModel, userSettingsService);
+                _ = RunPostStartupTasksAsync(mainWindow, viewModel, userSettingsService, firstSetupCompletedThisSession);
 
                 // IPC: druga instancja może przekazać susmodder://pack/...
                 viewModel.StartModPackDeepLinkServer();
@@ -519,7 +523,8 @@ public partial class App : Application
     private async Task RunPostStartupTasksAsync(
         MainWindow mainWindow,
         MainWindowViewModel viewModel,
-        UserSettingsService userSettingsService)
+        UserSettingsService userSettingsService,
+        bool firstSetupCompletedThisSession)
     {
         try
         {
@@ -540,6 +545,23 @@ public partial class App : Application
         }
 
         _ = viewModel.CheckForUpdatesAfterMainWindowLoadAsync();
+
+        // Główna pętla wystartowała — dopiero teraz bezpieczny headless-test logowania Steam
+        // po ŚWIEŻO ukończonej pierwszej konfiguracji z wybranym Steam (jednorazowo w procesie).
+        // Wymagane świeże odczytanie trybu: użytkownik mógł zmienić platformę w trakcie startu.
+        try
+        {
+            var postStartupMode = userSettingsService.LoadUserSettings().Mode;
+            if (firstSetupCompletedThisSession
+                && string.Equals(postStartupMode, "steam", StringComparison.OrdinalIgnoreCase))
+            {
+                viewModel.ScheduleSteamLoginCheckAfterFirstSetup();
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[App] Błąd planowania testu logowania Steam: {ex.Message}");
+        }
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]

@@ -490,6 +490,22 @@
         "LoginError": "Failed to log in to Epic Games account.",
         "Error": "Error during Epic Games operation: {0}"
       },
+      "SteamLoginCheck": {
+        "Title": "Repair Steam login",
+        "Description": "Starts Among Us from your Steam library in the background and checks account login.",
+        "ConfirmMessage": "Among Us will start in the background through Steam. Steam may ask you to confirm the launch options. Continue?",
+        "Running": "Steam login test running…",
+        "RunningHint": "If Steam asks you to confirm the launch options, select Launch. Clicking stops SUSModder from waiting; also dismiss any Steam prompt.",
+        "Success": "Steam login was confirmed.",
+        "NotConfirmedTitle": "Steam login not confirmed",
+        "NotConfirmed": "Login was not confirmed. Check whether Steam is waiting for confirmation, or launch the game manually through Steam. Diagnostic log: {0}",
+        "GameRunning": "Among Us is already running — the test was skipped and the game was not touched.",
+        "SteamUnavailable": "Cannot start the test: Steam (steam://) is unavailable. Check the Steam installation and try again.",
+        "GameNotInstalled": "Among Us was not found in your Steam library. Install the game and retry configuration from the repair tools.",
+        "ProcessLeftOpen": "Note: the test process could not be confirmed as owned by this test, so it was not closed automatically. Close Among Us manually if it is still running.",
+        "Failed": "Steam login test failed: {0}",
+        "WindowsOnly": "This feature is only available on Windows."
+      },
       "Cancelled": "Operation cancelled by user.",
       "Error": "Error during repair: {0}"
     },
