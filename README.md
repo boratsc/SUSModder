@@ -30,19 +30,21 @@ Działa z grą ze **Steama** i **Epic Games**. Nie musisz szukać plików, wersj
 
 ## Zobacz, jak to wygląda
 
-<!-- screenshot-main: główne okno z listą modów (motyw ciemny, kilka modów widocznych, pasek wyszukiwania) -->
 <p align="center">
   <img src="DOC/readme/screenshot-main.png" alt="Lista modów w SUSModder" width="700"><br>
   <em>Lista modów - wszystko w jednym miejscu</em>
 </p>
 
-<!-- screenshot-install: szczegóły wybranego moda z widocznym przyciskiem Instaluj -->
-<!-- screenshot-launch: ten sam mod po instalacji z widocznym przyciskiem Uruchom -->
 <p align="center">
   <img src="DOC/readme/screenshot-install.png" alt="Instalacja moda" width="340">
   &nbsp;
   <img src="DOC/readme/screenshot-launch.png" alt="Uruchomienie gry" width="340"><br>
   <em>Instalacja i start gry - kilka kliknięć</em>
+</p>
+
+<p align="center">
+  <img src="DOC/readme/screenshot-my-packs.png" alt="Moje zestawy modów" width="700"><br>
+  <em>Własne zestawy modów</em>
 </p>
 
 ---
@@ -118,6 +120,11 @@ Works with **Steam** and **Epic Games**. No hunting for files, versions, or YouT
   &nbsp;
   <img src="DOC/readme/screenshot-launch.png" alt="Launching the game" width="340"><br>
   <em>Install and launch - just a few clicks</em>
+</p>
+
+<p align="center">
+  <img src="DOC/readme/screenshot-my-packs.png" alt="My mod packs" width="700"><br>
+  <em>Your own mod packs</em>
 </p>
 
 ---
