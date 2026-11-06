@@ -8,6 +8,13 @@ namespace SUSModder.Core.Configuration
     /// </summary>
     public class UserSettings
     {
+        internal (bool UsePinned, string Source, string Tag, string Asset, string Sha256)? LegendaryBaseline { get; set; }
+
+        internal (bool, string, string, string, string) LegendarySelection =>
+            (LegendaryUsePinned, LegendaryReleaseSource, LegendaryReleaseTag, LegendaryReleaseAsset, LegendaryReleaseSha256);
+
+        internal UserSettings Copy() => (UserSettings)MemberwiseClone();
+
         /// <summary>
         /// Tryb gry: "steam" lub "epic" (pusty = nie wybrano, wymusza dialog wyboru)
         /// </summary>
@@ -174,5 +181,28 @@ namespace SUSModder.Core.Configuration
         /// </summary>
         [JsonPropertyName("chatRulesAcknowledgedVersion")]
         public int ChatRulesAcknowledgedVersion { get; set; } = 0;
+
+        /// <summary>
+        /// Czy legendary.exe ma używać przypiętej, przetestowanej wersji (true),
+        /// czy wydania wybranego ręcznie (false). Wybór ręczny przeżywa aktualizację aplikacji.
+        /// </summary>
+        [JsonPropertyName("legendaryUsePinned")]
+        public bool LegendaryUsePinned { get; set; } = true;
+
+        /// <summary>Źródło ręcznie wybranego wydania: "Upstream" albo "Heroic" (puste = brak wyboru).</summary>
+        [JsonPropertyName("legendaryReleaseSource")]
+        public string LegendaryReleaseSource { get; set; } = string.Empty;
+
+        /// <summary>Tag ręcznie wybranego wydania (np. "0.21.1").</summary>
+        [JsonPropertyName("legendaryReleaseTag")]
+        public string LegendaryReleaseTag { get; set; } = string.Empty;
+
+        /// <summary>Asset ręcznie wybranego wydania (jawna nazwa pliku Windows x64).</summary>
+        [JsonPropertyName("legendaryReleaseAsset")]
+        public string LegendaryReleaseAsset { get; set; } = string.Empty;
+
+        /// <summary>SHA-256 ręcznie wybranego wydania (z digestu assetu w API GitHub).</summary>
+        [JsonPropertyName("legendaryReleaseSha256")]
+        public string LegendaryReleaseSha256 { get; set; } = string.Empty;
     }
 }

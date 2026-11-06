@@ -16,7 +16,10 @@ using System.Linq;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Services.Localization;
 using SUSModder.Views;
+using SUSModder.Services;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Threading;
 
 namespace SUSModder.ViewModels
 {
@@ -132,6 +135,19 @@ namespace SUSModder.ViewModels
             CancelCommand = ReactiveCommand.Create(Cancel);
             ResetToDefaultCommand = ReactiveCommand.Create(ResetToDefault);
             FactoryResetCommand = ReactiveCommand.CreateFromTask(FactoryResetAsync);
+
+            // Selektor wersji legendary.exe (tylko Epic) — interakcja odblokowana dopiero po udanym wczytaniu stanu
+            ApplyLegendaryVersionCommand = ReactiveCommand.CreateFromTask(
+                ApplyLegendaryVersionAsync,
+                this.WhenAnyValue(
+                    x => x.IsLegendarySwitching,
+                    x => x.SelectedLegendaryRelease,
+                    x => x.LegendaryModeManual,
+                    x => x.IsLegendarySectionReady,
+                    (busy, selected, manual, ready) => ready && !busy && selected != null && manual));
+            ReloadLegendaryReleasesCommand = ReactiveCommand.CreateFromTask(ReloadLegendaryReleasesAsync);
+            RetryLegendaryStateCommand = ReactiveCommand.CreateFromTask(RetryLegendaryStateAsync);
+            _ = InitializeLegendarySectionAsync();
         }
 
         public string ModsInstallPath
@@ -205,6 +221,7 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _gameMode, value);
                 this.RaisePropertyChanged(nameof(IsSteamDepotDownloaderSectionVisible));
+                this.RaisePropertyChanged(nameof(IsEpicLegendarySectionVisible));
                 CheckForChanges();
             }
         }
@@ -292,6 +309,345 @@ namespace SUSModder.ViewModels
 
         public bool IsSteamDepotDownloaderSectionVisible => IsSteamMode;
 
+        #region Epic: selektor wersji narzędzia legendary.exe
+
+        private ILegendaryVersionService? _legendaryVersionService;
+        private CancellationTokenSource? _legendaryLoadCts;
+        private LegendaryReleaseInfo? _legendaryApplied;
+        private LegendaryReleaseInfo? _legendarySelected;
+        private LegendaryReleaseInfo? _legendaryPinned;
+        private bool _legendaryStateLoaded;
+        private bool _isLegendaryChecking;
+        private bool _hasLegendaryStateError;
+        private bool _legendaryModePinned = true;
+        private bool _legendaryModeManual;
+        private bool _isLegendaryReleasesLoading;
+        private bool _hasLegendaryReleasesError;
+        private string _legendaryReleasesErrorKey = string.Empty;
+        private bool _isLegendarySwitching;
+        private string _legendarySwitchDisplay = string.Empty;
+        private string? _legendarySwitchPhaseCode;
+        private LegendaryReleaseInfo? _selectedLegendaryRelease;
+
+        public bool IsEpicLegendarySectionVisible => IsEpicMode;
+
+        public bool IsLegendaryManualVisible => _legendaryModeManual;
+
+        /// <summary>Cała interakcja zablokowana, aż GetStateAsync zakończy się sukcesem (protects mode/Apply from pre-load races).</summary>
+        public bool IsLegendarySectionReady => _legendaryStateLoaded;
+
+        public bool IsLegendaryChecking
+        {
+            get => _isLegendaryChecking;
+            private set => this.RaiseAndSetIfChanged(ref _isLegendaryChecking, value);
+        }
+
+        public bool HasLegendaryStateError
+        {
+            get => _hasLegendaryStateError;
+            private set => this.RaiseAndSetIfChanged(ref _hasLegendaryStateError, value);
+        }
+
+        // Liczone z klucza — odświeża się przy zmianie języka na żywo.
+        public string LegendaryStateError => HasLegendaryStateError
+            ? L("Settings.LegendaryVersion.StateError")
+            : string.Empty;
+
+        /// <summary>Tryb przypiętej wersji (domyślny). Przełączenie na niego przy aktywmanual wymaga potwierdzonego powrotu.</summary>
+        public bool LegendaryModePinned
+        {
+            get => _legendaryModePinned;
+            set
+            {
+                if (value && !_legendaryModePinned)
+                    SetLegendaryMode(pinned: true);
+            }
+        }
+
+        public bool LegendaryModeManual
+        {
+            get => _legendaryModeManual;
+            set
+            {
+                if (value && !_legendaryModeManual)
+                    SetLegendaryMode(pinned: false);
+            }
+        }
+
+        public ObservableCollection<LegendaryReleaseInfo> LegendaryReleases { get; } = new();
+
+        public LegendaryReleaseInfo? SelectedLegendaryRelease
+        {
+            get => _selectedLegendaryRelease;
+            set => this.RaiseAndSetIfChanged(ref _selectedLegendaryRelease, value);
+        }
+
+        public bool IsLegendaryReleasesLoading
+        {
+            get => _isLegendaryReleasesLoading;
+            private set => this.RaiseAndSetIfChanged(ref _isLegendaryReleasesLoading, value);
+        }
+
+        public bool HasLegendaryReleasesError
+        {
+            get => _hasLegendaryReleasesError;
+            private set => this.RaiseAndSetIfChanged(ref _hasLegendaryReleasesError, value);
+        }
+
+        // Napisy liczone z kluczy przy każdym odczycie — zmiana języka w ustawieniach odświeża je na żywo.
+        public string LegendaryReleasesError =>
+            _legendaryReleasesErrorKey.Length == 0 ? string.Empty : L(_legendaryReleasesErrorKey);
+
+        public bool IsLegendarySwitching
+        {
+            get => _isLegendarySwitching;
+            private set
+            {
+                this.RaiseAndSetIfChanged(ref _isLegendarySwitching, value);
+                this.RaisePropertyChanged(nameof(LegendarySwitchStatus));
+            }
+        }
+
+        public string LegendarySwitchStatus => !_isLegendarySwitching
+            ? string.Empty
+            : LegendaryPhaseCodes.MapToKey(_legendarySwitchPhaseCode) is { } phaseKey
+                ? L(phaseKey)
+                : LF("Settings.LegendaryVersion.Switching", _legendarySwitchDisplay);
+
+        // Liczone z kluczy przy każdym odczycie — zmiana języka w ustawieniach odświeża je na żywo.
+        // Installed == null = brak pliku lub wersja nie do ustalenia (np. niezgodny SHA) — komunikat wprost, nie "Nieznana".
+        public string LegendaryCurrentSummary => _legendaryApplied is null
+            ? L("Settings.LegendaryVersion.NoBinary")
+            : LF("Settings.LegendaryVersion.CurrentFormat", _legendaryApplied.DisplayName);
+
+        public ReactiveCommand<Unit, Unit> ApplyLegendaryVersionCommand { get; }
+        public ReactiveCommand<Unit, Unit> ReloadLegendaryReleasesCommand { get; }
+        public ReactiveCommand<Unit, Unit> RetryLegendaryStateCommand { get; }
+
+        private void SetLegendaryMode(bool pinned)
+        {
+            if (!_legendaryStateLoaded)
+                return; // interakcja dozwolona dopiero po udanym wczytaniu stanu (P2 race)
+
+            // Powrót do trybu pinned przy zastosowanym manual = operacja na narzędziu, wymaga potwierdzenia.
+            if (pinned && _legendaryModeManual && !IsLegendarySwitching)
+            {
+                _ = RevertLegendaryToPinnedAsync();
+                return;
+            }
+
+            _legendaryModePinned = pinned;
+            _legendaryModeManual = !pinned;
+            RaiseLegendaryMode();
+            if (!pinned)
+                _ = EnsureLegendaryReleasesLoadedAsync();
+        }
+
+        private void RaiseLegendaryMode()
+        {
+            this.RaisePropertyChanged(nameof(LegendaryModePinned));
+            this.RaisePropertyChanged(nameof(LegendaryModeManual));
+            this.RaisePropertyChanged(nameof(IsLegendaryManualVisible));
+        }
+
+        private async Task InitializeLegendarySectionAsync()
+        {
+            HasLegendaryStateError = false;
+            IsLegendaryChecking = true;
+            try
+            {
+                _legendaryVersionService ??= App.GetService<ILegendaryVersionService>();
+                var state = await _legendaryVersionService.GetStateAsync();
+                _legendaryStateLoaded = true;
+                _legendaryPinned = state.Pinned;
+                _legendaryModePinned = state.UsePinned;
+                _legendaryModeManual = !state.UsePinned;
+                // Tylko Installed reprezentuje faktyczną binarkę. Selected to intencja użytkownika —
+                // nigdy nie może blokować ponownego zastosowania, gdy binarki brak albo jest niezgodna.
+                _legendarySelected = state.UsePinned ? null : state.Selected;
+                _legendaryApplied = state.Installed;
+                RaiseLegendaryMode();
+                UpdateLegendarySummary();
+                this.RaisePropertyChanged(nameof(IsLegendarySectionReady));
+
+                if (!state.UsePinned)
+                    await EnsureLegendaryReleasesLoadedAsync();
+            }
+            catch (Exception ex)
+            {
+                // Brak stanu = brak zgadywania trybu — sekcja zostaje zablokowana, użytkownik widzi błąd i retry.
+                Debug.WriteLine($"[LegendaryVersion] Nie udało się wczytać stanu: {ex.Message}");
+                HasLegendaryStateError = true;
+            }
+            finally
+            {
+                IsLegendaryChecking = false;
+            }
+        }
+
+        private async Task RetryLegendaryStateAsync() => await InitializeLegendarySectionAsync();
+
+        private async Task EnsureLegendaryReleasesLoadedAsync()
+        {
+            if (_legendaryVersionService == null
+                || _isLegendaryReleasesLoading
+                || (LegendaryReleases.Count > 0 && !_hasLegendaryReleasesError))
+                return;
+
+            _legendaryLoadCts?.Cancel();
+            _legendaryLoadCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var token = _legendaryLoadCts.Token;
+
+            IsLegendaryReleasesLoading = true;
+            SetLegendaryReleasesError(string.Empty);
+
+            try
+            {
+                var releases = await _legendaryVersionService.GetReleasesAsync(token);
+
+                LegendaryReleases.Clear();
+                foreach (var release in releases)
+                    LegendaryReleases.Add(release);
+
+                if (releases.Count == 0)
+                {
+                    SetLegendaryReleasesError("Settings.LegendaryVersion.NoReleases");
+                }
+                else
+                {
+                    // Podświetl intencję użytkownika (Selected), a przy jej braku faktycznie zainstalowane wydanie
+                    var current = LegendaryReleases.FirstOrDefault(r => r.SameId(_legendarySelected ?? _legendaryApplied));
+                    if (current != null)
+                        SelectedLegendaryRelease = current;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                SetLegendaryReleasesError("Settings.LegendaryVersion.LoadError");
+            }
+            catch (Exception)
+            {
+                SetLegendaryReleasesError("Settings.LegendaryVersion.LoadError");
+            }
+            finally
+            {
+                IsLegendaryReleasesLoading = false;
+            }
+        }
+
+        private async Task ReloadLegendaryReleasesAsync()
+        {
+            SetLegendaryReleasesError(string.Empty);
+            await EnsureLegendaryReleasesLoadedAsync();
+        }
+
+        private async Task ApplyLegendaryVersionAsync()
+        {
+            var release = SelectedLegendaryRelease;
+            var service = _legendaryVersionService;
+            if (service == null || release == null || IsLegendarySwitching)
+                return;
+            if (release.SameId(_legendaryApplied))
+                return;
+
+            var confirmed = await ShowConfirmAsync(
+                L("Dialogs.Confirm.Title"),
+                LF("Settings.LegendaryVersion.ConfirmSwitch", release.DisplayName));
+            if (!confirmed)
+                return;
+
+            await RunLegendarySwitchAsync(service, release, release.DisplayName);
+        }
+
+        private async Task RevertLegendaryToPinnedAsync()
+        {
+            var service = _legendaryVersionService;
+            if (service == null)
+                return;
+
+            // Do czasu rozstrzygnięcia potwierdzenia radio wraca do Manual (stan źródła).
+            RaiseLegendaryMode();
+
+            var pinnedDisplay = _legendaryPinned?.DisplayName ?? L("VersionSelection.UnknownVersion");
+            var confirmed = await ShowConfirmAsync(
+                L("Dialogs.Confirm.Title"),
+                LF("Settings.LegendaryVersion.ConfirmPinned", pinnedDisplay));
+            if (!confirmed)
+                return;
+
+            await RunLegendarySwitchAsync(service, null, pinnedDisplay);
+        }
+
+        /// <summary>release = null → powrót do wydania przypiętego.</summary>
+        private async Task RunLegendarySwitchAsync(ILegendaryVersionService service, LegendaryReleaseInfo? release, string targetDisplay)
+        {
+            _legendarySwitchDisplay = targetDisplay;
+            _legendarySwitchPhaseCode = null;
+            IsLegendarySwitching = true;
+            try
+            {
+                var result = await service.SwitchAsync(
+                    release,
+                    new Progress<string>(code =>
+                    {
+                        _legendarySwitchPhaseCode = code;
+                        this.RaisePropertyChanged(nameof(LegendarySwitchStatus));
+                    }));
+
+                if (result.Success)
+                {
+                    _legendaryApplied = result.Installed ?? release ?? _legendaryPinned;
+                    _legendarySelected = release; // intencja = zastosowane; null przy powrocie do zalecanej
+                    _legendaryModePinned = release == null;
+                    _legendaryModeManual = release != null;
+                    RaiseLegendaryMode();
+                    UpdateLegendarySummary();
+                    await ShowInfoAsync(
+                        L("Dialogs.Success.Title"),
+                        LF("Settings.LegendaryVersion.Success", _legendaryApplied?.DisplayName ?? targetDisplay));
+                }
+                else
+                {
+                    var key = LegendaryErrorCodes.MapErrorKey(result.ErrorCode);
+                    var message = key.EndsWith("Unknown", StringComparison.Ordinal)
+                        ? LF("Settings.LegendaryVersion.Errors.Unknown", result.ErrorCode ?? "unknown")
+                        : L(key);
+                    await ShowErrorAsync(L("Dialogs.Error.Title"), message);
+                    // Radio pozostaje na poprzednim trybie (źródło niezmienione) — odśwież widok.
+                    RaiseLegendaryMode();
+                }
+            }
+            catch (Exception ex)
+            {
+                await ShowErrorAsync(
+                    L("Dialogs.Error.Title"),
+                    LF("Settings.LegendaryVersion.Errors.Unknown", ex.Message));
+                RaiseLegendaryMode();
+            }
+            finally
+            {
+                _legendarySwitchPhaseCode = null;
+                IsLegendarySwitching = false;
+            }
+        }
+
+        private void SetLegendaryReleasesError(string key)
+        {
+            _legendaryReleasesErrorKey = key;
+            HasLegendaryReleasesError = key.Length > 0;
+            this.RaisePropertyChanged(nameof(LegendaryReleasesError));
+        }
+
+        private void UpdateLegendarySummary() =>
+            this.RaisePropertyChanged(nameof(LegendaryCurrentSummary));
+
+        private string L(string key) => _localizationService?.Get(key) ?? key;
+
+        private string LF(string key, params object[] args) =>
+            _localizationService?.GetFormatted(key, args) ?? key;
+
+        #endregion
+
         private string _currentTheme = "dark";
 
         public LanguageOption? SelectedLanguage
@@ -324,6 +680,12 @@ namespace SUSModder.ViewModels
 
             // Zapisz wybór do user-settings.json natychmiast (live switch)
             _userSettingsService.UpdateUserSetting(settings => settings.Language = _selectedLanguage.Code);
+
+            // Selektor legendary: wyliczane napisy mają wskoczyć w nowy język bez przeładowania ustawień
+            this.RaisePropertyChanged(nameof(LegendaryCurrentSummary));
+            this.RaisePropertyChanged(nameof(LegendaryReleasesError));
+            this.RaisePropertyChanged(nameof(LegendarySwitchStatus));
+            this.RaisePropertyChanged(nameof(LegendaryStateError));
 
             System.Diagnostics.Debug.WriteLine($"Język zmieniony na: {_selectedLanguage.Code}");
         }
@@ -839,6 +1201,16 @@ namespace SUSModder.ViewModels
                 var dialog = new MessageDialog(title, message);
                 await dialog.ShowDialog(parentWindow);
             }
+        }
+
+        /// <summary>Potwierdzenie operacji na legendary. Brak hosta dialogów = brak zgody (operacja wstrzymana).</summary>
+        private async Task<bool> ShowConfirmAsync(string title, string message)
+        {
+            if (TryGetMainWindowViewModel(out var mainWindowViewModel))
+                return await mainWindowViewModel.ShowInlineConfirmAsync(title, message);
+
+            Debug.WriteLine($"[AppSettingsViewModel] Brak MainWindow do pokazania potwierdzenia: {message}");
+            return false;
         }
 
         private Window? GetParentWindow()

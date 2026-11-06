@@ -490,6 +490,22 @@
         "LoginError": "Nie udało się zalogować do konta Epic Games.",
         "Error": "Wystąpił błąd podczas operacji Epic Games: {0}"
       },
+      "SteamLoginCheck": {
+        "Title": "Napraw logowanie Steam",
+        "Description": "Uruchamia Among Us z biblioteki Steam w tle i sprawdza logowanie do konta.",
+        "ConfirmMessage": "Among Us zostanie uruchomione w tle przez Steam. Steam może poprosić o potwierdzenie parametrów uruchomienia. Kontynuować?",
+        "Running": "Trwa test logowania Steam…",
+        "RunningHint": "Jeśli Steam poprosi o potwierdzenie parametrów, wybierz Uruchom. Kliknięcie przerywa oczekiwanie w SUSModderze; zamknij też ewentualny monit Steam.",
+        "Success": "Logowanie Steam zostało potwierdzone.",
+        "NotConfirmedTitle": "Brak potwierdzenia logowania Steam",
+        "NotConfirmed": "Nie potwierdzono logowania. Sprawdź, czy Steam nie czeka na potwierdzenie, lub uruchom grę ręcznie przez Steam. Log diagnostyczny: {0}",
+        "GameRunning": "Among Us już działa — test został pominięty, gra nie została dotknięta.",
+        "SteamUnavailable": "Nie można wystartować testu: Steam (steam://) jest niedostępny. Sprawdź instalację Steama i spróbuj ponownie.",
+        "GameNotInstalled": "Nie znaleziono Among Us w bibliotece Steam. Zainstaluj grę i ponów konfigurację w narzędziach naprawy.",
+        "ProcessLeftOpen": "Uwaga: nie udało się potwierdzić, że proces testu należy do tego testu, więc nie został zamknięty automatycznie. Zamknij Among Us ręcznie, jeśli nadal działa.",
+        "Failed": "Test logowania Steam nie powiódł się: {0}",
+        "WindowsOnly": "Ta funkcja jest dostępna tylko w systemie Windows."
+      },
       "Cancelled": "Operacja anulowana przez użytkownika.",
       "Error": "Wystąpił błąd podczas naprawy: {0}"
     },
@@ -856,6 +872,40 @@
       "DepotDownloader": {
         "Label": "Pobieraj vanilla bezpośrednio ze Steam (DepotDownloader)",
         "Description": "Wyłączone: paczki 7z SUSModder (domyślnie). Włączone: pobieranie plików gry z konta Steam po zeskanowaniu kodu QR."
+      }
+    },
+    "LegendaryVersion": {
+      "Label": "Wersja programu Legendary",
+      "Description": "Legendary to program, którego SUSModder używa z grą Among Us w Epic Games. Wersja zalecana to domyślna wersja Legendary w SUSModder — aplikacja jest z nią skonfigurowana. Inne wersje wybieraj tylko wtedy, gdy wiesz, po co ich potrzebujesz.",
+      "Pinned": "Wersja zalecana (domyślna)",
+      "Manual": "Inna wersja (dla zaawansowanych)",
+      "CurrentFormat": "Obecnie: {0}",
+      "SelectRelease": "Wybierz wersję…",
+      "Loading": "Ładowanie wersji…",
+      "Retry": "Spróbuj ponownie",
+      "Apply": "Zainstaluj wybraną wersję",
+      "Switching": "Instalowanie wersji {0}…",
+      "ConfirmSwitch": "Inne wersje niż zalecana mogą nie działać poprawnie. SUSModder nie sprawdza, czy wybrana wersja nadaje się do gry — upewni się tylko, czy plik pobrał się w całości. Zainstalować wersję {0}?",
+      "ConfirmPinned": "Wrócić do wersji zalecanej ({0})? To wersja, z której SUSModder korzysta domyślnie.",
+      "Success": "Zainstalowano wersję {0}.",
+      "NoReleases": "Nie ma innych wersji do wyboru.",
+      "LoadError": "Nie udało się wczytać listy wersji. Sprawdź połączenie z internetem i spróbuj ponownie.",
+      "CheckingState": "Sprawdzanie wersji Legendary…",
+      "StateError": "Nie udało się sprawdzić wersji Legendary. Spróbuj ponownie.",
+      "NoBinary": "Nie udało się ustalić obecnej wersji Legendary. Wybierz wersję i zainstaluj ją.",
+      "Phases": {
+        "Downloading": "Pobieranie pliku…",
+        "Verifying": "Sprawdzanie pobranego pliku…",
+        "Installing": "Wymiana programu Legendary…"
+      },
+      "Errors": {
+        "Offline": "Brak internetu — nie da się pobrać wersji.",
+        "GitHubUnavailable": "Serwer z listą wersji nie odpowiada. Spróbuj później.",
+        "NoWindowsAsset": "Ta wersja nie ma pliku na komputery z Windows.",
+        "ToolBusy": "Legendary jest teraz używany (np. gra właśnie się pobiera lub uruchamia). Poczekaj chwilę i spróbuj ponownie.",
+        "HashMismatch": "Pobrany plik jest uszkodzony albo niezgodny z oczekiwanym. SUSModder go nie zainstalował.",
+        "Failed": "Nie udało się zmienić wersji.",
+        "Unknown": "Nieznany błąd: {0}"
       }
     },
     "Advanced": {

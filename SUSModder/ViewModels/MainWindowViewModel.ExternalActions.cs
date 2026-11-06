@@ -164,6 +164,10 @@ namespace SUSModder.ViewModels
                     }
                     break;
 
+                case RepairOption.SteamLoginCheck:
+                    await ExecuteSteamLoginCheckRepairAsync();
+                    break;
+
                 case RepairOption.EpicLogout:
                     await ExecuteEpicLogoutAsync();
                     break;

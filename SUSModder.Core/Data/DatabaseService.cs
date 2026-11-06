@@ -23,7 +23,9 @@ namespace SUSModder.Core.Data
         // v14 – favorite_mods (ulubione mody, 3.1-05).
         // v15 – icon_assignments + sync_state.schema_version (3.1-04).
         // v16 – mods.IsBeta/Latest*Version/AvailableReleases (3.1-11).
-        private const int LatestSchemaVersion = 17;
+        // v17 – user_settings.chat_rules_acknowledged_version.
+        // v18 – user_settings: wybór wersji legendary (pinned / ręczny).
+        private const int LatestSchemaVersion = 18;
 
         public DatabaseService()
         {
@@ -223,7 +225,12 @@ namespace SUSModder.Core.Data
                     prefer_depot_downloader INTEGER NOT NULL DEFAULT 0,
                     developer_mode      INTEGER NOT NULL DEFAULT 0,
                     support_banner_dismissed_at TEXT NOT NULL DEFAULT '',
-                    chat_rules_acknowledged_version INTEGER NOT NULL DEFAULT 0
+                    chat_rules_acknowledged_version INTEGER NOT NULL DEFAULT 0,
+                    legendary_use_pinned INTEGER NOT NULL DEFAULT 1,
+                    legendary_release_source TEXT NOT NULL DEFAULT '',
+                    legendary_release_tag TEXT NOT NULL DEFAULT '',
+                    legendary_release_asset TEXT NOT NULL DEFAULT '',
+                    legendary_release_sha256 TEXT NOT NULL DEFAULT ''
                 );";
             cmd.ExecuteNonQuery();
 
@@ -818,6 +825,40 @@ namespace SUSModder.Core.Data
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v17: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 18)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v18 – wybór wersji legendary...");
+
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+
+                    EnsureColumn(cmd, "user_settings", "legendary_use_pinned",
+                        "ALTER TABLE user_settings ADD COLUMN legendary_use_pinned INTEGER NOT NULL DEFAULT 1;");
+                    EnsureColumn(cmd, "user_settings", "legendary_release_source",
+                        "ALTER TABLE user_settings ADD COLUMN legendary_release_source TEXT NOT NULL DEFAULT '';");
+                    EnsureColumn(cmd, "user_settings", "legendary_release_tag",
+                        "ALTER TABLE user_settings ADD COLUMN legendary_release_tag TEXT NOT NULL DEFAULT '';");
+                    EnsureColumn(cmd, "user_settings", "legendary_release_asset",
+                        "ALTER TABLE user_settings ADD COLUMN legendary_release_asset TEXT NOT NULL DEFAULT '';");
+                    EnsureColumn(cmd, "user_settings", "legendary_release_sha256",
+                        "ALTER TABLE user_settings ADD COLUMN legendary_release_sha256 TEXT NOT NULL DEFAULT '';");
+
+                    tx.Commit();
+                    SetUserVersion(conn, 18);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v18 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v18: {ex.Message}. Wycofywanie...");
                     try { tx.Rollback(); } catch { /* ignore */ }
                     throw;
                 }
