@@ -93,7 +93,7 @@ Dołącz na Discorda, jeśli szukasz ekipy do gry albo chcesz pomóc w rozwoju p
   <a href="https://susmodder.app/">🌐 App website</a> ·
   <a href="https://susmodder.app/#download">⬇️ Download from website</a> ·
   <a href="https://github.com/boratsc/SUSModder/releases">⬇️ Download from GitHub</a> ·
-  <a href="https://discord.com/invite/psychopaci">💬 Discord</a>
+  <a href="https://discord.gg/rXpDwsS3Mk">💬 Discord</a>
 </p>
 
 ---
