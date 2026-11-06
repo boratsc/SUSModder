@@ -20,9 +20,7 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     throw "dotnet CLI not found in PATH. Install .NET 10 SDK."
 }
 
-if (-not (Get-Command vpk -ErrorAction SilentlyContinue)) {
-    throw "Velopack CLI (vpk) not available. Install with 'dotnet tool install -g vpk'."
-}
+& (Join-Path $PSScriptRoot 'Invoke-Velopack.ps1') -RestoreOnly
 
 # --- Step 2: Update version metadata ----------------------------------------------
 $appSettingsPath = Join-Path $ProjectRoot 'SUSModder/appsettings.json'
@@ -108,7 +106,9 @@ if (Test-Path $splashPath) {
 if ($PreviousVersion) {
     $previousPackage = Join-Path $releasesDir ("SUSModder-${PreviousVersion}-full.nupkg")
     if (Test-Path $previousPackage) {
-        $vpkArgs += @('--delta', $previousPackage)
+        # vpk 1.x takes a generation mode, not a source filename; it discovers
+        # the previous package in outputDir itself.
+        $vpkArgs += @('--delta', 'BestSpeed')
     }
     else {
         Write-Warning "Delta source package $previousPackage not found. Generating full package only."
@@ -122,7 +122,7 @@ if ($SignPackages) {
     $vpkArgs += @('--signTemplate', $env:VELOPACK_SIGN_TEMPLATE)
 }
 
-& vpk @vpkArgs
+& (Join-Path $PSScriptRoot 'Invoke-Velopack.ps1') -Arguments $vpkArgs
 if ($LASTEXITCODE -ne 0) {
     throw "vpk pack failed."
 }

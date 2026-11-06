@@ -80,14 +80,9 @@ namespace SUSModder.Core.Services
             config.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ||
             config.ModName.Equals("AmongUs", StringComparison.OrdinalIgnoreCase);
 
-        /// <summary>
-        /// Oryginalna instalacja gry Steam — nie należy do SUSModder i nie jest usuwana przy resecie.
-        /// </summary>
-        private static bool IsProtectedGameInstallPath(string path)
-        {
-            var normalized = path.Replace('/', '\\').TrimEnd('\\');
-            return normalized.Contains(@"\steamapps\common\", StringComparison.OrdinalIgnoreCase);
-        }
+        private static bool IsProtectedGameInstallPath(string path) =>
+            ModsInstallPathGuard.IsSteamGameInstallPath(path) ||
+            ModsInstallPathGuard.TryFindAmongUsInstallRoot(path, out _);
 
         private static bool IsUnderAnyRoot(string path, IEnumerable<string> roots)
         {

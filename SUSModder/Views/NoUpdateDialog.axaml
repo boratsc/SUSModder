@@ -61,12 +61,12 @@
     
     <!-- Hover effect dla przycisku -->
     <Style Selector="Button.ok-button:pointerover">
-      <Setter Property="Background" Value="#10B981"/>
-      <Setter Property="BorderBrush" Value="#059669"/>
+      <Setter Property="Background" Value="{DynamicResource PositiveActionBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource PositiveActionHoverBrush}"/>
     </Style>
     
     <Style Selector="Button.ok-button:pressed">
-      <Setter Property="Background" Value="#059669"/>
+      <Setter Property="Background" Value="{DynamicResource PositiveActionHoverBrush}"/>
     </Style>
   </Window.Styles>
 
@@ -78,8 +78,8 @@
               Classes="success-icon"
               Width="80" Height="80"
               CornerRadius="40"
-              Background="#2010B981"
-              BorderBrush="#10B981"
+              Background="{DynamicResource PositiveActionSoftBrush}"
+              BorderBrush="{DynamicResource PositiveActionBrush}"
               BorderThickness="2"
               HorizontalAlignment="Center"
               Margin="0,0,0,20">
@@ -89,7 +89,7 @@
         <TextBlock Text="✓" 
                    FontSize="48"
                    FontWeight="Bold"
-                   Foreground="#10B981"
+                   Foreground="{DynamicResource PositiveActionBrush}"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"/>
       </Border>
@@ -156,11 +156,11 @@
               Height="40"
               FontSize="14"
               FontWeight="SemiBold"
-              Background="#10B981"
-              BorderBrush="#059669"
+              Background="{DynamicResource PositiveActionBrush}"
+              BorderBrush="{DynamicResource PositiveActionHoverBrush}"
               BorderThickness="1"
               CornerRadius="8"
-              Foreground="White"
+              Foreground="{DynamicResource OnAccentTextBrush}"
               HorizontalAlignment="Center"
               Margin="0,20,0,0"
               Click="OkButton_Click"

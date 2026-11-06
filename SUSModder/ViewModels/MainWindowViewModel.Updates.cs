@@ -84,6 +84,10 @@ namespace SUSModder.ViewModels
             {
                 int updatedCount = 0;
 
+                // 3.1-06: katalog pobieramy raz dla całego przebiegu — bez dodatkowych
+                // round-tripów do API dla każdego moda. Okno dryfu to czas przebiegu.
+                var catalog = await LoadRemoteCatalogAsync();
+
                 foreach (var modUpdate in availableUpdates)
                 {
                     try
@@ -106,7 +110,9 @@ namespace SUSModder.ViewModels
                             continue;
                         }
 
-                        // Cicha aktualizacja — bez żadnych dialogów
+                        // Cicha aktualizacja — bez żadnych dialogów.
+                        // 3.1-06: cel jest przypięty do wersji ogłoszonej w tym przebiegu;
+                        // przy dryfcie pozycja jest pomijana (bez nowego okna).
                         System.Diagnostics.Debug.WriteLine($"[AutoUpdate] {modUpdate.ModName}: rozpoczynam cichą aktualizację ({modUpdate.CurrentVersion} → {modUpdate.NewVersion})");
 
                         // Toast informacyjny na start (użytkownik widzi co się dzieje)
@@ -116,7 +122,7 @@ namespace SUSModder.ViewModels
                                 _localizationService.GetFormatted("Toast.ModUpdateStarted", modUpdate.ModName));
                         });
 
-                        bool success = await UpdateSingleModWithDialogAsync(modItem, modUpdate, progressDialog: null);
+                        bool success = await TryUpdateModSilentlyAsync(modItem, modUpdate, catalog);
 
                         if (success)
                         {
@@ -184,7 +190,7 @@ namespace SUSModder.ViewModels
             return false;
         }
 
-        private async Task<bool> ShowUpdateModConfirmDialogAsync(ModUpdateInfo updateInfo)
+        private async Task<UpdateModConfirmDialog?> ShowUpdateModConfirmDialogAsync(ModUpdateInfo updateInfo)
         {
             return await Dispatcher.UIThread.InvokeAsync(async () =>
             {
@@ -194,11 +200,140 @@ namespace SUSModder.ViewModels
                 if (mainWindow != null)
                 {
                     await dialog.ShowDialog(mainWindow);
-                    return dialog.Result;
+                    return dialog;
                 }
 
-                return false;
+                return null;
             });
+        }
+
+        /// <summary>
+        /// 3.1-06 — wiąże zatwierdzenie użytkownika z konkretną parą (wersja moda, wersja gry).
+        ///
+        /// Gdy katalog zmieni się między podglądem a zatwierdzeniem, dialog jest pokazywany
+        /// ponownie z nową wersją docelową. Bez ponownego potwierdzenia nie instalujemy
+        /// innej wersji — również wtedy, gdy katalog jest chwilowo niedostępny.
+        /// </summary>
+        private async Task<ApprovedUpdateTarget?> ApproveUpdateTargetAsync(
+            ModUpdateInfo modUpdate,
+            UpdateModConfirmDialog dialog)
+        {
+            const int MaxReconfirmations = 1;
+
+            var currentInfo = modUpdate;
+            string approvedVersion = dialog.ApprovedTargetVersion ?? modUpdate.NewVersion;
+            string? approvedAmongVersion = dialog.ApprovedTargetAmongVersion;
+
+            for (int attempt = 0; attempt <= MaxReconfirmations; attempt++)
+            {
+                var validation = await RevalidateApprovedUpdateTargetAsync(
+                    currentInfo,
+                    approvedVersion,
+                    approvedAmongVersion);
+
+                var decision = UpdateTargetApproval.Decide(validation);
+
+                if (decision == UpdateTargetApproval.Decision.Approved)
+                {
+                    return new ApprovedUpdateTarget(currentInfo, approvedVersion, approvedAmongVersion);
+                }
+
+                if (decision != UpdateTargetApproval.Decision.RequiresConfirmation)
+                {
+                    ShowUpdateTargetUnavailable(modUpdate.ModName, validation);
+                    return null;
+                }
+
+                if (attempt == MaxReconfirmations)
+                {
+                    ShowUpdateTargetUnavailable(modUpdate.ModName, validation);
+                    return null;
+                }
+
+                var refreshed = await RefreshUpdateInfoFromCatalogAsync(currentInfo);
+                if (refreshed == null)
+                {
+                    ShowUpdateTargetUnavailable(modUpdate.ModName, validation);
+                    return null;
+                }
+
+                var reDialog = await ShowUpdateModConfirmDialogAsync(refreshed);
+                if (reDialog?.Result != true)
+                {
+                    // Użytkownik anulował ponowne potwierdzenie — bez zmiany celu.
+                    return null;
+                }
+
+                currentInfo = refreshed;
+                approvedVersion = reDialog.ApprovedTargetVersion ?? refreshed.NewVersion;
+                approvedAmongVersion = reDialog.ApprovedTargetAmongVersion;
+            }
+
+            // Cel zmienia się w trakcie operacji — przerywamy bez cichej instalacji.
+            ShowUpdateTargetUnavailable(modUpdate.ModName, null);
+            return null;
+        }
+
+        /// <summary>
+        /// 3.1-06 — cicha aktualizacja z przypiętą parą (wersja moda, wersja gry).
+        ///
+        /// Gdy katalog zmieni się po ogłoszeniu aktualizacji, pozycja jest pomijana:
+        /// nie instalujemy innej wersji po cichu i nie otwieramy nowego okna
+        /// (zasady auto-update pozostają bez zmian).
+        /// </summary>
+        private async Task<bool> TryUpdateModSilentlyAsync(
+            ModItem modItem,
+            ModUpdateInfo modUpdate,
+            List<ModConfiguration>? catalog = null)
+        {
+            string pinnedVersion = modUpdate.NewVersion;
+            string? pinnedAmongVersion = modUpdate.RemoteMod?.AmongVersion;
+
+            if (IsPinnableVersion(pinnedVersion))
+            {
+                var validation = ValidateApprovedTargetAgainstCatalog(
+                    catalog,
+                    modUpdate,
+                    pinnedVersion,
+                    pinnedAmongVersion);
+
+                if (UpdateTargetApproval.Decide(validation) != UpdateTargetApproval.Decision.Approved)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[AutoUpdate] {modUpdate.ModName}: wersja docelowa zmieniła się " +
+                        $"({pinnedVersion} → {validation.AvailableVersion}) — pomijam pozycję.");
+                    ShowUpdateTargetUnavailable(modUpdate.ModName, validation);
+                    return false;
+                }
+            }
+
+            var approvedTarget = new ApprovedUpdateTarget(modUpdate, pinnedVersion, pinnedAmongVersion);
+            return await UpdateSingleModWithDialogAsync(
+                modItem,
+                modUpdate,
+                progressDialog: null,
+                approvedTarget: approvedTarget);
+        }
+
+        /// <summary>
+        /// 3.1-06 — informacja o przerwanej operacji (dryft celu lub brak możliwości
+        /// potwierdzenia wersji docelowej). Kanał: toast — bez dodatkowego modala.
+        /// </summary>
+        private void ShowUpdateTargetUnavailable(string modName, UpdateTargetValidationResult? validation)
+        {
+            bool changed = validation?.Status == UpdateTargetValidationStatus.TargetChanged;
+
+            string message = changed
+                ? _localizationService.GetFormatted(
+                    "Toast.ModUpdateTargetChanged",
+                    modName)
+                : _localizationService.GetFormatted(
+                    "Toast.ModUpdateTargetUnavailable",
+                    modName);
+
+            System.Diagnostics.Debug.WriteLine($"[Update] {message}");
+
+            Dispatcher.UIThread.Post(() => ToastService.ShowWarning(message));
         }
 
         private async Task ProcessUpdatesWithIndividualDialogsAsync(List<ModUpdateInfo> availableUpdates)
@@ -207,6 +342,11 @@ namespace SUSModder.ViewModels
             var failedUpdates = new List<string>();
             var skippedUpdates = new List<string>();
             var autoUpdatedMods = new List<string>();
+
+            // 3.1-06: katalog dla wykrywania dryftu celu pobieramy raz na przebieg
+            // (leniwie — tylko gdy w kolejce jest pozycja auto-update).
+            List<ModConfiguration>? catalog = null;
+            bool catalogLoaded = false;
 
             foreach (var modUpdate in availableUpdates)
             {
@@ -218,22 +358,45 @@ namespace SUSModder.ViewModels
                     // Sprawdź czy auto-aktualizacja jest włączona (skip dialog potwierdzenia)
                     bool isAutoUpdate = modItem.AutoUpdateEnabled;
 
+                    // 3.1-06: cel zatwierdzony przez użytkownika (pusta = brak przypięcia).
+                    ApprovedUpdateTarget? approvedTarget = null;
+                    var effectiveUpdate = modUpdate;
+
                     if (!isAutoUpdate)
                     {
                         // Pokaż dialog potwierdzenia tylko gdy auto-update jest wyłączone
-                        bool confirmed = await ShowUpdateModConfirmDialogAsync(modUpdate);
+                        var dialog = await ShowUpdateModConfirmDialogAsync(modUpdate);
 
-                        if (!confirmed)
+                        if (dialog?.Result != true)
                         {
                             skippedUpdates.Add(modUpdate.ModName);
                             continue;
                         }
+
+                        // Zatwierdzenie wiąże operację z konkretną parą (wersja moda, wersja gry).
+                        // Gdy cel się zmienił, dialog jest pokazywany ponownie.
+                        approvedTarget = await ApproveUpdateTargetAsync(modUpdate, dialog);
+
+                        if (approvedTarget == null)
+                        {
+                            skippedUpdates.Add(modUpdate.ModName);
+                            continue;
+                        }
+
+                        effectiveUpdate = approvedTarget.UpdateInfo;
                     }
 
                     if (isAutoUpdate)
                     {
-                        // AUTO-UPDATE: cicha aktualizacja w tle (bez dialogów)
-                        bool success = await UpdateSingleModWithDialogAsync(modItem, modUpdate, progressDialog: null);
+                        // AUTO-UPDATE: cicha aktualizacja w tle (bez dialogów).
+                        // 3.1-06: przy dryfcie celu pozycja jest pomijana, bez nowego okna.
+                        if (!catalogLoaded)
+                        {
+                            catalog = await LoadRemoteCatalogAsync();
+                            catalogLoaded = true;
+                        }
+
+                        bool success = await TryUpdateModSilentlyAsync(modItem, modUpdate, catalog);
 
                         if (success)
                         {
@@ -257,7 +420,7 @@ namespace SUSModder.ViewModels
                         UpdateProgressDialog? progressDialog = null;
                         await Dispatcher.UIThread.InvokeAsync(() =>
                         {
-                            progressDialog = new UpdateProgressDialog(modUpdate.ModName);
+                            progressDialog = new UpdateProgressDialog(effectiveUpdate.ModName);
                             var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
                             if (mainWindow != null)
                             {
@@ -266,7 +429,12 @@ namespace SUSModder.ViewModels
                         });
 
                         // Wykonaj aktualizację z przekazaniem dialogu do aktualizacji postępu
-                        bool success = await UpdateSingleModWithDialogAsync(modItem, modUpdate, progressDialog);
+                        // oraz zatwierdzoną parą wersji (3.1-06: brak instalacji innego celu).
+                        bool success = await UpdateSingleModWithDialogAsync(
+                            modItem,
+                            effectiveUpdate,
+                            progressDialog,
+                            approvedTarget: approvedTarget);
 
                         // Zamknij dialog postępu
                         if (progressDialog != null && progressDialog.IsVisible)
@@ -280,14 +448,14 @@ namespace SUSModder.ViewModels
                         if (success)
                         {
                             successfulUpdates.Add(new CompletedModUpdate(
-                                modUpdate.LocalMod?.Id ?? 0,
-                                modUpdate.ModName,
-                                modUpdate.CurrentVersion,
-                                modUpdate.NewVersion));
+                                effectiveUpdate.LocalMod?.Id ?? 0,
+                                effectiveUpdate.ModName,
+                                effectiveUpdate.CurrentVersion,
+                                effectiveUpdate.NewVersion));
                         }
                         else
                         {
-                            failedUpdates.Add(modUpdate.ModName);
+                            failedUpdates.Add(effectiveUpdate.ModName);
                         }
                     }
                 }
@@ -403,7 +571,12 @@ namespace SUSModder.ViewModels
             return existingModItem;
         }
 
-        private async Task<bool> UpdateSingleModWithDialogAsync(ModItem modItem, ModUpdateInfo updateInfo, UpdateProgressDialog? progressDialog)
+        private async Task<bool> UpdateSingleModWithDialogAsync(
+            ModItem modItem,
+            ModUpdateInfo updateInfo,
+            UpdateProgressDialog? progressDialog,
+            ApprovedUpdateTarget? approvedTarget = null,
+            Action? onTargetDrift = null)
         {
             _activeInstallationsCount++;
             SyncIsAnyModInstalling();
@@ -432,7 +605,41 @@ namespace SUSModder.ViewModels
                 UpdateModProgress(modItem, progressDialog, 10, "Pobieranie nowej konfiguracji...");
                 
                 var updatedModConfig = await configService.CheckSingleModUpdateAsync(modItem.Name);
-                if (updatedModConfig == null) return false;
+                if (updatedModConfig == null)
+                {
+                    if (approvedTarget != null)
+                    {
+                        onTargetDrift?.Invoke();
+                        ShowUpdateTargetUnavailable(modItem.Name, null);
+                    }
+                    return false;
+                }
+
+                // 3.1-06: instalujemy dokładnie zatwierdzoną parę (wersja moda, wersja gry).
+                // Zmiana katalogu między zatwierdzeniem a instalacją = przerwanie operacji,
+                // a nie instalacja innej wersji po cichu.
+                if (approvedTarget != null && !IsApprovedPairStillValid(approvedTarget, updatedModConfig))
+                {
+                    onTargetDrift?.Invoke();
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[Update] {modItem.Name}: wersja docelowa zmieniła się przed instalacją " +
+                        $"({approvedTarget.Version} → {updatedModConfig.ModVersion}) — operacja przerwana.");
+
+                    UpdateModProgress(
+                        modItem,
+                        progressDialog,
+                        100,
+                        _localizationService.Get("Updates.TargetDrift"));
+
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        ToastService.ShowWarning(_localizationService.GetFormatted(
+                            "Toast.ModUpdateTargetChanged",
+                            modItem.Name));
+                    });
+
+                    return false;
+                }
 
                 // 2. Aktualizuj konfigurację w pliku
                 UpdateModProgress(modItem, progressDialog, 20, "Aktualizowanie konfiguracji...");

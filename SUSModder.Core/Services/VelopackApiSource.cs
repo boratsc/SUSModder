@@ -51,7 +51,10 @@ namespace SUSModder.Core.Services
             }
         }
 
-        public async Task<VelopackAssetFeed> GetReleaseFeed(IVelopackLogger logger, string? appId, string channel, Guid? stagingId = null, VelopackAsset? latestLocalRelease = null)
+        public Task<VelopackAssetFeed> GetReleaseFeed(IVelopackLogger logger, string? appId, string channel, Guid? stagingId = null, VelopackAsset? latestLocalRelease = null)
+            => GetReleaseFeedCoreAsync(logger, channel, stagingId, latestLocalRelease, CancellationToken.None);
+
+        private async Task<VelopackAssetFeed> GetReleaseFeedCoreAsync(IVelopackLogger logger, string channel, Guid? stagingId, VelopackAsset? latestLocalRelease, CancellationToken cancellationToken)
         {
             if (logger == null) throw new ArgumentNullException(nameof(logger));
             if (string.IsNullOrWhiteSpace(channel)) channel = "win";
@@ -65,8 +68,12 @@ namespace SUSModder.Core.Services
 
             logger.Info($"[VelopackApiSource] Fetching manifest from '{requestUri}'.");
 
-            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
-            return await HandleResponseAsync(response, logger).ConfigureAwait(false);
+            // ResponseHeadersRead limits HttpClient.Timeout to headers. Bound the
+            // complete manifest read and honor cancellation for channel switches.
+            using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            operation.CancelAfter(_timeout);
+            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, operation.Token).ConfigureAwait(false);
+            return await HandleResponseAsync(response, logger, operation.Token).ConfigureAwait(false);
         }
 
         public async Task DownloadReleaseEntry(IVelopackLogger logger, VelopackAsset releaseEntry, string localFile, Action<int> progress, CancellationToken cancelToken)
@@ -85,12 +92,14 @@ namespace SUSModder.Core.Services
                 Directory.CreateDirectory(directory);
             }
 
-            using var response = await _httpClient.GetAsync(downloadUri, HttpCompletionOption.ResponseHeadersRead, cancelToken).ConfigureAwait(false);
+            using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancelToken);
+            operation.CancelAfter(_timeout);
+            using var response = await _httpClient.GetAsync(downloadUri, HttpCompletionOption.ResponseHeadersRead, operation.Token).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
             var contentLength = response.Content.Headers.ContentLength;
 
-            await using var sourceStream = await response.Content.ReadAsStreamAsync(cancelToken).ConfigureAwait(false);
+            await using var sourceStream = await response.Content.ReadAsStreamAsync(operation.Token).ConfigureAwait(false);
             await using var destinationStream = new FileStream(localFile, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
 
             var buffer = new byte[81920];
@@ -100,11 +109,14 @@ namespace SUSModder.Core.Services
 
             while (true)
             {
-                var bytesRead = await sourceStream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancelToken).ConfigureAwait(false);
+                // This is an idle timeout, not a total download duration limit:
+                // large packages can continue as long as each read makes progress.
+                operation.CancelAfter(_timeout);
+                var bytesRead = await sourceStream.ReadAsync(buffer.AsMemory(0, buffer.Length), operation.Token).ConfigureAwait(false);
                 if (bytesRead == 0)
                     break;
 
-                await destinationStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancelToken).ConfigureAwait(false);
+                await destinationStream.WriteAsync(buffer.AsMemory(0, bytesRead), operation.Token).ConfigureAwait(false);
                 totalRead += bytesRead;
 
                 if (contentLength.HasValue && contentLength.Value > 0)
@@ -117,11 +129,11 @@ namespace SUSModder.Core.Services
             progress?.Invoke(100);
         }
 
-        private async Task<VelopackAssetFeed> HandleResponseAsync(HttpResponseMessage response, IVelopackLogger logger)
+        private async Task<VelopackAssetFeed> HandleResponseAsync(HttpResponseMessage response, IVelopackLogger logger, CancellationToken cancellationToken)
         {
             response.EnsureSuccessStatusCode();
 
-            var payload = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
             if (string.IsNullOrWhiteSpace(payload))
                 throw new InvalidOperationException("Velopack API returned an empty manifest payload.");
@@ -189,6 +201,11 @@ namespace SUSModder.Core.Services
 
                     if (release.TryGetProperty("SHA256", out var sha256Element) && sha256Element.ValueKind == JsonValueKind.String)
                         asset["SHA256"] = sha256Element.GetString()!;
+
+                    // Older feeds may contain only SHA1; Velopack still supports
+                    // this fallback when SHA256 is absent.
+                    if (release.TryGetProperty("SHA1", out var sha1Element) && sha1Element.ValueKind == JsonValueKind.String)
+                        asset["SHA1"] = sha1Element.GetString()!;
 
                     if (release.TryGetProperty("Size", out var sizeElement) && (sizeElement.ValueKind == JsonValueKind.Number || sizeElement.ValueKind == JsonValueKind.String))
                         asset["Size"] = sizeElement.ValueKind == JsonValueKind.Number ? sizeElement.GetInt64() : long.Parse(sizeElement.GetString()!);
@@ -336,7 +353,7 @@ namespace SUSModder.Core.Services
         public async Task<IEnumerable<VelopackAsset>> GetReleaseFeedAsync(string channel, CancellationToken cancellationToken = default)
         {
             var logger = new VelopackApiSourceLogger();
-            var feed = await GetReleaseFeed(logger, null, channel, null, null).ConfigureAwait(false);
+            var feed = await GetReleaseFeedCoreAsync(logger, channel, null, null, cancellationToken).ConfigureAwait(false);
             return feed.Assets ?? Enumerable.Empty<VelopackAsset>();
         }
         

@@ -27,8 +27,7 @@ namespace SUSModder.Core.Services
             string? packDisplayName = null,
             int ttlDays = 30,
             string? creatorName = null,
-            string? discordInvite = null,
-            bool? includeIntegrationDll = null)
+            string? discordInvite = null)
         {
             var instance = _instances.GetInstance(instanceId)
                 ?? throw new InvalidOperationException("mod_instance_not_found");
@@ -54,10 +53,6 @@ namespace SUSModder.Core.Services
 
             JsonElement? touConfig = TryReadTouConfig(instanceId);
 
-            var includeIntegration = File.Exists(Path.Combine(
-                PathSettings.GetActualModPath(instance.InstallPath),
-                "BepInEx", "plugins", "integration.dll"));
-
             return new ModPackCreateRequest
             {
                 CreatorName = string.IsNullOrWhiteSpace(creatorName) ? null : creatorName.Trim(),
@@ -65,7 +60,6 @@ namespace SUSModder.Core.Services
                 FullModVersion = string.IsNullOrWhiteSpace(instance.FullModVersion) ? "latest" : instance.FullModVersion,
                 ModName = string.IsNullOrWhiteSpace(packDisplayName) ? instance.DisplayName : packDisplayName.Trim(),
                 DiscordInvite = string.IsNullOrWhiteSpace(discordInvite) ? null : discordInvite.Trim(),
-                IncludeIntegrationDll = includeIntegrationDll ?? includeIntegration,
                 TtlDays = ttlDays,
                 DllMods = dllMods,
                 TouConfig = touConfig,

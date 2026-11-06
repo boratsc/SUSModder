@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using SUSModder.Core.Api;
 using SUSModder.Core.Configuration;
+using SUSModder.Core.Models;
 using SUSModder.Core.Services;
 using SUSModder.Core.Utilities;
 
@@ -117,6 +118,10 @@ namespace SUSModder.Core.Data
                     LastUpdated = @LastUpdated,
                     Description = @Description,
                     HasRoles = @HasRoles,
+                    IsBeta = @IsBeta,
+                    LatestStableVersion = @LatestStableVersion,
+                    LatestBetaVersion = @LatestBetaVersion,
+                    AvailableReleases = @AvailableReleases,
                     UpdatedAt = datetime('now')
                 WHERE Id = @Id;";
 
@@ -146,10 +151,12 @@ namespace SUSModder.Core.Data
             cmd.CommandText = @"
                 INSERT INTO mods (Id, ModName, PngFileName, InstallPath, GitHubRepoOrLink,
                     EpicGitHubRepoOrLink, ModType, DllInstallPath, ModVersion, AmongVersion,
-                    LastUpdated, Description, HasRoles, LobbyRegionBaseUrl, SupportsLobbySharing)
+                    LastUpdated, Description, HasRoles, LobbyRegionBaseUrl, SupportsLobbySharing,
+                    IsBeta, LatestStableVersion, LatestBetaVersion, AvailableReleases)
                 VALUES (@Id, @ModName, @PngFileName, @InstallPath, @GitHubRepoOrLink,
                     @EpicGitHubRepoOrLink, @ModType, @DllInstallPath, @ModVersion, @AmongVersion,
-                    @LastUpdated, @Description, @HasRoles, @LobbyRegionBaseUrl, @SupportsLobbySharing);";
+                    @LastUpdated, @Description, @HasRoles, @LobbyRegionBaseUrl, @SupportsLobbySharing,
+                    @IsBeta, @LatestStableVersion, @LatestBetaVersion, @AvailableReleases);";
 
             BindModParameters(cmd, mod);
             cmd.ExecuteNonQuery();
@@ -364,10 +371,12 @@ namespace SUSModder.Core.Data
                     upsertCmd.CommandText = @"
                         INSERT INTO mods (Id, ModName, PngFileName, InstallPath, GitHubRepoOrLink,
                             EpicGitHubRepoOrLink, ModType, DllInstallPath, ModVersion, AmongVersion,
-                            LastUpdated, Description, HasRoles, LobbyRegionBaseUrl, SupportsLobbySharing)
+                            LastUpdated, Description, HasRoles, LobbyRegionBaseUrl, SupportsLobbySharing,
+                            IsBeta, LatestStableVersion, LatestBetaVersion, AvailableReleases)
                         VALUES (@Id, @ModName, @PngFileName, @InstallPath, @GitHubRepoOrLink,
                             @EpicGitHubRepoOrLink, @ModType, @DllInstallPath, @ModVersion, @AmongVersion,
-                            @LastUpdated, @Description, @HasRoles, @LobbyRegionBaseUrl, @SupportsLobbySharing)
+                            @LastUpdated, @Description, @HasRoles, @LobbyRegionBaseUrl, @SupportsLobbySharing,
+                            @IsBeta, @LatestStableVersion, @LatestBetaVersion, @AvailableReleases)
                         ON CONFLICT(Id) DO UPDATE SET
                             ModName = excluded.ModName,
                             PngFileName = excluded.PngFileName,
@@ -383,6 +392,10 @@ namespace SUSModder.Core.Data
                             HasRoles = excluded.HasRoles,
                             LobbyRegionBaseUrl = excluded.LobbyRegionBaseUrl,
                             SupportsLobbySharing = excluded.SupportsLobbySharing,
+                            IsBeta = excluded.IsBeta,
+                            LatestStableVersion = excluded.LatestStableVersion,
+                            LatestBetaVersion = excluded.LatestBetaVersion,
+                            AvailableReleases = excluded.AvailableReleases,
                             UpdatedAt = datetime('now');";
                     BindModParameters(upsertCmd, mod);
                     upsertCmd.Parameters.AddWithValue("@Id", mod.Id);
@@ -446,6 +459,10 @@ namespace SUSModder.Core.Data
             cmd.Parameters.AddWithValue("@HasRoles", mod.HasRoles.HasValue ? (object)(mod.HasRoles.Value ? 1 : 0) : DBNull.Value);
             cmd.Parameters.AddWithValue("@LobbyRegionBaseUrl", (object?)mod.LobbyRegionBaseUrl ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@SupportsLobbySharing", mod.SupportsLobbySharing ? 1 : 0);
+            cmd.Parameters.AddWithValue("@IsBeta", mod.IsBeta ? 1 : 0);
+            cmd.Parameters.AddWithValue("@LatestStableVersion", (object?)mod.LatestStableVersion ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@LatestBetaVersion", (object?)mod.LatestBetaVersion ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@AvailableReleases", SerializeReleases(mod.AvailableReleases));
             cmd.Parameters.AddWithValue("@VtScanStatus", (object?)mod.VtScanStatus ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@VtPermalink", (object?)mod.VtPermalink ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@VtLastCheckedAt", (object?)mod.VtLastCheckedAt ?? DBNull.Value);
@@ -473,6 +490,10 @@ namespace SUSModder.Core.Data
                 HasRoles = reader.IsDBNull(reader.GetOrdinal("HasRoles")) ? null : reader.GetInt32(reader.GetOrdinal("HasRoles")) != 0,
                 LobbyRegionBaseUrl = reader.IsDBNull(reader.GetOrdinal("LobbyRegionBaseUrl")) ? null : reader.GetString(reader.GetOrdinal("LobbyRegionBaseUrl")),
                 SupportsLobbySharing = !reader.IsDBNull(reader.GetOrdinal("SupportsLobbySharing")) && reader.GetInt32(reader.GetOrdinal("SupportsLobbySharing")) != 0,
+                IsBeta = !reader.IsDBNull(reader.GetOrdinal("IsBeta")) && reader.GetInt32(reader.GetOrdinal("IsBeta")) != 0,
+                LatestStableVersion = SafeGetString(reader, "LatestStableVersion"),
+                LatestBetaVersion = SafeGetString(reader, "LatestBetaVersion"),
+                AvailableReleases = DeserializeReleases(SafeGetString(reader, "AvailableReleases")),
                 VtScanStatus = SafeGetString(reader, "VtScanStatus"),
                 VtPermalink = SafeGetString(reader, "VtPermalink"),
                 VtLastCheckedAt = SafeGetString(reader, "VtLastCheckedAt"),
@@ -487,6 +508,45 @@ namespace SUSModder.Core.Data
             var ordinal = reader.GetOrdinal(column);
             return reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);
         }
+
+        /// <summary>
+        /// Serializuje listę wydań katalogowych (3.1-11) do kolumny TEXT.
+        /// Uszkodzony/w nieznanym formacie JSON nigdy nie może wywrócić odczytu katalogu.
+        /// </summary>
+        private static string SerializeReleases(List<ModRelease>? releases)
+        {
+            if (releases is null || releases.Count == 0)
+                return "[]";
+
+            try
+            {
+                return JsonSerializer.Serialize(releases, ReleaseJsonOptions);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ModRepository] Nie udało się zapisać wydań: {ex.Message}");
+                return "[]";
+            }
+        }
+
+        private static List<ModRelease> DeserializeReleases(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return new List<ModRelease>();
+
+            try
+            {
+                return JsonSerializer.Deserialize<List<ModRelease>>(json, ReleaseJsonOptions)
+                       ?? new List<ModRelease>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ModRepository] Nieprawidłowy JSON wydań: {ex.Message}");
+                return new List<ModRelease>();
+            }
+        }
+
+        private static readonly JsonSerializerOptions ReleaseJsonOptions = new(JsonSerializerDefaults.Web);
 
         // --- Metody przeniesione z ConfigManager ---
 
@@ -728,7 +788,36 @@ namespace SUSModder.Core.Data
 
                 if (mod.ModVersion != other.ModVersion ||
                     mod.InstallPath != other.InstallPath ||
-                    mod.PngFileName != other.PngFileName)
+                    mod.PngFileName != other.PngFileName ||
+                    mod.IsBeta != other.IsBeta ||
+                    mod.LatestStableVersion != other.LatestStableVersion ||
+                    mod.LatestBetaVersion != other.LatestBetaVersion ||
+                    !ReleasesEquivalent(mod.AvailableReleases, other.AvailableReleases))
+                    return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Sama zmiana flagi beta lub listy wydań musi wywołać zapis katalogu,
+        /// nawet gdy wersja stabilna i ścieżka instalacji się nie zmieniły (3.1-11).
+        /// </summary>
+        private static bool ReleasesEquivalent(List<ModRelease> a, List<ModRelease> b)
+        {
+            if (ReferenceEquals(a, b))
+                return true;
+            if (a is null || b is null || a.Count != b.Count)
+                return false;
+
+            for (var i = 0; i < a.Count; i++)
+            {
+                if (a[i].ReleaseId != b[i].ReleaseId ||
+                    a[i].Version != b[i].Version ||
+                    a[i].IsBeta != b[i].IsBeta ||
+                    a[i].AmongVersion != b[i].AmongVersion ||
+                    a[i].IsCurrent != b[i].IsCurrent ||
+                    a[i].Variants.Count != b[i].Variants.Count)
                     return false;
             }
 

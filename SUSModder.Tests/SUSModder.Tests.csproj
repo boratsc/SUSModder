@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Testy warstwy UI (SUSModder.Tests). Projekt był już zarezerwowany w SUSModder.sln
+    (GUID {811122C4-7A17-44B3-B715-A66BFC103100}); ten plik go realizuje.
+    Testujemy C#-owe silniki stanu (ModPackWizard) bez inicjalizacji Avalonii.
+    Pakiety xunit/Moq w tych samych wersjach co SUSModder.Core.Tests — bez nowych zależności w repo.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="10.1.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="xunit.v3.mtp-off" Version="4.0.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SUSModder\SUSModder.csproj" />
+    <ProjectReference Include="..\SUSModder.Core\SUSModder.Core.csproj" />
+  </ItemGroup>
+
+</Project>

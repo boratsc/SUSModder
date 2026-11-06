@@ -221,8 +221,6 @@ public sealed class ModPackPreviewViewModel : ViewModelBase
         }
         if (_pack.TouConfig.HasValue)
             sb.AppendLine($"{_loc.Get("ModPacks.TouConfigLabel")}: ✓");
-        if (_pack.IncludeIntegrationDll)
-            sb.AppendLine($"{_loc.Get("ModPacks.IntegrationLabel")}: ✓");
         if (!string.IsNullOrWhiteSpace(_pack.DiscordInvite))
             sb.AppendLine($"{_loc.Get("ModPacks.DiscordLabel")}: {_pack.DiscordInvite}");
         if (_pack.ExpiresAt.HasValue)

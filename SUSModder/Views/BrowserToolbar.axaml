@@ -4,49 +4,51 @@
              xmlns:loc="using:SUSModder.Services.Localization"
              xmlns:ic="using:FluentIcons.Avalonia"
              xmlns:fic="using:FluentIcons.Common"
-             x:Class="SUSModder.Views.BrowserToolbar"
+              x:Class="SUSModder.Views.BrowserToolbar"
+              x:Name="ToolbarRoot"
              x:DataType="vm:MainWindowViewModel">
+    <UserControl.Styles>
+        <Style Selector="Button.browser-tab">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Styles>
     <Border Classes="glass-top-bar">
-        <Grid ColumnDefinitions="*,Auto" Margin="12,10,12,0" ColumnSpacing="10">
-            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+        <Grid Margin="12,8,12,4">
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
                 <Button Classes="browser-tab"
                         Classes.active="{Binding IsCatalogTab}"
                         Command="{Binding SelectBrowserTabCommand}"
                         CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.Catalog}"
-                        Content="{loc:Localize UI.Tabs.Catalog}"/>
+                        AutomationProperties.Name="{loc:Localize UI.Tabs.Catalog}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Grid}" FontSize="16"/>
+                        <TextBlock Text="{loc:Localize UI.Tabs.Catalog}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Classes="browser-tab"
                         Classes.active="{Binding IsMyPacksTab}"
                         Command="{Binding SelectBrowserTabCommand}"
                         CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.MyPacks}"
-                        Content="{loc:Localize UI.Tabs.MyPacks}"/>
+                        AutomationProperties.Name="{loc:Localize UI.Tabs.MyPacks}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Box}" FontSize="16"/>
+                        <TextBlock Text="{loc:Localize UI.Tabs.MyPacks}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button Classes="browser-tab"
                         Classes.active="{Binding IsDllAddonsTab}"
                         Command="{Binding SelectBrowserTabCommand}"
                         CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.DllAddons}"
-                        Content="{loc:Localize UI.Tabs.DllAddons}"/>
+                        AutomationProperties.Name="{loc:Localize UI.Tabs.DllAddons}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ic:SymbolIcon Symbol="{x:Static fic:Symbol.PuzzlePiece}" FontSize="16"/>
+                        <TextBlock Text="{loc:Localize UI.Tabs.DllAddons}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
 
-            <Border Grid.Column="1"
-                    Classes="browser-search-box"
-                    MinWidth="220"
-                    MaxWidth="320"
-                    Padding="8,4">
-                <Grid ColumnDefinitions="Auto,*">
-                    <ic:SymbolIcon Grid.Column="0"
-                                   Symbol="{x:Static fic:Symbol.Search}"
-                                   FontSize="14"
-                                   Margin="0,0,8,0"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <TextBox Grid.Column="1"
-                             Text="{Binding BrowserSearchText}"
-                             PlaceholderText="{loc:Localize UI.Browser.SearchPlaceholder}"
-                             Background="Transparent"
-                             BorderThickness="0"
-                             FontSize="13"
-                             VerticalAlignment="Center"/>
-                </Grid>
-            </Border>
         </Grid>
     </Border>
 </UserControl>

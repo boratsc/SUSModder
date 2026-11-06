@@ -8,7 +8,6 @@ namespace SUSModder.Core.Models
         public string NewDisplayName { get; set; } = string.Empty;
         public bool CopyDlls { get; set; } = true;
         public bool CopyTouConfig { get; set; } = true;
-        public bool CopyIntegrationDll { get; set; } = true;
         public bool CopyPinnedVersion { get; set; } = true;
     }
 }

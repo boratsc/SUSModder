@@ -22,7 +22,7 @@
 					<StackPanel VerticalAlignment="Center">
 						<TextBlock Text="{local:Localize SUStatsConfirm.Header}"
                                    FontSize="18" FontWeight="Bold"
-                                   Foreground="White"/>
+                                   Foreground="{DynamicResource OnAccentTextBrush}"/>
 						<TextBlock Text="{local:Localize SUStatsConfirm.Subtitle}"
                                    FontSize="12"
                                    Foreground="#E0FFFFFF"/>
@@ -65,7 +65,7 @@
 				<!-- Tak - uruchom -->
 				<Button Content="{local:Localize SUStatsConfirm.YesButton}"
                         Background="{DynamicResource SuccessBrush}"
-                        Foreground="White"
+                        Foreground="{DynamicResource OnAccentTextBrush}"
                         Padding="15,12"
                         CornerRadius="6"
                         FontSize="12"
@@ -82,7 +82,7 @@
 				<!-- Nie, skasuj i uruchom -->
 				<Button Content="{local:Localize SUStatsConfirm.NoButton}"
                         Background="{DynamicResource DangerBrush}"
-                        Foreground="White"
+                        Foreground="{DynamicResource OnAccentTextBrush}"
                         Padding="15,12"
                         CornerRadius="6"
                         FontSize="12"

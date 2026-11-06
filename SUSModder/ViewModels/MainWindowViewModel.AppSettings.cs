@@ -104,7 +104,6 @@ namespace SUSModder.ViewModels
             if (IsAdditionalActionsVisible)
             {
                 IsInfoPanelVisible = false;
-                IsLobbyBoardVisible = false;
                 IsDllModificationsVisible = false;
                 IsSUStatsConfigVisible = false;
                 IsAppSettingsVisible = false;
@@ -126,7 +125,6 @@ namespace SUSModder.ViewModels
             if (IsInfoPanelVisible)
             {
                 IsAdditionalActionsVisible = false;
-                IsLobbyBoardVisible = false;
                 IsDllModificationsVisible = false;
                 IsSUStatsConfigVisible = false;
                 IsAppSettingsVisible = false;

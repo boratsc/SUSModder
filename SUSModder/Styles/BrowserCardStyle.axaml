@@ -26,7 +26,7 @@
         <Setter Property="Margin" Value="0"/>
         <Setter Property="Padding" Value="12"/>
         <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
-        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource TileCornerRadius}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BoxShadow" Value="0 2 8 0 #20000000"/>
@@ -111,7 +111,7 @@
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
 

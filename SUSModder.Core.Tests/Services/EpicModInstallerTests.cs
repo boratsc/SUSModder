@@ -50,7 +50,7 @@ public class EpicModInstallerTests : IDisposable
 
             var result = await installer.InstallAsync(mod, targetPath, progress, log);
 
-            Assert.True(result.Success);
+            Assert.True(result.Success, $"{result.ErrorMessage}{Environment.NewLine}{string.Join(Environment.NewLine, log.Messages)}");
             var gamePath = Path.Combine(targetPath, "AmongUs");
             Assert.True(File.Exists(Path.Combine(gamePath, "Among Us.exe")));
             Assert.Equal("epic-game", await File.ReadAllTextAsync(Path.Combine(gamePath, "Among Us.exe")));
@@ -116,7 +116,7 @@ public class EpicModInstallerTests : IDisposable
 
             var result = await installer.InstallAsync(mod, targetPath, progress, log);
 
-            Assert.True(result.Success);
+            Assert.True(result.Success, $"{result.ErrorMessage}{Environment.NewLine}{string.Join(Environment.NewLine, log.Messages)}");
             Assert.True(File.Exists(Path.Combine(targetPath, "BepInEx", "plugins", "mod.dll")));
             Assert.False(Directory.Exists(Path.Combine(targetPath, "AmongUs")));
         }

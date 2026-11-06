@@ -181,7 +181,7 @@
                         Content="{Binding ActionButtonText}"
                         Command="{Binding ApplyChangesCommand}"
                         Background="{DynamicResource AccentBrush}"
-                        Foreground="White"
+                        Foreground="{DynamicResource OnAccentTextBrush}"
                         Padding="15,10"
                         CornerRadius="6"
                         FontWeight="SemiBold"/>
@@ -239,7 +239,7 @@
                         <Button Content="{localize:Localize DllManager.CloseButton}"
                                 Command="{Binding CloseCommand}"
                                 Background="{DynamicResource AccentBrush}"
-                                Foreground="White"
+                                Foreground="{DynamicResource OnAccentTextBrush}"
                                 Padding="20,10"
                                 CornerRadius="6"/>
                     </StackPanel>

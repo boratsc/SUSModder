@@ -17,7 +17,7 @@ using SUSModder.Core.Utilities;
 namespace SUSModder.Core.Services
 {
     /// <summary>
-    /// Instalacja paczki modów: full mod, DLL katalogowe, external DLL, config ToU, integration.dll.
+    /// Instalacja paczki modów: full mod, DLL katalogowe, external DLL i config ToU.
     /// Domyślnie tworzy nową lokalną instancję (InstallAsNewInstance).
     /// </summary>
     public sealed class ModPackInstaller
@@ -397,15 +397,6 @@ namespace SUSModder.Core.Services
                     result.InstalledMods.Add("ToU config");
                 }
 
-                if (pack.IncludeIntegrationDll)
-                {
-                    progress?.Report((95, "Kopiowanie integration.dll..."));
-                    if (TryCopyIntegrationDll(targetMod))
-                        result.InstalledMods.Add("integration.dll");
-                    else
-                        result.SkippedMods.Add("integration.dll");
-                }
-
                 result.Success = result.FailedMods.Count == 0 || result.InstalledMods.Count > 0;
                 progress?.Report((100, "Gotowe"));
                 return result;
@@ -564,15 +555,6 @@ namespace SUSModder.Core.Services
                     progress?.Report((90, "Stosowanie configu ToU..."));
                     ModInstanceTouConfigService.ApplyJsonToGlobalFile(pack.TouConfig.Value);
                     result.InstalledMods.Add("ToU config");
-                }
-
-                if (pack.IncludeIntegrationDll)
-                {
-                    progress?.Report((95, "Kopiowanie integration.dll..."));
-                    if (TryCopyIntegrationDll(fullModConfig))
-                        result.InstalledMods.Add("integration.dll");
-                    else
-                        result.SkippedMods.Add("integration.dll");
                 }
 
                 result.Success = result.FailedMods.Count == 0 || result.InstalledMods.Count > 0;
@@ -832,28 +814,6 @@ namespace SUSModder.Core.Services
             {
                 // best-effort cleanup only
             }
-        }
-
-        private static bool TryCopyIntegrationDll(ModConfiguration targetMod)
-        {
-            if (string.IsNullOrEmpty(targetMod.InstallPath))
-                return false;
-
-            var integrationCandidates = new[]
-            {
-                Path.Combine(targetMod.InstallPath, "BepInEx", "plugins", "integration.dll"),
-                Path.Combine(PathSettings.ModsInstallPath, "integration.dll")
-            };
-
-            string? source = integrationCandidates.FirstOrDefault(File.Exists);
-            if (source == null)
-                return false;
-
-            var actualPath = PathSettings.GetActualModPath(targetMod.InstallPath);
-            var dest = Path.Combine(actualPath, "BepInEx", "plugins", "integration.dll");
-            Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-            File.Copy(source, dest, overwrite: true);
-            return true;
         }
 
         internal static bool TryResolveSafeDllPath(string pluginsDir, string fileName, out string safePath)

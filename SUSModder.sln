@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SUSModder.Core.Tests", "SUS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SUSModder.E2E.Tests", "SUSModder.E2E.Tests\SUSModder.E2E.Tests.csproj", "{B02DEF01-29A9-4A30-94F2-397E1B915D7E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SUSModder.Tests", "SUSModder.Tests\SUSModder.Tests.csproj", "{811122C4-7A17-44B3-B715-A66BFC103100}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,6 +26,18 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{811122C4-7A17-44B3-B715-A66BFC103100}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{811122C4-7A17-44B3-B715-A66BFC103100}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{811122C4-7A17-44B3-B715-A66BFC103100}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{811122C4-7A17-44B3-B715-A66BFC103100}.Debug|x64.Build.0 = Debug|Any CPU
+		{811122C4-7A17-44B3-B715-A66BFC103100}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{811122C4-7A17-44B3-B715-A66BFC103100}.Debug|x86.Build.0 = Debug|Any CPU
+		{811122C4-7A17-44B3-B715-A66BFC103100}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{811122C4-7A17-44B3-B715-A66BFC103100}.Release|Any CPU.Build.0 = Release|Any CPU
+		{811122C4-7A17-44B3-B715-A66BFC103100}.Release|x64.ActiveCfg = Release|Any CPU
+		{811122C4-7A17-44B3-B715-A66BFC103100}.Release|x64.Build.0 = Release|Any CPU
+		{811122C4-7A17-44B3-B715-A66BFC103100}.Release|x86.ActiveCfg = Release|Any CPU
+		{811122C4-7A17-44B3-B715-A66BFC103100}.Release|x86.Build.0 = Release|Any CPU
 		{00464E97-8F80-42AE-B162-162C4E55EA9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{00464E97-8F80-42AE-B162-162C4E55EA9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{00464E97-8F80-42AE-B162-162C4E55EA9C}.Debug|x64.ActiveCfg = Debug|Any CPU

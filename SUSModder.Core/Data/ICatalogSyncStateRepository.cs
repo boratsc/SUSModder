@@ -6,7 +6,7 @@ public interface ICatalogSyncStateRepository
 {
     CatalogSnapshotMetadata? Get(string key);
 
-    void SaveSuccess(string key, string? etag, string? lastModified, DateTime successUtc);
+    void SaveSuccess(string key, string? etag, string? lastModified, DateTime successUtc, int schemaVersion = 0);
 
     void SaveFailure(string key, string? errorCode, DateTime attemptUtc, DateTime? nextAllowedAttemptUtc);
 

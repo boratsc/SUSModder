@@ -14,9 +14,12 @@
         Title="{Binding WindowTitle}"
         x:Class="SUSModder.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Width="1180" Height="960"
-        MinWidth="1180" MinHeight="720"
+        Width="1270" Height="960"
+        MinWidth="1240" MinHeight="720"
         KeyDown="MainWindow_KeyDown">
+	<i:Interaction.Behaviors>
+		<behaviors:BrowserSessionScrollBehavior/>
+	</i:Interaction.Behaviors>
 	<Window.Resources>
 		<converters:StringNotNullOrEmptyToBoolConverter x:Key="StringNotNullOrEmptyToBoolConverter"/>
 		<converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
@@ -25,7 +28,6 @@
 		<converters:UpdatesColorConverter x:Key="UpdatesColorConverter"/>
 		<converters:StringTruncateConverter x:Key="StringTruncateConverter"/>
 		<converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
-		<converters:BoolToGridLengthConverter x:Key="ModDetailColumnWidthConverter" TrueWidth="440" FalseWidth="0"/>
 	</Window.Resources>
 
 	<Design.DataContext>
@@ -43,6 +45,7 @@
 		<StyleInclude Source="/Styles/BrowserTabStyle.axaml"/>
 		<StyleInclude Source="/Styles/GlassSurfaceStyles.axaml"/>
 		<StyleInclude Source="/Styles/GlassOpaqueFallbackStyles.axaml"/>
+		<StyleInclude Source="/Styles/DarkSurfaceStyles.axaml"/>
 
 		<!-- Wspólny styl dla przycisków panelu szczegółów moda -->
 		<Style Selector="Button.mod-detail-btn">
@@ -98,7 +101,7 @@
 			<Rectangle Fill="{DynamicResource WindowBulkGlowBrush}" Opacity="0.7"/>
 		</Panel>
 
-		<Grid Grid.Row="0" RowDefinitions="Auto,*">
+		<Grid Grid.Row="0" RowDefinitions="Auto,Auto,*" ColumnDefinitions="*,440">
 			<!-- Belka wsparcia — pełna szerokość okna, nad master-detail -->
 			<Border Grid.Row="0"
 					IsVisible="{Binding IsSupportBannerVisible}"
@@ -127,9 +130,9 @@
 					<Button Grid.Column="2"
 							Content="{loc:Localize Support.BannerLink}"
 							Command="{Binding OpenSupportLinkCommand}"
-							Background="#183B9EFF"
+							Background="{DynamicResource AccentSoftFillBrush}"
 							Foreground="{DynamicResource AccentBrush}"
-							BorderBrush="#553B9EFF"
+							BorderBrush="{DynamicResource AccentSoftBorderBrush}"
 							BorderThickness="1"
 							CornerRadius="6"
 							Padding="10,5"
@@ -148,18 +151,14 @@
 				</Grid>
 			</Border>
 
-			<!-- Master-detail: siatka + panel (bez overlay/scrim) -->
-			<Grid Grid.Row="1">
-				<Grid.ColumnDefinitions>
-					<ColumnDefinition Width="*"/>
-					<ColumnDefinition Width="{Binding IsBrowserDetailPanelVisible, Converter={StaticResource ModDetailColumnWidthConverter}}"/>
-				</Grid.ColumnDefinitions>
+			<local:BrowserToolbar Grid.Row="1" DataContext="{Binding}"/>
+
+			<!-- Left browser; the inspector/chat independently occupies the full right column. -->
+			<Grid Grid.Row="2">
 
 			<Panel Grid.Column="0">
-				<Grid RowDefinitions="Auto,*">
-				<local:BrowserToolbar Grid.Row="0" DataContext="{Binding}"/>
 
-			<Panel Grid.Row="1"
+			<Panel
 				   Classes="glass-browser-panel"
 				   PointerPressed="ModGridBackground_PointerPressed">
 
@@ -330,11 +329,11 @@
 													   Opacity="0.7"/>
 											<TextBlock Text="{loc:Localize UI.ModStatus.Installed}"
 													   FontSize="11"
-													   Foreground="#4CAF50"
+													   Foreground="{DynamicResource StatusInstalledTextBrush}"
 													   IsVisible="{Binding IsInstalled}"/>
 											<TextBlock Text="{loc:Localize UI.ModStatus.NotInstalled}"
 													   FontSize="11"
-													   Foreground="#FF5252"
+													   Foreground="{DynamicResource StatusMissingTextBrush}"
 													   IsVisible="{Binding IsInstalled, Converter={StaticResource InverseBoolConverter}}"/>
 										</StackPanel>
 									</StackPanel>
@@ -347,36 +346,58 @@
 
 				<local:BulkModeChip HorizontalAlignment="Right"
 									VerticalAlignment="Top"
-									Margin="12,10,12,0"
+									Margin="12,10,24,0"
 									ZIndex="2"
 									IsVisible="{Binding IsBulkChipVisible}"
 									DataContext="{Binding}"/>
 			</Panel>
-				</Grid>
 			</Panel>
+			</Grid>
 
-				<Border x:Name="PackInstanceDetailDrawerHost"
-						Grid.Column="1"
-						Classes="mod-detail-host"
-						MaxWidth="460"
-						IsVisible="{Binding IsPackInstancePanelVisible}">
-					<local:PackInstanceDetailDrawer DataContext="{Binding}"/>
-				</Border>
+			<!-- Prawa kolumna: opcjonalne szczegóły nad stałym czatem ogólnym.
+			     Wysokość wiersza szczegółów zarządza code-behind (GridSplitter + zwijanie bez zaznaczenia). -->
+			<Grid Grid.Column="1" Grid.Row="0" Grid.RowSpan="3"
+			      x:Name="RightColumnGrid">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="0"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+				</Grid.RowDefinitions>
 
-				<Border x:Name="ModDetailDrawerHost"
-						Grid.Column="1"
-						Classes="mod-detail-host"
-						MaxWidth="460"
-						IsVisible="{Binding IsModPanelVisible}">
-					<local:ModDetailDrawer x:Name="ModDetailDrawerControl" DataContext="{Binding}"/>
-				</Border>
+				<!-- Szczegóły: mod / DLL / instancja paczki (wyłącznie jedna widoczna) -->
+				<Panel Grid.Row="0"
+				       IsVisible="{Binding IsBrowserDetailPanelVisible}"
+				       MinHeight="180">
+					<Border x:Name="PackInstanceDetailDrawerHost"
+					        Classes="mod-detail-host"
+					        IsVisible="{Binding IsPackInstancePanelVisible}">
+						<local:PackInstanceDetailDrawer DataContext="{Binding}"/>
+					</Border>
 
-				<Border x:Name="DllAddonInspectorHost"
-						Grid.Column="1"
-						Classes="mod-detail-host"
-						MaxWidth="460"
-						IsVisible="{Binding IsDllPanelVisible}">
-					<local:DllAddonInspector DataContext="{Binding}"/>
+					<Border x:Name="ModDetailDrawerHost"
+					        Classes="mod-detail-host"
+					        IsVisible="{Binding IsModPanelVisible}">
+						<local:ModDetailDrawer x:Name="ModDetailDrawerControl" DataContext="{Binding}"/>
+					</Border>
+
+					<Border x:Name="DllAddonInspectorHost"
+					        Classes="mod-detail-host"
+					        IsVisible="{Binding IsDllPanelVisible}">
+						<local:DllAddonInspector DataContext="{Binding}"/>
+					</Border>
+				</Panel>
+
+				<GridSplitter Grid.Row="1"
+				              Height="6"
+				              HorizontalAlignment="Stretch"
+				              VerticalAlignment="Center"
+				              ResizeDirection="Rows"
+				              Background="Transparent"
+				              IsVisible="{Binding IsBrowserDetailPanelVisible}"/>
+
+				<!-- Czat ogólny: zawsze obecny, niezależny od zaznaczenia -->
+				<Border Grid.Row="2" Classes="mod-detail-host">
+					<local:CommunityChatPanel DataContext="{Binding CommunityChat}"/>
 				</Border>
 			</Grid>
 		</Grid>
@@ -400,7 +421,7 @@
 								<behaviors:RippleBehavior RippleColor="#FFFFFF" RippleOpacity="0.25" RippleDuration="500"/>
 							</i:Interaction.Behaviors>
 							<Grid>
-								<ic:SymbolIcon x:Name="FabIcon" Symbol="{x:Static fic:Symbol.Navigation}" FontSize="20" Foreground="White"/>
+								<ic:SymbolIcon x:Name="FabIcon" Symbol="{x:Static fic:Symbol.Navigation}" FontSize="20" Foreground="{DynamicResource OnAccentTextBrush}"/>
 							</Grid>
 						</Button>
 						<Border Classes="fab-badge"
@@ -433,7 +454,7 @@
 												   FontSize="16"
 												   HorizontalAlignment="Center"
 												   VerticalAlignment="Center"
-												   Foreground="White"/>
+												   Foreground="{DynamicResource OnAccentTextBrush}"/>
 									</Border>
 
 									<Border Width="40" Height="40"
@@ -489,14 +510,14 @@
 						<!-- SEKCJA 1: Statystyki modów -->
 						<Border Grid.Column="0" Classes="status-section">
 							<StackPanel Orientation="Horizontal" Spacing="15">
-								<Border Classes="status-icon-container" Background="#4A148C">
+								<Border Classes="status-icon-container" Background="{DynamicResource StatusIconModsBrush}">
 									<TextBlock Text="📦" FontSize="24" VerticalAlignment="Center" HorizontalAlignment="Center"/>
 								</Border>
 
 								<StackPanel VerticalAlignment="Center" Spacing="2">
 									<TextBlock Classes="status-main-text"
 											   Text="{Binding ModsStatusMainText}"
-											   Foreground="#F44336"
+											   Foreground="{DynamicResource UpdateAlertBrush}"
 											   IsVisible="{Binding !!AvailableUpdatesCount}"/>
 									<TextBlock Classes="status-main-text"
 											   Text="{Binding ModsStatusMainText}"
@@ -515,17 +536,18 @@
 
 						<!-- SEKCJA 2: Przestrzeń dyskowa -->
 						<Border Grid.Column="1" Classes="status-section">
+							<Button Command="{Binding ShowStorageOverviewCommand}"
+							        Background="Transparent" BorderThickness="0" Padding="0"
+							        HorizontalContentAlignment="Stretch"
+							        AutomationProperties.Name="{loc:Localize UI.Storage.Open}">
 							<StackPanel Orientation="Horizontal" Spacing="15">
-								<Border Classes="status-icon-container" Background="#0288D1">
+								<Border Classes="status-icon-container" Background="{DynamicResource StatusIconStorageBrush}">
 									<TextBlock Text="💾" FontSize="24" VerticalAlignment="Center" HorizontalAlignment="Center"/>
 								</Border>
 
 								<StackPanel VerticalAlignment="Center" Spacing="4" Width="250">
-									<TextBlock Classes="status-main-text">
-										<Run Text="{Binding ModsFolderSizeGB, StringFormat='{}{0:F2} GB'}"/>
-										<Run Text=" / "/>
-										<Run Text="{Binding FreeDiskSpaceGB, StringFormat='{}{0:F2} GB'}"/>
-									</TextBlock>
+									<TextBlock Classes="status-main-text" Text="{Binding LibraryStorageStatusText}"
+									           TextTrimming="CharacterEllipsis"/>
 
 									<Grid>
 										<ProgressBar Value="{Binding DiskUsagePercentage}"
@@ -542,9 +564,10 @@
 								</StackPanel>
 							</StackPanel>
 
+							</Button>
 							<ToolTip.Tip>
 								<StackPanel>
-									<TextBlock Text="{loc:Localize UI.Labels.SpaceDetailsHeader}" FontWeight="Bold" Margin="0,0,0,5"/>
+									<TextBlock Text="{loc:Localize UI.Storage.Open}" FontWeight="Bold" Margin="0,0,0,5"/>
 									<TextBlock Text="{Binding DiskSpaceDetailsTooltip}" FontSize="11"/>
 								</StackPanel>
 							</ToolTip.Tip>
@@ -629,16 +652,6 @@
 								<local:InfoPanel IsVisible="{Binding IsInfoPanelVisible}"
 												 DataContext="{Binding}"
 												 Classes="fade-in-panel"/>
-
-								<ContentControl Content="{Binding LobbyBoardViewModel}"
-												IsVisible="{Binding IsLobbyBoardVisible}"
-												Classes="fade-in-panel">
-									<ContentControl.DataTemplates>
-										<DataTemplate DataType="vm:LobbyBoardPanelViewModel">
-											<local:LobbyBoardPanel/>
-										</DataTemplate>
-									</ContentControl.DataTemplates>
-								</ContentControl>
 
 								<local:AdditionalActionsPanel IsVisible="{Binding IsAdditionalActionsVisible}"
 															  DataContext="{Binding}"
@@ -910,7 +923,7 @@
 									MinWidth="100"
 									Padding="10,8"
 									Background="{DynamicResource AccentBrush}"
-									Foreground="White"
+									Foreground="{DynamicResource OnAccentTextBrush}"
 									CornerRadius="6"
 									Click="OnInlineDialogPrimaryClick"/>
 						</StackPanel>
@@ -999,7 +1012,7 @@
 									MinWidth="110"
 									Padding="10,8"
 									Background="{DynamicResource AccentBrush}"
-									Foreground="White"
+									Foreground="{DynamicResource OnAccentTextBrush}"
 									CornerRadius="6"
 									IsEnabled="{Binding CanConfirmAntivirusWarning}"
 									Click="OnAntivirusWarningConfirmClick"/>
@@ -1114,7 +1127,7 @@
 									<behaviors:RippleBehavior/>
 								</i:Interaction.Behaviors>
 								<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-									<ic:SymbolIcon Grid.Column="0" Symbol="{x:Static fic:Symbol.Box}" FontSize="20" Foreground="#00BCD4"/>
+									<ic:SymbolIcon Grid.Column="0" Symbol="{x:Static fic:Symbol.Box}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
 									<TextBlock Grid.Column="1"
 											   Text="{loc:Localize ModPacks.MenuGroup}"
 											   VerticalAlignment="Center"
@@ -1143,31 +1156,20 @@
 								<Button Classes="fab-menu-subitem"
 										Command="{Binding EnterModPackCodeCommand}">
 									<StackPanel Orientation="Horizontal" Spacing="8">
-										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ClipboardPaste}" FontSize="16" Foreground="#00BCD4"/>
+										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ClipboardPaste}" FontSize="16" Foreground="{DynamicResource IconAccentBrush}"/>
 										<TextBlock Text="{loc:Localize ModPacks.EnterCodeMenu}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="190"/>
 									</StackPanel>
 								</Button>
 								<Button Classes="fab-menu-subitem"
 										Command="{Binding ShowModPackManagerCommand}">
 									<StackPanel Orientation="Horizontal" Spacing="8">
-										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.CloudArrowUp}" FontSize="16" Foreground="#00BCD4"/>
+										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.CloudArrowUp}" FontSize="16" Foreground="{DynamicResource IconAccentBrush}"/>
 										<TextBlock Text="{loc:Localize ModPacks.Shared.ManageFromLimit}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="190"/>
 									</StackPanel>
 								</Button>
 							</StackPanel>
 						</StackPanel>
 					</Border>
-
-					<Button Classes="fab-menu-item"
-							Command="{Binding ShowLobbyBoardCommand}">
-						<i:Interaction.Behaviors>
-							<behaviors:RippleBehavior/>
-						</i:Interaction.Behaviors>
-						<StackPanel Orientation="Horizontal" Spacing="12">
-							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.People}" FontSize="20" Foreground="#9C27B0"/>
-							<TextBlock Text="{loc:Localize UI.Menu.LobbyBoard}" VerticalAlignment="Center"/>
-						</StackPanel>
-					</Button>
 
 					<Button Classes="fab-menu-item"
 							Command="{Binding ShowAppSettingsCommand}">
@@ -1186,7 +1188,7 @@
 							<behaviors:RippleBehavior/>
 						</i:Interaction.Behaviors>
 						<StackPanel Orientation="Horizontal" Spacing="12">
-							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Info}" FontSize="20" Foreground="#00BCD4"/>
+							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Info}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
 							<TextBlock Text="{loc:Localize UI.Menu.Info}" VerticalAlignment="Center"/>
 						</StackPanel>
 					</Button>

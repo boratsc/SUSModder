@@ -30,14 +30,11 @@ Działa z grą ze **Steama** i **Epic Games**. Nie musisz szukać plików, wersj
 
 ## Zobacz, jak to wygląda
 
-<!-- screenshot-main: główne okno z listą modów (motyw ciemny, kilka modów widocznych, pasek wyszukiwania) -->
 <p align="center">
   <img src="DOC/readme/screenshot-main.png" alt="Lista modów w SUSModder" width="700"><br>
   <em>Lista modów - wszystko w jednym miejscu</em>
 </p>
 
-<!-- screenshot-install: szczegóły wybranego moda z widocznym przyciskiem Instaluj -->
-<!-- screenshot-launch: ten sam mod po instalacji z widocznym przyciskiem Uruchom -->
 <p align="center">
   <img src="DOC/readme/screenshot-install.png" alt="Instalacja moda" width="340">
   &nbsp;
@@ -59,7 +56,7 @@ Działa z grą ze **Steama** i **Epic Games**. Nie musisz szukać plików, wersj
 - **🔄 Aktualizacje** - aplikacja przypomni, gdy mod lub sama gra wymaga odświeżenia
 - **🎭 Wyszukiwarka ról** - szybko sprawdzisz, co robi dana rola w modzie
 - **⚙️ Gotowe ustawienia ToU** - zapisuj i wczytuj konfiguracje lobby bez grzebania w opcjach
-- **📋 Tablica Lobby** - znajdź grę albo wrzuć swój kod lobby
+- **💬 Czat ogólny** - wspólna rozmowa dla wszystkich modów, zawsze w prawym panelu
 - **🔧 Napraw grę** - pomoc przy czarnym ekranie, problemach z połączeniem i podobnych bugach
 - **🎨 Motywy** - ciemny albo różowy - wybierz, co bardziej pasuje
 
@@ -139,7 +136,7 @@ Works with **Steam** and **Epic Games**. No hunting for files, versions, or YouT
 - **🔄 Updates** - the app reminds you when a mod or the game needs refreshing
 - **🎭 Role lookup** - quickly check what a role does in a mod
 - **⚙️ ToU presets** - save and load lobby configs without digging through options
-- **📋 Lobby Board** - find a game or share your lobby code
+- **💬 Global chat** - one conversation shared across all mods, always in the right panel
 - **🔧 Repair game** - help with black screen, connection issues, and similar bugs
 - **🎨 Themes** - dark or pink - pick what suits you
 

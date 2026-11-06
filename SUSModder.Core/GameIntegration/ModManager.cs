@@ -119,7 +119,14 @@ namespace SUSModder.Core.GameIntegration
             bool updateCatalogInstallPath = true,
             bool allowReplaceExistingTarget = true)
         {
-            string modsInstallPath = PathSettings.ModsInstallPath;
+            var modsPathValidation = ModsInstallPathGuard.Validate(PathSettings.ModsInstallPath);
+            if (!modsPathValidation.IsValid)
+            {
+                log.Write($"[ModsInstallPath] Odrzucono katalog instalacji modów: {modsPathValidation.Message}");
+                return ModInstallResult.Failed(modsPathValidation.Message);
+            }
+
+            string modsInstallPath = modsPathValidation.Message;
             Directory.CreateDirectory(modsInstallPath);
 
             string uniqueTempId = Guid.NewGuid().ToString("N");
@@ -231,8 +238,16 @@ namespace SUSModder.Core.GameIntegration
             progress.Report(80, "Rozpakowywanie moda...");
             string tempExtractPath = Path.Combine(tempDir, "extractMod");
 
-            await SafeDeleteDirectory(tempExtractPath);
-            Directory.CreateDirectory(tempExtractPath);
+            try
+            {
+                await InstallPathWriteHelper.PrepareExtractionDirectoryAsync(tempExtractPath, log);
+            }
+            catch (Exception ex) when (InstallPathWriteHelper.IsAccessDeniedException(ex))
+            {
+                log.Write($"ERROR podczas przygotowania katalogu rozpakowania: {ex.Message}");
+                return ModInstallResult.Failed(
+                    InstallPathWriteHelper.FormatExtractionAccessDeniedMessage(tempExtractPath, modsInstallPath));
+            }
 
             try
             {
@@ -268,6 +283,13 @@ namespace SUSModder.Core.GameIntegration
             catch (Exception ex)
             {
                 log.Write($"ERROR podczas rozpakowywania moda: {ex.Message}");
+                if (InstallPathWriteHelper.IsAccessDeniedException(ex))
+                {
+                    var blockedPath = InstallPathWriteHelper.TryGetBlockedPathFromException(ex);
+                    return ModInstallResult.Failed(
+                        InstallPathWriteHelper.FormatExtractionAccessDeniedMessage(blockedPath, modsInstallPath));
+                }
+
                 return ModInstallResult.Failed($"Błąd podczas rozpakowywania archiwum moda: {ex.Message}");
             }
 
@@ -360,7 +382,16 @@ namespace SUSModder.Core.GameIntegration
             ModManagerUserCallbacks userCallbacks,
             string mode = "steam")
         {
-            string modsInstallPath = PathSettings.ModsInstallPath;
+            var modsPathValidation = ModsInstallPathGuard.Validate(PathSettings.ModsInstallPath);
+            if (!modsPathValidation.IsValid)
+            {
+                log.Write($"[ModsInstallPath] Odrzucono katalog instalacji modów: {modsPathValidation.Message}");
+                if (userCallbacks.ShowErrorAsync != null)
+                    await userCallbacks.ShowErrorAsync(modsPathValidation.Message, "Błąd");
+                return;
+            }
+
+            string modsInstallPath = modsPathValidation.Message;
             
             // Unikalna nazwa katalogu temp dla każdej instalacji, aby uniknąć konfliktów przy równoczesnych instalacjach
             string uniqueTempId = Guid.NewGuid().ToString("N");

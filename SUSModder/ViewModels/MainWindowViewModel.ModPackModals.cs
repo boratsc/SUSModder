@@ -267,7 +267,6 @@ public partial class MainWindowViewModel
             preselectedCatalogMod);
 
         view.Completed += OnModPackCreatorCompleted;
-        view.PackLimitReached += OnModPackCreatorLimitReached;
         ModPackCreatorTitle = view.ModalTitle;
         ModPackCreatorContent = view;
         IsModPackCreatorVisible = true;
@@ -275,28 +274,11 @@ public partial class MainWindowViewModel
         return await completionSource.Task;
     }
 
-    private void OnModPackCreatorLimitReached()
-    {
-        // Zamknij kreator i otwórz modal zarządzania udostępnionymi paczkami.
-        if (ModPackCreatorContent is ModPackCreatorView view)
-        {
-            view.Completed -= OnModPackCreatorCompleted;
-            view.PackLimitReached -= OnModPackCreatorLimitReached;
-        }
-        ModPackCreatorContent = null;
-        ModPackCreatorTitle = string.Empty;
-        IsModPackCreatorVisible = false;
-        _modPackCreatorCompletionSource?.TrySetResult(null);
-
-        _ = ShowModPackManagerModalAsync();
-    }
-
     private void OnModPackCreatorCompleted(ModPackCreatorDialogResult? result)
     {
         if (ModPackCreatorContent is ModPackCreatorView view)
         {
             view.Completed -= OnModPackCreatorCompleted;
-            view.PackLimitReached -= OnModPackCreatorLimitReached;
         }
 
         ModPackCreatorContent = null;

@@ -28,8 +28,6 @@
                           Content="{loc:Localize UI.Packs.CloneCopyDlls}"/>
 				<CheckBox x:Name="CopyTouConfigCheck" IsChecked="True"
                           Content="{loc:Localize UI.Packs.CloneCopyTouConfig}"/>
-				<CheckBox x:Name="CopyIntegrationCheck" IsChecked="True"
-                          Content="{loc:Localize UI.Packs.CloneCopyIntegration}"/>
 				<CheckBox x:Name="CopyPinnedVersionCheck" IsChecked="True"
                           Content="{loc:Localize UI.Packs.CloneCopyPinnedVersion}"/>
 
@@ -42,7 +40,7 @@
 			<StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,16,0,0">
 				<Button Content="{loc:Localize UI.Buttons.Cancel}" Width="110" Click="CancelButton_Click"/>
 				<Button x:Name="CloneButton" Content="{loc:Localize UI.Packs.Clone}" Width="140"
-                        Background="{DynamicResource AccentBrush}" Foreground="White"
+                        Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource OnAccentTextBrush}"
                         Click="CloneButton_Click"/>
 			</StackPanel>
 		</Grid>

@@ -73,7 +73,7 @@
 						<TextBlock x:Name="TitleText"
                                    Text="{local:Localize RolesWindow.Header}"
                                    FontSize="24" FontWeight="Bold"
-                                   Foreground="White"/>
+                                   Foreground="{DynamicResource OnAccentTextBrush}"/>
 						<TextBlock x:Name="SubtitleText"
                                    Text="{local:Localize RolesWindow.LoadingSubtitle}"
                                    FontSize="12"
@@ -156,7 +156,7 @@
 						<TextBlock Text="❌" FontSize="32" HorizontalAlignment="Center"/>
 						<TextBlock Text="{local:Localize RolesWindow.ErrorMessage}"
                                    FontSize="16"
-                                   Foreground="White"
+                                   Foreground="{DynamicResource OnAccentTextBrush}"
                                    HorizontalAlignment="Center"/>
 						<Button Content="{local:Localize RolesWindow.RetryButton}"
                                 HorizontalAlignment="Center"
@@ -245,7 +245,7 @@
                                                                 Margin="0,0,5,5">
 															<TextBlock Text="{Binding Name}"
                                                                        FontSize="10"
-                                                                       Foreground="White"
+                                                                       Foreground="{DynamicResource OnAccentTextBrush}"
                                                                        FontWeight="SemiBold"/>
 														</Border>
 													</DataTemplate>
@@ -429,7 +429,7 @@
 									Height="36">
 													<TextBlock Text="⚡"
 										   FontSize="18"
-										   Foreground="White"
+										   Foreground="{DynamicResource OnAccentTextBrush}"
 										   HorizontalAlignment="Center"
 										   VerticalAlignment="Center" />
 												</Border>

@@ -75,7 +75,7 @@
                     Content="{local:Localize Tools.HashDisplay.CopyButton}"
                     Click="OnCopyClick"
                     Background="{DynamicResource AccentBrush}"
-                    Foreground="White"
+                    Foreground="{DynamicResource OnAccentTextBrush}"
                     Padding="20,10"
                     CornerRadius="6"
                     FontSize="14"

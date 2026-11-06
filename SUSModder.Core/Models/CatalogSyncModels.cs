@@ -26,7 +26,20 @@ public sealed class CatalogSnapshotMetadata
 {
     public string Key { get; init; } = string.Empty;
     public string? ETag { get; init; }
+
+    /// <summary>
+    /// Znacznik zależny od zasobu: dla metadanych ikon przechowuje
+    /// <c>iconsRevision</c> (3.1-04).
+    /// </summary>
+    public string? LastModified { get; init; }
+
     public DateTime? LastSuccessUtc { get; init; }
     public DateTime? NextAllowedAttemptUtc { get; init; }
     public int FailureCount { get; init; }
+
+    /// <summary>
+    /// Potwierdzona wersja schematu kontraktu przypisanego do tego klucza
+    /// (3.1-04: wersja kontraktu ikon). 0 = brak potwierdzonego schematu.
+    /// </summary>
+    public int SchemaVersion { get; init; }
 }

@@ -1,0 +1,3 @@
+* [3.1.4] Epic Games: poprawiono obsługę brakujących adresów CDN Legendary podczas instalacji modów.
+* [3.1.4] Epic Games: bezpieczniejsza instalacja oraz ochrona danych logowania w dziennikach.
+* [3.1.4] Dodano podziękowanie dla pxtreza, pierwszego współtwórcy ze społeczności.

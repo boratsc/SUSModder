@@ -4,10 +4,63 @@
 
 | Kanał | Authenticode | Uwagi |
 |-------|--------------|--------|
-| `beta` | **unsigned** | Domyślny kanał testowy CI (`release-candidate.yml`) |
-| `release` | **signed** (SignPath/OSSign) | Pending integracji; lokalnie nadal unsigned |
+| `beta` | **SignPath** (domyślnie) | `signingMode=signpath` w RC; escape hatch: `none` |
+| `release` | **SignPath** (domyślnie) | to samo — oba kanały mogą być podpisane |
 
 Publiczne buildy Velopack **wymagają** `PublishSingleFile=false` (unpacked). Gate: `Assert-NotSingleFile.ps1`.
+
+## Zasady publikacji i ogłaszania (twarde)
+
+Kolejność jest obowiązkowa: **build → GitHub Release (draft) → publikacja / pre-release → deploy → Discord**.
+
+1. **Nie wolno wysyłać linku ani posta na Discord, dopóki GitHub Release nie jest opublikowany** (`draft=false`) jako release albo pre-release. Draft i adresy `untagged-…` zwracają 404 — linki w poście są martwe.
+2. Beta publikujemy jako **pre-release**, stabilną jako release (najlepiej `latest`). Tag musi wskazywać commit wydania (`target_commitish = github.sha`), nigdy domyślny `main`.
+3. Linki do paczek w ogłoszeniu muszą być linkami pobierania **opublikowanego** wydania (`https://github.com/<repo>/releases/download/<tag>/…`), nie adresami API ani `untagged-…`.
+4. `Send-DiscordReleaseAnnouncement.ps1` odmawia pracy, gdy release jest draftem albo URL zawiera `untagged-`; workflow publikuje wydanie przed krokiem Discord.
+5. Jeśli wydanie nie może zostać opublikowane, **nie ogłaszamy go** — zostaje draft i brak posta.
+6. Po publikacji strona wydania i assety muszą zwracać HTTP 200; brak 200 = brak ogłoszenia.
+7. Publikacja po fakcie **nie naprawia** już wysłanego posta — linki `untagged-…` pozostają 404. Kolejność trzeba zachować przed wysyłką, a nie po niej.
+
+### Przypięta wersja Velopack
+
+CLI `vpk` jest przypięte w `.config/dotnet-tools.json` do **1.2.161**.
+Skrypty pakowania korzystają z `Invoke-Velopack.ps1`: przywracają lokalne
+narzędzie, sprawdzają zgodność wersji z biblioteką w UI/Core i nie używają
+globalnego `vpk`. Nie trzeba aktualizować ani usuwać globalnej instalacji.
+
+```powershell
+.\SKRYPTY\Build\Invoke-Velopack.ps1 -RestoreOnly
+.\SKRYPTY\Build\Invoke-Velopack.ps1 -Arguments @('pack', '--help')
+# Test offline, bez instalacji/publikacji paczek:
+.\SKRYPTY\Test\test-velopack-toolchain.ps1
+```
+
+Velopack 1.x używa własnego `SemanticVersion`, synchronicznego
+`WaitExitThenApplyUpdates` i trybu generowania w `--delta` (nie ścieżki pliku).
+Nowy updater nie obsługuje starych delt bsdiff; przed publikacją trzeba sprawdzić
+przejście ze starego klienta, pełną paczkę, kanały beta/release oraz restart.
+Nie traktuj samego poprawnego builda jako testu rzeczywistej aktualizacji.
+
+### SignPath / Authenticode (CI)
+
+Domyślny `signingMode` w `release-candidate.yml`: **`signpath`** (beta i release).
+
+Wymagane GitHub configuration:
+
+| Typ | Nazwa | Opis |
+|-----|-------|------|
+| Secret | `SIGNPATH_API_TOKEN` | API token submittera SignPath |
+| Variable | `SIGNPATH_ORGANIZATION_ID` | UUID organizacji |
+| Variable | `SIGNPATH_PROJECT_SLUG` | slug projektu |
+| Variable | `SIGNPATH_SIGNING_POLICY_SLUG` | np. `test-signing` / `release-signing` |
+| Variable | `SIGNPATH_ARTIFACT_CONFIGURATION_SLUG` | opcjonalnie; domyślnie `velopack-channel` |
+
+W portalu SignPath utwórz Artifact Configuration o slug `velopack-channel` na podstawie XML:
+`.signpath/artifact-configurations/velopack-channel.xml`
+
+Flow CI: pack → upload unsigned bundle (Setup/Update/Portable/nupkg) → SignPath → apply → `Assert-AuthenticodeSigned.ps1` → deploy/draft.
+
+Skrypty: `Prepare-SignPathBundle.ps1`, `Apply-SignPathBundle.ps1`, `Assert-AuthenticodeSigned.ps1`.
 
 ## Sekrety (`Secrets.cs`)
 
@@ -23,6 +76,8 @@ Wymagane GitHub Secrets:
 - `SUSMODDER_DOWNLOAD_TOKEN` — plaintext token Authorization
 - `SUSMODDER_7Z_PASSWORD` — plaintext hasło legacy vanilla 7z
 - `DEPLOY_SSH_PRIVATE_KEY` — klucz do uploadu na VPS (release workflow). **Preferuj Base64** całego pliku klucza (jedna linia); workflow akceptuje też surowy PEM.
+- `DC_WEBHOOK` — Discord webhook URL; po udanym deployu na serwer (`release-candidate.yml`) wysyła ogłoszenie beta/release.
+- `SIGNPATH_API_TOKEN` — token SignPath (gdy `signingMode=signpath`)
 
 Opcjonalne Variables: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH`.
 
@@ -33,6 +88,70 @@ $env:SUSMODDER_7Z_PASSWORD = "..."
 ```
 
 Uwaga: GH Secrets chronią źródło w CI; wartości i tak trafiają do binarki klienta. Pełne usunięcie sekretów z desktopa = osobny POC.
+
+### Discord announce (RC)
+
+Workflow publikuje GitHub Release (beta = pre-release) **przed** ogłoszeniem; dopiero potem woła `Send-DiscordReleaseAnnouncement.ps1`. Draft i `untagged-…` są blokowane przez skrypt.
+
+Inputy `workflow_dispatch`:
+
+- `changelogMarkdown` — user-facing punkty zmian (markdown). Puste = post bez bloku zmian.
+- `discordTeaser` — opcjonalna linia na końcu (np. „Niedługo 3.0.13-beta”).
+
+### Uruchamianie wydania z zachowaniem polskich znaków
+
+Changelog zapisuj jako **UTF-8**. Do uruchamiania RC używaj helpera
+`Start-ReleaseCandidate.ps1` (Windows PowerShell 5.1 i PowerShell 7):
+
+```powershell
+# Najpierw podgląd JSON — bez publikacji i bez wysyłania ogłoszenia
+.\SKRYPTY\Build\Start-ReleaseCandidate.ps1 -Version 3.0.14 -Channel beta `
+  -ChangelogPath .release-changelog.txt -DryRun
+
+# Właściwe uruchomienie workflow: SignPath, draft GitHub, serwer i Discord
+.\SKRYPTY\Build\Start-ReleaseCandidate.ps1 -Version 3.0.14 -Channel beta `
+  -Ref beta -ChangelogPath .release-changelog.txt
+```
+
+`-SigningMode none` wymaga świadomej decyzji o wydaniu bez podpisu.
+`-PublishTarget github-draft` pomija serwer i Discord; `none` pomija publikację.
+`-Ref` wskazuje gałąź/commit budowany przez workflow (domyślnie `beta`).
+
+**Nie przekazuj JSON przez `ConvertTo-Json | gh api ... --input -` w Windows
+PowerShell 5.1**: domyślny `$OutputEncoding` to ASCII, więc polskie litery stają
+się `?` już w inputach GitHub Actions (również w changelogu draftu GitHub).
+Helper czyta changelog i zapisuje JSON jako UTF-8 bez BOM, a `gh` odczytuje plik
+przez `--input <plik>` — bez zależności od kodowania konsoli/potoku.
+Nie naprawia to tekstu uszkodzonego wcześniej; źródłowy changelog musi być poprawny.
+Wysyłka webhooka Discord już używa bajtów UTF-8 i `charset=utf-8`.
+
+Testy offline (bez `gh`, webhooka, sekretów i publikacji):
+
+```powershell
+powershell -NoProfile -File .\SKRYPTY\Test\test-release-text-encoding.ps1
+pwsh -NoProfile -File .\SKRYPTY\Test\test-release-text-encoding.ps1
+```
+
+Workflow RC uruchamia oba testy przed buildem/publikacją. Test PowerShell 5.1
+sprawdza JSON dispatchu, a PowerShell 7 także pełną treść i bajty webhooka
+dla kanałów beta i release (polskie litery, emoji, cudzysłowy i nowe linie).
+
+**GitHub draft assets** (nie mylić z deployem na serwer):
+
+- zawsze: `SUSModderInstaller.exe` (pobierany z `https://susmodder.app/releases/SUSModderInstaller.exe`)
+- zawsze (beta i release): `*Portable.zip` + zbudowany `*Setup.exe`
+- nupkg / RELEASES / json → tylko serwer
+
+Lokalny dry-run (wymaga `gh` + istniejącego draftu z Portable dla beta):
+
+```powershell
+.\SKRYPTY\Build\Send-DiscordReleaseAnnouncement.ps1 `
+  -Channel beta `
+  -Version 3.0.12 `
+  -ReleaseTag v3.0.12-beta `
+  -ChangelogMarkdown "* [3.0.12] Przykładowa zmiana" `
+  -DryRun
+```
 
 ## Aktualne użycie (lokalnie)
 
@@ -61,6 +180,8 @@ Output:
 - `build-velopack-test.ps1` — lokalne testy paczkowania Velopack.
 - `build-bootstrapper.ps1` — build bootstrappera/instalatora, jeśli jest potrzebny w release flow.
 - `deploy-to-server.ps1` — ręczny upload gotowych artefaktów; wymaga jawnych parametrów/klucza SSH i ostrożności.
+- `Send-DiscordReleaseAnnouncement.ps1` — post na Discord (webhook) po RC; szablony beta/release.
+- `Prepare-SignPathBundle.ps1` / `Apply-SignPathBundle.ps1` / `Assert-AuthenticodeSigned.ps1` — SignPath Authenticode w CI.
 - `build-release-2.2.0.ps1`, `sign-and-build.ps1`, `build-with-signing.ps1`, `post-sign-packages.ps1` — legacy/reference. Nie używać domyślnie.
 
 ## Zasady

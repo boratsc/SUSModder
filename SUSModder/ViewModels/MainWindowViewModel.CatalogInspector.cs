@@ -52,8 +52,6 @@ namespace SUSModder.ViewModels
         {
             ResetInspectorSections();
             ClearInstallVersionFlyout();
-            if (SelectedMod != null && !SelectedMod.IsVanilla)
-                EnsureInspectorLobbyEmbedViewModel();
             this.RaisePropertyChanged(nameof(ShowCatalogInspectorCompatibleDlls));
             _ = LoadCatalogCompatibleDllsAsync();
         }

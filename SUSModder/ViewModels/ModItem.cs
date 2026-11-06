@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using ReactiveUI;
+using SUSModder.Core.Models;
 using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.ViewModels
@@ -46,6 +48,105 @@ namespace SUSModder.ViewModels
         private string? _targetInstanceId;
         private string _installedInSummary = string.Empty;
         private int _installedInCount;
+        private bool _isFavorite;
+        private string _directorySizeText = string.Empty;
+        private string? _versionedIconKey;
+        private string? _latestStableVersion;
+        private string? _latestBetaVersion;
+        private bool _isInstalledBeta;
+
+        /// <summary>
+        /// Wydania katalogowe tego moda (3.1-11). Pusta lista = brak danych/legacy.
+        /// Presentation-only kopia; nie jest zapisywana przez adapter.
+        /// </summary>
+        public List<ModRelease> AvailableReleases { get; set; } = new();
+
+        /// <summary>Najnowsze stabilne wydanie z katalogu (null = brak danych).</summary>
+        public string? LatestStableVersion
+        {
+            get => _latestStableVersion;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _latestStableVersion, value);
+            }
+        }
+
+        /// <summary>Najnowsze wydanie beta z katalogu (null = brak bety lub tryb legacy).</summary>
+        public string? LatestBetaVersion
+        {
+            get => _latestBetaVersion;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _latestBetaVersion, value);
+                this.RaisePropertyChanged(nameof(HasAvailableBeta));
+                this.RaisePropertyChanged(nameof(AvailableBetaText));
+            }
+        }
+
+        /// <summary>True, gdy świadomie zainstalowano wydanie beta.</summary>
+        public bool IsInstalledBeta
+        {
+            get => _isInstalledBeta;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isInstalledBeta, value);
+                this.RaisePropertyChanged(nameof(ShowBetaInstalledBadge));
+            }
+        }
+
+        /// <summary>
+        /// Beta jest dostępna i nie jest aktualnie zainstalowaną wersją.
+        /// Nie pokazujemy jej dla Vanilla ani bez danych z katalogu.
+        /// </summary>
+        public bool HasAvailableBeta =>
+            !IsVanilla &&
+            !string.IsNullOrWhiteSpace(LatestBetaVersion) &&
+            !string.Equals(ModVersion, LatestBetaVersion, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Zlinearyzowany tekst „Dostępna beta: X” (PL/EN z lokalizacji).</summary>
+        public string AvailableBetaText =>
+            string.IsNullOrWhiteSpace(LatestBetaVersion)
+                ? string.Empty
+                : Loc?.GetFormatted("UI.Beta.Available", LatestBetaVersion)
+                  ?? $"Beta available: {LatestBetaVersion}";
+
+        /// <summary>Plakietka BETA przy zainstalowanej wersji beta.</summary>
+        public bool ShowBetaInstalledBadge => IsInstalled && IsInstalledBeta;
+
+        public string BetaBadgeText => Loc?.Get("UI.Beta.Badge") ?? "BETA";
+
+        // Presentation-only assignment; never written back through ModItemAdapter to game/catalog data.
+        public string? VersionedIconKey
+        {
+            get => _versionedIconKey;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _versionedIconKey, value);
+                this.RaisePropertyChanged(nameof(IconSourceKey));
+            }
+        }
+
+        public string IconSourceKey => VersionedIconKey is { } key ? "susmodder-icon:" + key : PngFileName;
+
+        public bool IsFavorite
+        {
+            get => _isFavorite;
+            set => this.RaiseAndSetIfChanged(ref _isFavorite, value);
+        }
+
+        public bool CanFavorite => Id > 0;
+
+        public string DirectorySizeText
+        {
+            get => _directorySizeText;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _directorySizeText, value);
+                this.RaisePropertyChanged(nameof(HasDirectorySize));
+            }
+        }
+
+        public bool HasDirectorySize => !string.IsNullOrEmpty(DirectorySizeText);
 
         /// <summary>
         /// Gdy ustawione — instalacja DLL dotyczy lokalnej instancji modpacka (Moje zestawy).
@@ -151,7 +252,11 @@ namespace SUSModder.ViewModels
         public int Id
         {
             get => _id;
-            set => this.RaiseAndSetIfChanged(ref _id, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _id, value);
+                this.RaisePropertyChanged(nameof(CanFavorite));
+            }
         }
 
         public string Name
@@ -173,6 +278,7 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _pngFileName, value);
                 this.RaisePropertyChanged(nameof(IconPath));
+                this.RaisePropertyChanged(nameof(IconSourceKey));
             }
         }
 
@@ -184,6 +290,7 @@ namespace SUSModder.ViewModels
                 this.RaiseAndSetIfChanged(ref _modVersion, value);
                 this.RaisePropertyChanged(nameof(IsPinnedVersionInstall));
                 this.RaisePropertyChanged(nameof(IsAutoUpdateToggleVisible));
+                this.RaisePropertyChanged(nameof(HasAvailableBeta));
             }
         }
 
@@ -206,6 +313,7 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(IsAutoUpdateToggleVisible));
                 this.RaisePropertyChanged(nameof(ShowStatusInstalled));
                 this.RaisePropertyChanged(nameof(ShowStatusNotInstalled));
+                this.RaisePropertyChanged(nameof(ShowBetaInstalledBadge));
             }
         }
 
@@ -271,6 +379,7 @@ namespace SUSModder.ViewModels
                 this.RaiseAndSetIfChanged(ref _modType, value);
                 this.RaisePropertyChanged(nameof(IsVanilla));
                 this.RaisePropertyChanged(nameof(IsAutoUpdateToggleVisible));
+                this.RaisePropertyChanged(nameof(HasAvailableBeta));
             }
         }
 

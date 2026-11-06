@@ -61,12 +61,12 @@
     
     <!-- Hover effect dla przycisku aktualizacji -->
     <Style Selector="Button.update-button:pointerover">
-      <Setter Property="Background" Value="#3B82F6"/>
-      <Setter Property="BorderBrush" Value="#2563EB"/>
+      <Setter Property="Background" Value="{DynamicResource PrimaryActionBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource PrimaryActionHoverBrush}"/>
     </Style>
     
     <Style Selector="Button.update-button:pressed">
-      <Setter Property="Background" Value="#2563EB"/>
+      <Setter Property="Background" Value="{DynamicResource PrimaryActionHoverBrush}"/>
     </Style>
     
     <!-- Hover effect dla przycisku anuluj -->
@@ -83,8 +83,8 @@
               Classes="update-icon"
               Width="80" Height="80"
               CornerRadius="40"
-              Background="#203B82F6"
-              BorderBrush="#3B82F6"
+              Background="{DynamicResource PrimaryActionSoftBrush}"
+              BorderBrush="{DynamicResource PrimaryActionBrush}"
               BorderThickness="2"
               HorizontalAlignment="Center"
               Margin="0,0,0,20">
@@ -197,11 +197,11 @@
                 Height="40"
                 FontSize="14"
                 FontWeight="SemiBold"
-                Background="#3B82F6"
-                BorderBrush="#2563EB"
+                Background="{DynamicResource PrimaryActionBrush}"
+                BorderBrush="{DynamicResource PrimaryActionHoverBrush}"
                 BorderThickness="1"
                 CornerRadius="8"
-                Foreground="White"
+                Foreground="{DynamicResource OnAccentTextBrush}"
                 Click="YesButton_Click"
                 Cursor="Hand">
         </Button>

@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Data;
+using SUSModder.Core.Utilities;
 
 namespace SUSModder.Core.Services
 {
@@ -84,6 +85,8 @@ namespace SUSModder.Core.Services
                     _cachedSettings = _repository!.LoadSettings();
                     DetectAndUpdateChannelIfNeeded(_cachedSettings);
                     RunMigrations(_cachedSettings);
+                    if (SanitizeModsInstallPathIfNeeded(_cachedSettings))
+                        SaveUserSettings(_cachedSettings);
                 }
                 else
                 {
@@ -96,6 +99,8 @@ namespace SUSModder.Core.Services
 
                         DetectAndUpdateChannelIfNeeded(_cachedSettings);
                         RunMigrations(_cachedSettings);
+                        if (SanitizeModsInstallPathIfNeeded(_cachedSettings))
+                            SaveUserSettings(_cachedSettings);
                     }
                     else
                     {
@@ -302,6 +307,27 @@ namespace SUSModder.Core.Services
             {
                 System.Diagnostics.Debug.WriteLine($"[UserSettingsService] Błąd migracji ustawień: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Naprawia nieprawidłowy mods_install_path (np. folder gry Steam) i zapisuje domyślną ścieżkę.
+        /// </summary>
+        internal bool SanitizeModsInstallPathIfNeeded(UserSettings settings)
+        {
+            if (string.IsNullOrWhiteSpace(settings.ModsInstallPath))
+                return false;
+
+            var validation = ModsInstallPathGuard.Validate(settings.ModsInstallPath, probeWriteAccess: false);
+            if (validation.IsValid)
+                return false;
+
+            var correctedPath = PathSettings.DefaultModsPath;
+            System.Diagnostics.Debug.WriteLine(
+                $"[UserSettingsService] Korekta mods_install_path: '{settings.ModsInstallPath}' -> '{correctedPath}' ({validation.ErrorCode})");
+
+            settings.ModsInstallPath = correctedPath;
+            PathSettings.RefreshSettings();
+            return true;
         }
 
         /// <summary>

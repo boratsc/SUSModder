@@ -131,7 +131,7 @@
 			<Button Content="{local:Localize ChangePresetNames.SaveButton}"
                     Click="OnSaveClick"
                     Background="{DynamicResource AccentBrush}"
-                    Foreground="White"
+                    Foreground="{DynamicResource OnAccentTextBrush}"
                     Padding="15,10"
                     CornerRadius="6"
                     FontSize="14"

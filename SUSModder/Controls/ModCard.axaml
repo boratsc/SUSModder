@@ -38,7 +38,7 @@
             <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                 <Panel Grid.Column="0" Width="52" Height="52">
                     <Image Classes="browser-card-icon"
-                           Source="{Binding PngFileName, Converter={StaticResource StringToBitmapConverter}}"
+                           Source="{Binding IconSourceKey, Converter={StaticResource StringToBitmapConverter}}"
                            Opacity="{Binding InstallPath, Converter={StaticResource InstallStatusToOpacityConverter}}"/>
                 </Panel>
 
@@ -64,13 +64,32 @@
                     <TextBlock Classes="browser-card-meta"
                                Text="{Binding Description}"
                                IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    <TextBlock Classes="browser-card-meta"
+                               Text="{Binding DirectorySizeText}"
+                               IsVisible="{Binding HasDirectorySize}"
+                               ToolTip.Tip="{loc:Localize UI.Storage.LogicalSizeHint}"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" VerticalAlignment="Top" Spacing="6" HorizontalAlignment="Right">
+                    <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+                    <ToggleButton IsChecked="{Binding IsFavorite, Mode=OneWay}"
+                                  IsVisible="{Binding CanFavorite}"
+                                  Command="{Binding $parent[Window].DataContext.ToggleFavoriteCommand}"
+                                  CommandParameter="{Binding}"
+                                  Padding="4,0" MinHeight="24" MinWidth="24"
+                                  Background="Transparent" BorderThickness="0"
+                                  ToolTip.Tip="{loc:Localize UI.Favorites.Toggle}"
+                                  AutomationProperties.Name="{loc:Localize UI.Favorites.Toggle}">
+                        <Panel>
+                            <TextBlock Text="★" IsVisible="{Binding IsFavorite}"/>
+                            <TextBlock Text="☆" IsVisible="{Binding IsFavorite, Converter={x:Static BoolConverters.Not}}"/>
+                        </Panel>
+                    </ToggleButton>
                     <CheckBox IsChecked="{Binding IsCheckedForBulk}"
                               IsVisible="{Binding $parent[Window].DataContext.IsBulkSelectionMode}"
                               IsEnabled="{Binding IsBulkEligible}"
                               VerticalAlignment="Top"/>
+                    </StackPanel>
                     <Border Classes="browser-type-badge">
                         <TextBlock Classes="browser-type-badge-text"
                                    Text="{Binding TypeBadge}"/>

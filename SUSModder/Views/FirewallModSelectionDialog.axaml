@@ -128,7 +128,7 @@
                     Content="{loc:Localize UI.Repair.Firewall.AddException}"
                     Width="160" Height="36"
                     Background="{DynamicResource AccentBrush}"
-                    Foreground="White"
+                    Foreground="{DynamicResource OnAccentTextBrush}"
                     CornerRadius="6"
                     Click="OnConfirmClick"
                     IsEnabled="False"/>

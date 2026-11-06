@@ -28,7 +28,7 @@
 
 	<Style Selector="Button.bulk-mode-chip.active">
 		<Setter Property="BorderBrush" Value="{DynamicResource BulkSelectionBrush}"/>
-		<Setter Property="Background" Value="#208B5CF6"/>
+		<Setter Property="Background" Value="{DynamicResource BulkChipActiveFillBrush}"/>
 	</Style>
 
 	<Style Selector="Border.bulk-mode-chip-badge">

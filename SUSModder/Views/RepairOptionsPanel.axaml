@@ -19,7 +19,7 @@
                         CommandParameter="BlackScreen">
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
                         <Border Width="44" Height="44" CornerRadius="8" Background="{DynamicResource AccentBrush}">
-                            <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Desktop}" FontSize="22" Foreground="White"/>
+                            <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Desktop}" FontSize="22" Foreground="{DynamicResource OnAccentTextBrush}"/>
                         </Border>
                         <StackPanel Grid.Column="1" Spacing="3">
                             <TextBlock Text="{loc:Localize UI.Repair.BlackScreen.Title}"

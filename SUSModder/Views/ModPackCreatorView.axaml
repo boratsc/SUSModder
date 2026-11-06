@@ -18,164 +18,372 @@
 				</Animation>
 			</Style.Animations>
 		</Style>
+		<Style Selector="Border.step-card">
+			<Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="Padding" Value="12"/>
+		</Style>
+		<Style Selector="Border.goal-card">
+			<Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+			<Setter Property="BorderThickness" Value="2"/>
+			<Setter Property="CornerRadius" Value="10"/>
+			<Setter Property="Padding" Value="16"/>
+		</Style>
+		<Style Selector="Border.goal-card.selected">
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+		<Style Selector="Border.out-of-catalog">
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="Padding" Value="10"/>
+		</Style>
+		<Style Selector="Border.review-banner">
+			<Setter Property="Background" Value="#22000000"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="Padding" Value="10"/>
+		</Style>
+		<Style Selector="TextBlock.step-title">
+			<Setter Property="FontSize" Value="17"/>
+			<Setter Property="FontWeight" Value="Bold"/>
+		</Style>
+		<Style Selector="TextBlock.step-desc">
+			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="TextWrapping" Value="Wrap"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+		</Style>
+		<Style Selector="TextBlock.field-label">
+			<Setter Property="FontWeight" Value="SemiBold"/>
+		</Style>
+		<Style Selector="TextBlock.hint">
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="TextWrapping" Value="Wrap"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+		</Style>
 	</UserControl.Styles>
 
-	<Grid Margin="20" RowDefinitions="*,Auto">
-		<ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
-			<StackPanel Spacing="10">
-				<TextBlock x:Name="PackNameLabel" Text="{loc:Localize ModPacks.PackNameLabel}" FontWeight="SemiBold"/>
-				<TextBox x:Name="PackNameBox"/>
+	<Panel>
+		<Grid Margin="20" RowDefinitions="Auto,*,Auto">
 
-				<StackPanel x:Name="ShareOnlyPanel" Spacing="10">
-					<TextBlock Text="{loc:Localize ModPacks.CreatorNameLabel}" FontWeight="SemiBold"/>
-					<TextBox x:Name="CreatorNameBox" PlaceholderText="{loc:Localize ModPacks.CreatorNameOptional}"/>
+			<!-- Nagłówek: licznik kroków + tytuł + opis bieżącego kroku -->
+			<StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,12">
+				<TextBlock x:Name="StepCounterText"
+				           FontSize="12"
+				           FontWeight="SemiBold"
+				           Foreground="{DynamicResource TextSecondaryBrush}"/>
+				<TextBlock x:Name="StepTitleText" Classes="step-title"/>
+				<TextBlock x:Name="StepDescText" Classes="step-desc"/>
+			</StackPanel>
 
-					<TextBlock Text="{loc:Localize ModPacks.DiscordLabel}" FontWeight="SemiBold"/>
-					<TextBox x:Name="DiscordInviteBox" PlaceholderText="discord.gg/..."/>
+			<ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+				<StackPanel Spacing="12">
 
-					<TextBlock Text="{loc:Localize ModPacks.TtlLabel}" FontWeight="SemiBold"/>
-					<ComboBox x:Name="TtlCombo" HorizontalAlignment="Stretch" SelectedIndex="1">
-						<ComboBoxItem Content="{loc:Localize ModPacks.Ttl7Days}" Tag="7"/>
-						<ComboBoxItem Content="{loc:Localize ModPacks.Ttl30Days}" Tag="30"/>
-						<ComboBoxItem Content="{loc:Localize ModPacks.Ttl90Days}" Tag="90"/>
-					</ComboBox>
+					<!-- KROK: Cel -->
+					<StackPanel x:Name="GoalPanel" Spacing="12" IsVisible="False">
+						<Border x:Name="GoalFriendsCard" Classes="goal-card">
+							<StackPanel Spacing="4">
+								<RadioButton x:Name="GoalFriendsOption" GroupName="WizardGoal" FontWeight="SemiBold">
+									<RadioButton.Content>
+										<TextBlock x:Name="GoalFriendsTitle"/>
+									</RadioButton.Content>
+								</RadioButton>
+								<TextBlock x:Name="GoalFriendsDesc" Classes="hint" Margin="24,0,0,0"/>
+							</StackPanel>
+						</Border>
+						<Border x:Name="GoalSelfCard" Classes="goal-card">
+							<StackPanel Spacing="4">
+								<RadioButton x:Name="GoalSelfOption" GroupName="WizardGoal" FontWeight="SemiBold">
+									<RadioButton.Content>
+										<TextBlock x:Name="GoalSelfTitle"/>
+									</RadioButton.Content>
+								</RadioButton>
+								<TextBlock x:Name="GoalSelfDesc" Classes="hint" Margin="24,0,0,0"/>
+							</StackPanel>
+						</Border>
+						<TextBlock x:Name="GoalShareDisabledText"
+						           Classes="hint"
+						           Foreground="{DynamicResource DangerBrush}"
+						           IsVisible="False"/>
+					</StackPanel>
+
+					<!-- KROK: Mod główny / źródło udostępnienia -->
+					<StackPanel x:Name="MainModPanel" Spacing="10" IsVisible="False">
+						<Grid x:Name="CatalogSelectionGrid" ColumnDefinitions="3*,2*" ColumnSpacing="16">
+						<StackPanel Spacing="6">
+						<TextBlock x:Name="MainListLabel" Classes="field-label"/>
+						<ListBox x:Name="MainModList" MaxHeight="240">
+							<ListBox.Styles>
+								<Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+									<Setter Property="Background" Value="{DynamicResource AccentMutedBrush}"/>
+									<Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}"/>
+									<Setter Property="BorderThickness" Value="2"/>
+								</Style>
+							</ListBox.Styles>
+						</ListBox>
+						<TextBlock x:Name="SelectedMainText" Classes="hint"/>
+						</StackPanel>
+						<StackPanel x:Name="VersionPanel" Grid.Column="1" Spacing="4">
+							<TextBlock Text="{loc:Localize ModPacks.VersionLabel}" Classes="field-label"/>
+							<ComboBox x:Name="VersionCombo"
+							          HorizontalAlignment="Stretch"
+							          PlaceholderText="{loc:Localize ModPacks.VersionLatest}"/>
+						</StackPanel>
+						</Grid>
+
+						<CheckBox x:Name="UseCustomFullCheck" Content="{loc:Localize ModPacks.CustomFull.Toggle}"/>
+
+						<Border x:Name="CustomFullCard" Classes="out-of-catalog" IsVisible="False">
+							<Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+								<TextBlock x:Name="CustomFullCardTitle" FontWeight="SemiBold" Grid.Row="0" Grid.Column="0"/>
+								<TextBlock x:Name="CustomFullCardBadge" Classes="hint" Grid.Row="1" Grid.Column="0"/>
+								<StackPanel Grid.Row="0" Grid.Column="1" Grid.RowSpan="2"
+								            Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+									<Button x:Name="CustomFullEditButton" Padding="8,4" Click="CustomFullEditButton_Click"/>
+									<Button x:Name="CustomFullRemoveButton" Padding="8,4" Click="CustomFullRemoveButton_Click"/>
+								</StackPanel>
+							</Grid>
+						</Border>
+
+						<!-- Podkrok prowadzony: własny mod z GitHuba -->
+						<Border x:Name="CustomFullSubPanel" Classes="out-of-catalog" IsVisible="False">
+							<StackPanel Spacing="8">
+								<TextBlock x:Name="CustomFullSubTitle" FontWeight="SemiBold"/>
+								<TextBlock x:Name="CustomFullSubHint" Classes="hint"/>
+								<TextBox x:Name="CustomFullUrlBox" PlaceholderText="https://github.com/owner/repo/releases/download/tag/Mod.zip"/>
+								<TextBlock x:Name="CustomFullSubError"
+								           Foreground="{DynamicResource DangerBrush}"
+								           TextWrapping="Wrap"
+								           FontSize="12"
+								           IsVisible="False"/>
+
+								<!-- faza pól po poprawnym adresie -->
+								<StackPanel x:Name="CustomFullFieldsPanel" Spacing="8" IsVisible="False">
+									<TextBlock Text="{loc:Localize ModPacks.CustomFull.NameLabel}" Classes="field-label"/>
+									<TextBox x:Name="CustomFullNameBox"
+									         PlaceholderText="{loc:Localize ModPacks.CustomFull.NamePlaceholder}"/>
+									<TextBlock Text="{loc:Localize ModPacks.CustomFull.VersionLabel}" Classes="field-label"/>
+									<TextBox x:Name="CustomFullVersionBox"
+									         PlaceholderText="{loc:Localize ModPacks.CustomFull.VersionPlaceholder}"/>
+									<TextBlock Text="{loc:Localize ModPacks.CustomFull.AmongVersionLabel}" Classes="field-label"/>
+									<ComboBox x:Name="CustomFullAmongVersionCombo"
+									          HorizontalAlignment="Stretch"
+									          PlaceholderText="{loc:Localize ModPacks.CustomFull.AmongVersionPlaceholder}"/>
+									<TextBlock x:Name="CustomFullAmongInfo" Classes="hint"/>
+								</StackPanel>
+
+								<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+									<Button x:Name="CustomFullBackButton" Padding="12,6" Click="CustomFullBackButton_Click"/>
+									<Button x:Name="CustomFullConfirmButton"
+									        Padding="12,6"
+									        Background="{DynamicResource AccentBrush}"
+									        Foreground="{DynamicResource OnAccentTextBrush}"
+									        BorderThickness="0"
+									        Click="CustomFullConfirmButton_Click"/>
+								</StackPanel>
+							</StackPanel>
+						</Border>
+					</StackPanel>
+
+					<!-- KROK: Dodatki -->
+					<StackPanel x:Name="AddonsPanel" Spacing="10" IsVisible="False">
+						<TextBlock x:Name="AddonsDescText" Classes="step-desc"/>
+
+						<Border x:Name="AddonsReviewBanner" Classes="review-banner" IsVisible="False">
+							<StackPanel Spacing="6">
+								<TextBlock x:Name="AddonsReviewTitle" FontWeight="SemiBold" TextWrapping="Wrap"/>
+								<StackPanel x:Name="AddonsReviewRows" Spacing="4"/>
+								<TextBlock x:Name="AddonsReviewUnverified" Classes="hint" IsVisible="False"/>
+							</StackPanel>
+						</Border>
+
+						<TextBlock Text="{loc:Localize ModPacks.DllModsLabel}" Classes="field-label"/>
+						<StackPanel x:Name="DllModsPanel" Spacing="4"/>
+
+						<!-- Źródła spoza katalogu: plik DLL z dysku -->
+						<Border x:Name="CustomDllPanel" Classes="step-card" IsVisible="False">
+							<StackPanel Spacing="8">
+								<TextBlock x:Name="CustomDllTitle" FontWeight="SemiBold"/>
+								<TextBlock Text="{loc:Localize ModPacks.CustomDlls.MultipleHint}" Classes="hint"/>
+								<TextBlock x:Name="CustomDllNoticeText" Classes="hint"/>
+								<Button x:Name="AddCustomDllFilesButton"
+								        Content="{loc:Localize ModPacks.CustomDlls.AddFiles}"
+								        HorizontalAlignment="Left"
+								        Padding="12,8"
+								        Click="AddCustomDllFiles_Click"/>
+								<StackPanel x:Name="CustomDllFilesPanel" Spacing="4"/>
+							</StackPanel>
+						</Border>
+
+						<!-- Źródła spoza katalogu: DLL z GitHuba (tylko przy udostępnianiu) -->
+						<StackPanel x:Name="GithubDllSection" Spacing="8" IsVisible="False">
+							<CheckBox x:Name="UseGithubDllCheck" Content="{loc:Localize ModPacks.CustomGitHub.Toggle}"/>
+							<Border x:Name="CustomGithubDllPanel" Classes="step-card" IsVisible="False">
+								<StackPanel Spacing="8">
+									<TextBlock Text="{loc:Localize ModPacks.CustomGitHub.Title}" FontWeight="SemiBold"/>
+									<TextBlock Text="{loc:Localize ModPacks.CustomGitHub.GitHubOnlyWarning}" Classes="hint"/>
+									<Button x:Name="AddGithubDllButton"
+									        Content="{loc:Localize ModPacks.CustomGitHub.AddDll}"
+									        HorizontalAlignment="Left"
+									        Padding="12,8"
+									        Click="AddGithubDll_Click"/>
+									<StackPanel x:Name="GithubDllEntriesPanel" Spacing="8"/>
+
+									<!-- Podkrok prowadzony: DLL z GitHuba -->
+									<Border x:Name="GithubSubPanel" Classes="out-of-catalog" IsVisible="False">
+										<StackPanel Spacing="8">
+											<TextBlock x:Name="GithubSubTitle" FontWeight="SemiBold"/>
+											<TextBlock x:Name="GithubSubHint" Classes="hint"/>
+											<TextBox x:Name="GithubUrlBox"
+											         PlaceholderText="{loc:Localize ModPacks.CustomGitHub.UrlPlaceholder}"/>
+											<TextBlock x:Name="GithubSubError"
+											           Foreground="{DynamicResource DangerBrush}"
+											           TextWrapping="Wrap"
+											           FontSize="12"
+											           IsVisible="False"/>
+											<StackPanel x:Name="GithubFieldsPanel" Spacing="8" IsVisible="False">
+												<TextBlock Text="{loc:Localize ModPacks.CustomGitHub.NameLabel}" Classes="field-label"/>
+												<TextBox x:Name="GithubNameBox"
+												         PlaceholderText="{loc:Localize ModPacks.CustomGitHub.NamePlaceholder}"/>
+												<TextBlock Text="{loc:Localize ModPacks.CustomGitHub.VersionLabel}" Classes="field-label"/>
+												<TextBox x:Name="GithubVersionBox"
+												         PlaceholderText="{loc:Localize ModPacks.CustomGitHub.VersionPlaceholder}"/>
+											</StackPanel>
+											<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+												<Button x:Name="GithubSubBackButton" Padding="12,6" Click="GithubSubBackButton_Click"/>
+												<Button x:Name="GithubSubConfirmButton"
+												        Padding="12,6"
+												        Background="{DynamicResource AccentBrush}"
+												        Foreground="{DynamicResource OnAccentTextBrush}"
+												        BorderThickness="0"
+												        Click="GithubSubConfirmButton_Click"/>
+											</StackPanel>
+										</StackPanel>
+									</Border>
+								</StackPanel>
+							</Border>
+						</StackPanel>
+					</StackPanel>
+
+					<!-- KROK: Nazwa i ustawienia -->
+					<StackPanel x:Name="NameSettingsPanel" Spacing="10" IsVisible="False">
+						<TextBlock x:Name="PackNameLabel" Text="{loc:Localize ModPacks.PackNameLabel}" Classes="field-label"/>
+						<TextBox x:Name="PackNameBox"/>
+						<TextBlock x:Name="PackNameHint" Classes="hint"/>
+
+						<CheckBox x:Name="IncludeTouCheck" Content="{loc:Localize ModPacks.TouConfigLabel}" IsVisible="False"/>
+						<TextBlock x:Name="TouUnavailableHint" Classes="hint" IsVisible="False"/>
+
+						<StackPanel x:Name="ShareOnlyPanel" Spacing="10" IsVisible="False">
+							<TextBlock Text="{loc:Localize ModPacks.CreatorNameLabel}" Classes="field-label"/>
+							<TextBox x:Name="CreatorNameBox" PlaceholderText="{loc:Localize ModPacks.CreatorNameOptional}"/>
+
+							<TextBlock Text="{loc:Localize ModPacks.DiscordLabel}" Classes="field-label"/>
+							<TextBox x:Name="DiscordInviteBox" PlaceholderText="discord.gg/..."/>
+
+							<TextBlock x:Name="TtlLabel" Classes="field-label"/>
+							<ComboBox x:Name="TtlCombo" HorizontalAlignment="Stretch" SelectedIndex="1">
+								<ComboBoxItem Content="{loc:Localize ModPacks.Ttl7Days}" Tag="7"/>
+								<ComboBoxItem Content="{loc:Localize ModPacks.Ttl30Days}" Tag="30"/>
+								<ComboBoxItem Content="{loc:Localize ModPacks.Ttl90Days}" Tag="90"/>
+							</ComboBox>
+							<TextBlock Classes="hint" Text="{loc:Localize ModPacks.Wizard.TtlMeaning}"/>
+						</StackPanel>
+					</StackPanel>
+
+					<!-- KROK: Podsumowanie -->
+					<StackPanel x:Name="SummaryPanel" Spacing="10" IsVisible="False">
+						<Border Classes="step-card">
+							<StackPanel x:Name="SummaryCompositionPanel" Spacing="6"/>
+						</Border>
+						<Border Classes="step-card">
+							<StackPanel x:Name="SummaryScopePanel" Spacing="6"/>
+						</Border>
+						<Border Classes="step-card">
+							<StackPanel x:Name="SummarySharePanel" Spacing="6" IsVisible="False"/>
+						</Border>
+					</StackPanel>
+
+					<!-- KROK: Wykonanie i wynik -->
+					<StackPanel x:Name="ExecutionPanel" Spacing="10" IsVisible="False">
+						<StackPanel x:Name="ExecutionStagesPanel" Spacing="6"/>
+						<TextBlock x:Name="ExecutionResultText" TextWrapping="Wrap" IsVisible="False"/>
+						<StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left">
+							<Button x:Name="StopButton"
+							        Padding="12,8"
+							        Click="StopButton_Click"
+							        IsVisible="False"/>
+							<Button x:Name="RetryButton"
+							        Padding="12,8"
+							        Click="RetryButton_Click"
+							        IsVisible="False"/>
+						</StackPanel>
+					</StackPanel>
+
+					<TextBlock x:Name="ErrorText"
+					           Foreground="{DynamicResource DangerBrush}"
+					           TextWrapping="Wrap"
+					           IsVisible="False"/>
 				</StackPanel>
+			</ScrollViewer>
 
-		<TextBlock x:Name="SourceLabel" Text="{loc:Localize ModPacks.FullModLabel}" FontWeight="SemiBold"/>
-		<ComboBox x:Name="FullModCombo" HorizontalAlignment="Stretch"/>
+			<!-- Stopka: Anuluj | Wstecz | Akcja główna (jedna dominująca) -->
+			<Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,16,0,0">
+				<Button x:Name="CancelButton"
+				        Grid.Column="0"
+				        MinWidth="110"
+				        Padding="16,10"
+				        CornerRadius="8"
+				        Click="CancelButton_Click"/>
+				<Button x:Name="BackButton"
+				        Grid.Column="1"
+				        MinWidth="110"
+				        Padding="16,10"
+				        CornerRadius="8"
+				        HorizontalAlignment="Center"
+				        Click="BackButton_Click"/>
+				<Button x:Name="PrimaryButton"
+				        Grid.Column="2"
+				        MinWidth="160"
+				        Padding="16,10"
+				        CornerRadius="8"
+				        HorizontalAlignment="Right"
+				        Background="{DynamicResource AccentBrush}"
+				        Foreground="{DynamicResource OnAccentTextBrush}"
+				        BorderThickness="0"
+				        Click="PrimaryButton_Click"/>
+			</Grid>
+		</Grid>
 
-		<StackPanel x:Name="VersionPanel" Spacing="4">
-			<TextBlock Text="{loc:Localize ModPacks.VersionLabel}" FontWeight="SemiBold"/>
-			<ComboBox x:Name="VersionCombo" HorizontalAlignment="Stretch" PlaceholderText="{loc:Localize ModPacks.VersionLatest}"/>
-		</StackPanel>
-
-		<CheckBox x:Name="UseCustomFullCheck"
-		          Content="{loc:Localize ModPacks.CustomFull.Toggle}"
-		          IsVisible="False"/>
-
-		<Border x:Name="CustomFullPanel"
-		        BorderBrush="{DynamicResource AccentBrush}"
-		        BorderThickness="1"
-		        CornerRadius="8"
-		        Padding="10"
-		        IsVisible="False">
-			<StackPanel Spacing="8">
-				<TextBlock Text="{loc:Localize ModPacks.CustomFull.Title}"
-				           FontWeight="SemiBold"/>
-				<TextBlock Text="{loc:Localize ModPacks.CustomFull.GitHubOnlyWarning}"
-				           TextWrapping="Wrap"
-				           FontSize="12"
-				           Foreground="{DynamicResource TextSecondaryBrush}"/>
-				<TextBlock Text="{loc:Localize ModPacks.CustomFull.NameLabel}" FontWeight="SemiBold"/>
-				<TextBox x:Name="CustomFullNameBox"
-				         PlaceholderText="{loc:Localize ModPacks.CustomFull.NamePlaceholder}"/>
-				<TextBlock Text="{loc:Localize ModPacks.CustomFull.VersionLabel}" FontWeight="SemiBold"/>
-				<TextBox x:Name="CustomFullVersionBox"
-				         PlaceholderText="{loc:Localize ModPacks.CustomFull.VersionPlaceholder}"/>
-				<TextBlock Text="{loc:Localize ModPacks.CustomFull.AmongVersionLabel}" FontWeight="SemiBold"/>
-				<ComboBox x:Name="CustomFullAmongVersionCombo"
-				          HorizontalAlignment="Stretch"
-				          PlaceholderText="{loc:Localize ModPacks.CustomFull.AmongVersionPlaceholder}"/>
-				<TextBlock Text="{loc:Localize ModPacks.CustomFull.UrlLabel}" FontWeight="SemiBold"/>
-				<TextBox x:Name="CustomFullUrlBox"
-				         PlaceholderText="{loc:Localize ModPacks.CustomFull.UrlPlaceholder}"/>
-				<TextBlock x:Name="CustomFullStatusText"
-				           TextWrapping="Wrap"
-				           FontSize="12"
-				           Foreground="{DynamicResource TextSecondaryBrush}"
-				           IsVisible="False"/>
-			</StackPanel>
+		<!-- Potwierdzenie zamknięcia niezapisanego kreatora (w obrębie tego samego modalu) -->
+		<Border x:Name="CloseConfirmOverlay"
+		        Background="#AA000000"
+		        IsVisible="False"
+		        ZIndex="100">
+			<Border Classes="step-card"
+			        MaxWidth="420"
+			        Background="{DynamicResource CardBackgroundBrush}"
+			        HorizontalAlignment="Center"
+			        VerticalAlignment="Center">
+				<StackPanel Spacing="12">
+					<TextBlock x:Name="CloseConfirmTitle" FontWeight="Bold" FontSize="15"/>
+					<TextBlock x:Name="CloseConfirmBody" TextWrapping="Wrap"/>
+					<StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+						<Button x:Name="CloseConfirmStayButton" MinWidth="110" Padding="14,8" Click="CloseConfirmStayButton_Click"/>
+						<Button x:Name="CloseConfirmDiscardButton"
+						        MinWidth="110"
+						        Padding="14,8"
+						        Background="{DynamicResource DangerBrush}"
+						        Foreground="{DynamicResource OnAccentTextBrush}"
+						        BorderThickness="0"
+						        Click="CloseConfirmDiscardButton_Click"/>
+					</StackPanel>
+				</StackPanel>
+			</Border>
 		</Border>
-
-		<Border x:Name="CustomDllPanel"
-		        BorderBrush="{DynamicResource AccentBrush}"
-		        BorderThickness="2"
-		        CornerRadius="8"
-		        Padding="12"
-		        IsVisible="False">
-			<StackPanel Spacing="8">
-			<TextBlock Text="{loc:Localize ModPacks.CustomDlls.Title}"
-			           FontSize="15"
-			           FontWeight="Bold"/>
-			<TextBlock x:Name="CustomDllNoticeText"
-			           Text="{loc:Localize ModPacks.CustomDlls.ServerScanNotice}"
-				           TextWrapping="Wrap"
-				           FontSize="12"
-				           Foreground="{DynamicResource TextSecondaryBrush}"
-				           Margin="0,0,0,4"/>
-				<Button Content="{loc:Localize ModPacks.CustomDlls.AddFiles}"
-				        HorizontalAlignment="Left"
-				        Padding="12,8"
-				        Click="AddCustomDllFiles_Click"/>
-				<StackPanel x:Name="CustomDllFilesPanel" Spacing="4"/>
-				<TextBlock x:Name="CustomDllStatusText"
-				           TextWrapping="Wrap"
-				           FontSize="12"
-				           Foreground="{DynamicResource TextSecondaryBrush}"
-				           IsVisible="False"/>
-			</StackPanel>
-		</Border>
-
-		<CheckBox x:Name="UseGithubDllCheck"
-		          Content="{loc:Localize ModPacks.CustomGitHub.Toggle}"
-		          IsVisible="False"/>
-
-		<Border x:Name="CustomGithubDllPanel"
-		        BorderBrush="{DynamicResource BorderBrush}"
-		        BorderThickness="1"
-		        CornerRadius="8"
-		        Padding="10"
-		        IsVisible="False">
-			<StackPanel Spacing="8">
-				<TextBlock Text="{loc:Localize ModPacks.CustomGitHub.Title}"
-				           FontWeight="SemiBold"/>
-				<TextBlock Text="{loc:Localize ModPacks.CustomGitHub.GitHubOnlyWarning}"
-				           TextWrapping="Wrap"
-				           FontSize="12"
-				           Foreground="{DynamicResource TextSecondaryBrush}"/>
-				<Button x:Name="AddGithubDllButton"
-				        Content="{loc:Localize ModPacks.CustomGitHub.AddDll}"
-				        HorizontalAlignment="Left"
-				        Padding="12,8"
-				        Click="AddGithubDll_Click"/>
-				<StackPanel x:Name="GithubDllEntriesPanel" Spacing="8"/>
-				<TextBlock x:Name="GithubDllStatusText"
-				           TextWrapping="Wrap"
-				           FontSize="12"
-				           Foreground="{DynamicResource TextSecondaryBrush}"
-				           IsVisible="False"/>
-			</StackPanel>
-		</Border>
-
-		<TextBlock Text="{loc:Localize ModPacks.DllModsLabel}" FontWeight="SemiBold"/>
-		<StackPanel x:Name="DllModsPanel" Spacing="4"/>
-
-				<CheckBox x:Name="IncludeTouCheck" Content="{loc:Localize ModPacks.TouConfigLabel}"/>
-				<CheckBox x:Name="IncludeIntegrationCheck" Content="{loc:Localize ModPacks.IntegrationLabel}"/>
-
-				<TextBlock x:Name="ErrorText" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" IsVisible="False"/>
-			</StackPanel>
-		</ScrollViewer>
-
-		<StackPanel Grid.Row="1"
-		            Orientation="Horizontal"
-		            HorizontalAlignment="Center"
-		            Spacing="12"
-		            Margin="0,16,0,0">
-			<Button Content="{loc:Localize UI.Buttons.Cancel}"
-			        MinWidth="110"
-			        Padding="16,10"
-			        CornerRadius="8"
-			        Click="CancelButton_Click"/>
-			<Button x:Name="CreateButton"
-			        Content="{loc:Localize ModPacks.CreateButton}"
-			        MinWidth="140"
-			        Padding="16,10"
-			        CornerRadius="8"
-			        Background="{DynamicResource AccentBrush}"
-			        Foreground="White"
-			        BorderThickness="0"
-			        Click="CreateButton_Click"/>
-		</StackPanel>
-	</Grid>
+	</Panel>
 </UserControl>

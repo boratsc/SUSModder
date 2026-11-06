@@ -7,6 +7,14 @@ namespace SUSModder.Core.Tests.Services;
 public class ModPackCreateRequestSerializerTests
 {
     [Fact]
+    public void ToJson_NeverEnablesAbandonedIntegration()
+    {
+        var request = new ModPackCreateRequest { IncludeIntegrationDll = true };
+        using var doc = JsonDocument.Parse(ModPackCreateRequestSerializer.ToJson(request));
+        Assert.False(doc.RootElement.GetProperty("includeIntegrationDll").GetBoolean());
+    }
+
+    [Fact]
     public void ToJson_ExcludesExternalDlls_EvenWhenPresentOnRequest()
     {
         var request = new ModPackCreateRequest

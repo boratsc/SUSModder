@@ -7,8 +7,9 @@ using System.Globalization;
 namespace SUSModder.Converters
 {
     /// <summary>
-    /// Konwertuje liczbę dostępnych aktualizacji na kolor tekstu
-    /// Czerwony (#F44336) jeśli są aktualizacje (count > 0), domyślny kolor z motywu jeśli nie ma
+    /// Konwertuje liczbę dostępnych aktualizacji na kolor tekstu.
+    /// Gdy są aktualizacje — token motywu UpdateAlertBrush (Dark/Szklany: bursztyn z palety,
+    /// Light/Pink: czerwieni jak dawniej); poza themingiem fallback #F44336.
     /// </summary>
     public class UpdatesColorConverter : IValueConverter
     {
@@ -16,9 +17,17 @@ namespace SUSModder.Converters
         {
             if (value is int count)
             {
-                // Czerwony jeśli są aktualizacje
+                // Kolor alertu aktualizacji z motywu, fallback dawniej wtłoczony czerwony
                 if (count > 0)
+                {
+                    if (Application.Current?.Resources.TryGetResource("UpdateAlertBrush", null, out var alertResource) == true
+                        && alertResource is IBrush alertBrush)
+                    {
+                        return alertBrush;
+                    }
+
                     return new SolidColorBrush(Color.Parse("#F44336"));
+                }
 
                 // Pobierz kolor z zasobów motywu gdy nie ma aktualizacji
                 if (Application.Current?.Resources.TryGetResource("TextPrimaryBrush", null, out var resource) == true)

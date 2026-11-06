@@ -4,7 +4,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using System.Threading;
 using Avalonia;
-using Avalonia.ReactiveUI;
+using ReactiveUI.Avalonia.Reactive;
 using SUSModder.Core.Services;
 using Velopack;
 
@@ -78,5 +78,7 @@ internal static class Program
             .UsePlatformDetect()
             .WithInterFont()
             .LogToTrace()
-            .UseReactiveUI();
+            // ReactiveUI 26 flavor builder: defaults (Avalonia scheduler, activation/binding hooks)
+            // are registered by UseReactiveUI itself; no extra registrations needed here.
+            .UseReactiveUI(rxui => { });
 }

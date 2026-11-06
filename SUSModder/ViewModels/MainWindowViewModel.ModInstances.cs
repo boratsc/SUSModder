@@ -33,6 +33,8 @@ namespace SUSModder.ViewModels
         private ModBrowserTab _activeBrowserTab = ModBrowserTab.Catalog;
         private ModInstanceItem? _selectedPackInstance;
         private readonly ObservableCollection<ModInstanceItem> _packInstances = new();
+        private int _packRefreshGeneration;
+        private int _browserNavigationVersion;
 
         public ObservableCollection<ModInstanceItem> PackInstances => _packInstances;
 
@@ -44,10 +46,16 @@ namespace SUSModder.ViewModels
                 if (_activeBrowserTab == value)
                     return;
 
+                CaptureBrowserTabState();
+                _browserNavigationVersion++;
                 if (IsBulkSelectionMode)
                     IsBulkSelectionMode = false;
 
+                SelectedMod = null;
+                SelectedPackInstance = null;
+                CloseDllDetail();
                 this.RaiseAndSetIfChanged(ref _activeBrowserTab, value);
+                RestoreBrowserTabFilters();
                 RaiseBulkUiProperties();
                 this.RaisePropertyChanged(nameof(IsMyPacksTab));
                 this.RaisePropertyChanged(nameof(IsCatalogTab));
@@ -78,6 +86,8 @@ namespace SUSModder.ViewModels
 
                 if (value == ModBrowserTab.DllAddons)
                     ActivateDllAddonsTab();
+
+                RestoreBrowserTabSelection();
             }
         }
 
@@ -261,6 +271,10 @@ namespace SUSModder.ViewModels
 
         public async Task RefreshPackInstancesAsync()
         {
+            var generation = System.Threading.Interlocked.Increment(ref _packRefreshGeneration);
+            var navigationVersion = _browserNavigationVersion;
+            if (IsMyPacksTab && SelectedPackInstance != null)
+                _browserSession.For(ModBrowserTab.MyPacks).InstanceId = SelectedPackInstance.InstanceId;
             var repo = App.GetService<IModInstanceRepository>();
             var configService = new ConfigService();
             var catalog = configService.LoadConfig();
@@ -279,6 +293,11 @@ namespace SUSModder.ViewModels
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
+                if (generation != _packRefreshGeneration)
+                    return;
+                var preserveView = IsMyPacksTab && navigationVersion == _browserNavigationVersion;
+                var liveSelectedId = preserveView ? SelectedPackInstance?.InstanceId : null;
+                if (preserveView) BrowserScrollCaptureRequested?.Invoke(ModBrowserTab.MyPacks);
                 _packInstances.Clear();
                 foreach (var item in items)
                     _packInstances.Add(item);
@@ -286,14 +305,14 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(HasPackInstances));
                 this.RaisePropertyChanged(nameof(ShowPackInstancesEmptyState));
 
-                if (SelectedPackInstance != null)
-                {
-                    var refreshed = _packInstances.FirstOrDefault(p => p.InstanceId == SelectedPackInstance.InstanceId);
-                    SelectedPackInstance = refreshed;
-                }
-
                 RefreshTrayQuickLaunchList();
                 CapturePackInstancesSnapshot();
+                if (preserveView)
+                {
+                    SelectedPackInstance = PackInstances.FirstOrDefault(item => item.InstanceId == liveSelectedId);
+                    BrowserScrollRestoreRequested?.Invoke(ModBrowserTab.MyPacks,
+                        _browserSession.For(ModBrowserTab.MyPacks).ScrollOffset);
+                }
             });
         }
 

@@ -168,7 +168,7 @@
 				Padding="16,10"
 				CornerRadius="8"
 				Background="{DynamicResource AccentBrush}"
-				Foreground="White"
+				Foreground="{DynamicResource OnAccentTextBrush}"
 				BorderThickness="0"
 				Command="{Binding CloseCommand}">
 			<TextBlock Text="{loc:Localize UI.Buttons.Close}"/>

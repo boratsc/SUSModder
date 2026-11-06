@@ -1,4 +1,4 @@
-using ReactiveUI;
+﻿using ReactiveUI;
 using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Reactive.Disposables;
@@ -13,7 +13,6 @@ using SUSModder.Core.Services;
 using SUSModder.Core.Services.Localization;
 using SUSModder.Core.Configuration;
 using Avalonia.Controls;
-using DynamicData;
 using SUSModder.Core.Repositories;
 using SUSModder.Views;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -28,7 +27,6 @@ using SUSModder.ViewModels.Helpers;
 using Microsoft.Extensions.Configuration;
 using FluentIcons.Common;
 using SUSModder.Core.Diagnostics;
-using SUSModder.Core.Lobby;
 
 namespace SUSModder.ViewModels
 {
@@ -100,9 +98,6 @@ namespace SUSModder.ViewModels
         private bool _isAmongUsNotFoundVisible = false;
         private AmongUsNotFoundViewModel? _amongUsNotFoundViewModel;
         private TaskCompletionSource<AmongUsNotFoundResult>? _amongUsNotFoundCompletionSource;
-        private bool _isLobbyBoardVisible = false;
-        private LobbyBoardPanelViewModel? _lobbyBoardViewModel;
-        private string _lobbyCodesTickerText = "";
 
         // Flaga blokująca interakcję podczas inicjalizacji aplikacji
         private bool _isInitializing = true;
@@ -143,6 +138,13 @@ namespace SUSModder.ViewModels
         public bool IsBrowserDetailPanelVisible =>
             IsModPanelVisible || IsPackInstancePanelVisible || IsDllPanelVisible;
         public bool IsDeveloperMode => DeveloperModeSettings.IsEnabled;
+
+        /// <summary>
+        /// Stały panel globalnego komunikatora ("Czat ogólny") należący do głównego okna.
+        /// Żyje niezależnie od zaznaczenia moda — historia, szkic i polling przetrwają
+        /// wybór/odznaczenie oraz przełączanie katalog ↔ zainstalowane.
+        /// </summary>
+        public CommunityChatPanelViewModel CommunityChat { get; }
 
         /// <summary>
         /// Serwis powiadomień toast (singleton).
@@ -225,41 +227,6 @@ namespace SUSModder.ViewModels
                 NotifyToolModalStateChanged();
             }
         }
-
-        public bool IsLobbyBoardVisible
-        {
-            get => _isLobbyBoardVisible;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _isLobbyBoardVisible, value);
-                NotifyToolModalStateChanged();
-            }
-        }
-
-        public LobbyBoardPanelViewModel? LobbyBoardViewModel
-        {
-            get => _lobbyBoardViewModel;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _lobbyBoardViewModel, value);
-                this.RaisePropertyChanged(nameof(LobbyCodesTickerText));
-                this.RaisePropertyChanged(nameof(HasLobbyCodesTicker));
-            }
-        }
-
-        public string LobbyCodesTickerText
-        {
-            get => _lobbyCodesTickerText;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _lobbyCodesTickerText, value);
-                this.RaisePropertyChanged(nameof(HasLobbyCodesTicker));
-            }
-        }
-
-        public bool HasLobbyCodesTicker =>
-            !string.IsNullOrEmpty(LobbyCodesTickerText) &&
-            (LobbyBoardViewModel != null || InspectorLobbyEmbedViewModel != null);
 
         public bool IsRecommendedDiscordsVisible
         {
@@ -400,6 +367,7 @@ namespace SUSModder.ViewModels
                 }
 
                 this.RaiseAndSetIfChanged(ref _selectedDllMod, value);
+                this.RaisePropertyChanged(nameof(SelectedDllModIconSourceKey));
                 if (value != null)
                     LoadDllInstallTargets();
                 else
@@ -658,11 +626,8 @@ namespace SUSModder.ViewModels
                 }
                 else
                 {
-                    // Deselect
+                    // Deselect — czat ogólny pozostaje (historia i szkic bez zmian).
                     IsModContentVisible = false;
-                    IsLobbyBoardVisible = false;
-                    LobbyBoardViewModel?.Dispose();
-                    LobbyBoardViewModel = null;
                     ResetInspectorSections();
                     ClearCatalogCompatibleDlls();
                 }
@@ -699,7 +664,6 @@ namespace SUSModder.ViewModels
     public ReactiveCommand<ModItem, Unit> UninstallDllFromModCommand { get; }
     public ReactiveCommand<Unit, Unit> CloseDllDialogCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
-        public ReactiveCommand<Unit, Unit> ShowLobbyBoardCommand { get; }
         public ReactiveCommand<Unit, Unit> ShareExistingPackCommand { get; }
         public ReactiveCommand<Unit, Unit> CreateAndSharePackCommand { get; }
 public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
@@ -731,6 +695,20 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
             // Inicjalizuj serwis powiadomień toast (singleton z DI)
             ToastService = App.GetService<ToastService>();
 
+            // Ustawienia użytkownika — potrzebne m.in. do znacznika zasad czatu.
+            _userSettingsService = new UserSettingsService();
+
+            // Globalny komunikator — jedna instancja na okno, niezależna od zaznaczenia.
+            CommunityChat = new CommunityChatPanelViewModel(
+                App.GetService<ICommunityChatService>(),
+                _localizationService,
+                rulesState: new UserSettingsChatRulesStateStore(_userSettingsService));
+            CommunityChat.DeleteConfirmation = async message =>
+                await ShowConfirmDialogAsync(
+                    message,
+                    _localizationService.Get("UI.CommunityChat.Delete.ConfirmTitle"));
+            CommunityChat.Start();
+
             // Inicjalizuj VM do zarządzania paczkami udostępnionymi przez użytkownika
             SharedPacks = new SharedModPacksViewModel(
                 App.GetService<IModPackService>(),
@@ -741,9 +719,6 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
                 action => Avalonia.Threading.Dispatcher.UIThread.Post(action),
                 onClose: CloseModPackManager);
 
-            // Inicjalizuj UserSettingsService
-            _userSettingsService = new UserSettingsService();
-            
             _userInteractionService = new UserInteractionService(
                 ShowConfirmDialogAsync,
                 ShowMessageAsync,
@@ -797,7 +772,6 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             OpenVirusTotalReportCommand = ReactiveCommand.Create(OpenVirusTotalReport);
             this.RaisePropertyChanged(nameof(IsDeveloperMode));
             ShowRecommendedDiscordsCommand = ReactiveCommand.Create(ShowRecommendedDiscords);
-            ShowLobbyBoardCommand = ReactiveCommand.Create(ShowLobbyBoardFromMenu);
             ToggleFabModPackActionsCommand = ReactiveCommand.Create(ToggleFabModPackActions);
             ShareExistingPackCommand = ReactiveCommand.CreateFromTask(ShowShareExistingPackAsync);
             CreateLocalPackCommand = ReactiveCommand.CreateFromTask(ShowCreateLocalPackAsync);
@@ -812,7 +786,6 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             InitializeBrowserFilter();
             InitializeCatalogInspector();
             InitializeInspectorCompatExpand();
-            InitializeInspectorLayout();
             InitializeBulkOperations();
             InitializeSupportBanner();
             RefreshLaunchDiagnosticsPanelStrings();
@@ -929,17 +902,14 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             DisposeVelopackService();
             DisposeDiscordBitmaps();
             _dllTargetItemSubscriptions.Dispose();
+            CommunityChat.Dispose();
+            DisposeIconAssets();
+            DisposeStorageOverview();
+            _toggleFavoriteCommand?.Dispose();
+            _toggleFavoritesFilterCommand?.Dispose();
+            _localizationService.PropertyChanged -= OnLibraryLanguageChanged;
 
             GC.SuppressFinalize(this);
-        }
-
-        public void ShowLobbyBoard()
-        {
-            if (SelectedMod == null)
-                return;
-
-            EnsureLobbyBoardViewModel();
-            IsLobbyBoardVisible = true;
         }
 
         private void DisposeVelopackService()

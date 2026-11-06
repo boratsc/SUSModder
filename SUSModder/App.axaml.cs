@@ -19,7 +19,6 @@ using SUSModder.Core.Configuration;
 using SUSModder.Core.Data;
 using SUSModder.Core.Diagnostics;
 using SUSModder.Core.GameIntegration;
-using SUSModder.Core.Lobby;
 using SUSModder.Core.Services.Discord;
 using SUSModder.Core.Utilities;
 
@@ -50,6 +49,11 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+#if DEBUG
+        // Bridge for the standalone Avalonia Developer Tools (F12 in DEBUG).
+        // Replaces the legacy Avalonia.Diagnostics AttachDevTools() integration.
+        this.AttachDeveloperTools();
+#endif
         ConfigureServices();
     }
 
@@ -91,7 +95,19 @@ public partial class App : Application
             var db = sp.GetRequiredService<DatabaseService>();
             return new CompatibilityCacheRepository(db);
         });
-        services.AddSingleton<CatalogSyncService>();
+        services.AddSingleton<IFavoriteModsRepository>(sp =>
+            new FavoriteModsRepository(sp.GetRequiredService<DatabaseService>()));
+        services.AddSingleton<IIconAssignmentRepository>(sp =>
+            new IconAssignmentRepository(sp.GetRequiredService<DatabaseService>()));
+        services.AddSingleton<SUSModder.Core.Storage.IStorageSizeMeasurementService>(_ =>
+            new SUSModder.Core.Storage.StorageSizeMeasurementService());
+        services.AddSingleton<CatalogSyncService>(sp => new CatalogSyncService(
+            sp.GetRequiredService<ISUSModderApiClient>(),
+            sp.GetRequiredService<IModRepository>(),
+            sp.GetRequiredService<ICatalogSyncStateRepository>(),
+            sp.GetRequiredService<ICompatibilityCacheRepository>(),
+            sp.GetRequiredService<IDiagnosticsOutput>(),
+            sp.GetRequiredService<IIconAssignmentRepository>()));
         services.AddSingleton<CompatibilityService>(sp =>
         {
             var api = sp.GetRequiredService<ISUSModderApiClient>();
@@ -161,21 +177,14 @@ public partial class App : Application
         // Rejestracja IHardwareIdProvider
         services.AddSingleton<IHardwareIdProvider, WindowsHardwareIdProvider>();
 
-        // Rejestracja Lobby Board serwisu
-        services.AddSingleton<ILobbyBoardService>(sp =>
+        // Rejestracja globalnego komunikatora (adapter istniejącego API v2, stały kanał modId=1)
+        services.AddSingleton<ICommunityChatService>(sp =>
         {
             var config = sp.GetRequiredService<IConfiguration>();
             var diag = sp.GetRequiredService<IDiagnosticsOutput>();
             var hwid = sp.GetRequiredService<IHardwareIdProvider>();
             var api = sp.GetRequiredService<ISUSModderApiClient>();
-            return new LobbyBoardService(config, diag, hwid, api);
-        });
-
-        // Rejestracja Lobby Bridge File Reader (FileSystemWatcher na lobby-bridge.json)
-        services.AddSingleton<LobbyBridgeFileReader>(sp =>
-        {
-            var diag = sp.GetRequiredService<IDiagnosticsOutput>();
-            return new LobbyBridgeFileReader(diag);
+            return new CommunityChatService(config, diag, hwid, api);
         });
 
         // Mod Pack Sharing
@@ -248,7 +257,8 @@ public partial class App : Application
 
     private async Task InitializeApplicationAsync(IClassicDesktopStyleApplicationLifetime desktop)
     {
-        _ = Task.Run(() => ModsStorageCleanupService.RunCleanup(DebugDiagnosticsOutput.Instance.Write));
+        // 3.1: inventory is read-only until cleanup shares identity/activity protection with installers.
+        // Do not recursively delete workspaces belonging to another running instance at startup.
 
         try
         {
@@ -421,10 +431,6 @@ public partial class App : Application
             });
             await _splashWindow?.AnimateProgressAsync(0.9)!;
 
-            // KROK 4.5: Uruchom Lobby Bridge File Reader (monitorowanie lobby-bridge.json)
-            var bridgeReader = _serviceProvider?.GetService<LobbyBridgeFileReader>();
-            bridgeReader?.Start();
-
             // KROK 5: Zamiana okien (100%)
             _splashWindow?.UpdateProgress(0.9, "Finalizacja...");
             await _splashWindow?.AnimateProgressAsync(1.0)!;
@@ -544,9 +550,8 @@ public partial class App : Application
             return;
         }
 
-        await Task.Delay(1200);
-
         var antivirusDetectionService = new AntivirusDetectionService();
+        // Detekcja od razu — LastDetectionResult jest dostępny przy błędach Access Denied podczas instalacji.
         var result = await Task.Run(antivirusDetectionService.DetectInstalledThirdPartyAntivirus);
         if (!result.HasThirdPartyAntivirus)
         {
@@ -562,6 +567,8 @@ public partial class App : Application
             Debug.WriteLine("[App] Ostrzeżenie antywirusowe już potwierdzone dla bieżącego zestawu AV.");
             return;
         }
+
+        await Task.Delay(1200);
 
         await Dispatcher.UIThread.InvokeAsync(async () =>
         {
@@ -579,7 +586,7 @@ public partial class App : Application
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private async void OnShutdownRequested(object? sender, ShutdownRequestedEventArgs e)
     {
-        _ = Task.Run(() => ModsStorageCleanupService.RunCleanup(DebugDiagnosticsOutput.Instance.Write));
+        // No fire-and-forget file deletion during shutdown: an installer may still own its workspace.
 
         // Wyślij końcowy heartbeat przed zamknięciem
         if (_telemetryService != null)

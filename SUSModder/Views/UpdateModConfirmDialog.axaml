@@ -5,7 +5,7 @@
         xmlns:behaviors="using:SUSModder.Behaviors"
         xmlns:local="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.UpdateModConfirmDialog"
-        Width="550" Height="450"
+        Width="550" Height="600"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         Background="{DynamicResource WindowBackgroundBrush}"
@@ -63,17 +63,28 @@
 		
 		<!-- Hover effect dla przycisku aktualizacji -->
 		<Style Selector="Button.update-button:pointerover">
-			<Setter Property="Background" Value="#059669"/>
-			<Setter Property="BorderBrush" Value="#047857"/>
+			<Setter Property="Background" Value="{DynamicResource PositiveActionHoverBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource PositiveActionPressedBrush}"/>
 		</Style>
 		
 		<Style Selector="Button.update-button:pressed">
-			<Setter Property="Background" Value="#047857"/>
+			<Setter Property="Background" Value="{DynamicResource PositiveActionPressedBrush}"/>
 		</Style>
 		
 		<!-- Hover effect dla przycisku anuluj -->
 		<Style Selector="Button.cancel-button:pointerover">
 			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+
+		<!-- Wiersze podsumowania aktualizacji (3.1-06) -->
+		<Style Selector="TextBlock.preview-addon">
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="TextWrapping" Value="Wrap"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+		</Style>
+
+		<Style Selector="TextBlock.preview-addon.attention">
+			<Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
 		</Style>
 	</Window.Styles>
 
@@ -85,8 +96,8 @@
 					Classes="update-icon"
 					Width="80" Height="80"
 					CornerRadius="40"
-					Background="#2010B981"
-					BorderBrush="#10B981"
+					Background="{DynamicResource PositiveActionSoftBrush}"
+					BorderBrush="{DynamicResource PositiveActionBrush}"
 					BorderThickness="2"
 					HorizontalAlignment="Center"
 					Margin="0,0,0,20">
@@ -100,10 +111,14 @@
 			</Border>
 
 			<!-- Zawartość -->
-			<StackPanel Grid.Row="1"
-						Classes="content-panel"
+			<ScrollViewer Grid.Row="1"
+						VerticalScrollBarVisibility="Auto"
+						HorizontalScrollBarVisibility="Disabled"
+						MaxHeight="370">
+				<StackPanel Classes="content-panel"
 						Spacing="12"
-						MinHeight="150">
+						MinHeight="150"
+						HorizontalAlignment="Stretch">
 				<StackPanel.RenderTransform>
 					<TranslateTransform/>
 				</StackPanel.RenderTransform>
@@ -160,7 +175,7 @@
 								   x:Name="NewModVersionText"
 								   FontSize="13"
 								   FontWeight="SemiBold"
-								   Foreground="#10B981"
+								   Foreground="{DynamicResource PositiveActionBrush}"
 								   HorizontalAlignment="Right"
 								   VerticalAlignment="Center"/>
 						
@@ -198,7 +213,55 @@
 								   Foreground="{DynamicResource TextSecondaryBrush}"/>
 					</StackPanel>
 				</Border>
+
+				<!-- Podsumowanie aktualizacji (3.1-06): prognoza stanu dodatków DLL i konfiguracji.
+					 Ukryte, dopóki nie ma kompletu kluczy lokalizacyjnych — bez tekstu nieprzetłumaczonego. -->
+				<Border x:Name="PreviewBorder"
+						Background="{DynamicResource ModCardBackgroundBrush}"
+						BorderBrush="{DynamicResource ModCardBorderBrush}"
+						BorderThickness="1"
+						CornerRadius="6"
+						Padding="12,10"
+						Margin="0,4,0,0"
+						IsVisible="False">
+					<StackPanel Spacing="8">
+						<TextBlock x:Name="PreviewHeaderText"
+								   FontSize="13"
+								   FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"
+								   TextWrapping="Wrap"/>
+						<TextBlock x:Name="PreviewLoadingText"
+								   FontSize="12"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   TextWrapping="Wrap"
+								   IsVisible="False"/>
+						<TextBlock x:Name="PreviewErrorText"
+								   FontSize="12"
+								   Foreground="{DynamicResource DangerBrush}"
+								   TextWrapping="Wrap"
+								   IsVisible="False"/>
+						<TextBlock x:Name="PreviewAddonsHeaderText"
+								   FontSize="12"
+								   FontWeight="Medium"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   IsVisible="False"/>
+						<StackPanel x:Name="PreviewAddonList"
+								   Spacing="3"/>
+						<TextBlock x:Name="PreviewConfigHeaderText"
+								   FontSize="12"
+								   FontWeight="Medium"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   Margin="0,4,0,0"
+								   IsVisible="False"/>
+						<TextBlock x:Name="PreviewConfigText"
+								   FontSize="12"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   TextWrapping="Wrap"
+								   IsVisible="False"/>
+					</StackPanel>
+				</Border>
 			</StackPanel>
+			</ScrollViewer>
 
 			<!-- Przyciski -->
 			<StackPanel Grid.Row="2"
@@ -221,9 +284,9 @@
 						Classes="update-button"
 						Content="{local:Localize Dialogs.UpdateMod.UpdateButton}"
 						Width="160" Height="38"
-						Background="#10B981"
-						Foreground="White"
-						BorderBrush="#059669"
+						Background="{DynamicResource PositiveActionBrush}"
+						Foreground="{DynamicResource OnAccentTextBrush}"
+						BorderBrush="{DynamicResource PositiveActionHoverBrush}"
 						BorderThickness="2"
 						CornerRadius="8"
 						FontWeight="Bold"

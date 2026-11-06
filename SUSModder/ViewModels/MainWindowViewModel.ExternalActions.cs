@@ -58,32 +58,6 @@ namespace SUSModder.ViewModels
             }
         }
 
-        private void ShowLobbyBoardFromMenu()
-        {
-            IsPaneOpen = false;
-            if (SelectedMod == null)
-            {
-                var loc = App.GetService<ILocalizationService>();
-                ToastService.ShowInfo(
-                    loc.Get("Lobby.Panel.SelectModFirst") ?? "Wybierz najpierw moda z listy",
-                    autoCloseMs: 3000);
-                return;
-            }
-
-            // Zamknij inne panele
-            IsInfoPanelVisible = false;
-            IsAdditionalActionsVisible = false;
-            IsDllModificationsVisible = false;
-            IsSUStatsConfigVisible = false;
-            IsAppSettingsVisible = false;
-            IsRecommendedDiscordsVisible = false;
-            IsRepairOptionsVisible = false;
-            CloseDllSelectionModal();
-            IsVersionSelectionModalVisible = false;
-
-            ShowLobbyBoard();
-        }
-
         #endregion
 
         #region Game Settings & Tools
@@ -326,7 +300,7 @@ namespace SUSModder.ViewModels
                     if (process.ExitCode != 0)
                     {
                         throw new InvalidOperationException(
-                            string.Format(_localizationService.Get("UI.Repair.Certificates.CertutilError"), process.ExitCode));
+                            FormatCertutilFailureMessage(process.ExitCode));
                     }
                 }
 
@@ -363,8 +337,11 @@ namespace SUSModder.ViewModels
 
                     if (process.ExitCode != 0)
                     {
+                        var importError = CertificateRepairErrorMapper.Classify(process.ExitCode);
                         throw new InvalidOperationException(
-                            string.Format(_localizationService.Get("UI.Repair.Certificates.ImportError"), process.ExitCode));
+                            string.Format(
+                                _localizationService.Get("UI.Repair.Certificates.ImportError"),
+                                $"{importError.HexCode} ({importError.ExitCode})"));
                     }
                 }
 
@@ -406,6 +383,22 @@ namespace SUSModder.ViewModels
                     System.Diagnostics.Debug.WriteLine($"[FixCertificates] Nie udało się usunąć pliku tymczasowego: {ex.Message}");
                 }
             }
+        }
+
+        private string FormatCertutilFailureMessage(int exitCode)
+        {
+            var classified = CertificateRepairErrorMapper.Classify(exitCode);
+            var detailKey = CertificateRepairErrorMapper.GetDetailLocalizationKey(classified.Kind);
+            var detail = _localizationService.Get(detailKey);
+
+            if (string.IsNullOrWhiteSpace(detail) || detail == detailKey)
+                detail = _localizationService.Get("UI.Repair.Certificates.Errors.Unknown");
+
+            return string.Format(
+                _localizationService.Get("UI.Repair.Certificates.CertutilError"),
+                detail,
+                classified.HexCode,
+                classified.TechnicalName);
         }
 
         private async Task ExecuteFixRegionsAsync()

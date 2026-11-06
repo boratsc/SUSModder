@@ -65,12 +65,12 @@
 		
 		<!-- Hover effect dla przycisku aktualizacji -->
 		<Style Selector="Button.update-button:pointerover">
-			<Setter Property="Background" Value="#059669"/>
-			<Setter Property="BorderBrush" Value="#047857"/>
+			<Setter Property="Background" Value="{DynamicResource PositiveActionHoverBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource PositiveActionPressedBrush}"/>
 		</Style>
 		
 		<Style Selector="Button.update-button:pressed">
-			<Setter Property="Background" Value="#047857"/>
+			<Setter Property="Background" Value="{DynamicResource PositiveActionPressedBrush}"/>
 		</Style>
 		
 		<!-- Hover effect dla przycisku anuluj -->
@@ -87,8 +87,8 @@
 					Classes="update-icon"
 					Width="80" Height="80"
 					CornerRadius="40"
-					Background="#2010B981"
-					BorderBrush="#10B981"
+					Background="{DynamicResource PositiveActionSoftBrush}"
+					BorderBrush="{DynamicResource PositiveActionBrush}"
 					BorderThickness="2"
 					HorizontalAlignment="Center"
 					Margin="0,0,0,20">
@@ -146,7 +146,7 @@
 						<TextBlock x:Name="NewVersionText"
 								   FontSize="14"
 								   FontWeight="Bold"
-								   Foreground="#10B981"
+								   Foreground="{DynamicResource PositiveActionBrush}"
 								   VerticalAlignment="Center"/>
 					</StackPanel>
 				</Border>
@@ -206,7 +206,7 @@
 													<TextBlock Text="{Binding NewVersion}"
 															   FontSize="12"
 															   FontWeight="SemiBold"
-															   Foreground="#10B981"/>
+															   Foreground="{DynamicResource PositiveActionBrush}"/>
 												</StackPanel>
 											</Grid>
 										</Border>
@@ -245,9 +245,9 @@
 						Classes="update-button"
 						Content="{local:Localize DllManager.UpdateConfirm.UpdateAllButton}"
 						Width="180" Height="38"
-						Background="#10B981"
-						Foreground="White"
-						BorderBrush="#059669"
+						Background="{DynamicResource PositiveActionBrush}"
+						Foreground="{DynamicResource OnAccentTextBrush}"
+						BorderBrush="{DynamicResource PositiveActionHoverBrush}"
 						BorderThickness="2"
 						CornerRadius="8"
 						FontWeight="Bold"

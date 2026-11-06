@@ -33,8 +33,8 @@
 			<Border Grid.Row="0"
 					Width="90" Height="90"
 					CornerRadius="45"
-					Background="#2010B981"
-					BorderBrush="#10B981"
+					Background="{DynamicResource PositiveActionSoftBrush}"
+					BorderBrush="{DynamicResource PositiveActionBrush}"
 					BorderThickness="3"
 					HorizontalAlignment="Center"
 					Margin="0,0,0,20">
@@ -42,7 +42,7 @@
 						   Text="0%"
 						   FontSize="32"
 						   FontWeight="Bold"
-						   Foreground="#10B981"
+						   Foreground="{DynamicResource PositiveActionBrush}"
 						   HorizontalAlignment="Center"
 						   VerticalAlignment="Center"/>
 			</Border>
@@ -91,7 +91,7 @@
 							BorderThickness="1"
 							CornerRadius="4">
 						<Border x:Name="ProgressFill"
-								Background="#10B981"
+								Background="{DynamicResource PositiveActionBrush}"
 								CornerRadius="3"
 								HorizontalAlignment="Left"
 								Width="0"/>

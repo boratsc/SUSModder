@@ -24,9 +24,32 @@ namespace SUSModder.Core.Services
         public bool HasThirdPartyAntivirus => ProductNames.Count > 0;
     }
 
-    [SupportedOSPlatform("windows")]
     public sealed class AntivirusDetectionService
     {
+        private static AntivirusDetectionResult? _lastDetectionResult;
+        private static readonly object LastDetectionLock = new();
+
+        /// <summary>
+        /// Ostatni wynik wykrywania AV (np. ze startu aplikacji). Null, gdy jeszcze nie uruchomiono detekcji.
+        /// </summary>
+        public static AntivirusDetectionResult? LastDetectionResult
+        {
+            get
+            {
+                lock (LastDetectionLock)
+                    return _lastDetectionResult;
+            }
+        }
+
+        /// <summary>
+        /// Zapisuje wynik detekcji do cache procesu (np. po sprawdzeniu przy starcie).
+        /// </summary>
+        public static void SetLastDetectionResult(AntivirusDetectionResult result)
+        {
+            lock (LastDetectionLock)
+                _lastDetectionResult = result ?? AntivirusDetectionResult.Empty;
+        }
+
         private static readonly string[] UninstallRegistryPaths =
         {
             @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
@@ -70,19 +93,31 @@ namespace SUSModder.Core.Services
         {
             if (!OperatingSystem.IsWindows())
             {
-                return AntivirusDetectionResult.Empty;
+                var empty = AntivirusDetectionResult.Empty;
+                SetLastDetectionResult(empty);
+                return empty;
             }
 
+            return DetectInstalledThirdPartyAntivirusWindows();
+        }
+
+        [SupportedOSPlatform("windows")]
+        private AntivirusDetectionResult DetectInstalledThirdPartyAntivirusWindows()
+        {
             var names = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
 
             TryDetectFromSecurityCenter(names);
             TryDetectFromInstalledApplications(names);
 
-            return names.Count == 0
+            var result = names.Count == 0
                 ? AntivirusDetectionResult.Empty
                 : new AntivirusDetectionResult(names.ToArray());
+
+            SetLastDetectionResult(result);
+            return result;
         }
 
+        [SupportedOSPlatform("windows")]
         private static void TryDetectFromSecurityCenter(ISet<string> names)
         {
             try
@@ -104,6 +139,7 @@ namespace SUSModder.Core.Services
             }
         }
 
+        [SupportedOSPlatform("windows")]
         private static void TryDetectFromInstalledApplications(ISet<string> names)
         {
             try

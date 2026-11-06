@@ -106,6 +106,10 @@ namespace SUSModder.ViewModels
 
                 string platform = DeterminePlatform();
 
+                // 3.1-11: domyślna instalacja zawsze celuje w stabilne wydanie.
+                // Jeżeli katalog oznaczył currentVersion jako betę, wybieramy latestStableVersion.
+                var installConfig = ResolveDefaultStableRelease(modConfig);
+
                 // ── VirusTotal security gate (czyta z DB, nie woła API) ──
                 if (!currentSelectedMod.IsVanilla && currentSelectedMod.IsVtRisky)
                 {
@@ -142,12 +146,12 @@ namespace SUSModder.ViewModels
 
                 if (platform.Equals("epic", StringComparison.OrdinalIgnoreCase))
                 {
-                    installResult = await InstallEpicModAsync(currentSelectedMod, modConfig);
+                    installResult = await InstallEpicModAsync(currentSelectedMod, installConfig);
                     success = installResult.Success;
                 }
                 else
                 {
-                    installResult = await InstallSteamModAsync(currentSelectedMod, modConfig, allConfigs);
+                    installResult = await InstallSteamModAsync(currentSelectedMod, installConfig, allConfigs);
                     success = installResult.Success;
                 }
 
@@ -155,9 +159,10 @@ namespace SUSModder.ViewModels
                 {
                     await PersistInstalledVersionStateAsync(
                         currentSelectedMod.Id,
-                        modConfig.ModVersion,
+                        installConfig.ModVersion,
                         disableAutoUpdatePrompt: false,
-                        pinnedInstallVersion: null);
+                        pinnedInstallVersion: null,
+                        installedIsBeta: false);
                 }
             }
             catch (Exception ex)
@@ -317,11 +322,16 @@ namespace SUSModder.ViewModels
                         modConfig.ModVersion,
                         StringComparison.OrdinalIgnoreCase);
 
+                    // 3.1-11: świadoma instalacja bety jest jednorazowa — nie pozwalamy
+                    // auto-aktualizacji cicho podmienić jej na stabilną ani na kolejną betę.
+                    bool pinInstalledVersion = selectedVersion.IsBeta || installedOlderThanLatest;
+
                     await PersistInstalledVersionStateAsync(
                         modItem.Id,
                         selectedVersion.ModVersion,
-                        disableAutoUpdatePrompt: installedOlderThanLatest,
-                        pinnedInstallVersion: installedOlderThanLatest ? selectedVersion.ModVersion : null);
+                        disableAutoUpdatePrompt: pinInstalledVersion,
+                        pinnedInstallVersion: pinInstalledVersion ? selectedVersion.ModVersion : null,
+                        installedIsBeta: selectedVersion.IsBeta);
 
                     await RefreshModsListAsync(checkUpdates: false);
                     SelectedMod = Mods.FirstOrDefault(m => m.Id == modItem.Id);
@@ -363,6 +373,44 @@ namespace SUSModder.ViewModels
                 await ShowPostInstallFlowAsync(modItem, modConfig);
             else
                 await ShowPostInstallFailureFlowAsync(modItem, installResult);
+        }
+
+        /// <summary>
+        /// 3.1-11: domyślna instalacja nie może po cichu wybrać bety. Jeśli katalog
+        /// oznacza bieżącą wersję jako beta, celujemy w zadeklarowane stabilne wydanie.
+        /// Gdy brak wiarygodnych danych, zostawiamy konfigurację bez zmian.
+        /// </summary>
+        private static ModConfiguration ResolveDefaultStableRelease(ModConfiguration modConfig)
+        {
+            if (!modConfig.IsBeta)
+                return modConfig;
+
+            var stable = modConfig.AvailableReleases.FirstOrDefault(r =>
+                    !r.IsBeta &&
+                    (string.IsNullOrWhiteSpace(modConfig.LatestStableVersion) ||
+                     string.Equals(r.Version, modConfig.LatestStableVersion, StringComparison.OrdinalIgnoreCase)))
+                ?? modConfig.AvailableReleases.FirstOrDefault(r => !r.IsBeta);
+
+            if (stable is null)
+                return modConfig;
+
+            return new ModConfiguration
+            {
+                Id = modConfig.Id,
+                ModName = modConfig.ModName,
+                ModType = modConfig.ModType,
+                ModVersion = stable.Version,
+                AmongVersion = stable.AmongVersion,
+                GitHubRepoOrLink = modConfig.GitHubRepoOrLink,
+                EpicGitHubRepoOrLink = modConfig.EpicGitHubRepoOrLink,
+                Description = modConfig.Description,
+                PngFileName = modConfig.PngFileName,
+                DllInstallPath = modConfig.DllInstallPath,
+                IsBeta = false,
+                LatestStableVersion = modConfig.LatestStableVersion,
+                LatestBetaVersion = modConfig.LatestBetaVersion,
+                AvailableReleases = modConfig.AvailableReleases
+            };
         }
 
         private async Task<ModInstallResult> InstallEpicModAsync(ModItem currentSelectedMod, ModConfiguration modConfig)
@@ -829,7 +877,8 @@ namespace SUSModder.ViewModels
             int modId,
             string? installedVersion,
             bool disableAutoUpdatePrompt,
-            string? pinnedInstallVersion)
+            string? pinnedInstallVersion,
+            bool installedIsBeta = false)
         {
             try
             {
@@ -856,6 +905,7 @@ namespace SUSModder.ViewModels
                 installMap.FullMod.DisableAutoUpdatePrompt = disableAutoUpdatePrompt;
                 installMap.FullMod.PinnedInstallVersion = disableAutoUpdatePrompt ? pinnedInstallVersion : null;
                 installMap.FullMod.AutoUpdateEnabled = !disableAutoUpdatePrompt;
+                installMap.FullMod.IsBeta = installedIsBeta;
                 installMap.FullMod.LastUpdated = DateTime.Now;
 
                 await InstallationMapManager.SaveInstallationMapAsync(targetConfig.InstallPath, installMap);

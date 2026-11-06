@@ -41,7 +41,6 @@ public partial class PackInstanceCloneDialog : Window
             NewDisplayName = name,
             CopyDlls = CopyDllsCheck.IsChecked == true,
             CopyTouConfig = CopyTouConfigCheck.IsChecked == true,
-            CopyIntegrationDll = CopyIntegrationCheck.IsChecked == true,
             CopyPinnedVersion = CopyPinnedVersionCheck.IsChecked == true
         };
         Close(Options);

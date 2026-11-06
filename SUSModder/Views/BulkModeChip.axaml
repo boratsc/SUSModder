@@ -4,8 +4,10 @@
              xmlns:loc="using:SUSModder.Services.Localization"
              xmlns:ic="using:FluentIcons.Avalonia"
              xmlns:fic="using:FluentIcons.Common"
-             x:Class="SUSModder.Views.BulkModeChip"
-             x:DataType="vm:MainWindowViewModel">
+              x:Class="SUSModder.Views.BulkModeChip"
+              x:Name="ActionsRoot"
+              x:DataType="vm:MainWindowViewModel">
+	<StackPanel Spacing="8">
 	<Button Classes="bulk-mode-chip"
 			Classes.active="{Binding IsBulkSelectionMode}"
 			Command="{Binding ToggleBulkSelectionModeCommand}">
@@ -36,10 +38,33 @@
 				<TextBlock Text="{Binding BulkSelectedCount}"
 						   FontSize="9"
 						   FontWeight="Bold"
-						   Foreground="White"
+						   Foreground="{DynamicResource OnAccentTextBrush}"
 						   HorizontalAlignment="Center"
 						   VerticalAlignment="Center"/>
 			</Border>
 		</Panel>
 	</Button>
+	<Button Classes="bulk-mode-chip" Classes.active="{Binding BrowserFavoritesOnly}"
+            Command="{Binding ToggleFavoritesFilterCommand}"
+            IsVisible="{Binding IsMyPacksTab, Converter={x:Static BoolConverters.Not}}"
+            AutomationProperties.Name="{loc:Localize UI.Favorites.Filter}"
+            ToolTip.Tip="{loc:Localize UI.Favorites.Filter}">
+        <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Star}" FontSize="18"/>
+    </Button>
+    <Button x:Name="SearchButton" Classes="bulk-mode-chip"
+            AutomationProperties.Name="{loc:Localize UI.Browser.SearchPlaceholder}"
+            ToolTip.Tip="{loc:Localize UI.Browser.SearchPlaceholder}">
+        <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Search}" FontSize="18"/>
+        <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedRight" ShowMode="Standard"
+                    Opened="SearchFlyout_Opened" Closed="SearchFlyout_Closed">
+                <TextBox x:Name="SearchTextBox" Width="300"
+                         Text="{Binding #ActionsRoot.((vm:MainWindowViewModel)DataContext).BrowserSearchText, Mode=TwoWay}"
+                         TextChanged="SearchTextBox_TextChanged"
+                         PlaceholderText="{loc:Localize UI.Browser.SearchPlaceholder}"
+                         AutomationProperties.Name="{loc:Localize UI.Browser.SearchPlaceholder}"/>
+            </Flyout>
+        </Button.Flyout>
+    </Button>
+	</StackPanel>
 </UserControl>

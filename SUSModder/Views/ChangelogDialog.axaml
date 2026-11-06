@@ -61,11 +61,11 @@
 
     <!-- Hover dla przycisku close -->
     <Style Selector="Button.close-button:pointerover">
-      <Setter Property="Background" Value="#3B82F6"/>
-      <Setter Property="BorderBrush" Value="#2563EB"/>
+      <Setter Property="Background" Value="{DynamicResource PrimaryActionBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource PrimaryActionHoverBrush}"/>
     </Style>
     <Style Selector="Button.close-button:pressed">
-      <Setter Property="Background" Value="#2563EB"/>
+      <Setter Property="Background" Value="{DynamicResource PrimaryActionHoverBrush}"/>
     </Style>
 
     <!-- Hover dla przycisku GitHub -->
@@ -104,8 +104,8 @@
               Classes="changelog-header-icon"
               Width="72" Height="72"
               CornerRadius="36"
-              Background="#203B82F6"
-              BorderBrush="#3B82F6"
+              Background="{DynamicResource PrimaryActionSoftBrush}"
+              BorderBrush="{DynamicResource PrimaryActionBrush}"
               BorderThickness="2"
               HorizontalAlignment="Center"
               Margin="0,0,0,16">
@@ -181,9 +181,9 @@
                 Padding="24,8"
                 Cursor="Hand"
                 BorderThickness="1"
-                BorderBrush="#3B82F6"
-                Background="#3B82F6"
-                Foreground="White"
+                BorderBrush="{DynamicResource PrimaryActionBrush}"
+                Background="{DynamicResource PrimaryActionBrush}"
+                Foreground="{DynamicResource OnAccentTextBrush}"
                 CornerRadius="6"
                 Click="OnCloseButtonClick"/>
       </StackPanel>

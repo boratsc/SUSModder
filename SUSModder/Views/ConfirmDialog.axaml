@@ -47,7 +47,7 @@
                     Content="{loc:Localize UI.Buttons.Yes}"
                     Width="140" Height="30"
                     Background="{DynamicResource AccentBrush}"
-                    Foreground="White"
+                    Foreground="{DynamicResource OnAccentTextBrush}"
                     Click="YesButton_Click"/>
 		</StackPanel>
 	</Grid>

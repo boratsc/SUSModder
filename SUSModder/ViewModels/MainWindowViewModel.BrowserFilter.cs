@@ -8,6 +8,18 @@ namespace SUSModder.ViewModels
     public partial class MainWindowViewModel
     {
         private string _browserSearchText = string.Empty;
+        private bool _browserFavoritesOnly;
+
+        public bool BrowserFavoritesOnly
+        {
+            get => _browserFavoritesOnly;
+            set
+            {
+                if (_browserFavoritesOnly == value) return;
+                this.RaiseAndSetIfChanged(ref _browserFavoritesOnly, value);
+                ApplyBrowserSearchFilter();
+            }
+        }
         private List<ModItem> _catalogModsSnapshot = new();
         private List<ModInstanceItem> _packInstancesSnapshot = new();
         private List<ModItem> _dllModsSnapshot = new();
@@ -27,30 +39,39 @@ namespace SUSModder.ViewModels
 
         public bool ShowBrowserNoResults =>
             !IsModsLoading &&
-            !string.IsNullOrWhiteSpace(BrowserSearchText) &&
+            (!string.IsNullOrWhiteSpace(BrowserSearchText) || BrowserFavoritesOnly) &&
             ((IsCatalogTab && Mods.Count == 0 && _catalogModsSnapshot.Count > 0) ||
              (IsMyPacksTab && PackInstances.Count == 0 && _packInstancesSnapshot.Count > 0) ||
              (IsDllAddonsTab && DllMods.Count == 0 && _dllModsSnapshot.Count > 0));
 
         private void InitializeBrowserFilter()
         {
+            InitializeIconAssets();
+            _localizationService.PropertyChanged += OnLibraryLanguageChanged;
+            InitializeStorageOverview();
         }
 
         internal void CaptureCatalogModsSnapshot()
         {
             _catalogModsSnapshot = Mods.ToList();
+            ApplyFavoriteStates(_catalogModsSnapshot);
+            ApplyCurrentIconKeys();
+            _ = ReconcileLegacyIconReferencesAsync();
             ApplyBrowserSearchFilter();
         }
 
         internal void CapturePackInstancesSnapshot()
         {
             _packInstancesSnapshot = PackInstances.ToList();
+            ApplyCurrentIconKeys();
             ApplyBrowserSearchFilter();
         }
 
         internal void CaptureDllModsSnapshot()
         {
             _dllModsSnapshot = DllMods.ToList();
+            ApplyFavoriteStates(_dllModsSnapshot);
+            ApplyCurrentIconKeys();
             ApplyBrowserSearchFilter();
         }
 
@@ -59,11 +80,15 @@ namespace SUSModder.ViewModels
             var query = BrowserSearchText?.Trim();
 
             if (IsCatalogTab)
-                ApplyFilterToCollection(Mods, _catalogModsSnapshot, query, MatchesCatalogMod);
+                ApplyFilterToCollection(Mods, _catalogModsSnapshot, query,
+                    (mod, text) => (!BrowserFavoritesOnly || mod.IsFavorite) && MatchesCatalogMod(mod, text), BrowserFavoritesOnly);
             else if (IsMyPacksTab)
                 ApplyFilterToCollection(PackInstances, _packInstancesSnapshot, query, MatchesPackInstance);
             else if (IsDllAddonsTab)
-                ApplyFilterToCollection(DllMods, _dllModsSnapshot, query, MatchesDllMod);
+                ApplyFilterToCollection(DllMods, _dllModsSnapshot, query,
+                    (mod, text) => (!BrowserFavoritesOnly || mod.IsFavorite) && MatchesDllMod(mod, text), BrowserFavoritesOnly);
+
+            ClearFilteredBrowserSelection();
 
             this.RaisePropertyChanged(nameof(ShowBrowserNoResults));
             this.RaisePropertyChanged(nameof(IsBrowserGridVisible));
@@ -71,11 +96,12 @@ namespace SUSModder.ViewModels
             this.RaisePropertyChanged(nameof(IsDllAddonsGridVisible));
         }
 
-        private static void ApplyFilterToCollection<T>(
+        internal static void ApplyFilterToCollection<T>(
             ICollection<T> target,
             IReadOnlyList<T> source,
             string? query,
-            Func<T, string?, bool> matches)
+            Func<T, string?, bool> matches,
+            bool forcePredicate = false)
         {
             var effectiveSource = source;
             if (effectiveSource.Count == 0 && target.Count > 0 && string.IsNullOrWhiteSpace(query))
@@ -84,7 +110,7 @@ namespace SUSModder.ViewModels
                 effectiveSource = target.ToList();
             }
 
-            var filtered = string.IsNullOrWhiteSpace(query)
+            var filtered = string.IsNullOrWhiteSpace(query) && !forcePredicate
                 ? effectiveSource
                 : effectiveSource.Where(item => matches(item, query)).ToList();
 
