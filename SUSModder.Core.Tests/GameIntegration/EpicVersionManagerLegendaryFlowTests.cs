@@ -410,6 +410,39 @@ public class EpicVersionManagerLegendaryFlowTests
     }
 
     [Fact]
+    public async Task InstallFlow_PreservesInstalledUrlsBeforeUninstall()
+    {
+        using var sandbox = new LegendaryConfigSandbox();
+        using var manifestDirectory = new TempDirectory();
+        sandbox.WriteMetadata(AppId, MetadataWithoutBaseUrls);
+        File.WriteAllText(Path.Combine(sandbox.Directory, "installed.json"),
+            "{\"" + AppId + "\":{\"base_urls\":[\"" + BaseUrl + "\"]}}");
+        manifestDirectory.WriteFile($"{AppId}_{AmongVersion}.manifest", "manifest");
+        var runner = CreateSimulatedRunner(sandbox, new SimulatedLegendaryState { PathOnInstall = manifestDirectory.Path });
+        var manager = new ManifestStubEpicVersionManager(runner, sandbox, manifestDirectory.Path, manifestAvailable: true);
+
+        Assert.True(await manager.PerformEpicInstallFlowAsync(CreateModConfig(manifestDirectory.Path)));
+        Assert.True(LegendaryBaseUrlState.HasBaseUrlsInMetadata(sandbox.Directory, AppId));
+        Assert.Contains(runner.Commands, c => c.Contains("--keep-files"));
+    }
+
+    [Fact]
+    public async Task InstallFlow_WhenMetadataCannotBePreserved_StopsBeforeUninstall()
+    {
+        using var sandbox = new LegendaryConfigSandbox();
+        using var manifestDirectory = new TempDirectory();
+        sandbox.WriteMetadata(AppId, "{broken");
+        File.WriteAllText(Path.Combine(sandbox.Directory, "installed.json"),
+            "{\"" + AppId + "\":{\"base_urls\":[\"" + BaseUrl + "\"]}}");
+        var runner = CreateSimulatedRunner(sandbox, new SimulatedLegendaryState());
+        var manager = new ManifestStubEpicVersionManager(runner, sandbox, manifestDirectory.Path, manifestAvailable: true);
+
+        Assert.False(await manager.PerformEpicInstallFlowAsync(CreateModConfig(manifestDirectory.Path)));
+        Assert.Empty(runner.Commands);
+        Assert.Equal("{broken", File.ReadAllText(Path.Combine(sandbox.Directory, "metadata", AppId + ".json")));
+    }
+
+    [Fact]
     public async Task InstallFlow_WhenImportLeavesNoEntry_ProceedsWithFallbackInstall()
     {
         using var sandbox = new LegendaryConfigSandbox();
@@ -454,14 +487,14 @@ public class EpicVersionManagerLegendaryFlowTests
         var manager = new ManifestStubEpicVersionManager(runner, sandbox, manifestDirectory.Path, manifestAvailable: true);
         var modConfig = CreateModConfig(manifestDirectory.Path);
 
-        bool? reported = null;
-        manager.EpicLaunchError += (_, _) => reported = true;
+        string? reported = null;
+        manager.EpicLaunchError += (_, details) => reported = details;
 
         bool result = await manager.PerformEpicInstallFlowAsync(modConfig);
 
         // Niepewny stan wpisu (uszkodzony JSON) - operacja przerwana, pliki gry nietknięte.
         Assert.False(result);
-        Assert.True(reported);
+        Assert.Contains("nie udało się ustalić stanu instalacji", reported);
         Assert.DoesNotContain(runner.Commands, c => c.StartsWith("install", StringComparison.Ordinal));
     }
 

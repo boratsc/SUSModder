@@ -1512,10 +1512,11 @@ namespace SUSModder.Core.GameIntegration
             string installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
 
             // Uninstall usuwa wpis z installed.json wraz z zapisanymi tam adresami CDN.
-            // Gdy adresy są tylko w installed.json (w metadanych ich nie ma), przerywamy przed usunięciem.
+            // Jeżeli są tylko w installed.json, najpierw zabezpieczamy je w istniejących metadanych.
             // Dotyczy ścieżki moda - vanilla instaluje się z CDN i nie potrzebuje base_urls.
             if (modConfig.Id != 0
-                && LegendaryBaseUrlState.HasBaseUrlsOnlyInInstalledJson(legendaryConfigDirectory, EpicAppId))
+                && LegendaryBaseUrlState.HasBaseUrlsOnlyInInstalledJson(legendaryConfigDirectory, EpicAppId)
+                && !LegendaryBaseUrlState.PreserveInstalledBaseUrls(legendaryConfigDirectory, EpicAppId))
             {
                 Write("[BaseUrls] Adresy CDN istnieją tylko w installed.json, który uninstall usunie - operacja przerwana.");
                 ReportEpicFailure(modConfig,
@@ -2596,7 +2597,7 @@ namespace SUSModder.Core.GameIntegration
         private void ReportEpicFailure(ModConfiguration? modConfig, string message)
         {
             Write(message);
-            EpicLaunchError?.Invoke(modConfig?.ModName ?? "Among Us", GetLegendaryLogContent());
+            EpicLaunchError?.Invoke(modConfig?.ModName ?? "Among Us", message + Environment.NewLine + Environment.NewLine + GetLegendaryLogContent());
         }
 
         private void ParseAndReportProgress(string logLine)

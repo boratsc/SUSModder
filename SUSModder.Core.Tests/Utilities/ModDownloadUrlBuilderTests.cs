@@ -9,6 +9,80 @@ namespace SUSModder.Core.Tests.Utilities;
 
 public class ModDownloadUrlBuilderTests
 {
+    [Theory]
+    [InlineData("steam")]
+    [InlineData("epic")]
+    public async Task ResolveWithHashAsync_StableTarget_DoesNotUseBetaCurrentVersion(string platform)
+    {
+        var mod = new ModConfiguration { Id = 13, ModType = "full", ModVersion = "1.7.5" };
+        var api = new Mock<ISUSModderApiClient>();
+        api.Setup(x => x.GetCatalogModDetailAsync(13, It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SusModderApiResult<CatalogModDetailDto>
+            {
+                StatusCode = 200,
+                Data = new CatalogModDetailDto
+                {
+                    CurrentVersion = "1.7.9", IsBeta = true,
+                    Variants = [new CatalogModVariantDto { Version = "1.7.9", Platform = platform, Architecture = "x64" }]
+                }
+            });
+        api.Setup(x => x.BuildModDownloadUrl(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((int id, string version, string selectedPlatform, string arch) =>
+                $"https://api.example/v2/downloads/mod/{id}/{version}?platform={selectedPlatform}&arch={arch}");
+        var previous = SUSModderApiClientProvider.TryGetDefault();
+        SUSModderApiClientProvider.SetDefault(api.Object);
+        try
+        {
+            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, platform);
+            Assert.Contains($"/13/1.7.5?platform={platform}", result.Url);
+            Assert.DoesNotContain("1.7.9", result.Url);
+        }
+        finally
+        {
+            if (previous is null) SUSModderApiClientProvider.ResetForTests();
+            else SUSModderApiClientProvider.SetDefault(previous);
+        }
+    }
+
+    [Fact]
+    public async Task ResolveWithHashAsync_Epic_UsesStableReleaseX64Variant()
+    {
+        var mod = new ModConfiguration { Id = 13, ModType = "full", ModVersion = "1.7.5" };
+        var api = new Mock<ISUSModderApiClient>();
+        api.Setup(x => x.GetCatalogModDetailAsync(13, It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SusModderApiResult<CatalogModDetailDto>
+            {
+                StatusCode = 200,
+                Data = new CatalogModDetailDto
+                {
+                    CurrentVersion = "1.7.9", IsBeta = true,
+                    AvailableReleases = [new CatalogReleaseDto
+                    {
+                        Version = "1.7.5", Variants = [new CatalogModVariantDto
+                        {
+                            Platform = "epic", Architecture = "x64", Sha256 = new string('a', 64)
+                        }]
+                    }]
+                }
+            });
+        api.Setup(x => x.BuildModDownloadUrl(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((int id, string version, string platform, string arch) =>
+                $"https://api.example/v2/downloads/mod/{id}/{version}?platform={platform}&arch={arch}");
+        var previous = SUSModderApiClientProvider.TryGetDefault();
+        SUSModderApiClientProvider.SetDefault(api.Object);
+        try
+        {
+            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic");
+            Assert.Contains("/13/1.7.5?platform=epic&arch=x64", result.Url);
+            Assert.Equal(new string('a', 64), result.ExpectedSha256);
+        }
+        finally
+        {
+            if (previous is null) SUSModderApiClientProvider.ResetForTests();
+            else SUSModderApiClientProvider.SetDefault(previous);
+        }
+    }
+
     [Fact]
     public void GetDllFileName_SourceUrlEndsWithVersion_FallsBackToModNameDll()
     {

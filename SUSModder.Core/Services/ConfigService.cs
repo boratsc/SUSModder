@@ -81,8 +81,8 @@ namespace SUSModder.Core.Services
                 if (latestConfigs == null || latestConfigs.Count == 0)
                     latestConfigs = LoadConfig();
 
-                var latestMod = latestConfigs.FirstOrDefault(c => c.Id == instance.BaseModId);
-                if (latestMod == null)
+                var latestMod = StableUpdateTarget.Resolve(latestConfigs.FirstOrDefault(c => c.Id == instance.BaseModId));
+                if (latestMod == null || latestMod.IsBeta)
                     return null;
 
                 var installedVersion = instance.FullModVersion ?? "unknown";
@@ -128,9 +128,9 @@ namespace SUSModder.Core.Services
 
                 // Pobierz najnowszą konfigurację z API
                 var latestConfigs = await LoadConfigFromApiAsync();
-                var latestMod = latestConfigs?.FirstOrDefault(c => c.ModName == modName);
+                var latestMod = StableUpdateTarget.Resolve(latestConfigs?.FirstOrDefault(c => c.ModName == modName));
 
-                if (latestMod == null)
+                if (latestMod == null || latestMod.IsBeta)
                     return null;
 
                 // Pobierz RZECZYWISTĄ wersję z Installation Map (a nie z config.json cache!)
@@ -205,7 +205,7 @@ namespace SUSModder.Core.Services
             });
         }
 
-        private bool IsNewerVersion(string newVersion, string currentVersion)
+        internal static bool IsNewerVersion(string newVersion, string currentVersion)
         {
             if (string.IsNullOrEmpty(newVersion) || string.IsNullOrEmpty(currentVersion))
                 return false;

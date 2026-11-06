@@ -215,6 +215,10 @@
     },
     "Beta": {
       "Badge": "BETA",
+      "StableBadge": "STABLE",
+      "InstalledVersion": "Zainstalowana:",
+      "InstallStable": "Instaluj stable",
+      "InstallBeta": "Zainstaluj wersję beta",
       "Available": "Dostępna beta: {0}",
       "ConfirmTitle": "Instalacja wersji beta",
       "ConfirmMessage": "Zainstalować betę {1} moda {0}?\nWersja gry: {2}.\n\nBeta może być niestabilna. Auto-aktualizacja zostanie wyłączona, a powrót do stabilnej będzie wymagał osobnej decyzji.",

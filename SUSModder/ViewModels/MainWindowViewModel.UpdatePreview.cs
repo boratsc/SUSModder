@@ -179,7 +179,7 @@ namespace SUSModder.ViewModels
             if (updateInfo == null || catalog == null)
                 return null;
 
-            var entry = FindCatalogEntry(catalog, updateInfo);
+            var entry = StableUpdateTarget.Resolve(FindCatalogEntry(catalog, updateInfo));
             if (entry == null)
                 return null;
 

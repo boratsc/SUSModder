@@ -1,3 +1,4 @@
-* [3.1.4] Epic Games: poprawiono obsługę brakujących adresów CDN Legendary podczas instalacji modów.
-* [3.1.4] Epic Games: bezpieczniejsza instalacja oraz ochrona danych logowania w dziennikach.
-* [3.1.4] Dodano podziękowanie dla pxtreza, pierwszego współtwórcy ze społeczności.
+* [3.1.5-beta] Epic Games: nowsze Legendary i możliwość wyboru jego wersji w ustawieniach.
+* [3.1.5-beta] Poprawiono instalowanie modów Epic oraz wyświetlanie wersji modów i Among Us.
+* [3.1.5-beta] Wersje beta modów nie instalują się już automatycznie; można je wybrać na kafelku.
+* [3.1.5-beta] Steam: dodano sprawdzanie logowania i poprawiono konfigurację podczas pierwszego uruchomienia.

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text.Json;
 using SUSModder.Core.GameIntegration;
 using Xunit;
 
@@ -12,6 +13,38 @@ public class LegendaryBaseUrlStateTests
     private const string MetadataWithoutBaseUrls = """{"app_name":"963137e4c29d4c79a81323b8fab03a40"}""";
     private const string MetadataWithBaseUrls =
         """{"app_name":"963137e4c29d4c79a81323b8fab03a40","base_urls":["https://cdn.example.com/Builds/Org/o-example/buildhash/default"]}""";
+
+    [Fact]
+    public void PreserveInstalledBaseUrls_PreservesMetadataAndInstalledEntry()
+    {
+        using var sandbox = new ConfigSandbox();
+        string original = $$$"""{"app_name":"{{{AppId}}}","app_title":"Among Us","metadata":{"nested":[1,2]},"asset_infos":{"Windows":{}},"base_urls":[]}""";
+        string installed = $$$"""{"{{{AppId}}}":{"base_urls":["{{{BaseUrl}}}"],"install_path":"game"},"other":{"value":1}}""";
+        sandbox.WriteMetadata(AppId, original);
+        sandbox.WriteInstalled(installed);
+
+        Assert.True(LegendaryBaseUrlState.PreserveInstalledBaseUrls(sandbox.Directory, AppId));
+        using var metadata = JsonDocument.Parse(File.ReadAllText(Path.Combine(sandbox.Directory, "metadata", AppId + ".json")));
+        Assert.Equal(BaseUrl, metadata.RootElement.GetProperty("base_urls")[0].GetString());
+        Assert.Equal(2, metadata.RootElement.GetProperty("metadata").GetProperty("nested")[1].GetInt32());
+        Assert.Equal("Among Us", metadata.RootElement.GetProperty("app_title").GetString());
+        Assert.Equal(installed, File.ReadAllText(Path.Combine(sandbox.Directory, "installed.json")));
+    }
+
+    [Theory]
+    [InlineData("{broken", "[\"https://cdn.example.com\"]")]
+    [InlineData("{\"app_name\":\"other\"}", "[\"https://cdn.example.com\"]")]
+    [InlineData("{\"app_name\":\"963137e4c29d4c79a81323b8fab03a40\"}", "[null]")]
+    [InlineData("{\"app_name\":\"963137e4c29d4c79a81323b8fab03a40\",\"base_urls\":\"bad\"}", "[\"https://cdn.example.com\"]")]
+    public void PreserveInstalledBaseUrls_UncertainInputDoesNotChangeMetadata(string metadata, string urls)
+    {
+        using var sandbox = new ConfigSandbox();
+        sandbox.WriteMetadata(AppId, metadata);
+        sandbox.WriteInstalled("{\"" + AppId + "\":{\"base_urls\":" + urls + "}}");
+
+        Assert.False(LegendaryBaseUrlState.PreserveInstalledBaseUrls(sandbox.Directory, AppId));
+        Assert.Equal(metadata, File.ReadAllText(Path.Combine(sandbox.Directory, "metadata", AppId + ".json")));
+    }
 
     [Fact]
     public void ResolveConfigDirectory_PrefersLegendaryConfigPath()

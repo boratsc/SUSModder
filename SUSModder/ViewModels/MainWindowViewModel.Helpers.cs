@@ -315,13 +315,16 @@ namespace SUSModder.ViewModels
                         {
                             if (!string.IsNullOrWhiteSpace(mod.InstallPath))
                             {
+                                var mapPath = mod.InstallPath;
                                 try
                                 {
-                                    var installMap = await InstallationMapManager.LoadInstallationMapAsync(mod.InstallPath);
+                                    var installMap = await InstallationMapManager.LoadInstallationMapAsync(mapPath);
                                     if (installMap?.FullMod != null)
                                     {
                                         await Dispatcher.UIThread.InvokeAsync(() =>
                                         {
+                                            if (!string.Equals(mod.InstallPath, mapPath, StringComparison.OrdinalIgnoreCase)) return;
+                                            mod.CardInstallation = installMap.FullMod;
                                             mod.ModVersion = installMap.FullMod.ModVersion;
                                             mod.DisableAutoUpdatePrompt = installMap.FullMod.DisableAutoUpdatePrompt;
                                             mod.AutoUpdateEnabled = installMap.FullMod.AutoUpdateEnabled;
@@ -333,6 +336,8 @@ namespace SUSModder.ViewModels
                                     {
                                         await Dispatcher.UIThread.InvokeAsync(() =>
                                         {
+                                            if (!string.Equals(mod.InstallPath, mapPath, StringComparison.OrdinalIgnoreCase)) return;
+                                            mod.CardInstallation = null;
                                             mod.DisableAutoUpdatePrompt = false;
                                             mod.AutoUpdateEnabled = false;
                                             mod.PinnedInstallVersion = null;
@@ -344,6 +349,8 @@ namespace SUSModder.ViewModels
                                 {
                                     await Dispatcher.UIThread.InvokeAsync(() =>
                                     {
+                                        if (!string.Equals(mod.InstallPath, mapPath, StringComparison.OrdinalIgnoreCase)) return;
+                                        mod.CardInstallation = null;
                                         mod.DisableAutoUpdatePrompt = false;
                                         mod.AutoUpdateEnabled = false;
                                         mod.PinnedInstallVersion = null;

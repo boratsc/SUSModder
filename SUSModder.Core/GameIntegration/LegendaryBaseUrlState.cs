@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace SUSModder.Core.GameIntegration
 {
@@ -34,6 +35,64 @@ namespace SUSModder.Core.GameIntegration
     {
         private const string LegendaryConfigPathVariable = "LEGENDARY_CONFIG_PATH";
         private const string XdgConfigHomeVariable = "XDG_CONFIG_HOME";
+
+        internal static bool PreserveInstalledBaseUrls(string configDirectory, string appId)
+        {
+            string? temporaryFile = null;
+            try
+            {
+                string metadataFile = Path.Combine(configDirectory, "metadata", $"{appId}.json");
+                string installedFile = Path.Combine(configDirectory, "installed.json");
+                using var installed = JsonDocument.Parse(File.ReadAllText(installedFile));
+                if (!installed.RootElement.TryGetProperty(appId, out var entry)
+                    || !entry.TryGetProperty("base_urls", out var urls)
+                    || !ValidBaseUrls(urls))
+                    return false;
+
+                // Deny concurrent writers while replacing the existing metadata file.
+                using var stream = new FileStream(metadataFile, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+                using var reader = new StreamReader(stream);
+                var metadata = JsonNode.Parse(reader.ReadToEnd()) as JsonObject;
+                if (metadata == null || metadata["app_name"]?.GetValue<string>() != appId)
+                    return false;
+                if (metadata["base_urls"] != null && metadata["base_urls"] is not JsonArray)
+                    return false;
+                if (metadata["base_urls"] is JsonArray existing && existing.Count != 0)
+                    return false;
+
+                metadata["base_urls"] = JsonNode.Parse(urls.GetRawText());
+                temporaryFile = metadataFile + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                File.WriteAllText(temporaryFile, metadata.ToJsonString());
+                File.Replace(temporaryFile, metadataFile, null);
+                temporaryFile = null;
+                return HasBaseUrlsInMetadata(configDirectory, appId);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            finally
+            {
+                if (temporaryFile != null)
+                {
+                    try { File.Delete(temporaryFile); } catch (Exception) { }
+                }
+            }
+        }
+
+        private static bool ValidBaseUrls(JsonElement urls)
+        {
+            if (urls.ValueKind != JsonValueKind.Array || urls.GetArrayLength() == 0)
+                return false;
+            foreach (var url in urls.EnumerateArray())
+            {
+                if (url.ValueKind != JsonValueKind.String
+                    || !Uri.TryCreate(url.GetString(), UriKind.Absolute, out var uri)
+                    || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
+                    return false;
+            }
+            return true;
+        }
 
         /// <summary>
         /// Katalog konfiguracji legendary - taka sama kolejność jak w legendary (lfs/lgndry.py).
@@ -118,8 +177,14 @@ namespace SUSModder.Core.GameIntegration
             {
                 // Metadane zawierają kopię adresów - uninstall niczego jedynego nie zabierze.
                 string? metadataJson = TryReadConfigFile(metadataFile);
-                if (metadataJson != null && HasBaseUrlsInJson(metadataJson, appId: null))
-                    return false;
+                if (metadataJson != null)
+                {
+                    using var metadata = JsonDocument.Parse(metadataJson);
+                    if (metadata.RootElement.ValueKind != JsonValueKind.Object)
+                        return true;
+                    if (HasBaseUrlsInJson(metadataJson, appId: null))
+                        return false;
+                }
             }
             catch (Exception)
             {
@@ -130,7 +195,18 @@ namespace SUSModder.Core.GameIntegration
             try
             {
                 string? installedJson = TryReadConfigFile(installedFile);
-                return installedJson != null && HasBaseUrlsInJson(installedJson, appId);
+                if (installedJson == null)
+                    return false;
+                using var installed = JsonDocument.Parse(installedJson);
+                if (installed.RootElement.ValueKind != JsonValueKind.Object)
+                    return true;
+                if (!installed.RootElement.TryGetProperty(appId, out var entry))
+                    return false;
+                if (entry.ValueKind != JsonValueKind.Object)
+                    return true;
+                if (!entry.TryGetProperty("base_urls", out var urls))
+                    return false;
+                return urls.ValueKind != JsonValueKind.Array || urls.GetArrayLength() != 0;
             }
             catch (Exception)
             {
@@ -363,9 +439,7 @@ namespace SUSModder.Core.GameIntegration
                 element = appEntry;
             }
 
-            return element.TryGetProperty("base_urls", out var baseUrls)
-                && baseUrls.ValueKind == JsonValueKind.Array
-                && baseUrls.GetArrayLength() > 0;
+            return element.TryGetProperty("base_urls", out var baseUrls) && ValidBaseUrls(baseUrls);
         }
     }
 }

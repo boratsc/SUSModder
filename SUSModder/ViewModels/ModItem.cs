@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using ReactiveUI;
 using SUSModder.Core.Models;
 using SUSModder.Core.Services.Localization;
+using Velopack;
 
 namespace SUSModder.ViewModels
 {
@@ -54,12 +56,34 @@ namespace SUSModder.ViewModels
         private string? _latestStableVersion;
         private string? _latestBetaVersion;
         private bool _isInstalledBeta;
+        private FullModInstallation? _cardInstallation;
+        private List<ModRelease> _availableReleases = new();
 
         /// <summary>
         /// Wydania katalogowe tego moda (3.1-11). Pusta lista = brak danych/legacy.
         /// Presentation-only kopia; nie jest zapisywana przez adapter.
         /// </summary>
-        public List<ModRelease> AvailableReleases { get; set; } = new();
+        public List<ModRelease> AvailableReleases
+        {
+            get => _availableReleases;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _availableReleases, value);
+                this.RaisePropertyChanged(nameof(BrowserSubtitle));
+                this.RaisePropertyChanged(nameof(ShowBetaInstall));
+                this.RaisePropertyChanged(nameof(ShowNormalInstall));
+            }
+        }
+
+        public FullModInstallation? CardInstallation
+        {
+            get => _cardInstallation;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _cardInstallation, value);
+                this.RaisePropertyChanged(nameof(BrowserSubtitle));
+            }
+        }
 
         /// <summary>Najnowsze stabilne wydanie z katalogu (null = brak danych).</summary>
         public string? LatestStableVersion
@@ -68,6 +92,11 @@ namespace SUSModder.ViewModels
             set
             {
                 this.RaiseAndSetIfChanged(ref _latestStableVersion, value);
+                this.RaisePropertyChanged(nameof(ShowNewerBetaOnCard));
+                this.RaisePropertyChanged(nameof(BrowserSubtitle));
+                this.RaisePropertyChanged(nameof(ShowInstallationSubtitle));
+                this.RaisePropertyChanged(nameof(ShowBetaInstall));
+                this.RaisePropertyChanged(nameof(ShowNormalInstall));
             }
         }
 
@@ -80,6 +109,10 @@ namespace SUSModder.ViewModels
                 this.RaiseAndSetIfChanged(ref _latestBetaVersion, value);
                 this.RaisePropertyChanged(nameof(HasAvailableBeta));
                 this.RaisePropertyChanged(nameof(AvailableBetaText));
+                this.RaisePropertyChanged(nameof(ShowNewerBetaOnCard));
+                this.RaisePropertyChanged(nameof(ShowInstallationSubtitle));
+                this.RaisePropertyChanged(nameof(ShowBetaInstall));
+                this.RaisePropertyChanged(nameof(ShowNormalInstall));
             }
         }
 
@@ -91,6 +124,7 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _isInstalledBeta, value);
                 this.RaisePropertyChanged(nameof(ShowBetaInstalledBadge));
+                this.RaisePropertyChanged(nameof(BrowserSubtitle));
             }
         }
 
@@ -102,6 +136,17 @@ namespace SUSModder.ViewModels
             !IsVanilla &&
             !string.IsNullOrWhiteSpace(LatestBetaVersion) &&
             !string.Equals(ModVersion, LatestBetaVersion, StringComparison.OrdinalIgnoreCase);
+
+        public bool ShowNewerBetaOnCard =>
+            !IsVanilla &&
+            SemanticVersion.TryParse(LatestStableVersion?.Trim().TrimStart('v', 'V'), out var stable) &&
+            SemanticVersion.TryParse(LatestBetaVersion?.Trim().TrimStart('v', 'V'), out var beta) &&
+            beta > stable;
+
+        public bool ShowInstallationSubtitle => IsInstalled || !ShowNewerBetaOnCard;
+        public bool ShowBetaInstall => CanInstall && IsFullMod && ShowNewerBetaOnCard &&
+            AvailableReleases.Any(r => r.IsBeta && string.Equals(r.Version, LatestBetaVersion, StringComparison.OrdinalIgnoreCase));
+        public bool ShowNormalInstall => CanInstall && !ShowBetaInstall;
 
         /// <summary>Zlinearyzowany tekst „Dostępna beta: X” (PL/EN z lokalizacji).</summary>
         public string AvailableBetaText =>
@@ -291,13 +336,18 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(IsPinnedVersionInstall));
                 this.RaisePropertyChanged(nameof(IsAutoUpdateToggleVisible));
                 this.RaisePropertyChanged(nameof(HasAvailableBeta));
+                this.RaisePropertyChanged(nameof(BrowserSubtitle));
             }
         }
 
         public string AmongVersion
         {
             get => _amongVersion;
-            set => this.RaiseAndSetIfChanged(ref _amongVersion, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _amongVersion, value);
+                this.RaisePropertyChanged(nameof(BrowserSubtitle));
+            }
         }
 
         public string? InstallPath
@@ -305,8 +355,14 @@ namespace SUSModder.ViewModels
             get => _installPath;
             set
             {
+                if (!string.Equals(_installPath, value, StringComparison.OrdinalIgnoreCase))
+                    CardInstallation = null;
                 this.RaiseAndSetIfChanged(ref _installPath, value);
                 this.RaisePropertyChanged(nameof(IsInstalled));
+                this.RaisePropertyChanged(nameof(BrowserSubtitle));
+                this.RaisePropertyChanged(nameof(ShowInstallationSubtitle));
+                this.RaisePropertyChanged(nameof(ShowBetaInstall));
+                this.RaisePropertyChanged(nameof(ShowNormalInstall));
                 this.RaisePropertyChanged(nameof(CanInstall));
                 this.RaisePropertyChanged(nameof(CanUninstall));
                 this.RaisePropertyChanged(nameof(IsPinnedVersionInstall));
@@ -380,6 +436,10 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(IsVanilla));
                 this.RaisePropertyChanged(nameof(IsAutoUpdateToggleVisible));
                 this.RaisePropertyChanged(nameof(HasAvailableBeta));
+                this.RaisePropertyChanged(nameof(ShowNewerBetaOnCard));
+                this.RaisePropertyChanged(nameof(ShowInstallationSubtitle));
+                this.RaisePropertyChanged(nameof(ShowBetaInstall));
+                this.RaisePropertyChanged(nameof(ShowNormalInstall));
             }
         }
 
@@ -409,6 +469,8 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _isInstalling, value);
                 this.RaisePropertyChanged(nameof(CanInstall));
+                this.RaisePropertyChanged(nameof(ShowBetaInstall));
+                this.RaisePropertyChanged(nameof(ShowNormalInstall));
                 this.RaisePropertyChanged(nameof(CanUninstall));
                 this.RaisePropertyChanged(nameof(ShowStatusBusy));
             }
@@ -454,12 +516,30 @@ namespace SUSModder.ViewModels
             set => this.RaiseAndSetIfChanged(ref _installedInSummary, value);
         }
 
-        public string BrowserSubtitle =>
-            string.IsNullOrWhiteSpace(ModVersion)
-                ? (string.IsNullOrWhiteSpace(AmongVersion) ? string.Empty : AmongVersion)
-                : string.IsNullOrWhiteSpace(AmongVersion)
-                    ? $"v{ModVersion}"
-                    : $"v{ModVersion} · {AmongVersion}";
+        public string BrowserSubtitle
+        {
+            get
+            {
+                var version = IsInstalled
+                    ? (string.IsNullOrWhiteSpace(CardInstallation?.ModVersion) ? ModVersion : CardInstallation.ModVersion)
+                    : (string.IsNullOrWhiteSpace(LatestStableVersion) ? ModVersion : LatestStableVersion);
+                var release = AvailableReleases.FirstOrDefault(r =>
+                    string.Equals(r.Version, version, StringComparison.OrdinalIgnoreCase) &&
+                    (IsInstalled ? r.IsBeta == IsInstalledBeta : !r.IsBeta));
+                var among = IsInstalled && !string.IsNullOrWhiteSpace(CardInstallation?.AmongVersion)
+                    ? CardInstallation.AmongVersion
+                    : !string.IsNullOrWhiteSpace(release?.AmongVersion) ? release.AmongVersion
+                    : string.Equals(version, ModVersion, StringComparison.OrdinalIgnoreCase) &&
+                      (string.IsNullOrWhiteSpace(LatestStableVersion) || (!IsInstalled &&
+                       string.Equals(LatestStableVersion, ModVersion, StringComparison.OrdinalIgnoreCase))
+                       ) ? AmongVersion : string.Empty;
+                return string.IsNullOrWhiteSpace(version)
+                    ? (string.IsNullOrWhiteSpace(among) ? string.Empty : among)
+                    : string.IsNullOrWhiteSpace(among)
+                        ? $"v{version.TrimStart('v', 'V')}"
+                        : $"v{version.TrimStart('v', 'V')} · {among}";
+            }
+        }
 
         public string TypeBadge => IsDllMod ? "DLL" : IsFullMod ? "FULL" : ModType;
 

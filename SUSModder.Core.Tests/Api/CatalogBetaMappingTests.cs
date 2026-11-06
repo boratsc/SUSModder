@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using SUSModder.Core.Api;
 using SUSModder.Core.Api.Models;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Models;
+using SUSModder.Core.Services;
 
 namespace SUSModder.Core.Tests.Api;
 
@@ -15,6 +17,92 @@ namespace SUSModder.Core.Tests.Api;
 /// </summary>
 public class CatalogBetaMappingTests
 {
+    [Theory]
+    [InlineData("\"isBeta\":true,", "1.7.9", false)]
+    [InlineData("\"isBeta\":false,", "1.7.9", true)]
+    [InlineData("", "1.7.9", true)]
+    [InlineData("\"isBeta\":false,", "1.7.3", false)]
+    public async Task AutomaticUpdates_UseStableCurrentVersion_AndKeepManualBeta(string betaField, string version, bool expectedUpdate)
+    {
+        var api = CreateApi($$"""
+            {"data":[{"id":13,"name":"Town of Us Mira","type":"full","currentVersion":"{{version}}",
+              {{betaField}}"latestStableVersion":"1.7.3","latestBetaVersion":"1.7.9",
+              "availableReleases":[{"releaseId":"beta","version":"1.7.9","isBeta":true}]}]}
+            """);
+        var item = Assert.Single((await api.GetCatalogAsync()).Data!);
+        var config = CatalogMapper.ToModConfiguration(item, api);
+
+        Assert.Equal(expectedUpdate, ModUpdateManager.IsUpdateCandidate("1.7.3", config));
+        Assert.Equal(expectedUpdate, ModInstanceUpdateChecker.HasCatalogUpdate(
+            new ModInstance { FullModVersion = "1.7.3", AutoUpdateEnabled = true }, config));
+        Assert.True(Assert.Single(config.AvailableReleases).IsBeta);
+        Assert.Equal("1.7.9", config.LatestBetaVersion);
+    }
+
+    [Fact]
+    public async Task AutomaticUpdates_LegacyCatalogWithoutBetaFields_RemainsSupported()
+    {
+        var api = CreateApi("""{"data":[{"id":13,"name":"Town of Us Mira","type":"full","currentVersion":"1.7.9"}]}""");
+        var config = CatalogMapper.ToModConfiguration(Assert.Single((await api.GetCatalogAsync()).Data!), api);
+
+        Assert.True(ModUpdateManager.IsUpdateCandidate("1.7.3", config));
+        Assert.True(ModInstanceUpdateChecker.HasCatalogUpdate(new ModInstance { FullModVersion = "1.7.3" }, config));
+    }
+
+    [Fact]
+    public async Task AutomaticUpdates_SelectConfirmedStableReleaseWhenCurrentIsBeta()
+    {
+        var api = CreateApi("""
+            {"data":[{"id":13,"name":"Town of Us Mira","type":"full","currentVersion":"1.7.9",
+              "isBeta":true,"latestStableVersion":"1.7.5","latestBetaVersion":"1.7.9",
+              "availableReleases":[
+                {"releaseId":"stable","version":"1.7.5","isBeta":false,"amongVersion":"2026-8-18"},
+                {"releaseId":"beta","version":"1.7.9","isBeta":true}]}]}
+            """);
+        var config = CatalogMapper.ToModConfiguration(Assert.Single((await api.GetCatalogAsync()).Data!), api);
+        var target = StableUpdateTarget.Resolve(config);
+
+        Assert.NotNull(target);
+        Assert.Equal("1.7.5", target.ModVersion);
+        Assert.Equal("2026-8-18", target.AmongVersion);
+        Assert.Contains("/13/1.7.5?platform=steam", target.GitHubRepoOrLink);
+        Assert.Contains("/13/1.7.5?platform=epic", target.EpicGitHubRepoOrLink);
+        Assert.True(ModUpdateManager.IsUpdateCandidate("1.7.3", target));
+        Assert.True(ModInstanceUpdateChecker.HasCatalogUpdate(new ModInstance { FullModVersion = "1.7.3" }, config));
+        Assert.False(ModUpdateManager.IsUpdateCandidate("1.7.9", target));
+        Assert.False(ModInstanceUpdateChecker.HasCatalogUpdate(new ModInstance { FullModVersion = "1.7.9" }, config));
+        Assert.Equal(UpdateTargetValidationStatus.Valid, UpdateTargetRevalidator.Validate("1.7.5", "2026-8-18", config).Status);
+        Assert.Equal("1.7.9", config.ModVersion);
+        Assert.True(config.AvailableReleases.Single(r => r.Version == "1.7.9").IsBeta);
+    }
+
+    [Theory]
+    [InlineData("latest")]
+    [InlineData("")]
+    [InlineData("../1.7.5")]
+    public void AutomaticUpdates_RejectInvalidStableVersion(string version)
+    {
+        var config = new SUSModder.Core.Configuration.ModConfiguration
+        {
+            Id = 13, IsBeta = true, LatestStableVersion = version,
+            AvailableReleases = [new ModRelease { Version = version }]
+        };
+        Assert.Null(StableUpdateTarget.Resolve(config));
+    }
+
+    [Fact]
+    public void AutomaticUpdates_RejectUnconfirmedOrAmbiguousStableRelease()
+    {
+        var config = new SUSModder.Core.Configuration.ModConfiguration
+        {
+            Id = 13, IsBeta = true, LatestStableVersion = "1.7.5"
+        };
+        Assert.Null(StableUpdateTarget.Resolve(config));
+        config.AvailableReleases.Add(new ModRelease { Version = "1.7.5" });
+        config.AvailableReleases.Add(new ModRelease { Version = "1.7.5", IsBeta = true });
+        Assert.Null(StableUpdateTarget.Resolve(config));
+    }
+
     [Fact]
     public async Task CatalogList_ReadsBetaFieldsAndReleases()
     {
