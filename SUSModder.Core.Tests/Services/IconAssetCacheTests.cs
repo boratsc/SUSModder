@@ -171,6 +171,8 @@ public sealed class IconAssetCacheTests : IDisposable
         cache.Dispose();
         await Task.WhenAll(requests).WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(4, handler.Calls);
+        Assert.Null(await cache.GetAsync("mod:after", null, "https://susmodder.app/icons/after.png"));
+        Assert.Equal(4, handler.Calls);
     }
 
     [Fact]
