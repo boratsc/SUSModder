@@ -195,6 +195,8 @@ public sealed class IconAssetCache : IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException or OperationCanceledException)
         { return Failed(identity); }
+        catch (ObjectDisposedException) when (_shutdown.IsCancellationRequested)
+        { return Failed(identity); }
         finally { if (entered) _downloads.Release(); }
     }
 
