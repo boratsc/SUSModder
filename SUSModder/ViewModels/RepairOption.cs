@@ -7,6 +7,7 @@ namespace SUSModder.ViewModels
         Certificates,
         Regions,
         Firewall,
+        SteamLoginCheck,
         EpicLogout,
         EpicLogin
     }

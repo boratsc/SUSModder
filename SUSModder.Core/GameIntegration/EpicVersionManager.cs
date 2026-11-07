@@ -147,20 +147,22 @@ namespace SUSModder.Core.GameIntegration
         private readonly IEpicUserInteraction _userInteraction;
         private readonly LegendaryCommandRunner _commandRunner;
         private readonly string legendaryConfigDirectory;
+        private ILegendaryVersionProvider? _versionProvider;
 
         public EpicVersionManager(
             IDiagnosticsOutput output,
             IEpicUserInteraction userInteraction,
             LegendaryCommandRunner? commandRunner = null,
             string? legendaryConfigDirectory = null,
-            string? manifestDirectory = null)
+            string? manifestDirectory = null,
+            ILegendaryVersionProvider? versionProvider = null)
         {
             // BaseDirectory = katalog aplikacji (modów/tooli). ProcessPath przy `dotnet run`
             // wskazuje na dotnet.exe → C:\Program Files\dotnet\ (brak zapisu).
             var appDir = ResolveWritableAppDirectory();
             var logsDir = ResolveWritableLogsDirectory(appDir);
 
-            legendaryPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "legendary.exe");
+            legendaryPath = LegendaryToolPaths.ExecutablePath;
             this.manifestDirectory = manifestDirectory ?? AppDomain.CurrentDomain.BaseDirectory;
             installDirectory = PathSettings.ModsInstallPath;
             appSettingsFilePath = Path.Combine(appDir, "appsettings.json");
@@ -172,6 +174,7 @@ namespace SUSModder.Core.GameIntegration
             _userInteraction = userInteraction;
             _commandRunner = commandRunner ?? RunLegendaryProcessAsync;
             this.legendaryConfigDirectory = legendaryConfigDirectory ?? LegendaryBaseUrlState.ResolveConfigDirectory();
+            _versionProvider = versionProvider;
         }
 
         /// <summary>
@@ -322,7 +325,8 @@ namespace SUSModder.Core.GameIntegration
                     CreateNoWindow = true
                 };
 
-                using var proc = Process.Start(psi);
+                using var tracked = await StartTrackedLegendaryAsync(psi);
+                var proc = tracked?.Process;
                 if (proc == null)
                 {
                     Write("Nie udało się uruchomić procesu legendary.exe");
@@ -444,7 +448,8 @@ namespace SUSModder.Core.GameIntegration
                     CreateNoWindow = true
                 };
 
-                using var proc = Process.Start(psi);
+                using var tracked = await StartTrackedLegendaryAsync(psi);
+                var proc = tracked?.Process;
                 if (proc == null)
                 {
                     Write("[GameOwned] Nie udało się uruchomić legendary.exe");
@@ -467,6 +472,7 @@ namespace SUSModder.Core.GameIntegration
                 catch (OperationCanceledException)
                 {
                     Write("[GameOwned] Timeout podczas oczekiwania na legendary list-games (30s)");
+                    LegendaryProcessGuard.MarkUnfinished();
                     try { proc.Kill(); } catch { }
                     return false;
                 }
@@ -967,7 +973,8 @@ namespace SUSModder.Core.GameIntegration
                     CreateNoWindow = true
                 };
 
-                using var process = Process.Start(psi);
+                using var tracked = await StartTrackedLegendaryAsync(psi);
+                var process = tracked?.Process;
                 if (process == null)
                 {
                     Write("Nie udało się uruchomić legendary.exe");
@@ -1024,12 +1031,150 @@ namespace SUSModder.Core.GameIntegration
         /// <summary>
         /// Upewnia się, że legendary.exe istnieje – pobiera go jeśli nie ma.
         /// </summary>
+        /// <remarks>
+        /// Gdy pliku brak, pobranie jest blokujące (potrzebne przed sprawdzeniem sesji Epic).
+        /// Gdy plik istnieje, weryfikacja SHA-256 i ewentualna podmiana idą w tle —
+        /// nie blokują startu aplikacji. Serwis respektuje ręczny wybór wydania:
+        /// przypięta wersja nigdy nie nadpisuje ręcznie wybranego.
+        /// </remarks>
         public async Task EnsureLegendaryExistsAsync()
+        {
+            var provider = _versionProvider ??= CreateDefaultVersionProvider();
+            if (provider == null)
+            {
+                if (!File.Exists(legendaryPath))
+                {
+                    Write("Pobieranie legendary.exe...");
+                    await DownloadLegendaryAsync();
+                }
+
+                return;
+            }
+
+            if (File.Exists(legendaryPath))
+            {
+                // Plik istnieje — wymiana w tle jest zadaniem aplikacji (po potwierdzeniu trybu Epic),
+                // więc tutaj niczego nie planujemy. Dzięki temu nie ma podwójnych harmonogramów.
+                return;
+            }
+
+            // Bez binarki nie ma sesji — pobranie musi zakończyć się przed startem.
+            var missing = await provider.EnsureInstalledAsync();
+            if (missing.Success)
+            {
+                Write($"[Legendary] legendary.exe pobrany ({missing.Installed?.DisplayName}).");
+                return;
+            }
+
+            LastFailureCode = DownloadVerificationCodes.ToolDownloadFailed;
+            Write($"[Legendary] Nie udało się pobrać legendary.exe ({missing.ErrorCode}).");
+        }
+        /// <summary>
+        /// Ścieżka narzędzia legendary.exe używanego przez aplikację.
+        /// </summary>
+        public string LegendaryToolPath => legendaryPath;
+
+        /// <summary>
+        /// Czy ścieżka wskazuje na właściwe narzędzie legendary.exe.
+        /// </summary>
+        private bool IsLegendaryToolPath(string executablePath) =>
+            string.Equals(executablePath, legendaryPath, StringComparison.OrdinalIgnoreCase);
+
+        private async Task<TrackedLegendaryProcess?> StartTrackedLegendaryAsync(ProcessStartInfo startInfo)
+        {
+            using var gate = await LegendaryOperationGate.AcquireAsync(CancellationToken.None);
+            if (IsLegendaryBlocked() || !await EnsureToolIsRunnableAsync())
+                return null;
+
+            var process = Process.Start(startInfo);
+            if (process == null)
+                return null;
+
+            LegendaryOperationGate.RegisterOperationStart();
+            return new TrackedLegendaryProcess(process);
+        }
+
+        private sealed class TrackedLegendaryProcess : IDisposable
+        {
+            public Process Process { get; }
+            public TrackedLegendaryProcess(Process process)
+            {
+                Process = process;
+            }
+
+            public void Dispose() => _ = FinishAsync();
+
+            private async Task FinishAsync()
+            {
+                try
+                {
+                    if (!Process.HasExited)
+                    {
+                        LegendaryProcessGuard.MarkUnfinished();
+                        await Process.WaitForExitAsync();
+                    }
+
+                    LegendaryOperationGate.RegisterOperationEnd();
+                    Process.Dispose();
+                }
+                catch
+                {
+                    // Bez potwierdzenia końca procesu licznik pozostaje aktywny (fail-closed).
+                    LegendaryProcessGuard.MarkUnfinished();
+                }
+            }
+        }
+
+        /// <summary>Weryfikuje zaufanie przed startem; naprawę planuje aplikacja po wyborze trybu Epic.</summary>
+        private async Task<bool> EnsureToolIsRunnableAsync(CancellationToken ct = default)
         {
             if (!File.Exists(legendaryPath))
             {
-                Write("Pobieranie legendary.exe...");
-                await DownloadLegendaryAsync();
+                Write("[Legendary] Brak legendary.exe — nie uruchamiam.");
+                return false;
+            }
+
+            var provider = _versionProvider ??= CreateDefaultVersionProvider();
+            if (provider == null)
+            {
+                // Brak serwisa wersji — nie mamy jak ocenić zaufania, więc nie uruchamiamy.
+                Write("[Legendary] Brak serwisa wersji narzędzia — nie uruchamiam legendary.exe.");
+                return false;
+            }
+
+            var inspection = await provider.InspectInstalledAsync(ct);
+
+            switch (inspection.Trust)
+            {
+                case LegendaryToolTrust.Trusted:
+                    return true;
+
+                case LegendaryToolTrust.TrustedButNotSelected:
+                    // Binarka SUSModder, ale inna niż wybrana — uruchomić można,
+                    // wymiana na właściwą wersję nastąpi w tle (planowana przez aplikację).
+                    Write("[Legendary] Zainstalowana wersja to inna niż wybrana — uruchamiam.");
+                    return true;
+
+                default:
+                    // Nieznana suma albo brak pliku — nie uruchamiamy obcego pliku.
+                    Write("[Legendary] Zainstalowany plik nie jest zaufany — nie uruchamiam go.");
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Domyślny serwis wersji narzędzia (z ustawieniami aplikacji).
+        /// </summary>
+        private static ILegendaryVersionProvider? CreateDefaultVersionProvider()
+        {
+            try
+            {
+                return new LegendaryVersionService();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Legendary] Nie udało się utworzyć serwisa wersji: {ex.Message}");
+                return null;
             }
         }
 
@@ -1064,7 +1209,8 @@ namespace SUSModder.Core.GameIntegration
                     CreateNoWindow = true
                 };
 
-                using var process = Process.Start(psi);
+                using var tracked = await StartTrackedLegendaryAsync(psi);
+                var process = tracked?.Process;
                 if (process == null)
                 {
                     Write("Nie udało się uruchomić legendary.exe do sprawdzenia statusu.");
@@ -1139,6 +1285,7 @@ namespace SUSModder.Core.GameIntegration
 
                 // Dodatkowy fallback: próba legendary auth --import (cicha weryfikacja)
                 Write("Fallback: próba weryfikacji przez auth --import...");
+
                 var importPsi = new ProcessStartInfo
                 {
                     FileName = legendaryPath,
@@ -1149,7 +1296,8 @@ namespace SUSModder.Core.GameIntegration
                     CreateNoWindow = true
                 };
 
-                using var importProcess = Process.Start(importPsi);
+                using var trackedImport = await StartTrackedLegendaryAsync(importPsi);
+                var importProcess = trackedImport?.Process;
                 if (importProcess != null)
                 {
                     var importStderr = await importProcess.StandardError.ReadToEndAsync();
@@ -1201,7 +1349,23 @@ namespace SUSModder.Core.GameIntegration
 
             if (!File.Exists(legendaryPath))
             {
-                await DownloadLegendaryAsync();
+                // Ręcznie wybrane wydanie ma pierwszeństwo — przypięta wersja go nie nadpisuje.
+                var provider = _versionProvider ??= CreateDefaultVersionProvider();
+                if (provider != null)
+                {
+                    var prepared = await provider.EnsureInstalledAsync();
+                    if (!prepared.Success)
+                    {
+                        LastFailureCode = DownloadVerificationCodes.ToolDownloadFailed;
+                        Write($"[Legendary] Nie udało się pobrać legendary.exe ({prepared.ErrorCode}).");
+                        ReportEpicFailure(modConfig, "Nie udało się pobrać legendary.exe.");
+                        return;
+                    }
+                }
+                else
+                {
+                    await DownloadLegendaryAsync();
+                }
             }
 
             // Sprawdź czy użytkownik jest już zalogowany (sesja persisted przez legendary).
@@ -1348,10 +1512,11 @@ namespace SUSModder.Core.GameIntegration
             string installDirectory = ResolveEpicBaseInstallDirectory(modConfig);
 
             // Uninstall usuwa wpis z installed.json wraz z zapisanymi tam adresami CDN.
-            // Gdy adresy są tylko w installed.json (w metadanych ich nie ma), przerywamy przed usunięciem.
+            // Jeżeli są tylko w installed.json, najpierw zabezpieczamy je w istniejących metadanych.
             // Dotyczy ścieżki moda - vanilla instaluje się z CDN i nie potrzebuje base_urls.
             if (modConfig.Id != 0
-                && LegendaryBaseUrlState.HasBaseUrlsOnlyInInstalledJson(legendaryConfigDirectory, EpicAppId))
+                && LegendaryBaseUrlState.HasBaseUrlsOnlyInInstalledJson(legendaryConfigDirectory, EpicAppId)
+                && !LegendaryBaseUrlState.PreserveInstalledBaseUrls(legendaryConfigDirectory, EpicAppId))
             {
                 Write("[BaseUrls] Adresy CDN istnieją tylko w installed.json, który uninstall usunie - operacja przerwana.");
                 ReportEpicFailure(modConfig,
@@ -2059,6 +2224,24 @@ namespace SUSModder.Core.GameIntegration
             TimeSpan? timeout,
             Action<string, bool>? onOutput)
         {
+            // Synchroniczna kontrola zaufania do pliku — obcego EXE nie uruchamiamy.
+            // Kontrola dotyczy wyłącznie właściwego narzędzia; inne ścieżki (np. testy) są nietknięte.
+            bool isTool = IsLegendaryToolPath(executablePath);
+
+            // Bramka chroni moment startu procesu przed równoległą podmianą pliku.
+            // Trzymamy ją tylko do chwili rejestracji operacji — długi proces nie blokuje podmiany
+            // (podmiana rozpoznaje trwającą operację i odracza się, nie ubijając procesu).
+            using var gate = isTool
+                ? await LegendaryOperationGate.AcquireAsync(CancellationToken.None)
+                : null;
+
+            if (isTool && !await EnsureToolIsRunnableAsync())
+            {
+                return new LegendaryRunResult(
+                    -1,
+                    new[] { "legendary.exe nie jest zaufany — proces nie został uruchomiony." });
+            }
+
             var psi = new ProcessStartInfo
             {
                 FileName = executablePath,
@@ -2106,6 +2289,13 @@ namespace SUSModder.Core.GameIntegration
                 return new LegendaryRunResult(-1, stderrLines);
             }
 
+            // Rejestrujemy operację — podmiana pliku w trakcie pracy procesu jest odraczana
+            // (ToolBusy), a nie realizowana siłą. Procesu nie ubijamy.
+            LegendaryOperationGate.RegisterOperationStart();
+
+            // Proces wystartował i jest zarejestrowany — bramka podmiany może się już zwolnić.
+            gate?.Dispose();
+
             try
             {
                 process.BeginOutputReadLine();
@@ -2145,6 +2335,11 @@ namespace SUSModder.Core.GameIntegration
                 // Proces wystartował, a jego zakończenie jest niepotwierdzone - blokujemy kolejne komendy.
                 LegendaryProcessGuard.MarkUnfinished();
                 throw;
+            }
+            finally
+            {
+                // Operacja zakończona (lub przerwana) — podmiana pliku znów jest możliwa.
+                LegendaryOperationGate.RegisterOperationEnd();
             }
 
             return new LegendaryRunResult(process.ExitCode, stderrLines);
@@ -2402,7 +2597,7 @@ namespace SUSModder.Core.GameIntegration
         private void ReportEpicFailure(ModConfiguration? modConfig, string message)
         {
             Write(message);
-            EpicLaunchError?.Invoke(modConfig?.ModName ?? "Among Us", GetLegendaryLogContent());
+            EpicLaunchError?.Invoke(modConfig?.ModName ?? "Among Us", message + Environment.NewLine + Environment.NewLine + GetLegendaryLogContent());
         }
 
         private void ParseAndReportProgress(string logLine)
@@ -2552,16 +2747,12 @@ namespace SUSModder.Core.GameIntegration
             };
         }
 
-        // Pinned legendary 0.20.41 Windows x64 — SHA256 of legendary_windows_x86_64.exe
-        // https://github.com/Heroic-Games-Launcher/legendary/releases/download/0.20.41/legendary_windows_x86_64.exe
-        private const string LegendaryVersion = "0.20.41";
-        private const string LegendaryWindowsX64Sha256 =
-            "b8866cca30d1d66a9d1331d6f38ec8249073bd749b871821ef9c20e70ce7d263";
-
+        // Pinned legendary — wydanie zdefiniowane w LegendaryVersionService (upstream 0.21.1).
+        // URL i SHA-256 trzymamy w jednym miejscu, żeby pobieranie i podmiana nie rozjechały się.
         private async Task DownloadLegendaryAsync()
         {
-            string url =
-                $"https://github.com/Heroic-Games-Launcher/legendary/releases/download/{LegendaryVersion}/legendary_windows_x86_64.exe";
+            string url = LegendaryVersionService.PinnedDownloadUrl;
+            string expectedSha256 = LegendaryVersionService.PinnedSha256;
             string tmpPath = $"{legendaryPath}.tmp.{Guid.NewGuid():N}";
 
             try
@@ -2580,16 +2771,16 @@ namespace SUSModder.Core.GameIntegration
                 }
 
                 var actualHash = await Sha256Verifier.ComputeFileHexAsync(tmpPath);
-                if (!string.Equals(actualHash, LegendaryWindowsX64Sha256, StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(actualHash, expectedSha256, StringComparison.OrdinalIgnoreCase))
                 {
                     try { File.Delete(tmpPath); } catch { /* best effort */ }
                     LastFailureCode = DownloadVerificationCodes.ToolHashMismatch;
-                    Write($"[Legendary] SHA256 mismatch: expected {LegendaryWindowsX64Sha256}, got {actualHash}");
+                    Write($"[Legendary] SHA256 mismatch: expected {expectedSha256}, got {actualHash}");
                     throw new InvalidOperationException(DownloadVerificationCodes.ToolHashMismatch);
                 }
 
                 File.Move(tmpPath, legendaryPath, overwrite: true);
-                Write($"[Legendary] Downloaded and verified ({LegendaryVersion}).");
+                Write($"[Legendary] Downloaded and verified ({LegendaryVersionService.PinnedTag}).");
             }
             finally
             {

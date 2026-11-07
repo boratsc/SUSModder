@@ -1,3 +1,11 @@
-* [3.1.4] Epic Games: poprawiono obsługę brakujących adresów CDN Legendary podczas instalacji modów.
-* [3.1.4] Epic Games: bezpieczniejsza instalacja oraz ochrona danych logowania w dziennikach.
-* [3.1.4] Dodano podziękowanie dla pxtreza, pierwszego współtwórcy ze społeczności.
+**Epic Games**
+* Zaktualizowaliśmy Legendary. Zalecana wersja będzie aktualizowana automatycznie, a w ustawieniach Epic osoby zaawansowane mogą wybrać inne wydanie lub wrócić do zalecanego.
+* Poprawiliśmy uruchamianie modów, gdy brakowało adresów pobierania, oraz wyświetlanie przyczyny błędu.
+
+**Wersje modów**
+* Automatyczne aktualizacje wybierają wersje stable i nie instalują samoczynnie wersji beta.
+* Gdy beta jest nowsza, zobaczysz na kafelku oznaczenia STABLE i BETA; przed instalacją możesz wybrać wersję. Instalacja bety wymaga potwierdzenia.
+* Kafelki zainstalowanych modów pokazują ich wersję i odpowiadającą jej wersję Among Us.
+
+**Steam**
+* Dodaliśmy sprawdzanie logowania Steam i poprawiliśmy jego konfigurację podczas pierwszego uruchomienia.

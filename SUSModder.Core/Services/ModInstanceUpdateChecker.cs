@@ -11,7 +11,8 @@ namespace SUSModder.Core.Services
     {
         public static bool HasCatalogUpdate(ModInstance instance, ModConfiguration? catalogMod)
         {
-            if (catalogMod == null || string.IsNullOrWhiteSpace(catalogMod.ModVersion))
+            catalogMod = StableUpdateTarget.Resolve(catalogMod);
+            if (catalogMod == null || catalogMod.IsBeta || string.IsNullOrWhiteSpace(catalogMod.ModVersion))
                 return false;
 
             if (!instance.AutoUpdateEnabled &&
@@ -26,12 +27,15 @@ namespace SUSModder.Core.Services
 
         internal static bool HasNewerCatalogVersion(string? installedVersion, string? catalogVersion)
         {
-            if (!string.IsNullOrEmpty(installedVersion) && !string.IsNullOrEmpty(catalogVersion))
-            {
-                return !string.Equals(installedVersion, catalogVersion, StringComparison.OrdinalIgnoreCase);
-            }
+            if (string.IsNullOrWhiteSpace(catalogVersion))
+                return false;
 
-            return string.IsNullOrEmpty(installedVersion) && !string.IsNullOrEmpty(catalogVersion);
+            if (string.IsNullOrWhiteSpace(installedVersion) ||
+                string.Equals(installedVersion, "unknown", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(installedVersion, "nieznana", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            return ConfigService.IsNewerVersion(catalogVersion, installedVersion);
         }
     }
 }

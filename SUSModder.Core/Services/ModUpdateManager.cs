@@ -77,7 +77,7 @@ namespace SUSModder.Core.Services
                          string.Equals(c.ModType, "full", StringComparison.OrdinalIgnoreCase) &&
                          !string.IsNullOrEmpty(c.InstallPath)))
             {
-                ModConfiguration? updatedConfig = remoteConfigs.FirstOrDefault(r => r.Id == config.Id);
+                ModConfiguration? updatedConfig = StableUpdateTarget.Resolve(remoteConfigs.FirstOrDefault(r => r.Id == config.Id));
                 if (updatedConfig != null)
                 {
                     bool updated = false;
@@ -141,7 +141,7 @@ namespace SUSModder.Core.Services
                         continue;
                     }
 
-                    if (!string.Equals(installedVersion, updatedConfig.ModVersion, StringComparison.OrdinalIgnoreCase))
+                    if (IsUpdateCandidate(installedVersion, updatedConfig))
                     {
                         System.Diagnostics.Debug.WriteLine($"[ModUpdateManager] ✓ Znaleziono aktualizację dla {config.ModName}: {installedVersion} → {updatedConfig.ModVersion}");
 
@@ -178,6 +178,10 @@ namespace SUSModder.Core.Services
             System.Diagnostics.Debug.WriteLine($"Found {availableUpdates.Count} updates for installed mods");
             return availableUpdates;
         }
+
+        internal static bool IsUpdateCandidate(string installedVersion, ModConfiguration remoteMod) =>
+            !remoteMod.IsBeta &&
+            ModInstanceUpdateChecker.HasNewerCatalogVersion(installedVersion, remoteMod.ModVersion);
 
         private static bool InstallationMapMatchesMod(FullModInstallation fullMod, ModConfiguration config)
         {

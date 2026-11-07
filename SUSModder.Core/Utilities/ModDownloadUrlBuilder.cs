@@ -118,8 +118,15 @@ namespace SUSModder.Core.Utilities
                         ? mod.ModVersion
                         : null;
 
+                var releaseVariants = detail.Data.AvailableReleases?
+                    .Where(r => string.Equals(r.Version, requestedVersion, StringComparison.OrdinalIgnoreCase))
+                    .SelectMany(r => (r.Variants ?? new()).Select(v => new CatalogModVariantDto
+                    {
+                        Version = v.Version ?? r.Version, Platform = v.Platform, Architecture = v.Architecture,
+                        DownloadUrl = v.DownloadUrl, Sha256 = v.Sha256, FileSizeBytes = v.FileSizeBytes
+                    })) ?? Enumerable.Empty<CatalogModVariantDto>();
                 var variant = SelectVariant(
-                    detail.Data.Variants,
+                    detail.Data.Variants.Concat(releaseVariants).ToList(),
                     normalizedPlatform,
                     requestedVersion,
                     IsDllMod(mod));

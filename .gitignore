@@ -32,6 +32,9 @@ releases-*/
 velopack-releases/
 .tools/
 .ilspy/
+# Local NuGet configuration generated during development
+/NuGet.Config
+/DevelopmentSUSModder/NuGet.Config
 Update.exe
 dummy-release/
 _delta-base/

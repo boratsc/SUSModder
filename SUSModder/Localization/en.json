@@ -215,6 +215,10 @@
     },
     "Beta": {
       "Badge": "BETA",
+      "StableBadge": "STABLE",
+      "InstalledVersion": "Installed:",
+      "InstallStable": "Install stable",
+      "InstallBeta": "Install beta version",
       "Available": "Beta available: {0}",
       "ConfirmTitle": "Beta version installation",
       "ConfirmMessage": "Install beta {1} of {0}?\nGame version: {2}.\n\nBetas may be unstable. Auto-update will be disabled and returning to stable will require a separate decision.",
@@ -489,6 +493,22 @@
         "LoginSuccess": "Successfully logged in to Epic Games account.",
         "LoginError": "Failed to log in to Epic Games account.",
         "Error": "Error during Epic Games operation: {0}"
+      },
+      "SteamLoginCheck": {
+        "Title": "Repair Steam login",
+        "Description": "Starts Among Us from your Steam library in the background and checks account login.",
+        "ConfirmMessage": "Among Us will start in the background through Steam. Steam may ask you to confirm the launch options. Continue?",
+        "Running": "Steam login test running…",
+        "RunningHint": "If Steam asks you to confirm the launch options, select Launch. Clicking stops SUSModder from waiting; also dismiss any Steam prompt.",
+        "Success": "Steam login was confirmed.",
+        "NotConfirmedTitle": "Steam login not confirmed",
+        "NotConfirmed": "Login was not confirmed. Check whether Steam is waiting for confirmation, or launch the game manually through Steam. Diagnostic log: {0}",
+        "GameRunning": "Among Us is already running — the test was skipped and the game was not touched.",
+        "SteamUnavailable": "Cannot start the test: Steam (steam://) is unavailable. Check the Steam installation and try again.",
+        "GameNotInstalled": "Among Us was not found in your Steam library. Install the game and retry configuration from the repair tools.",
+        "ProcessLeftOpen": "Note: the test process could not be confirmed as owned by this test, so it was not closed automatically. Close Among Us manually if it is still running.",
+        "Failed": "Steam login test failed: {0}",
+        "WindowsOnly": "This feature is only available on Windows."
       },
       "Cancelled": "Operation cancelled by user.",
       "Error": "Error during repair: {0}"
@@ -856,6 +876,40 @@
       "DepotDownloader": {
         "Label": "Download vanilla directly from Steam (DepotDownloader)",
         "Description": "Off: SUSModder 7z packages (default). On: download game files from your Steam account after scanning a QR code."
+      }
+    },
+    "LegendaryVersion": {
+      "Label": "Legendary program version",
+      "Description": "Legendary is the program SUSModder uses with Among Us on Epic Games. The recommended version is the Legendary default in SUSModder — the app is set up to work with it. Choose other versions only if you know why you need them.",
+      "Pinned": "Recommended version (default)",
+      "Manual": "Another version (for advanced users)",
+      "CurrentFormat": "Current: {0}",
+      "SelectRelease": "Choose a version…",
+      "Loading": "Loading versions…",
+      "Retry": "Try again",
+      "Apply": "Install selected version",
+      "Switching": "Installing version {0}…",
+      "ConfirmSwitch": "Versions other than the recommended one may not work properly. SUSModder does not check whether a chosen version is good for playing — it only makes sure the file downloads in one piece. Install version {0}?",
+      "ConfirmPinned": "Go back to the recommended version ({0})? It is the version SUSModder uses by default.",
+      "Success": "Version {0} installed.",
+      "NoReleases": "No other versions to choose from.",
+      "LoadError": "Could not load the version list. Check your internet connection and try again.",
+      "CheckingState": "Checking the Legendary version…",
+      "StateError": "Could not check the Legendary version. Try again.",
+      "NoBinary": "Couldn't determine the current Legendary version. Choose a version and install it.",
+      "Phases": {
+        "Downloading": "Downloading the file…",
+        "Verifying": "Checking the downloaded file…",
+        "Installing": "Replacing the Legendary program…"
+      },
+      "Errors": {
+        "Offline": "No internet connection — the version cannot be downloaded.",
+        "GitHubUnavailable": "The version list server is not responding. Try again later.",
+        "NoWindowsAsset": "This version has no file for Windows computers.",
+        "ToolBusy": "Legendary is in use right now (a game may be downloading or starting). Wait a moment and try again.",
+        "HashMismatch": "The downloaded file is damaged or does not match the expected one. SUSModder did not install it.",
+        "Failed": "Could not change the version.",
+        "Unknown": "Unknown error: {0}"
       }
     },
     "Advanced": {

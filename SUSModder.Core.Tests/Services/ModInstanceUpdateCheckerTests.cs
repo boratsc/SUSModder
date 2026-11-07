@@ -6,6 +6,22 @@ namespace SUSModder.Core.Tests.Services;
 
 public class ModInstanceUpdateCheckerTests
 {
+    [Theory]
+    [InlineData("1.7.9", "1.7.5", false)]
+    [InlineData("1.7.9-beta", "1.7.5", false)]
+    [InlineData("1.7.3", "1.7.5", true)]
+    [InlineData("unknown", "1.7.5", true)]
+    [InlineData("Nieznana", "1.7.5", true)]
+    [InlineData("", "1.7.5", true)]
+    [InlineData("1.7.5", "1.7.5", false)]
+    public void UpdateChecks_DoNotOfferDowngrades_AndPreserveUnknownFallback(string installed, string available, bool expected)
+    {
+        var catalog = new ModConfiguration { ModVersion = available };
+        Assert.Equal(expected, ModUpdateManager.IsUpdateCandidate(installed, catalog));
+        Assert.Equal(expected, ModInstanceUpdateChecker.HasCatalogUpdate(
+            new ModInstance { FullModVersion = installed, AutoUpdateEnabled = true }, catalog));
+    }
+
     [Fact]
     public void HasCatalogUpdate_WhenCatalogNewer_ReturnsTrue()
     {

@@ -38,6 +38,7 @@ public static class UpdateTargetRevalidator
     {
         string safeApprovedVersion = approvedVersion ?? string.Empty;
 
+        availableTarget = StableUpdateTarget.Resolve(availableTarget);
         if (availableTarget == null)
         {
             return new UpdateTargetValidationResult

@@ -46,7 +46,26 @@
                             Content="{loc:Localize UI.Actions.AddTo}"
                             Command="{Binding $parent[Window].DataContext.SelectDllModCommand}"
                             CommandParameter="{Binding}"/>
-                    <TextBlock Classes="browser-card-subtitle" Text="{Binding BrowserSubtitle}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding ShowInstallationSubtitle}">
+                        <TextBlock Classes="browser-card-subtitle" Text="{loc:Localize UI.Beta.InstalledVersion}" IsVisible="{Binding IsInstalled}"/>
+                        <TextBlock Classes="browser-card-subtitle" Text="{Binding BrowserSubtitle}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding ShowNewerBetaOnCard}">
+                        <Border Background="{DynamicResource ErrorChipFillBrush}" BorderBrush="{DynamicResource ErrorChipBorderBrush}"
+                                BorderThickness="1" CornerRadius="4" Padding="6,1" VerticalAlignment="Center">
+                            <TextBlock Text="{loc:Localize UI.Beta.StableBadge}" FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        </Border>
+                        <TextBlock Classes="browser-card-meta" Text="{Binding LatestStableVersion}" VerticalAlignment="Center" IsVisible="{Binding IsInstalled}"/>
+                        <TextBlock Classes="browser-card-meta" Text="{Binding BrowserSubtitle}" VerticalAlignment="Center" IsVisible="{Binding IsInstalled, Converter={x:Static BoolConverters.Not}}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding ShowNewerBetaOnCard}"
+                                ToolTip.Tip="{Binding AvailableBetaText}" AutomationProperties.Name="{Binding AvailableBetaText}">
+                        <Border Background="{DynamicResource ErrorChipFillBrush}" BorderBrush="{DynamicResource ErrorChipBorderBrush}"
+                                BorderThickness="1" CornerRadius="4" Padding="6,1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding BetaBadgeText}" FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        </Border>
+                        <TextBlock Classes="browser-card-meta" Text="{Binding LatestBetaVersion}" VerticalAlignment="Center"/>
+                    </StackPanel>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" VerticalAlignment="Top" Spacing="6" HorizontalAlignment="Right">
