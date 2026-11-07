@@ -1,4 +1,11 @@
-* [3.1.5-beta] Epic Games: nowsze Legendary i możliwość wyboru jego wersji w ustawieniach.
-* [3.1.5-beta] Poprawiono instalowanie modów Epic oraz wyświetlanie wersji modów i Among Us.
-* [3.1.5-beta] Wersje beta modów nie instalują się już automatycznie; można je wybrać na kafelku.
-* [3.1.5-beta] Steam: dodano sprawdzanie logowania i poprawiono konfigurację podczas pierwszego uruchomienia.
+**Epic Games**
+* Zaktualizowaliśmy Legendary. Zalecana wersja będzie aktualizowana automatycznie, a w ustawieniach Epic osoby zaawansowane mogą wybrać inne wydanie lub wrócić do zalecanego.
+* Poprawiliśmy uruchamianie modów, gdy brakowało adresów pobierania, oraz wyświetlanie przyczyny błędu.
+
+**Wersje modów**
+* Automatyczne aktualizacje wybierają wersje stable i nie instalują samoczynnie wersji beta.
+* Gdy beta jest nowsza, zobaczysz na kafelku oznaczenia STABLE i BETA; przed instalacją możesz wybrać wersję. Instalacja bety wymaga potwierdzenia.
+* Kafelki zainstalowanych modów pokazują ich wersję i odpowiadającą jej wersję Among Us.
+
+**Steam**
+* Dodaliśmy sprawdzanie logowania Steam i poprawiliśmy jego konfigurację podczas pierwszego uruchomienia.
