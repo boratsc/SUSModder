@@ -1,9 +1,10 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-	<!-- ══ 4.0 E3: katalog jako lista wierszy + szczegóły z CTA ══
+	<!-- ══ 4.0 E3/E4: katalog, zestawy i DLL jako lista wierszy + szczegóły z CTA ══
 	     Złoty akcent tylko dla CTA/zaznaczenia/focusu; hairline #35373C; bez glow.
-	     Selektory listy są scoped do ListBox.catalog-list, żeby nie ruszać list DLL/zestawów (E4). -->
+	     Selektory listy są scoped do ListBox.catalog-list; E4 reużywa tej samej klasy
+	     dla ListBox zestawów i DLL (wiersze mają identyczną strukturę). -->
 
 	<!-- ── Lista ── -->
 	<Style Selector="ListBox.catalog-list">

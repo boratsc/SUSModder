@@ -423,6 +423,38 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         e.Handled = true;
     }
 
+    /// <summary>
+    /// E4: Enter aktywuje zaznaczony zestaw (ta sama ścieżka co dwuklik);
+    /// w trybie bulk przełącza zaznaczenie checkboxa. Strzałki obsługuje ListBox.
+    /// </summary>
+    private void PackInstancesListBox_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || DataContext is not MainWindowViewModel vm || vm.SelectedPackInstance is not { } pack)
+            return;
+
+        if (vm.IsBulkSelectionMode)
+            vm.ToggleBulkPackCheckCommand.Execute(pack).Subscribe();
+        else
+            vm.PackInstanceDoubleClickCommand.Execute(pack).Subscribe();
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// E4: Enter otwiera inspektor zaznaczonego DLL (ta sama ścieżka co dwuklik);
+    /// w trybie bulk przełącza zaznaczenie checkboxa. Strzałki obsługuje ListBox.
+    /// </summary>
+    private void DllModsListBox_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || DataContext is not MainWindowViewModel vm || vm.SelectedDllMod is not { } dll)
+            return;
+
+        if (vm.IsBulkSelectionMode)
+            vm.ToggleBulkModCheckCommand.Execute(dll).Subscribe();
+        else
+            vm.SelectDllModCommand.Execute(dll).Subscribe();
+        e.Handled = true;
+    }
+
     private void PackInstancesListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_revertingBulkPackSelection || sender is not ListBox listBox)
@@ -489,7 +521,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         for (Control? c = e.Source as Control; c != null; c = c.Parent as Control)
         {
-            if (c is ListBoxItem or Controls.PackInstanceCard or Controls.DllAddonCard or CheckBox or BulkModeChip)
+            if (c is ListBoxItem or CheckBox or BulkModeChip)
                 return;
             if (c is Button btn && btn.Classes.Contains("bulk-mode-chip"))
                 return;

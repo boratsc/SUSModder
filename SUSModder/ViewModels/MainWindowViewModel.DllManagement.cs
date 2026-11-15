@@ -38,6 +38,9 @@ namespace SUSModder.ViewModels
 
         public bool IsDllAddonsGridVisible =>
             IsDllAddonsTab && !IsModsLoading && !ShowBrowserNoResults;
+        /// <summary>E4: stan pusty listy DLL bez aktywnego filtra (makieta 13).</summary>
+        public bool ShowDllAddonsEmptyState =>
+            IsDllAddonsTab && !IsModsLoading && DllMods.Count == 0 && !ShowBrowserNoResults;
         public bool IsDllPanelVisible => SelectedDllMod != null && !IsAnyToolModalOpen;
         public bool HasDllInstalledInTargets => DllInstallTargets.Any(t => t.WasInstalled);
         public bool HasDllTargetPendingChanges => DllInstallTargets.Any(t => t.HasPendingChange);
@@ -54,6 +57,37 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> CloseDllDetailCommand { get; private set; } = null!;
         public ReactiveCommand<Unit, Unit> ApplyDllTargetChangesCommand { get; private set; } = null!;
         public ReactiveCommand<ModItem, Unit> ToggleDllAutoUpdateCommand { get; private set; } = null!;
+
+        // ── E4: rozwijane sekcje szczegółów DLL (presentation-only, wzorzec E3) ──
+        private bool _isDllTargetsSectionExpanded;
+        private bool _isDllCompatSectionExpanded;
+        private int _dllCompatNotWorkCount;
+        private int _dllCompatNotTestedCount;
+        private bool _dllCompatSummaryKnown;
+
+        public bool IsDllTargetsSectionExpanded
+        {
+            get => _isDllTargetsSectionExpanded;
+            private set => this.RaiseAndSetIfChanged(ref _isDllTargetsSectionExpanded, value);
+        }
+
+        public bool IsDllCompatSectionExpanded
+        {
+            get => _isDllCompatSectionExpanded;
+            private set => this.RaiseAndSetIfChanged(ref _isDllCompatSectionExpanded, value);
+        }
+
+        /// <summary>E4: podsumowanie „Sprawdzenie zgodności" DLL z istniejącej macierzy DLL→mody.</summary>
+        public bool DllCompatSummaryKnown => _dllCompatSummaryKnown;
+        public bool DllCompatHasError => _dllCompatSummaryKnown && _dllCompatNotWorkCount > 0;
+        public bool DllCompatHasWarning =>
+            _dllCompatSummaryKnown && _dllCompatNotWorkCount == 0 && _dllCompatNotTestedCount > 0;
+        public bool DllCompatIsReady =>
+            !IsDllCompatibilityLoading && _dllCompatSummaryKnown &&
+            _dllCompatNotWorkCount == 0 && _dllCompatNotTestedCount == 0;
+
+        public ReactiveCommand<Unit, Unit> ToggleDllTargetsSectionCommand { get; private set; } = null!;
+        public ReactiveCommand<Unit, Unit> ToggleDllCompatSectionCommand { get; private set; } = null!;
 
         private void InitializeDllBrowser()
         {
@@ -73,6 +107,14 @@ namespace SUSModder.ViewModels
             CloseDllDetailCommand = ReactiveCommand.Create(CloseDllDetail);
             ApplyDllTargetChangesCommand = ReactiveCommand.CreateFromTask(ApplyDllTargetChangesAsync);
             ToggleDllAutoUpdateCommand = ReactiveCommand.Create<ModItem>(ToggleDllAutoUpdate);
+            ToggleDllTargetsSectionCommand = ReactiveCommand.Create(() =>
+            {
+                IsDllTargetsSectionExpanded = !IsDllTargetsSectionExpanded;
+            });
+            ToggleDllCompatSectionCommand = ReactiveCommand.Create(() =>
+            {
+                IsDllCompatSectionExpanded = !IsDllCompatSectionExpanded;
+            });
         }
 
         private void ActivateDllAddonsTab()
@@ -115,6 +157,8 @@ namespace SUSModder.ViewModels
             SelectedDllMod = dllMod;
             IsDllInstallDialogVisible = false;
             IsDllModificationsVisible = false;
+            IsDllTargetsSectionExpanded = false;
+            IsDllCompatSectionExpanded = false;
             LoadDllInstallTargets();
             NotifyDllInspectorProperties();
         }
@@ -127,7 +171,12 @@ namespace SUSModder.ViewModels
             DllCompatibilityLines.Clear();
             _dllCompatibilityDisplay.Clear();
             IsDllCompatibilityExpanded = false;
+            IsDllTargetsSectionExpanded = false;
+            IsDllCompatSectionExpanded = false;
             DllHiddenIncompatibleTargetCount = 0;
+            _dllCompatNotWorkCount = 0;
+            _dllCompatNotTestedCount = 0;
+            _dllCompatSummaryKnown = false;
             NotifyDllInspectorProperties();
         }
 
@@ -189,6 +238,7 @@ namespace SUSModder.ViewModels
                 foreach (var item in refreshedItems)
                     DllMods.Add(item);
 
+                this.RaisePropertyChanged(nameof(ShowDllAddonsEmptyState));
                 CaptureDllModsSnapshot();
                 if (preserveView)
                 {
@@ -261,6 +311,9 @@ namespace SUSModder.ViewModels
 
             IsDllCompatibilityExpanded = false;
             IsDllCompatibilityLoading = true;
+            _dllCompatNotWorkCount = 0;
+            _dllCompatNotTestedCount = 0;
+            _dllCompatSummaryKnown = false;
             this.RaisePropertyChanged(nameof(IsDllCompatibilityLoading));
 
             try
@@ -382,6 +435,13 @@ namespace SUSModder.ViewModels
             foreach (var fullMod in fullMods)
             {
                 matrix.TryGetValue(fullMod.Id, out var compat);
+
+                var status = compat?.Status ?? CompatibilityStatus.NotTested;
+                if (status == CompatibilityStatus.NotWork)
+                    _dllCompatNotWorkCount++;
+                else if (status == CompatibilityStatus.NotTested)
+                    _dllCompatNotTestedCount++;
+
                 var line = CreateCompatLine(fullMod.ModName, compat);
                 if (line == null)
                     continue;
@@ -394,6 +454,7 @@ namespace SUSModder.ViewModels
             foreach (var entry in lines.OrderBy(x => x.Priority).ThenBy(x => x.Line.TargetName))
                 DllCompatibilityLines.Add(entry.Line);
 
+            _dllCompatSummaryKnown = true;
             RefreshDllCompatibilityDisplay();
         }
 
@@ -414,6 +475,10 @@ namespace SUSModder.ViewModels
             this.RaisePropertyChanged(nameof(DllCompatibilityToggleLabel));
             this.RaisePropertyChanged(nameof(DllHiddenIncompatibleTargetCount));
             this.RaisePropertyChanged(nameof(HasDllHiddenIncompatibleTargets));
+            this.RaisePropertyChanged(nameof(DllCompatSummaryKnown));
+            this.RaisePropertyChanged(nameof(DllCompatHasError));
+            this.RaisePropertyChanged(nameof(DllCompatHasWarning));
+            this.RaisePropertyChanged(nameof(DllCompatIsReady));
         }
 
         private async Task ApplyDllTargetChangesAsync()

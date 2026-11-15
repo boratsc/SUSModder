@@ -67,6 +67,7 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(IsDllAddonsGridVisible));
                 this.RaisePropertyChanged(nameof(ShowPackInstancesEmptyState));
                 this.RaisePropertyChanged(nameof(ShowBrowserNoResults));
+                this.RaisePropertyChanged(nameof(ShowDllAddonsEmptyState));
                 ApplyBrowserSearchFilter();
                 this.RaisePropertyChanged(nameof(IsBulkChipVisible));
                 this.RaisePropertyChanged(nameof(IsModPanelVisible));
@@ -143,6 +144,7 @@ namespace SUSModder.ViewModels
                 }
 
                 this.RaiseAndSetIfChanged(ref _selectedPackInstance, value);
+                IsPackContentsSectionExpanded = false;
                 this.RaisePropertyChanged(nameof(IsPackInstanceSelected));
                 this.RaisePropertyChanged(nameof(IsModPanelVisible));
                 this.RaisePropertyChanged(nameof(IsPackInstancePanelVisible));
@@ -164,6 +166,17 @@ namespace SUSModder.ViewModels
             SelectedPackInstance == null
                 ? string.Empty
                 : BuildPackContentsText(SelectedPackInstance);
+
+        // ── E4: rozwijana sekcja „Zawartość zestawu" (presentation-only, wzorzec E3) ──
+        private bool _isPackContentsSectionExpanded;
+
+        public bool IsPackContentsSectionExpanded
+        {
+            get => _isPackContentsSectionExpanded;
+            private set => this.RaiseAndSetIfChanged(ref _isPackContentsSectionExpanded, value);
+        }
+
+        public ReactiveCommand<Unit, Unit> TogglePackContentsSectionCommand { get; private set; } = null!;
 
         public ReactiveCommand<ModBrowserTab, Unit> SelectBrowserTabCommand { get; private set; } = null!;
         public ReactiveCommand<Unit, Unit> LaunchPackInstanceCommand { get; private set; } = null!;
@@ -198,6 +211,10 @@ namespace SUSModder.ViewModels
             {
                 SelectedPackInstance = item;
                 return LaunchSelectedPackInstanceAsync();
+            });
+            TogglePackContentsSectionCommand = ReactiveCommand.Create(() =>
+            {
+                IsPackContentsSectionExpanded = !IsPackContentsSectionExpanded;
             });
         }
 

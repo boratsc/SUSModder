@@ -4,59 +4,206 @@
              xmlns:local="using:SUSModder.Views"
              xmlns:loc="using:SUSModder.Services.Localization"
              xmlns:converters="using:SUSModder.Converters"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:fic="using:FluentIcons.Common"
              x:Class="SUSModder.Views.DllAddonInspector"
              x:DataType="vm:MainWindowViewModel">
     <UserControl.Resources>
         <converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
     </UserControl.Resources>
 
+    <!-- E4: szczegóły DLL wg makiety 06 (wzorzec E3): nagłówek 88 + chipy,
+         złote CTA „Dodaj do zestawu" + drugorzędne + Więcej; istniejące checkboxy celów i Apply zachowane. -->
     <Border Classes="mod-detail-panel">
-        <Grid RowDefinitions="*,Auto">
-            <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
-                <StackPanel Spacing="14" Margin="16,12,16,8">
-                    <Grid ColumnDefinitions="Auto,*,Auto">
-                        <Button Grid.Column="0"
-                                Content="✕"
-                                Classes="close-button"
-                                Command="{Binding CloseDllDetailCommand}"/>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="8,0,0,0">
-                            <Image Source="{Binding SelectedDllModIconSourceKey, Converter={StaticResource StringToBitmapConverter}}"
-                                   Width="56" Height="56"/>
-                            <StackPanel VerticalAlignment="Center" Spacing="2">
-                                <TextBlock Text="{Binding SelectedDllModName}"
-                                           FontSize="18" FontWeight="Bold"
-                                           TextWrapping="Wrap"/>
-                                <TextBlock FontSize="11" Opacity="0.8">
-                                    <Run Text="DLL"/>
-                                    <Run Text=" · "/>
-                                    <Run Text="{Binding SelectedDllModVersion}"/>
-                                </TextBlock>
-                            </StackPanel>
+        <Grid RowDefinitions="Auto,Auto,*">
+
+            <!-- 1. Nagłówek: ikona + nazwa + opis + chipy -->
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                <Border Grid.Column="0" Classes="catalog-detail-icon">
+                    <Image Source="{Binding SelectedDllModIconSourceKey, Converter={StaticResource StringToBitmapConverter}}"
+                           Width="88" Height="88" Stretch="UniformToFill"/>
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                    <TextBlock Text="{Binding SelectedDllModName}"
+                               FontSize="26" FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding SelectedDllDescription}"
+                               FontSize="13"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextTrimming="CharacterEllipsis"
+                               MaxLines="1"
+                               IsVisible="{Binding SelectedDllDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                        <Border Classes="catalog-detail-chip">
+                            <TextBlock Classes="catalog-detail-chip-text"
+                                       Text="{Binding SelectedDllModVersion, TargetNullValue=—}"/>
+                        </Border>
+                        <Border Classes="catalog-detail-chip">
+                            <TextBlock Classes="catalog-detail-chip-text" Text="DLL"/>
+                        </Border>
+                        <Border Classes="catalog-detail-chip"
+                                IsVisible="{Binding SelectedDllMod.ShowBetaInstalledBadge}">
+                            <TextBlock Classes="catalog-detail-chip-text"
+                                       Text="{Binding SelectedDllMod.BetaBadgeText}"/>
+                        </Border>
+                        <Border Classes="catalog-detail-chip"
+                                IsVisible="{Binding SelectedDllMod.HasAvailableBeta}"
+                                ToolTip.Tip="{Binding SelectedDllMod.AvailableBetaText}">
+                            <TextBlock Classes="catalog-detail-chip-text"
+                                       Text="{Binding SelectedDllMod.AvailableBetaText}"/>
+                        </Border>
+                        <Border Classes="catalog-detail-chip"
+                                IsVisible="{Binding HasDllInstalledInTargets}">
+                            <TextBlock Classes="catalog-detail-chip-text"
+                                       Text="{Binding SelectedDllMod.InstalledInSummary}"/>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+                <Button Grid.Column="2"
+                        Content="✕"
+                        Classes="close-button"
+                        VerticalAlignment="Top"
+                        Command="{Binding CloseDllDetailCommand}"
+                        AutomationProperties.Name="{loc:Localize UI.Buttons.Close}"/>
+            </Grid>
+
+            <!-- 2. Rząd akcji: złote CTA (wybór zestawów) + drugorzędne + Więcej -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,20,0,16">
+                <Button Classes.catalog-detail-cta="{Binding !IsDllTargetsSectionExpanded}"
+                        Classes.catalog-detail-secondary="{Binding IsDllTargetsSectionExpanded}"
+                        Command="{Binding ToggleDllTargetsSectionCommand}"
+                        AutomationProperties.Name="{loc:Localize UI.DllManager.AddToPack}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Add}" FontSize="16" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Localize UI.DllManager.AddToPack}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Classes="catalog-detail-secondary"
+                        Command="{Binding ToggleDllCompatSectionCommand}"
+                        AutomationProperties.Name="{loc:Localize UI.DllManager.CompatibleMods}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ic:SymbolIcon Symbol="{x:Static fic:Symbol.PuzzlePiece}" FontSize="16" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Localize UI.DllManager.CompatibleMods}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Więcej: pozostałe istniejące akcje DLL -->
+                <Button Classes="catalog-detail-secondary"
+                        AutomationProperties.Name="{loc:Localize UI.TopBar.More}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ic:SymbolIcon Symbol="{x:Static fic:Symbol.MoreHorizontal}" FontSize="16" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Localize UI.TopBar.More}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Button.Flyout>
+                        <MenuFlyout Placement="Bottom">
+                            <MenuItem Header="{loc:Localize ModPacks.CheckUpdates}"
+                                      Command="{Binding CheckDllUpdatesCommand}">
+                                <MenuItem.Icon>
+                                    <ic:SymbolIcon Symbol="{x:Static fic:Symbol.History}" FontSize="16"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+            </StackPanel>
+
+            <!-- 3. Przewijalne sekcje: opis, zgodność, zgodne mody, cele instalacji, auto-aktualizacja, tabela tech -->
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="16">
+
+                    <StackPanel Spacing="6"
+                                IsVisible="{Binding SelectedDllDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Classes="inspector-section-title"
+                                   Margin="0"
+                                   Text="{loc:Localize UI.Labels.Description}"/>
+                        <TextBlock Text="{Binding SelectedDllDescription}"
+                                   TextWrapping="Wrap"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+
+                    <!-- Sprawdzenie zgodności (podsumowanie macierzy DLL→mody) -->
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <ic:SymbolIcon Symbol="{x:Static fic:Symbol.CheckmarkCircle}" FontSize="16"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{loc:Localize UI.Inspector.CompatCheck}"
+                                       FontSize="13"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <TextBlock Text="{loc:Localize UI.Inspector.Compat.Loading}"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       IsVisible="{Binding IsDllCompatibilityLoading}"/>
+                            <Ellipse Width="6" Height="6"
+                                     Fill="{DynamicResource DangerBrush}" VerticalAlignment="Center"
+                                     IsVisible="{Binding DllCompatHasError}"/>
+                            <TextBlock Text="{loc:Localize UI.Inspector.CompatErrorTargets}"
+                                       FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource DangerBrush}"
+                                       IsVisible="{Binding DllCompatHasError}"/>
+                            <Ellipse Width="6" Height="6"
+                                     Fill="{DynamicResource WarningTextBrush}" VerticalAlignment="Center"
+                                     IsVisible="{Binding DllCompatHasWarning}"/>
+                            <TextBlock Text="{loc:Localize UI.Inspector.CompatWarningTargets}"
+                                       FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource WarningTextBrush}"
+                                       IsVisible="{Binding DllCompatHasWarning}"/>
+                            <Ellipse Width="6" Height="6"
+                                     Fill="{DynamicResource StatusInstalledTextBrush}" VerticalAlignment="Center"
+                                     IsVisible="{Binding DllCompatIsReady}"/>
+                            <TextBlock Text="{loc:Localize UI.Inspector.CompatReady}"
+                                       FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource StatusInstalledTextBrush}"
+                                       IsVisible="{Binding DllCompatIsReady}"/>
+                            <TextBlock Text="—"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextMutedBrush}">
+                                <TextBlock.IsVisible>
+                                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                        <Binding Path="IsDllCompatibilityLoading" Converter="{x:Static BoolConverters.Not}"/>
+                                        <Binding Path="DllCompatSummaryKnown" Converter="{x:Static BoolConverters.Not}"/>
+                                    </MultiBinding>
+                                </TextBlock.IsVisible>
+                            </TextBlock>
                         </StackPanel>
                     </Grid>
 
-                    <Border Classes="mod-detail-section"
-                            IsVisible="{Binding SelectedDllDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                        <StackPanel Spacing="6">
-                            <TextBlock Classes="inspector-section-title"
-                                       Text="{loc:Localize UI.Inspector.Details}"/>
-                            <TextBlock Text="{Binding SelectedDllDescription}"
-                                       TextWrapping="Wrap"
-                                       FontSize="12"
-                                       Opacity="0.85"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Classes="mod-detail-section">
-                        <StackPanel Spacing="6">
-                            <TextBlock Classes="inspector-section-title"
-                                       Text="{loc:Localize UI.Inspector.Compatibility}"/>
+                    <!-- Zgodne mody: rozwijany wiersz z licznikiem -->
+                    <StackPanel Spacing="8">
+                        <Button Classes="catalog-detail-dllrow"
+                                Command="{Binding ToggleDllCompatSectionCommand}"
+                                AutomationProperties.Name="{loc:Localize UI.DllManager.CompatibleMods}">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+                                <ic:SymbolIcon Grid.Column="0" Symbol="{x:Static fic:Symbol.PuzzlePiece}" FontSize="18"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="{loc:Localize UI.DllManager.CompatibleMods}"
+                                           FontSize="13" FontWeight="SemiBold"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextMutedBrush}"
+                                           Text="{Binding DllCompatibilityLines.Count}"
+                                           VerticalAlignment="Center"/>
+                                <Panel Grid.Column="3" Width="16" Height="16" VerticalAlignment="Center">
+                                    <ic:SymbolIcon Symbol="{x:Static fic:Symbol.ChevronDown}" FontSize="14"
+                                                   IsVisible="{Binding IsDllCompatSectionExpanded}"/>
+                                    <ic:SymbolIcon Symbol="{x:Static fic:Symbol.ChevronRight}" FontSize="14"
+                                                   IsVisible="{Binding IsDllCompatSectionExpanded, Converter={x:Static BoolConverters.Not}}"/>
+                                </Panel>
+                            </Grid>
+                        </Button>
+                        <StackPanel Spacing="6" IsVisible="{Binding IsDllCompatSectionExpanded}">
                             <TextBlock Text="{loc:Localize UI.Inspector.Compat.Loading}"
                                        FontSize="12"
                                        Opacity="0.7"
                                        IsVisible="{Binding IsDllCompatibilityLoading}"/>
                             <ItemsControl ItemsSource="{Binding DllCompatibilityDisplayLines}"
-                                            IsVisible="{Binding HasDllCompatibilityLines}">
+                                          IsVisible="{Binding HasDllCompatibilityLines}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:DllCompatibilityLineItem">
                                         <TextBlock FontSize="12" Margin="0,2" Opacity="0.9">
@@ -78,20 +225,12 @@
                                     Command="{Binding ToggleDllCompatibilityExpandedCommand}"
                                     IsVisible="{Binding ShowDllCompatibilityToggle}"/>
                         </StackPanel>
-                    </Border>
-
-                    <StackPanel Spacing="6" IsVisible="{Binding HasDllInstalledInTargets}">
-                        <TextBlock Text="{loc:Localize UI.Inspector.InstalledIn}"
-                                   FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding SelectedDllInstalledInText}"
-                                   TextWrapping="Wrap"
-                                   FontSize="12"
-                                   Opacity="0.85"/>
                     </StackPanel>
 
-                    <Border Classes="mod-detail-section">
-                    <StackPanel Spacing="8">
+                    <!-- Dodaj / usuń z zestawów: istniejące checkboxy celów + Apply -->
+                    <StackPanel Spacing="8" IsVisible="{Binding IsDllTargetsSectionExpanded}">
                         <TextBlock Classes="inspector-section-title"
+                                   Margin="0"
                                    Text="{loc:Localize UI.Inspector.AddToTargets}"/>
                         <ItemsControl ItemsSource="{Binding DllInstallTargets}">
                             <ItemsControl.ItemTemplate>
@@ -116,18 +255,74 @@
                                    FontSize="12"
                                    Opacity="0.7"
                                    IsVisible="{Binding !DllInstallTargets.Count}"/>
+                        <Button Content="{loc:Localize UI.Actions.ApplyChanges}"
+                                Classes="catalog-detail-cta"
+                                HorizontalAlignment="Left"
+                                Command="{Binding ApplyDllTargetChangesCommand}"
+                                IsEnabled="{Binding HasDllTargetPendingChanges}"/>
                     </StackPanel>
-                    </Border>
+
+                    <!-- Auto-aktualizacja DLL (istniejący przełącznik, przeniesiony z kafelka) -->
+                    <Grid ColumnDefinitions="*,Auto"
+                          IsVisible="{Binding SelectedDllMod, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <TextBlock Text="{loc:Localize UI.Labels.AutoUpdate}"
+                                   VerticalAlignment="Center"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <ToggleSwitch Grid.Column="1"
+                                      IsChecked="{Binding SelectedDllMod.DllAutoUpdateEnabled}"
+                                      IsEnabled="{Binding SelectedDllMod.DllAutoUpdateNotInstalled, Converter={x:Static BoolConverters.Not}}"
+                                      OffContent="" OnContent=""
+                                      ToolTip.Tip="{Binding SelectedDllMod.DllAutoUpdateTooltip}"/>
+                    </Grid>
+
+                    <!-- Zainstalowany w (istniejąca sekcja) -->
+                    <StackPanel Spacing="6" IsVisible="{Binding HasDllInstalledInTargets}">
+                        <TextBlock Classes="inspector-section-title"
+                                   Margin="0"
+                                   Text="{loc:Localize UI.Inspector.InstalledIn}"/>
+                        <TextBlock Text="{Binding SelectedDllInstalledInText}"
+                                   TextWrapping="Wrap"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+
+                    <!-- Informacje techniczne na dole (makieta 06) -->
+                    <StackPanel Spacing="0">
+                        <Border Classes="catalog-detail-hairline"/>
+                        <Grid ColumnDefinitions="180,*" Margin="0,10">
+                            <TextBlock Classes="catalog-detail-techlabel" Text="{loc:Localize UI.Labels.Version}"/>
+                            <TextBlock Grid.Column="1" Classes="catalog-detail-techvalue"
+                                       Text="{Binding SelectedDllModVersion, TargetNullValue=—}"/>
+                        </Grid>
+                        <Border Classes="catalog-detail-hairline"/>
+                        <Grid ColumnDefinitions="180,*" Margin="0,10">
+                            <TextBlock Classes="catalog-detail-techlabel" Text="{loc:Localize UI.Labels.Type}"/>
+                            <TextBlock Grid.Column="1" Classes="catalog-detail-techvalue" Text="DLL"/>
+                        </Grid>
+                        <Border Classes="catalog-detail-hairline"/>
+                        <Grid ColumnDefinitions="180,*" Margin="0,10">
+                            <TextBlock Classes="catalog-detail-techlabel" Text="{loc:Localize UI.Labels.GameCompatibility}"/>
+                            <TextBlock Grid.Column="1" Classes="catalog-detail-techvalue"
+                                       Text="{Binding SelectedDllMod.AmongVersion, StringFormat='Among Us {0}', TargetNullValue=—}"/>
+                        </Grid>
+                        <Border Classes="catalog-detail-hairline"/>
+                        <Grid ColumnDefinitions="180,*" Margin="0,10">
+                            <TextBlock Classes="catalog-detail-techlabel" Text="{loc:Localize UI.Labels.LastUpdated}"/>
+                            <TextBlock Grid.Column="1" Classes="catalog-detail-techvalue"
+                                       Text="{Binding SelectedDllMod.LastUpdated, StringFormat='{}{0:dd.MM.yyyy}', TargetNullValue=—}"/>
+                        </Grid>
+                        <Border Classes="catalog-detail-hairline"/>
+                        <Grid ColumnDefinitions="180,*" Margin="0,10">
+                            <TextBlock Classes="catalog-detail-techlabel" Text="{loc:Localize UI.Labels.Repository}"/>
+                            <TextBlock Grid.Column="1" Classes="catalog-detail-techvalue"
+                                       Text="{Binding SelectedDllMod.GitHubRepoOrLink, TargetNullValue=—}"
+                                       ToolTip.Tip="{Binding SelectedDllMod.GitHubRepoOrLink}"/>
+                        </Grid>
+                        <Border Classes="catalog-detail-hairline"/>
+                    </StackPanel>
                 </StackPanel>
             </ScrollViewer>
-
-            <Border Grid.Row="1" Padding="16,12" Classes="mod-detail-sticky-cta">
-                <Button Content="{loc:Localize UI.Actions.ApplyChanges}"
-                        Classes="mod-detail-btn"
-                        Background="{DynamicResource AccentBrush}"
-                        Command="{Binding ApplyDllTargetChangesCommand}"
-                        IsEnabled="{Binding HasDllTargetPendingChanges}"/>
-            </Border>
         </Grid>
     </Border>
 </UserControl>

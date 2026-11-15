@@ -103,6 +103,7 @@ namespace SUSModder.ViewModels
             this.RaisePropertyChanged(nameof(IsBrowserGridVisible));
             this.RaisePropertyChanged(nameof(IsPackInstancesGridVisible));
             this.RaisePropertyChanged(nameof(IsDllAddonsGridVisible));
+            this.RaisePropertyChanged(nameof(ShowDllAddonsEmptyState));
         }
 
         internal static void ApplyFilterToCollection<T>(

@@ -630,6 +630,7 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
 
             // Podłącz lokalizację dla tooltipów VT w ModItem
             ModItem.InitializeLocalization(_localizationService);
+            ModInstanceItem.InitializeLocalization(_localizationService);
 
             // Inicjalizuj serwis skanowania bezpieczeństwa (VirusTotal)
             _securityScanService = App.GetService<SUSModder.Core.Services.ModSecurityScanService>();

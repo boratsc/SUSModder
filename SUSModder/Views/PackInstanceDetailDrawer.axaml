@@ -4,12 +4,16 @@
              xmlns:local="using:SUSModder.Views"
              xmlns:loc="using:SUSModder.Services.Localization"
              xmlns:converters="using:SUSModder.Converters"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:fic="using:FluentIcons.Common"
              x:Class="SUSModder.Views.PackInstanceDetailDrawer"
              x:DataType="vm:MainWindowViewModel">
     <UserControl.Resources>
         <converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
     </UserControl.Resources>
 
+    <!-- E4: szczegóły zestawu wg makiety 05 (wzorzec E3): nagłówek 88 + chipy,
+         jedno złote CTA + drugorzędne outlined + Więcej (wszystkie istniejące akcje). -->
     <Border Classes="mod-detail-panel">
         <Grid DataContext="{Binding SelectedPackInstance}"
               x:DataType="vm:ModInstanceItem">
@@ -19,113 +23,234 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Classes="mod-detail-header" Margin="0,0,0,8">
-                <Grid ColumnDefinitions="Auto,*,Auto">
-                    <Button Grid.Column="0"
-                            Content="✕"
-                            Classes="close-button"
-                            Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.ClosePackInstanceDetailCommand}"/>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="8,0,0,0">
-                        <Image Source="{Binding IconSourceKey, Converter={StaticResource StringToBitmapConverter}}"
-                               Width="56" Height="56"/>
-                        <StackPanel VerticalAlignment="Center" Spacing="2">
-                            <TextBlock Text="{Binding DisplayName}"
-                                       FontSize="18" FontWeight="Bold"
-                                       TextWrapping="Wrap"/>
-                            <TextBlock Text="{Binding Subtitle}" FontSize="11" Opacity="0.8"/>
-                            <TextBlock Text="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.SelectedPackOriginLabel}"
-                                       FontSize="10" Opacity="0.65"/>
-                        </StackPanel>
+            <!-- 1. Nagłówek: ikona + nazwa + opis + chipy -->
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                <Border Grid.Column="0" Classes="catalog-detail-icon">
+                    <Image Source="{Binding IconSourceKey, Converter={StaticResource StringToBitmapConverter}}"
+                           Width="88" Height="88" Stretch="UniformToFill"/>
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                    <TextBlock Text="{Binding DisplayName}"
+                               FontSize="26" FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding Subtitle}"
+                               FontSize="13"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextTrimming="CharacterEllipsis"
+                               MaxLines="1"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                        <Border Classes="catalog-detail-chip">
+                            <TextBlock Classes="catalog-detail-chip-text"
+                                       Text="{Binding PackContentsCount}"/>
+                        </Border>
+                        <Border Classes="catalog-detail-chip">
+                            <TextBlock Classes="catalog-detail-chip-text"
+                                       Text="{Binding PackStatusBadge}"/>
+                        </Border>
+                        <Border Classes="catalog-detail-chip">
+                            <TextBlock Classes="catalog-detail-chip-text"
+                                       Text="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.SelectedPackOriginLabel}"/>
+                        </Border>
                     </StackPanel>
-                </Grid>
-            </Border>
+                </StackPanel>
+                <Button Grid.Column="2"
+                        Content="✕"
+                        Classes="close-button"
+                        VerticalAlignment="Top"
+                        Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.ClosePackInstanceDetailCommand}"
+                        AutomationProperties.Name="{loc:Localize UI.Buttons.Close}"/>
+            </Grid>
 
-            <Border Grid.Row="1" Classes="mod-detail-sticky-cta" Margin="0,0,0,8">
-                <Button Content="{loc:Localize UI.Buttons.Launch}"
-                        Classes="mod-detail-btn"
-                        Background="{DynamicResource SuccessBrush}"
+            <!-- 2. Rząd akcji: złote CTA (uruchom / aktualizuj) + drugorzędne + Więcej -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,20,0,16">
+                <Button Content="{loc:Localize UI.Packs.LaunchPack}"
+                        Classes="catalog-detail-cta"
+                        IsVisible="{Binding HasUpdateAvailable, Converter={x:Static BoolConverters.Not}}"
                         Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.LaunchPackInstanceCommand}"/>
-            </Border>
+                <Button Content="{loc:Localize UI.Packs.Update}"
+                        Classes="catalog-detail-cta"
+                        IsVisible="{Binding HasUpdateAvailable}"
+                        Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.UpdatePackInstanceCommand}"/>
 
+                <Button Classes="catalog-detail-secondary"
+                        Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.RenamePackInstanceCommand}"
+                        AutomationProperties.Name="{loc:Localize UI.Packs.Rename}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Edit}" FontSize="16" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Localize UI.Packs.Rename}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Classes="catalog-detail-secondary"
+                        Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.SharePackInstanceCommand}"
+                        AutomationProperties.Name="{loc:Localize UI.Inspector.ActionTiles.Share}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Share}" FontSize="16" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Localize UI.Inspector.ActionTiles.Share}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Więcej: pozostałe istniejące akcje drawera (nic nie znika) -->
+                <Button Classes="catalog-detail-secondary"
+                        AutomationProperties.Name="{loc:Localize UI.TopBar.More}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ic:SymbolIcon Symbol="{x:Static fic:Symbol.MoreHorizontal}" FontSize="16" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Localize UI.TopBar.More}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Button.Flyout>
+                        <MenuFlyout Placement="Bottom">
+                            <MenuItem Header="{loc:Localize UI.Packs.LaunchPack}"
+                                      IsVisible="{Binding HasUpdateAvailable}"
+                                      Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.LaunchPackInstanceCommand}">
+                                <MenuItem.Icon>
+                                    <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Play}" FontSize="16"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="{loc:Localize UI.Packs.Clone}"
+                                      Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.ClonePackInstanceCommand}">
+                                <MenuItem.Icon>
+                                    <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Copy}" FontSize="16"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="{loc:Localize UI.Packs.ApplyTouConfig}"
+                                      IsVisible="{Binding HasTouConfig}"
+                                      Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.ApplyPackTouConfigCommand}">
+                                <MenuItem.Icon>
+                                    <ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowDownload}" FontSize="16"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="{loc:Localize UI.Packs.SaveTouConfig}"
+                                      Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.CapturePackTouConfigCommand}">
+                                <MenuItem.Icon>
+                                    <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Save}" FontSize="16"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="{loc:Localize UI.Buttons.OpenFolder}"
+                                      Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.OpenPackInstanceFolderCommand}">
+                                <MenuItem.Icon>
+                                    <ic:SymbolIcon Symbol="{x:Static fic:Symbol.FolderOpen}" FontSize="16"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem Header="{loc:Localize UI.Packs.DeleteTitle}"
+                                      Foreground="{DynamicResource DangerBrush}"
+                                      Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.DeletePackInstanceCommand}">
+                                <MenuItem.Icon>
+                                    <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Delete}" FontSize="16" Foreground="{DynamicResource DangerBrush}"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+            </StackPanel>
+
+            <!-- 3. Przewijalne sekcje: zmiany aktualizacji, zgodność, zawartość, tabela tech -->
             <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-                <StackPanel Spacing="10">
-                    <Border Classes="mod-detail-section" IsVisible="{Binding HasUpdateAvailable}">
-                        <StackPanel Spacing="8">
-                            <TextBlock Classes="inspector-section-title"
-                                       Text="{loc:Localize UI.Inspector.Details}"/>
+                <StackPanel Spacing="16">
+
+                    <StackPanel Spacing="6" IsVisible="{Binding HasUpdateAvailable}">
+                        <TextBlock Classes="inspector-section-title"
+                                   Margin="0"
+                                   Text="{loc:Localize ModPacks.WhatChanged}"/>
+                        <TextBlock Text="{Binding PackUpdateChangesText}"
+                                   TextWrapping="Wrap"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   IsVisible="{Binding PackUpdateChangesText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    </StackPanel>
+
+                    <!-- Sprawdzenie zgodności (z istniejących stanów zestawu) -->
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <ic:SymbolIcon Symbol="{x:Static fic:Symbol.CheckmarkCircle}" FontSize="16"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{loc:Localize UI.Inspector.CompatCheck}"
+                                       FontSize="13"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <TextBlock Text="{loc:Localize UI.Inspector.Compat.Loading}"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       IsVisible="{Binding ShowStatusBusy}"/>
+                            <Ellipse Width="6" Height="6"
+                                     Fill="{DynamicResource WarningTextBrush}" VerticalAlignment="Center"
+                                     IsVisible="{Binding ShowStatusUpdate}"/>
                             <TextBlock Text="{loc:Localize UI.ModStatus.UpdateAvailable}"
-                                       Foreground="{DynamicResource StatusUpdateBrush}"
-                                       FontWeight="SemiBold"/>
-                            <TextBlock Text="{loc:Localize ModPacks.WhatChanged}"
-                                       FontWeight="SemiBold"
-                                       FontSize="12"
-                                       Opacity="0.9"/>
-                            <TextBlock Text="{Binding PackUpdateChangesText}"
-                                       TextWrapping="Wrap"
-                                       FontSize="12"
-                                       Opacity="0.85"
-                                       IsVisible="{Binding PackUpdateChangesText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                            <Button Content="{loc:Localize UI.Packs.Update}"
-                                    Classes="mod-detail-btn"
-                                    Background="{DynamicResource StatusUpdateBrush}"
-                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.UpdatePackInstanceCommand}"/>
+                                       FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource WarningTextBrush}"
+                                       IsVisible="{Binding ShowStatusUpdate}"/>
+                            <Ellipse Width="6" Height="6"
+                                     Fill="{DynamicResource StatusInstalledTextBrush}" VerticalAlignment="Center"
+                                     IsVisible="{Binding PackCompatIsReady}"/>
+                            <TextBlock Text="{loc:Localize UI.Inspector.CompatReady}"
+                                       FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource StatusInstalledTextBrush}"
+                                       IsVisible="{Binding PackCompatIsReady}"/>
                         </StackPanel>
-                    </Border>
+                    </Grid>
 
-                    <Border Classes="mod-detail-section">
-                        <StackPanel Spacing="6">
-                            <TextBlock Classes="inspector-section-title"
-                                       Text="{loc:Localize UI.Inspector.Contents}"/>
-                            <TextBlock Text="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.SelectedPackContentsText}"
-                                       TextWrapping="Wrap"
-                                       FontSize="12"
-                                       Opacity="0.85"/>
-                        </StackPanel>
-                    </Border>
+                    <!-- Zawartość zestawu: rozwijany wiersz z licznikiem -->
+                    <StackPanel Spacing="8">
+                        <Button Classes="catalog-detail-dllrow"
+                                Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.TogglePackContentsSectionCommand}"
+                                AutomationProperties.Name="{loc:Localize UI.Packs.ContentsRow}">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+                                <ic:SymbolIcon Grid.Column="0" Symbol="{x:Static fic:Symbol.Box}" FontSize="18"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="{loc:Localize UI.Packs.ContentsRow}"
+                                           FontSize="13" FontWeight="SemiBold"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextMutedBrush}"
+                                           Text="{Binding PackContentsItemCount}"
+                                           VerticalAlignment="Center"/>
+                                <Panel Grid.Column="3" Width="16" Height="16" VerticalAlignment="Center">
+                                    <ic:SymbolIcon Symbol="{x:Static fic:Symbol.ChevronDown}" FontSize="14"
+                                                   IsVisible="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.IsPackContentsSectionExpanded}"/>
+                                    <ic:SymbolIcon Symbol="{x:Static fic:Symbol.ChevronRight}" FontSize="14"
+                                                   IsVisible="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.IsPackContentsSectionExpanded, Converter={x:Static BoolConverters.Not}}"/>
+                                </Panel>
+                            </Grid>
+                        </Button>
+                        <TextBlock Text="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.SelectedPackContentsText}"
+                                   TextWrapping="Wrap"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   IsVisible="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.IsPackContentsSectionExpanded}"/>
+                    </StackPanel>
 
-                    <Border Classes="mod-detail-section">
-                        <StackPanel Spacing="8">
-                            <TextBlock Classes="inspector-section-title"
-                                       Text="{loc:Localize UI.Inspector.Configuration}"/>
-                            <Button Content="{loc:Localize UI.Packs.Rename}"
-                                    Classes="mod-detail-btn"
-                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.RenamePackInstanceCommand}"/>
-                            <Button Content="{loc:Localize UI.Packs.Clone}"
-                                    Classes="mod-detail-btn"
-                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.ClonePackInstanceCommand}"/>
-                            <Button Content="{loc:Localize UI.Packs.ApplyTouConfig}"
-                                    Classes="mod-detail-btn"
-                                    IsVisible="{Binding HasTouConfig}"
-                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.ApplyPackTouConfigCommand}"/>
-                            <Button Content="{loc:Localize UI.Packs.SaveTouConfig}"
-                                    Classes="mod-detail-btn"
-                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.CapturePackTouConfigCommand}"/>
-                            <Button Content="{loc:Localize UI.Buttons.OpenFolder}"
-                                    Classes="mod-detail-btn"
-                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.OpenPackInstanceFolderCommand}"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Classes="mod-detail-section">
-                        <StackPanel Spacing="8">
-                            <TextBlock Classes="inspector-section-title"
-                                       Text="{loc:Localize UI.Inspector.Sharing}"/>
-                            <Button Content="{loc:Localize UI.Packs.Share}"
-                                    Classes="mod-detail-btn"
-                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.SharePackInstanceCommand}"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Classes="mod-detail-section">
-                        <StackPanel Spacing="8">
-                            <TextBlock Classes="inspector-section-title"
-                                       Text="{loc:Localize UI.Inspector.DangerZone}"/>
-                            <Button Content="{loc:Localize UI.Packs.DeleteTitle}"
-                                    Classes="mod-detail-btn"
-                                    Foreground="{DynamicResource DangerBrush}"
-                                    Command="{Binding $parent[local:PackInstanceDetailDrawer].DataContext.DeletePackInstanceCommand}"/>
-                        </StackPanel>
-                    </Border>
+                    <!-- Informacje techniczne na dole (makieta 05) -->
+                    <StackPanel Spacing="0">
+                        <Border Classes="catalog-detail-hairline"/>
+                        <Grid ColumnDefinitions="180,*" Margin="0,10">
+                            <TextBlock Classes="catalog-detail-techlabel" Text="{loc:Localize UI.Labels.Version}"/>
+                            <TextBlock Grid.Column="1" Classes="catalog-detail-techvalue"
+                                       Text="{Binding PackContentsCount}"/>
+                        </Grid>
+                        <Border Classes="catalog-detail-hairline"/>
+                        <Grid ColumnDefinitions="180,*" Margin="0,10">
+                            <TextBlock Classes="catalog-detail-techlabel" Text="{loc:Localize UI.Labels.Type}"/>
+                            <TextBlock Grid.Column="1" Classes="catalog-detail-techvalue"
+                                       Text="{loc:Localize UI.Packs.SavedBadge}"/>
+                        </Grid>
+                        <Border Classes="catalog-detail-hairline"/>
+                        <Grid ColumnDefinitions="180,*" Margin="0,10">
+                            <TextBlock Classes="catalog-detail-techlabel" Text="{loc:Localize UI.Labels.GameCompatibility}"/>
+                            <TextBlock Grid.Column="1" Classes="catalog-detail-techvalue"
+                                       Text="{Binding AmongVersion, StringFormat='Among Us {0}', TargetNullValue=—}"/>
+                        </Grid>
+                        <Border Classes="catalog-detail-hairline"/>
+                        <Grid ColumnDefinitions="180,*" Margin="0,10">
+                            <TextBlock Classes="catalog-detail-techlabel" Text="{loc:Localize UI.Labels.LastUpdated}"/>
+                            <TextBlock Grid.Column="1" Classes="catalog-detail-techvalue"
+                                       Text="{Binding LastUpdatedText}"/>
+                        </Grid>
+                        <Border Classes="catalog-detail-hairline"/>
+                    </StackPanel>
                 </StackPanel>
             </ScrollViewer>
         </Grid>

@@ -120,7 +120,9 @@
       "DllAddonsSubtitle": "Dodatki, które możesz włączyć w zestawach.",
       "Back": "Wróć do listy",
       "NoResultsHint": "Nie znaleziono modów. Zmień frazę lub wyczyść filtry.",
-      "ClearFilters": "Wyczyść filtry"
+      "ClearFilters": "Wyczyść filtry",
+      "NoDllsTitle": "Brak dodatków DLL",
+      "NoDllsHint": "Katalog nie zawiera obecnie dodatków DLL."
     },
     "TopBar": {
       "More": "Więcej",
@@ -153,6 +155,8 @@
       "CompatReady": "Gotowy do użycia",
       "CompatWarning": "Niektóre DLL nieprzetestowane",
       "CompatError": "Niekompatybilne DLL",
+      "CompatErrorTargets": "Niekompatybilne zestawy",
+      "CompatWarningTargets": "Niektóre zestawy nieprzetestowane",
       "Compat": {
         "Loading": "Ładowanie kompatybilności…"
       },
@@ -217,6 +221,10 @@
       "LocalNamePlaceholder": "Nazwa lokalna, np. ToU - znajomi",
       "Contents": "Zawartość",
       "ContentsEmpty": "Brak dodatków DLL w tym zestawie.",
+      "SavedBadge": "Zapisany",
+      "ContentsCountFormat": "1 mod · {0} DLL",
+      "LaunchPack": "Uruchom zestaw",
+      "ContentsRow": "Zawartość zestawu",
       "NoPacksTitle": "Brak lokalnych zestawów",
       "NoPacksDescription": "Zaimportuj kod modpacka lub zainstaluj mod z katalogu jako nowy zestaw.",
       "MorePacksTitle": "Dodaj kolejny zestaw",
@@ -425,6 +433,8 @@
       "InstallIn": "📥 Zainstaluj w:",
       "UninstallFrom": "🗑️ Odinstaluj z:",
       "NoModsInstalled": "Brak zainstalowanych modów",
+      "AddToPack": "Dodaj do zestawu",
+      "CompatibleMods": "Zgodne mody",
       "InstallFullModFirst": "Zainstaluj najpierw jakiś mod typu 'full'",
       "BackToList": "← Powrót do listy DLL",
       "VersionFormat": "Wersja: {0}",

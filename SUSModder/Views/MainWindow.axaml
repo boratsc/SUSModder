@@ -4,7 +4,6 @@
         xmlns:local="using:SUSModder.Views"
         xmlns:loc="using:SUSModder.Services.Localization"
         xmlns:converters="using:SUSModder.Converters"
-        xmlns:labs="using:Avalonia.Labs.Panels"
         xmlns:i="using:Avalonia.Xaml.Interactivity"
         xmlns:behaviors="using:SUSModder.Behaviors"
         xmlns:controls="using:SUSModder.Controls"
@@ -202,11 +201,11 @@
 			<Setter Property="Opacity" Value="0.7"/>
 		</Style>
 
-		<!-- Skeleton card loading placeholder -->
+		<!-- Skeleton row loading placeholder (E4: wiersz 68 px jak listy) -->
 		<Style Selector="Border.skeleton-card">
-			<Setter Property="Width" Value="340"/>
-			<Setter Property="Height" Value="160"/>
-			<Setter Property="CornerRadius" Value="12"/>
+			<Setter Property="Height" Value="68"/>
+			<Setter Property="HorizontalAlignment" Value="Stretch"/>
+			<Setter Property="CornerRadius" Value="10"/>
 			<Setter Property="Background" Value="{DynamicResource ModCardBackgroundBrush}"/>
 			<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
 			<Setter Property="BorderThickness" Value="1"/>
@@ -427,21 +426,18 @@
 					   Classes="glass-browser-panel"
 					   PointerPressed="ModGridBackground_PointerPressed">
 
-					<!-- Skeleton loading placeholders (widoczne podczas inicjalizacji) -->
+					<!-- Skeleton loading placeholders (widoczne podczas inicjalizacji) — E4: wiersze 68 px jak listy -->
 					<ScrollViewer Margin="10"
 								  IsVisible="{Binding IsModsLoading}"
 								  Background="Transparent">
-						<labs:FlexPanel Direction="Row" Wrap="Wrap"
-										JustifyContent="FlexStart"
-										AlignItems="FlexStart"
-										AlignContent="FlexStart">
-							<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
-							<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
-							<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
-							<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
-							<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
-							<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
-						</labs:FlexPanel>
+						<StackPanel Spacing="8" Margin="0,4">
+							<Border Classes="skeleton-card"/>
+							<Border Classes="skeleton-card"/>
+							<Border Classes="skeleton-card"/>
+							<Border Classes="skeleton-card"/>
+							<Border Classes="skeleton-card"/>
+							<Border Classes="skeleton-card"/>
+						</StackPanel>
 					</ScrollViewer>
 
 					<!-- Stan pusty (makieta 13): komunikat + wyczyść filtry. -->
@@ -476,72 +472,190 @@
 												   VerticalAlignment="Center"
 												   HorizontalAlignment="Center"/>
 
-					<ScrollViewer Margin="10"
-								  VerticalScrollBarVisibility="Auto"
-								  IsVisible="{Binding IsPackInstancesGridVisible}"
-								  Background="Transparent">
-						<StackPanel Spacing="16">
-							<ListBox x:Name="PackInstancesListBox"
-									 ItemsSource="{Binding PackInstances}"
-									 SelectedItem="{Binding SelectedPackInstance}"
-									 Background="Transparent"
-									 BorderThickness="0">
-								<ListBox.ItemsPanel>
-									<ItemsPanelTemplate>
-										<labs:FlexPanel Direction="Row"
-														Wrap="Wrap"
-														JustifyContent="FlexStart"
-														AlignItems="FlexStart"
-														AlignContent="FlexStart"
-														RowSpacing="0"
-														ColumnSpacing="0">
-											<i:Interaction.Behaviors>
-												<behaviors:LayoutAnimationBehavior/>
-											</i:Interaction.Behaviors>
-										</labs:FlexPanel>
-									</ItemsPanelTemplate>
-								</ListBox.ItemsPanel>
-								<ListBox.ItemTemplate>
-									<DataTemplate>
-										<controls:PackInstanceCard/>
-									</DataTemplate>
-								</ListBox.ItemTemplate>
-							</ListBox>
+					<!-- E4: zestawy jako pionowa lista wierszy (domyślny VirtualizingStackPanel).
+					     Klik = zaznaczenie, dwuklik/Enter = istniejące uruchomienie zestawu; bulk zachowany. -->
+					<Grid RowDefinitions="*,Auto"
+						  Margin="10,0,10,10"
+						  IsVisible="{Binding IsPackInstancesGridVisible}">
+						<ListBox x:Name="PackInstancesListBox"
+								 Classes="catalog-list"
+								 ItemsSource="{Binding PackInstances}"
+								 SelectedItem="{Binding SelectedPackInstance}"
+								 KeyDown="PackInstancesListBox_KeyDown"
+								 Background="Transparent"
+								 BorderThickness="0">
+							<ListBox.ItemTemplate>
+								<DataTemplate x:DataType="vm:ModInstanceItem">
+									<Panel>
+										<i:Interaction.Behaviors>
+											<behaviors:DoubleClickBehavior
+												DoubleClickCommand="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).PackInstanceDoubleClickCommand}"
+												CommandParameter="{Binding}"
+												DoubleClickInterval="300"/>
+										</i:Interaction.Behaviors>
+										<Border Classes="catalog-row"
+												Classes.bulk-checked="{Binding IsCheckedForBulk}">
+											<Panel>
+												<Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+													<Border Grid.Column="0" Classes="catalog-row-icon">
+														<Image Source="{Binding IconSourceKey, Converter={StaticResource StringToBitmapConverter}}"
+															   Width="44" Height="44" Stretch="UniformToFill"/>
+													</Border>
+													<StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+														<TextBlock Classes="catalog-row-title" Text="{Binding DisplayName}"/>
+														<TextBlock Classes="catalog-row-subtitle" Text="{Binding PackRowSubtitle}"/>
+													</StackPanel>
+													<StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+														<Panel Width="8" Height="8" VerticalAlignment="Center">
+															<Ellipse Width="8" Height="8"
+																	 Fill="{DynamicResource StatusBusyBrush}"
+																	 IsVisible="{Binding ShowStatusBusy}"/>
+															<Ellipse Width="8" Height="8"
+																	 Fill="{DynamicResource StatusUpdateBrush}"
+																	 IsVisible="{Binding ShowStatusUpdate}"/>
+															<Ellipse Width="8" Height="8"
+																	 Fill="{DynamicResource StatusInstalledBrush}"
+																	 IsVisible="{Binding ShowStatusInstalled}"/>
+														</Panel>
+														<Border Classes="catalog-row-badge">
+															<TextBlock Classes="catalog-row-badge-text"
+																	   Text="{Binding PackStatusBadge}"/>
+														</Border>
+													</StackPanel>
+													<CheckBox Grid.Column="3"
+															  IsChecked="{Binding IsCheckedForBulk}"
+															  IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsBulkSelectionMode}"
+															  IsEnabled="{Binding IsBulkEligible}"
+															  VerticalAlignment="Center"/>
+												</Grid>
+												<ProgressBar Classes="catalog-row-progress"
+															 Minimum="0" Maximum="100"
+															 Value="{Binding Progress}"
+															 IsVisible="{Binding IsBusy}"/>
+											</Panel>
+										</Border>
+										<Border Classes="catalog-row-separator"/>
+									</Panel>
+								</DataTemplate>
+							</ListBox.ItemTemplate>
+						</ListBox>
 
-							<controls:PackInstancesHintPanel DataContext="{Binding}"
-															 HorizontalAlignment="Center"
-															 ShowEmptyStateMessage="False"/>
-						</StackPanel>
-					</ScrollViewer>
+						<controls:PackInstancesHintPanel Grid.Row="1"
+														 DataContext="{Binding}"
+														 HorizontalAlignment="Center"
+														 ShowEmptyStateMessage="False"/>
+					</Grid>
 
+					<!-- E4: DLL jako pionowa lista wierszy (domyślny VirtualizingStackPanel).
+					     Klik = zaznaczenie (inspektor), dwuklik/Enter = istniejący wybór DLL; bulk zachowany. -->
 					<ListBox x:Name="DllModsListBox"
-							 Margin="10"
+							 Classes="catalog-list"
+							 Margin="10,0,10,10"
 							 IsVisible="{Binding IsDllAddonsGridVisible}"
 							 ItemsSource="{Binding DllMods}"
 							 SelectedItem="{Binding SelectedDllMod}"
+							 KeyDown="DllModsListBox_KeyDown"
 							 Background="Transparent"
 							 BorderThickness="0">
-						<ListBox.ItemsPanel>
-							<ItemsPanelTemplate>
-								<labs:FlexPanel Direction="Row"
-												Wrap="Wrap"
-												JustifyContent="FlexStart"
-												AlignItems="FlexStart"
-												AlignContent="FlexStart"
-												RowSpacing="0"
-												ColumnSpacing="0">
-									<i:Interaction.Behaviors>
-										<behaviors:LayoutAnimationBehavior/>
-									</i:Interaction.Behaviors>
-								</labs:FlexPanel>
-							</ItemsPanelTemplate>
-						</ListBox.ItemsPanel>
 						<ListBox.ItemTemplate>
-							<DataTemplate>
-								<controls:DllAddonCard/>
+							<DataTemplate x:DataType="vm:ModItem">
+								<Panel>
+									<i:Interaction.Behaviors>
+										<behaviors:DoubleClickBehavior
+											DoubleClickCommand="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).SelectDllModCommand}"
+											CommandParameter="{Binding}"
+											DoubleClickInterval="300"/>
+									</i:Interaction.Behaviors>
+									<Border Classes="catalog-row"
+											Classes.bulk-checked="{Binding IsCheckedForBulk}">
+										<Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+											<Border Grid.Column="0" Classes="catalog-row-icon">
+												<Image Source="{Binding IconSourceKey, Converter={StaticResource StringToBitmapConverter}}"
+													   Width="44" Height="44" Stretch="UniformToFill"/>
+											</Border>
+											<StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+												<TextBlock Classes="catalog-row-title" Text="{Binding Name}"/>
+												<TextBlock Classes="catalog-row-subtitle" Text="{Binding CatalogRowSubtitle}"/>
+											</StackPanel>
+											<StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+												<Panel Width="8" Height="8" VerticalAlignment="Center">
+													<Ellipse Width="8" Height="8"
+															 Fill="{DynamicResource StatusBusyBrush}"
+															 IsVisible="{Binding ShowStatusBusy}"/>
+													<Ellipse Width="8" Height="8"
+															 Fill="{DynamicResource StatusUpdateBrush}"
+															 IsVisible="{Binding ShowStatusUpdate}"/>
+													<Ellipse Width="8" Height="8"
+															 Fill="{DynamicResource StatusInstalledBrush}"
+															 IsVisible="{Binding ShowStatusInstalled}"/>
+													<Ellipse Width="8" Height="8"
+															 Fill="{DynamicResource StatusNotInstalledBrush}"
+															 IsVisible="{Binding ShowStatusNotInstalled}"/>
+												</Panel>
+												<Border Classes="catalog-row-badge">
+													<TextBlock Classes="catalog-row-badge-text"
+															   Text="{Binding CatalogTypeBadge}"/>
+												</Border>
+											</StackPanel>
+											<StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+												<!-- Gwiazdka: hover/focus wiersza lub gdy ulubiony (stały slot 28px). -->
+												<Panel Width="28" Height="28">
+													<ToggleButton Classes="catalog-row-star"
+																  IsChecked="{Binding IsFavorite, Mode=OneWay}"
+																  Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ToggleFavoriteCommand}"
+																  CommandParameter="{Binding}"
+																  ToolTip.Tip="{loc:Localize UI.Favorites.Toggle}"
+																  AutomationProperties.Name="{loc:Localize UI.Favorites.Toggle}">
+														<ToggleButton.IsVisible>
+															<MultiBinding Converter="{x:Static BoolConverters.And}">
+																<Binding Path="CanFavorite"/>
+																<MultiBinding Converter="{x:Static BoolConverters.Or}">
+																	<Binding Path="IsFavorite"/>
+																	<Binding Path="$parent[ListBoxItem].IsPointerOver"/>
+																	<Binding Path="$parent[ListBoxItem].IsKeyboardFocusWithin"/>
+																</MultiBinding>
+															</MultiBinding>
+														</ToggleButton.IsVisible>
+														<Panel>
+															<TextBlock Text="★" IsVisible="{Binding IsFavorite}"
+																	   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+															<TextBlock Text="☆" IsVisible="{Binding IsFavorite, Converter={x:Static BoolConverters.Not}}"
+																	   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+														</Panel>
+													</ToggleButton>
+												</Panel>
+												<CheckBox IsChecked="{Binding IsCheckedForBulk}"
+														  IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsBulkSelectionMode}"
+														  IsEnabled="{Binding IsDllBulkEligible}"
+														  VerticalAlignment="Center"/>
+											</StackPanel>
+										</Grid>
+									</Border>
+									<Border Classes="catalog-row-separator"/>
+								</Panel>
 							</DataTemplate>
 						</ListBox.ItemTemplate>
 					</ListBox>
+
+					<!-- E4: stan pusty DLL bez aktywnego filtra (makieta 13). -->
+					<Border Margin="10"
+							Classes="catalog-empty-state"
+							IsVisible="{Binding ShowDllAddonsEmptyState}"
+							VerticalAlignment="Center"
+							HorizontalAlignment="Stretch"
+							MaxWidth="420">
+						<StackPanel Spacing="8" HorizontalAlignment="Center">
+							<TextBlock Text="{loc:Localize UI.Browser.NoDllsTitle}"
+									   FontSize="16" FontWeight="SemiBold"
+									   TextAlignment="Center"
+									   Foreground="{DynamicResource TextPrimaryBrush}"/>
+							<TextBlock Text="{loc:Localize UI.Browser.NoDllsHint}"
+									   FontSize="12"
+									   TextAlignment="Center"
+									   TextWrapping="Wrap"
+									   Foreground="{DynamicResource TextMutedBrush}"/>
+						</StackPanel>
+					</Border>
 
 					<!-- E3: katalog jako pionowa lista wierszy (domyślny VirtualizingStackPanel).
 					     Klik = zaznaczenie (SelectedMod), dwuklik/Enter = istniejąca aktywacja moda. -->

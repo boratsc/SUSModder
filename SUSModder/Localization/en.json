@@ -120,7 +120,9 @@
       "DllAddonsSubtitle": "Add-ons you can enable in your packs.",
       "Back": "Back to list",
       "NoResultsHint": "No mods found. Change your search or clear the filters.",
-      "ClearFilters": "Clear filters"
+      "ClearFilters": "Clear filters",
+      "NoDllsTitle": "No DLL addons",
+      "NoDllsHint": "The catalog currently has no DLL addons."
     },
     "TopBar": {
       "More": "More",
@@ -153,6 +155,8 @@
       "CompatReady": "Ready to use",
       "CompatWarning": "Some DLLs untested",
       "CompatError": "Incompatible DLLs",
+      "CompatErrorTargets": "Incompatible packs",
+      "CompatWarningTargets": "Some packs not tested",
       "Compat": {
         "Loading": "Loading compatibility…"
       },
@@ -217,6 +221,10 @@
       "LocalNamePlaceholder": "Local name, e.g. ToU - friends",
       "Contents": "Contents",
       "ContentsEmpty": "No DLL add-ons in this pack.",
+      "SavedBadge": "Saved",
+      "ContentsCountFormat": "1 mod · {0} DLL",
+      "LaunchPack": "Launch pack",
+      "ContentsRow": "Pack contents",
       "NoPacksTitle": "No local packs yet",
       "NoPacksDescription": "Import a mod pack code or install a mod from the catalog as a new pack.",
       "MorePacksTitle": "Add another pack",
@@ -425,6 +433,8 @@
       "InstallIn": "📥 Install in:",
       "UninstallFrom": "🗑️ Uninstall from:",
       "NoModsInstalled": "No mods installed",
+      "AddToPack": "Add to pack",
+      "CompatibleMods": "Compatible mods",
       "InstallFullModFirst": "Install a 'full' mod first",
       "BackToList": "← Back to DLL list",
       "VersionFormat": "Version: {0}",

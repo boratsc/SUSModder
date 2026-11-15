@@ -5,7 +5,7 @@
              x:Class="SUSModder.Controls.PackInstancesHintPanel"
              x:DataType="vm:MainWindowViewModel"
              x:Name="Root">
-	<Border Classes="glass-empty-state"
+	<Border Classes="catalog-empty-state"
 			MaxWidth="420">
 		<StackPanel Spacing="8" HorizontalAlignment="Center">
 			<TextBlock Text="{loc:Localize UI.Packs.NoPacksTitle}"
@@ -32,6 +32,7 @@
 				<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
 					<Button MinWidth="160"
 							MaxWidth="190"
+							Classes="catalog-detail-secondary"
 							HorizontalContentAlignment="Center"
 							Command="{Binding CreateLocalPackCommand}">
 						<TextBlock Text="{loc:Localize UI.Packs.CreateLocal}"
@@ -40,6 +41,7 @@
 					</Button>
 					<Button MinWidth="160"
 							MaxWidth="190"
+							Classes="catalog-detail-secondary"
 							HorizontalContentAlignment="Center"
 							Command="{Binding CreateAndSharePackCommand}">
 						<TextBlock Text="{loc:Localize UI.Packs.CreateAndShare}"
@@ -49,6 +51,7 @@
 				</StackPanel>
 				<Button MinWidth="180"
 						MaxWidth="240"
+						Classes="catalog-detail-secondary"
 						HorizontalAlignment="Center"
 						HorizontalContentAlignment="Center"
 						Command="{Binding EnterModPackCodeCommand}">

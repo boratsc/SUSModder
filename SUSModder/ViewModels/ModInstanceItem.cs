@@ -1,6 +1,8 @@
 using System;
+using System.Globalization;
 using ReactiveUI;
 using SUSModder.Core.Models;
+using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.ViewModels
 {
@@ -9,6 +11,16 @@ namespace SUSModder.ViewModels
     /// </summary>
     public class ModInstanceItem : ReactiveObject
     {
+        // ── Statyczny dostęp do lokalizacji (jak w ModItem) ──
+        private static ILocalizationService? _loc;
+
+        public static void InitializeLocalization(ILocalizationService localizationService)
+        {
+            _loc = localizationService;
+        }
+
+        private static ILocalizationService? Loc => _loc;
+
         private bool _isBusy;
         private int _progress;
         private string _statusMessage = string.Empty;
@@ -61,10 +73,49 @@ namespace SUSModder.ViewModels
                 ? $"{DllCount} DLL · config ToU"
                 : $"{DllCount} DLL";
 
+        /// <summary>E4: alias dla AutomationProperties.Name wiersza listy (styl catalog-list).</summary>
+        public string Name => DisplayName;
+
+        /// <summary>
+        /// E4: licznik zawartości „1 mod · N DLL" — instancja to zawsze 1 mod FULL + DLL-e.
+        /// Presentation-only (wiersz listy, chip i tabela tech szczegółów).
+        /// </summary>
+        public string PackContentsCount =>
+            Loc?.GetFormatted("UI.Packs.ContentsCountFormat", DllCount) ?? $"1 mod · {DllCount} DLL";
+
+        /// <summary>E4: podtytuł wiersza zestawu — licznik zawartości + krótki opis (mod bazowy · wersja).</summary>
+        public string PackRowSubtitle =>
+            string.IsNullOrWhiteSpace(Subtitle) ? PackContentsCount : $"{PackContentsCount} · {Subtitle}";
+
+        /// <summary>E4: badge wiersza — „Zapisany" albo stan aktualizacji (istniejący stan).</summary>
+        public string PackStatusBadge =>
+            HasUpdateAvailable
+                ? Loc?.Get("UI.ModStatus.UpdateAvailable") ?? "Dostępna aktualizacja"
+                : Loc?.Get("UI.Packs.SavedBadge") ?? "Zapisany";
+
+        /// <summary>E4: licznik pozycji rozwijanej „Zawartość zestawu" (DLL-e + config ToU).</summary>
+        public int PackContentsItemCount => DllCount + (HasTouConfig ? 1 : 0);
+
+        /// <summary>E4: data ostatniej aktualizacji do tabeli tech (dd.MM.yyyy).</summary>
+        public string LastUpdatedText =>
+            DateTime.TryParse(Instance.UpdatedAt, CultureInfo.InvariantCulture, DateTimeStyles.None, out var updated)
+                ? updated.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture)
+                : "—";
+
+        /// <summary>E4: podsumowanie zgodności zestawu z istniejących stanów (bez nowej logiki Core).</summary>
+        public bool PackCompatIsReady => !IsBusy && !HasUpdateAvailable;
+
         public bool IsBusy
         {
             get => _isBusy;
-            set => this.RaiseAndSetIfChanged(ref _isBusy, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isBusy, value);
+                this.RaisePropertyChanged(nameof(ShowStatusBusy));
+                this.RaisePropertyChanged(nameof(ShowStatusInstalled));
+                this.RaisePropertyChanged(nameof(ShowStatusUpdate));
+                this.RaisePropertyChanged(nameof(PackCompatIsReady));
+            }
         }
 
         public int Progress
@@ -87,6 +138,8 @@ namespace SUSModder.ViewModels
                 this.RaiseAndSetIfChanged(ref _hasUpdateAvailable, value);
                 this.RaisePropertyChanged(nameof(ShowStatusUpdate));
                 this.RaisePropertyChanged(nameof(ShowStatusInstalled));
+                this.RaisePropertyChanged(nameof(PackStatusBadge));
+                this.RaisePropertyChanged(nameof(PackCompatIsReady));
             }
         }
 
