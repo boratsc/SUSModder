@@ -1,6 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="using:SUSModder.Services.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:fic="using:FluentIcons.Common"
         x:Class="SUSModder.Views.EpicLoginRequiredDialog"
         Title="{loc:Localize Dialogs.EpicLoginRequired.Title}"
         Width="560"
@@ -12,45 +14,23 @@
         Background="Transparent"
         ExtendClientAreaToDecorationsHint="True">
 
-    <Border CornerRadius="12"
-            ClipToBounds="True"
-            Background="#1A1A2E"
-            BorderBrush="#FF6B35"
-            BorderThickness="2">
-        <Border.Effect>
-            <DropShadowEffect Color="#FF6B35"
-                            BlurRadius="20"
-                            OffsetX="0"
-                            OffsetY="0"
-                            Opacity="0.5"/>
-        </Border.Effect>
-
+    <!-- E6: karta wg wspólnego wzorca (bez neonu). GOLD logowanie + outlined alternatywy. -->
+    <Border Classes="modal-card" ClipToBounds="True">
         <Grid RowDefinitions="Auto,*,Auto" Margin="30">
 
-            <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,10,0,20">
-                <TextBlock Text="⚠"
-                          FontSize="36"
-                          HorizontalAlignment="Center"
-                          Foreground="#FF6B35"
-                          Margin="0,0,0,10"/>
+            <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,10,0,16" Spacing="12">
+                <Border Classes="modal-icon danger">
+                    <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Warning}"/>
+                </Border>
 
                 <TextBlock Text="{loc:Localize Dialogs.EpicLoginRequired.Header}"
-                          FontSize="18"
-                          FontWeight="Bold"
-                          Foreground="White"
-                          HorizontalAlignment="Center"
-                          TextWrapping="Wrap"
-                          TextAlignment="Center"
-                          Margin="0,0,0,5"/>
+                          Classes="modal-title"
+                          MaxWidth="460"/>
             </StackPanel>
 
             <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,0,0,10">
                 <TextBlock Text="{loc:Localize Dialogs.EpicLoginRequired.Message}"
-                          FontSize="13"
-                          Foreground="#CCCCCC"
-                          HorizontalAlignment="Center"
-                          TextWrapping="Wrap"
-                          TextAlignment="Center"/>
+                          Classes="modal-message"/>
             </StackPanel>
 
             <Grid Grid.Row="2"
@@ -60,81 +40,22 @@
 
                 <Button Grid.Column="0"
                         Name="LoginButton"
-                        Height="54"
                         HorizontalAlignment="Stretch"
-                        Padding="8,6"
-                        Background="#00AA6E"
-                        BorderBrush="#00FFAA"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Cursor="Hand"
-                        Classes="actionButton">
-                    <Button.Styles>
-                        <Style Selector="Button.actionButton:pointerover">
-                            <Setter Property="Background" Value="#00CC88"/>
-                        </Style>
-                        <Style Selector="Button.actionButton:pressed">
-                            <Setter Property="Background" Value="#009960"/>
-                        </Style>
-                    </Button.Styles>
-                    <TextBlock Text="{loc:Localize Dialogs.EpicLoginRequired.LoginButton}"
-                               FontSize="13"
-                               FontWeight="Bold"
-                               Foreground="White"
-                               HorizontalAlignment="Center"/>
-                </Button>
+                        Classes="modal-primary"
+                        Content="{loc:Localize Dialogs.EpicLoginRequired.LoginButton}"/>
 
                 <Button Grid.Column="1"
                         Name="SwitchToSteamButton"
-                        Height="54"
                         HorizontalAlignment="Stretch"
-                        Padding="8,6"
-                        Background="#2A2A3E"
-                        BorderBrush="#00FFAA"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Cursor="Hand"
-                        Classes="actionButton2">
-                    <Button.Styles>
-                        <Style Selector="Button.actionButton2:pointerover">
-                            <Setter Property="Background" Value="#3A3A5E"/>
-                        </Style>
-                        <Style Selector="Button.actionButton2:pressed">
-                            <Setter Property="Background" Value="#4A4A6E"/>
-                        </Style>
-                    </Button.Styles>
-                    <TextBlock Text="{loc:Localize Dialogs.EpicLoginRequired.SwitchToSteamButton}"
-                               FontSize="13"
-                               FontWeight="Bold"
-                               Foreground="White"
-                               HorizontalAlignment="Center"/>
-                </Button>
+                        Classes="modal-secondary"
+                        Content="{loc:Localize Dialogs.EpicLoginRequired.SwitchToSteamButton}"/>
 
                 <Button Grid.Column="2"
                         Name="CloseButton"
-                        Height="54"
                         HorizontalAlignment="Stretch"
-                        Padding="8,6"
-                        Background="#3A1A1A"
-                        BorderBrush="#FF4444"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Cursor="Hand"
-                        Classes="actionButton3">
-                    <Button.Styles>
-                        <Style Selector="Button.actionButton3:pointerover">
-                            <Setter Property="Background" Value="#5A2A2A"/>
-                        </Style>
-                        <Style Selector="Button.actionButton3:pressed">
-                            <Setter Property="Background" Value="#6A3A3A"/>
-                        </Style>
-                    </Button.Styles>
-                    <TextBlock Text="{loc:Localize Dialogs.EpicLoginRequired.CloseButton}"
-                               FontSize="13"
-                               FontWeight="Bold"
-                               Foreground="#FF8888"
-                               HorizontalAlignment="Center"/>
-                </Button>
+                        Classes="modal-secondary"
+                        IsCancel="True"
+                        Content="{loc:Localize Dialogs.EpicLoginRequired.CloseButton}"/>
             </Grid>
 
         </Grid>

@@ -4,6 +4,8 @@
         xmlns:ia="using:Avalonia.Xaml.Interactions.Core"
         xmlns:behaviors="using:SUSModder.Behaviors"
         xmlns:local="using:SUSModder.Services.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:fic="using:FluentIcons.Common"
         x:Class="SUSModder.Views.UninstallConfirmDialog"
         Width="480" Height="340"
         WindowStartupLocation="CenterOwner"
@@ -14,7 +16,7 @@
 
 	<Window.Styles>
 		<FluentTheme />
-		
+
 		<!-- Animacja fade-in dla całego okna -->
 		<Style Selector="Window">
 			<Style.Animations>
@@ -28,7 +30,7 @@
 				</Animation>
 			</Style.Animations>
 		</Style>
-		
+
 		<!-- Animacja dla ikony kosza -->
 		<Style Selector="Border.trash-icon">
 			<Style.Animations>
@@ -44,7 +46,7 @@
 				</Animation>
 			</Style.Animations>
 		</Style>
-		
+
 		<!-- Animacja dla contentu -->
 		<Style Selector="StackPanel.content-panel">
 			<Style.Animations>
@@ -60,84 +62,44 @@
 				</Animation>
 			</Style.Animations>
 		</Style>
-		
-		<!-- Hover effect dla przycisku usuwania -->
-		<Style Selector="Button.delete-button:pointerover">
-			<Setter Property="Background" Value="{DynamicResource DangerActionHoverBgBrush}"/>
-			<Setter Property="BorderBrush" Value="{DynamicResource DangerActionPressedBrush}"/>
-		</Style>
-		
-		<Style Selector="Button.delete-button:pressed">
-			<Setter Property="Background" Value="{DynamicResource DangerActionPressedBrush}"/>
-		</Style>
-		
-		<!-- Hover effect dla przycisku anuluj -->
-		<Style Selector="Button.cancel-button:pointerover">
-			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-		</Style>
 	</Window.Styles>
 
+	<!-- E6 / makieta 12: ikona danger + pytanie + zdanie konsekwencji,
+	     DANGER „Usuń mod” + outlined „Anuluj”. Rozmiar jako drugorzędny wiersz. -->
 	<Border Margin="0,30,0,0">
-		<Grid Margin="30,10,30,30" RowDefinitions="Auto,Auto,Auto">
+		<Grid Margin="30,10,30,24" RowDefinitions="Auto,*,Auto">
 
-			<!-- Ikona kosza z tłem -->
 			<Border Grid.Row="0"
-					Classes="trash-icon"
-					Width="80" Height="80"
-					CornerRadius="40"
-					Background="{DynamicResource DangerActionSoftBrush}"
-					BorderBrush="{DynamicResource DangerActionBrush}"
-					BorderThickness="2"
-					HorizontalAlignment="Center"
-					Margin="0,0,0,20">
+					Classes="modal-icon danger trash-icon"
+					Margin="0,0,0,16">
 				<Border.RenderTransform>
 					<TranslateTransform/>
 				</Border.RenderTransform>
-				<TextBlock Text="🗑️" 
-						   FontSize="40"
-						   HorizontalAlignment="Center"
-						   VerticalAlignment="Center"/>
+				<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Delete}"/>
 			</Border>
 
-			<!-- Zawartość -->
 			<StackPanel Grid.Row="1"
 						Classes="content-panel"
-						Spacing="12"
-						MinHeight="110">
+						Spacing="12">
 				<StackPanel.RenderTransform>
 					<TranslateTransform/>
 				</StackPanel.RenderTransform>
-				
-				<!-- Tytuł -->
-				<TextBlock x:Name="TitleText"
-						   FontSize="20" 
-						   FontWeight="Bold"
-						   Foreground="{DynamicResource TextPrimaryBrush}"
-						   HorizontalAlignment="Center"
-						   TextAlignment="Center"/>
 
-				<!-- Wiadomość główna -->
+				<TextBlock x:Name="TitleText" Classes="modal-title"/>
+
 				<TextBlock x:Name="MessageText"
-						   FontSize="14"
-						   Foreground="{DynamicResource TextSecondaryBrush}"
-						   TextWrapping="Wrap"
-						   HorizontalAlignment="Center"
-						   TextAlignment="Center"
+						   Classes="modal-message"
 						   MaxWidth="380"
-						   Margin="0,0,0,8"/>
-				
+						   Margin="0,0,0,4"/>
+
 				<!-- Info o rozmiarze (opcjonalne) -->
 				<Border x:Name="SizeInfoBorder"
-						Background="{DynamicResource ModCardBackgroundBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="1"
-						CornerRadius="6"
-						Padding="12,8"
-						Margin="0,0,0,0"
+						Classes="modal-info-row"
 						HorizontalAlignment="Center"
 						IsVisible="False">
 					<StackPanel Orientation="Horizontal" Spacing="8">
-						<TextBlock Text="📦" FontSize="14"/>
+						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Info}" FontSize="14"
+						               Foreground="{DynamicResource TextSecondaryBrush}"/>
 						<TextBlock x:Name="SizeInfoText"
 								   FontSize="13"
 								   Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -145,44 +107,26 @@
 				</Border>
 			</StackPanel>
 
-			<!-- Przyciski -->
-			<StackPanel Grid.Row="2"
-						Orientation="Horizontal"
-						HorizontalAlignment="Center"
-						Spacing="12"
-						Margin="0,20,0,0">
-				<Button x:Name="CancelButton"
-						Classes="cancel-button"
-						Content="{local:Localize Dialogs.Uninstall.CancelButton}"
-						Width="160" Height="38"
-						Background="{DynamicResource ModCardBackgroundBrush}"
-						Foreground="{DynamicResource TextPrimaryBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="2"
-						CornerRadius="8"
-						FontWeight="Medium"
-						Click="CancelButton_Click"/>
+			<StackPanel Grid.Row="2" Classes="modal-actions" Margin="0,16,0,0">
 				<Button x:Name="ConfirmButton"
-						Classes="delete-button"
+						Classes="modal-danger"
 						Content="{local:Localize Dialogs.Uninstall.ConfirmButton}"
-						Width="160" Height="38"
-						Background="{DynamicResource DangerActionBrush}"
-						Foreground="{DynamicResource OnAccentTextBrush}"
-						BorderBrush="{DynamicResource DangerActionHoverBrush}"
-						BorderThickness="2"
-						CornerRadius="8"
-						FontWeight="Bold"
 						Click="ConfirmButton_Click">
 					<i:Interaction.Behaviors>
-						<behaviors:ShakeOnLoadBehavior 
-							Intensity="8" 
-							RepeatCount="2" 
+						<behaviors:ShakeOnLoadBehavior
+							Intensity="8"
+							RepeatCount="2"
 							Delay="0:0:0.6" />
 					</i:Interaction.Behaviors>
 					<Button.RenderTransform>
 						<TranslateTransform/>
 					</Button.RenderTransform>
 				</Button>
+				<Button x:Name="CancelButton"
+						Classes="modal-secondary"
+						Content="{local:Localize Dialogs.Uninstall.CancelButton}"
+						IsCancel="True"
+						Click="CancelButton_Click"/>
 			</StackPanel>
 		</Grid>
 	</Border>

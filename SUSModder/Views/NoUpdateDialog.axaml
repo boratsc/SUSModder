@@ -3,7 +3,7 @@
         xmlns:loc="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.NoUpdateDialog"
         Title="{loc:Localize Updates.UpdateAvailable}"
-        Width="500" Height="350"
+        Width="500" Height="340"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         Background="{DynamicResource WindowBackgroundBrush}"
@@ -12,7 +12,7 @@
 
   <Window.Styles>
     <FluentTheme />
-    
+
     <!-- Animacja fade-in -->
     <Style Selector="Window">
       <Style.Animations>
@@ -26,7 +26,7 @@
         </Animation>
       </Style.Animations>
     </Style>
-    
+
     <!-- Animacja dla ikony -->
     <Style Selector="Border.success-icon">
       <Style.Animations>
@@ -42,7 +42,7 @@
         </Animation>
       </Style.Animations>
     </Style>
-    
+
     <!-- Animacja dla contentu -->
     <Style Selector="StackPanel.content-panel">
       <Style.Animations>
@@ -58,114 +58,65 @@
         </Animation>
       </Style.Animations>
     </Style>
-    
-    <!-- Hover effect dla przycisku -->
-    <Style Selector="Button.ok-button:pointerover">
-      <Setter Property="Background" Value="{DynamicResource PositiveActionBrush}"/>
-      <Setter Property="BorderBrush" Value="{DynamicResource PositiveActionHoverBrush}"/>
-    </Style>
-    
-    <Style Selector="Button.ok-button:pressed">
-      <Setter Property="Background" Value="{DynamicResource PositiveActionHoverBrush}"/>
-    </Style>
   </Window.Styles>
 
+  <!-- E6: stan sukcesu (zielona ikona) + tytuł + zdanie; wersja pod „Szczegóły”. -->
   <Border Margin="0,30,0,0">
-    <Grid Margin="30,10,30,30" RowDefinitions="Auto,Auto,Auto">
+    <Grid Margin="30,10,30,24" RowDefinitions="Auto,*,Auto">
 
-      <!-- Ikona sukcesu -->
       <Border Grid.Row="0"
-              Classes="success-icon"
-              Width="80" Height="80"
-              CornerRadius="40"
-              Background="{DynamicResource PositiveActionSoftBrush}"
-              BorderBrush="{DynamicResource PositiveActionBrush}"
-              BorderThickness="2"
-              HorizontalAlignment="Center"
-              Margin="0,0,0,20">
+              Classes="modal-icon success success-icon"
+              Margin="0,0,0,16">
         <Border.RenderTransform>
           <TranslateTransform/>
         </Border.RenderTransform>
-        <TextBlock Text="✓" 
-                   FontSize="48"
-                   FontWeight="Bold"
-                   Foreground="{DynamicResource PositiveActionBrush}"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"/>
+        <TextBlock Text="✓" FontWeight="Bold"/>
       </Border>
 
-      <!-- Zawartość -->
       <StackPanel Grid.Row="1"
                   Classes="content-panel"
-                  Spacing="12"
-                  MinHeight="120">
+                  Spacing="12">
         <StackPanel.RenderTransform>
           <TranslateTransform/>
         </StackPanel.RenderTransform>
-        
-        <!-- Tytuł -->
-        <TextBlock Text="{loc:Localize Updates.UpToDate}"
-                   FontSize="20" 
-                   FontWeight="Bold"
-                   Foreground="{DynamicResource TextPrimaryBrush}"
-                   HorizontalAlignment="Center"
-                   TextAlignment="Center"/>
 
-        <!-- Wiadomość -->
+        <TextBlock Text="{loc:Localize Updates.UpToDate}" Classes="modal-title"/>
+
         <TextBlock Text="{loc:Localize Updates.NoUpdatesMessage}"
-                   FontSize="14"
-                   Foreground="{DynamicResource TextSecondaryBrush}"
-                   TextWrapping="Wrap"
-                   HorizontalAlignment="Center"
-                   TextAlignment="Center"
+                   Classes="modal-message"
                    MaxWidth="380"
-                   Margin="0,0,0,8"/>
-        
-        <!-- Info o wersji -->
-        <Border Background="{DynamicResource ModCardBackgroundBrush}"
-                BorderBrush="{DynamicResource ModCardBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="8"
-                Padding="16,12"
-                Margin="0,4,0,4">
-          <Grid ColumnDefinitions="Auto,*">
-            <TextBlock Grid.Column="0"
-                       Text="{loc:Localize Updates.CurrentVersion}"
-                       FontSize="13"
-                       FontWeight="Medium"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       VerticalAlignment="Center"/>
-            <TextBlock Grid.Column="1"
-                       x:Name="CurrentVersionText"
-                       Text="2.3.3-beta"
-                       FontSize="13"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource AccentBrush}"
-                       HorizontalAlignment="Right"
-                       VerticalAlignment="Center"/>
-          </Grid>
-        </Border>
+                   Margin="0,0,0,4"/>
+
+        <Expander Classes="modal-details" Header="{loc:Localize UI.Inspector.Details}">
+          <Border Classes="modal-info-row" Margin="0,8,0,0">
+            <Grid ColumnDefinitions="Auto,*">
+              <TextBlock Grid.Column="0"
+                         Text="{loc:Localize Updates.CurrentVersion}"
+                         FontSize="13"
+                         Foreground="{DynamicResource TextSecondaryBrush}"
+                         VerticalAlignment="Center"/>
+              <TextBlock Grid.Column="1"
+                         x:Name="CurrentVersionText"
+                         Text="2.3.3-beta"
+                         FontSize="13"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource AccentBrush}"
+                         HorizontalAlignment="Right"
+                         VerticalAlignment="Center"/>
+            </Grid>
+          </Border>
+        </Expander>
       </StackPanel>
 
-      <!-- Przycisk -->
       <Button Grid.Row="2"
               x:Name="OkButton"
-              Classes="ok-button"
+              Classes="modal-primary"
               Content="{loc:Localize UI.Buttons.OK}"
-              Width="180"
-              Height="40"
-              FontSize="14"
-              FontWeight="SemiBold"
-              Background="{DynamicResource PositiveActionBrush}"
-              BorderBrush="{DynamicResource PositiveActionHoverBrush}"
-              BorderThickness="1"
-              CornerRadius="8"
-              Foreground="{DynamicResource OnAccentTextBrush}"
+              IsDefault="True"
+              IsCancel="True"
               HorizontalAlignment="Center"
-              Margin="0,20,0,0"
-              Click="OkButton_Click"
-              Cursor="Hand">
-      </Button>
+              Margin="0,16,0,0"
+              Click="OkButton_Click"/>
 
     </Grid>
   </Border>

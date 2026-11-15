@@ -52,21 +52,14 @@
 
     <Grid Margin="24" RowDefinitions="Auto,*,Auto">
 
-        <!-- Nagłówek -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
-                <ic:SymbolIcon Symbol="{x:Static fic:Symbol.ShieldKeyhole}" FontSize="24" Foreground="#FF5722"/>
-                <TextBlock Text="{loc:Localize UI.Repair.Firewall.SelectModTitle}"
-                           FontSize="18" FontWeight="Bold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center"/>
-            </StackPanel>
+        <!-- Nagłówek (E6) -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16" Spacing="12">
+            <Border Classes="modal-icon">
+                <ic:SymbolIcon Symbol="{x:Static fic:Symbol.ShieldKeyhole}"/>
+            </Border>
+            <TextBlock Text="{loc:Localize UI.Repair.Firewall.SelectModTitle}" Classes="modal-title"/>
             <TextBlock Text="{loc:Localize UI.Repair.Firewall.SelectModDescription}"
-                       FontSize="12"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       TextWrapping="Wrap"
-                       TextAlignment="Center"
-                       Margin="0,8,0,0"/>
+                       Classes="modal-message"/>
         </StackPanel>
 
         <!-- Lista modów -->
@@ -116,22 +109,16 @@
 
         <!-- Przyciski -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12" Margin="0,16,0,0">
-            <Button x:Name="CancelButton"
-                    Content="{loc:Localize UI.Buttons.Cancel}"
-                    Width="120" Height="36"
-                    Background="{DynamicResource ModCardBackgroundBrush}"
-                    Foreground="{DynamicResource TextPrimaryBrush}"
-                    BorderBrush="{DynamicResource ModCardBorderBrush}"
-                    CornerRadius="6"
-                    Click="OnCancelClick"/>
             <Button x:Name="ConfirmButton"
+                    Classes="modal-primary"
                     Content="{loc:Localize UI.Repair.Firewall.AddException}"
-                    Width="160" Height="36"
-                    Background="{DynamicResource AccentBrush}"
-                    Foreground="{DynamicResource OnAccentTextBrush}"
-                    CornerRadius="6"
                     Click="OnConfirmClick"
                     IsEnabled="False"/>
+            <Button x:Name="CancelButton"
+                    Classes="modal-secondary"
+                    Content="{loc:Localize UI.Buttons.Cancel}"
+                    IsCancel="True"
+                    Click="OnCancelClick"/>
         </StackPanel>
     </Grid>
 </Window>

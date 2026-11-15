@@ -20,16 +20,16 @@
     </Style>
 
     <Style Selector="Border.tool-modal-overlay">
-        <Setter Property="Background" Value="#8A000000"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceOverlayBrush}"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="VerticalAlignment" Value="Stretch"/>
     </Style>
 
     <Style Selector="Border.tool-modal-card">
-        <Setter Property="Background" Value="{DynamicResource PaneBackgroundBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="CornerRadius" Value="14"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Width" Value="760"/>

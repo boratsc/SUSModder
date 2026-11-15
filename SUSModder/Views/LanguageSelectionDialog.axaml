@@ -14,32 +14,22 @@
         Background="Transparent"
         ExtendClientAreaToDecorationsHint="True">
 
-    <Border CornerRadius="12"
-            ClipToBounds="True"
-            Background="#1A1A2E"
-            BorderBrush="#00FFAA"
-            BorderThickness="2">
-        <Border.Effect>
-            <DropShadowEffect Color="#00FFAA"
-                            BlurRadius="20"
-                            OffsetX="0"
-                            OffsetY="0"
-                            Opacity="0.5"/>
-        </Border.Effect>
-
+    <!-- E6: karta wg wspólnego wzorca (bez neonu). Dialog przed wyborem języka,
+         więc nagłówek i stopka pozostają dwujęzyczne (PL + EN). -->
+    <Border Classes="modal-card" ClipToBounds="True">
         <Grid RowDefinitions="Auto,*,Auto" Margin="30">
             <!-- Header with bilingual text -->
-            <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,10,0,30">
+            <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,10,0,24">
                 <TextBlock Text="Wybierz język"
-                          FontSize="24"
+                          FontSize="22"
                           FontWeight="Bold"
-                          Foreground="White"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
                           HorizontalAlignment="Center"
                           Margin="0,0,0,5"/>
                 <TextBlock Text="Choose language"
-                          FontSize="20"
+                          FontSize="16"
                           FontWeight="SemiBold"
-                          Foreground="#CCCCCC"
+                          Foreground="{DynamicResource TextSecondaryBrush}"
                           HorizontalAlignment="Center"/>
             </StackPanel>
 
@@ -48,30 +38,26 @@
                 <!-- Polish Button -->
                 <Button Grid.Column="0"
                         Width="180"
-                        Height="180"
-                        Background="#2A2A3E"
-                        BorderBrush="#00FFAA"
-                        BorderThickness="2"
-                        CornerRadius="12"
+                        Height="170"
+                        Background="{DynamicResource SecondaryBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
                         Command="{Binding SelectPolishCommand}"
                         Cursor="Hand"
                         Classes="languageButton">
                     <Button.Styles>
                         <Style Selector="Button.languageButton:pointerover">
-                            <Setter Property="Background" Value="#3A3A4E"/>
-                            <Setter Property="BorderBrush" Value="#00F5FF"/>
+                            <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentMutedBrush}"/>
                         </Style>
                         <Style Selector="Button.languageButton:pressed">
-                            <Setter Property="Background" Value="#4A4A5E"/>
+                            <Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
+                        </Style>
+                        <Style Selector="Button.languageButton:focus">
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                         </Style>
                     </Button.Styles>
-                    <Button.Effect>
-                        <DropShadowEffect Color="#00FFAA"
-                                        BlurRadius="0"
-                                        OffsetX="0"
-                                        OffsetY="0"
-                                        Opacity="0.3"/>
-                    </Button.Effect>
 
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="15">
                         <!-- Polish Flag -->
@@ -79,7 +65,7 @@
                                 Height="80"
                                 CornerRadius="8"
                                 ClipToBounds="True"
-                                BorderBrush="#555"
+                                BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="1">
                             <Grid RowDefinitions="*,*">
                                 <Rectangle Grid.Row="0" Fill="White"/>
@@ -90,7 +76,7 @@
                         <TextBlock Text="Polski"
                                   FontSize="18"
                                   FontWeight="Bold"
-                                  Foreground="White"
+                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                   HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Button>
@@ -98,21 +84,26 @@
                 <!-- English Button -->
                 <Button Grid.Column="2"
                         Width="180"
-                        Height="180"
-                        Background="#2A2A3E"
-                        BorderBrush="#00FFAA"
-                        BorderThickness="2"
-                        CornerRadius="12"
+                        Height="170"
+                        Background="{DynamicResource SecondaryBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
                         Command="{Binding SelectEnglishCommand}"
                         Cursor="Hand"
                         Classes="languageButton">
-                    <Button.Effect>
-                        <DropShadowEffect Color="#00FFAA"
-                                        BlurRadius="0"
-                                        OffsetX="0"
-                                        OffsetY="0"
-                                        Opacity="0.3"/>
-                    </Button.Effect>
+                    <Button.Styles>
+                        <Style Selector="Button.languageButton:pointerover">
+                            <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentMutedBrush}"/>
+                        </Style>
+                        <Style Selector="Button.languageButton:pressed">
+                            <Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
+                        </Style>
+                        <Style Selector="Button.languageButton:focus">
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                        </Style>
+                    </Button.Styles>
 
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="15">
                         <!-- UK Flag -->
@@ -120,7 +111,7 @@
                                 Height="80"
                                 CornerRadius="8"
                                 ClipToBounds="True"
-                                BorderBrush="#555"
+                                BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="1">
                             <Grid>
                                 <!-- Blue background -->
@@ -151,7 +142,7 @@
                         <TextBlock Text="English"
                                   FontSize="18"
                                   FontWeight="Bold"
-                                  Foreground="White"
+                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                   HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Button>
@@ -161,7 +152,7 @@
             <TextBlock Grid.Row="2"
                       Text="Możesz zmienić język później w ustawieniach / You can change language later in settings"
                       FontSize="11"
-                      Foreground="#888888"
+                      Foreground="{DynamicResource TextMutedBrush}"
                       HorizontalAlignment="Center"
                       TextWrapping="Wrap"
                       TextAlignment="Center"

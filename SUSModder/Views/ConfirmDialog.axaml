@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.ConfirmDialog"
-        Width="400" Height="200"
+        Width="420" Height="220"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         Background="{DynamicResource WindowBackgroundBrush}">
@@ -11,44 +11,31 @@
 		<FluentTheme />
 	</Window.Styles>
 
-	<Grid Margin="20" RowDefinitions="Auto,*,Auto">
+	<!-- E6: wspólny wzorzec (tytuł + zdanie + GOLD / outlined).
+	     Generyczne potwierdzenie — semantykę akcji zna wywołujący (OkButtonText). -->
+	<Grid Margin="24" RowDefinitions="Auto,*,Auto">
 
-		<!-- Nagłówek -->
 		<TextBlock Grid.Row="0"
                    x:Name="TitleText"
-                   FontSize="18" FontWeight="Bold"
-                   Foreground="{DynamicResource TextPrimaryBrush}"
-                   HorizontalAlignment="Center"
-                   Margin="0,0,0,20"/>
+                   Classes="modal-title"
+                   Margin="0,0,0,12"/>
 
-		<!-- Zawartość -->
 		<TextBlock Grid.Row="1"
                    x:Name="MessageText"
-                   FontSize="14"
-                   Foreground="{DynamicResource TextSecondaryBrush}"
-                   TextWrapping="Wrap"
-                   HorizontalAlignment="Center"
-                   TextAlignment="Center"
+                   Classes="modal-message"
                    VerticalAlignment="Center"/>
 
-		<!-- Przyciski -->
-		<StackPanel Grid.Row="2"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Center"
-                    Spacing="10">
-			<Button x:Name="NoButton"
-                    Content="{loc:Localize UI.Buttons.No}"
-                    Width="140" Height="30"
-                    Background="{DynamicResource ModCardBackgroundBrush}"
-                    Foreground="{DynamicResource TextPrimaryBrush}"
-                    BorderBrush="{DynamicResource ModCardBorderBrush}"
-                    Click="NoButton_Click"/>
+		<StackPanel Grid.Row="2" Classes="modal-actions" Margin="0,16,0,0">
 			<Button x:Name="YesButton"
+                    Classes="modal-primary"
                     Content="{loc:Localize UI.Buttons.Yes}"
-                    Width="140" Height="30"
-                    Background="{DynamicResource AccentBrush}"
-                    Foreground="{DynamicResource OnAccentTextBrush}"
+                    IsDefault="True"
                     Click="YesButton_Click"/>
+			<Button x:Name="NoButton"
+                    Classes="modal-secondary"
+                    Content="{loc:Localize UI.Buttons.No}"
+                    IsCancel="True"
+                    Click="NoButton_Click"/>
 		</StackPanel>
 	</Grid>
 </Window>

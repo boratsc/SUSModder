@@ -1,144 +1,93 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:fic="using:FluentIcons.Common"
              x:Class="SUSModder.Views.PostInstallSuccessView"
              x:DataType="vm:PostInstallSuccessViewModel"
-             Background="{DynamicResource CardBackgroundBrush}">
+             Background="Transparent">
 
-	<UserControl.Styles>
-		<!-- Animacja fade-in wyłączona: poprzednia wersja używała
-		     Selector="UserControl" bez pseudo-klasy, co powodowało
-		     częściowo przezroczysty stan podczas zmiany IsVisible
-		     i wizualne nachodzenie się dwóch modali w tym samym
-		     kontenerze. Karta jest teraz zawsze w pełni widoczna,
-		     a płynność przejścia zapewnia istniejący wrapper
-		     fade-in-panel w MainWindow.axaml. -->
+	<!-- E6 / makieta 08: ikona + tytuł + jedno zdanie z nazwą moda,
+	     GOLD „Uruchom grę” + outlined „Zamknij”. Pozostałe akcje jako
+	     drugorzędne wiersze; promocja Discord pod „Szczegóły”.
+	     Fade-in zapewnia wrapper fade-in-panel w MainWindow. -->
 
-		<!-- Hover effect dla Launch -->
-		<Style Selector="Button.primary-button:pointerover">
-			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-		</Style>
-		<Style Selector="Button.primary-button:pressed">
-			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-		</Style>
+	<StackPanel Spacing="16" VerticalAlignment="Center" HorizontalAlignment="Center"
+	            MaxWidth="520" Margin="30">
 
-		<!-- Hover effect dla Add DLL -->
-		<Style Selector="Button.secondary-button:pointerover">
-			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-		</Style>
-	</UserControl.Styles>
-
-	<StackPanel Spacing="20" VerticalAlignment="Center" Margin="30">
-
-			<!-- Ikona sukcesu -->
-			<Border HorizontalAlignment="Center">
-				<TextBlock Text="✅" FontSize="48"/>
-			</Border>
-
-			<!-- Tytuł -->
-			<TextBlock FontSize="22"
-			           FontWeight="Bold"
-			           Foreground="{DynamicResource TextPrimaryBrush}"
-			           TextAlignment="Center"
-			           TextWrapping="Wrap"
-			           Text="{Binding TitleWithName}"/>
-
-			<!-- Wiadomość -->
-			<TextBlock FontSize="14"
-			           Foreground="{DynamicResource TextSecondaryBrush}"
-			           TextAlignment="Center"
-			           TextWrapping="Wrap"
-			           Margin="0,0,0,10"
-			           Text="{Binding Message}"/>
-
-		<Border Background="{DynamicResource ModCardBackgroundBrush}"
-				BorderBrush="{DynamicResource AccentBrush}"
-				BorderThickness="1"
-				CornerRadius="10"
-				Padding="14"
-				MaxWidth="520"
-				HorizontalAlignment="Center">
-			<Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-				<StackPanel Spacing="3" VerticalAlignment="Center">
-					<TextBlock Text="{Binding DiscordHubCtaTitle}"
-							   FontSize="14"
-							   FontWeight="SemiBold"
-							   Foreground="{DynamicResource TextPrimaryBrush}"
-							   TextWrapping="Wrap"/>
-					<TextBlock Text="{Binding DiscordHubCtaDescription}"
-							   FontSize="12"
-							   Foreground="{DynamicResource TextSecondaryBrush}"
-							   TextWrapping="Wrap"/>
-				</StackPanel>
-
-				<Button Grid.Column="1"
-						Content="{Binding DiscordHubCtaButton}"
-						Command="{Binding OpenDiscordHubCommand}"
-						Padding="12,8"
-						CornerRadius="7"
-						Background="{DynamicResource AccentBrush}"
-						Foreground="{DynamicResource OnAccentTextBrush}"
-						FontWeight="SemiBold"
-						VerticalAlignment="Center"/>
-			</Grid>
+		<Border Classes="modal-icon">
+			<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Checkmark}"/>
 		</Border>
 
-			<!-- Przyciski -->
-			<StackPanel Orientation="Horizontal"
-			            HorizontalAlignment="Center"
-			            Spacing="15">
-				<Button Command="{Binding LaunchCommand}"
-				        Classes="primary-button"
-				        FontSize="16"
-				        FontWeight="SemiBold"
-				        Padding="20,12"
-				        CornerRadius="8"
-				        Background="{DynamicResource AccentBrush}"
-				        Foreground="{DynamicResource OnAccentTextBrush}"
-				        BorderThickness="0"
-				        Content="{Binding LaunchButton}"/>
+		<TextBlock Classes="modal-title" Text="{Binding Title}"/>
 
-				<Button Command="{Binding AddDllCommand}"
-				        Classes="secondary-button"
-				        FontSize="16"
-				        FontWeight="SemiBold"
-				        Padding="20,12"
-				        CornerRadius="8"
-				        Background="{DynamicResource SecondaryBackgroundBrush}"
-				        BorderBrush="{DynamicResource AccentBrush}"
-				        BorderThickness="1"
-				        Foreground="{DynamicResource TextPrimaryBrush}"
-				        Content="{Binding AddDllButton}"/>
-			</StackPanel>
+		<TextBlock Classes="modal-message" Text="{Binding TitleWithName}"/>
 
-		<!-- Przycisk changeloga -->
-		<Button Content="{Binding ShowChangelogButton}"
-		        Classes="secondary-button"
-		        FontSize="14"
-		        Padding="15,8"
-		        CornerRadius="6"
-		        Background="Transparent"
-		        BorderBrush="{DynamicResource BorderMediumBrush}"
-		        BorderThickness="0.5"
-		        Foreground="{DynamicResource TextSecondaryBrush}"
-		        HorizontalAlignment="Center"
-		        Command="{Binding ShowChangelogCommand}"/>
+		<!-- Podpowiedź o DLL tylko dla modów z obsługą DLL (MessageNoDll pokrywa się ze zdaniem głównym) -->
+		<TextBlock Classes="modal-message" FontSize="13"
+		           Text="{Binding Message}"
+		           IsVisible="{Binding SupportsDll}"/>
 
-		<!-- Checkbox auto-aktualizacji -->
-		<CheckBox IsChecked="{Binding AutoUpdateEnabled}"
-		          IsVisible="{Binding IsAutoUpdateCheckboxVisible}"
-		          HorizontalAlignment="Center"
-		          FontSize="12"
-		          Foreground="{DynamicResource TextSecondaryBrush}"
-		          Content="{Binding AutoUpdateCheckbox}"/>
+		<StackPanel Classes="modal-actions">
+			<Button Classes="modal-primary" Command="{Binding LaunchCommand}">
+				<StackPanel Orientation="Horizontal" Spacing="8">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Play}" FontSize="16"
+					               Foreground="{DynamicResource OnAccentTextBrush}"/>
+					<TextBlock Text="{Binding LaunchButton}" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Button>
+			<Button Classes="modal-secondary"
+			        Command="{Binding DismissCommand}"
+			        Content="{loc:Localize UI.Window.Close}"/>
+		</StackPanel>
 
-		<!-- Checkbox "Nie pokazuj więcej" -->
-		<CheckBox IsChecked="{Binding DontShowAgain}"
-		          HorizontalAlignment="Center"
-		          FontSize="12"
-		          Foreground="{DynamicResource TextSecondaryBrush}"
-		          Content="{Binding DontShowAgainCheckbox}"/>
+		<!-- Drugorzędne akcje: DLL i changelog (nic nie znika) -->
+		<StackPanel Classes="modal-actions">
+			<Button Classes="modal-secondary"
+			        Command="{Binding AddDllCommand}"
+			        Content="{Binding AddDllButton}"
+			        FontSize="13" Padding="14,8" MinWidth="0"/>
+			<Button Classes="modal-secondary"
+			        Command="{Binding ShowChangelogCommand}"
+			        Content="{Binding ShowChangelogButton}"
+			        FontSize="13" Padding="14,8" MinWidth="0"/>
+		</StackPanel>
+
+		<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
+			<CheckBox IsChecked="{Binding AutoUpdateEnabled}"
+			          IsVisible="{Binding IsAutoUpdateCheckboxVisible}"
+			          FontSize="12"
+			          Foreground="{DynamicResource TextSecondaryBrush}"
+			          Content="{Binding AutoUpdateCheckbox}"/>
+			<CheckBox IsChecked="{Binding DontShowAgain}"
+			          FontSize="12"
+			          Foreground="{DynamicResource TextSecondaryBrush}"
+			          Content="{Binding DontShowAgainCheckbox}"/>
+		</StackPanel>
+
+		<Expander Classes="modal-details" Header="{loc:Localize UI.Inspector.Details}">
+			<Border Classes="modal-info-row" Margin="0,8,0,0">
+				<Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+					<StackPanel Spacing="3" VerticalAlignment="Center">
+						<TextBlock Text="{Binding DiscordHubCtaTitle}"
+						           FontSize="14" FontWeight="SemiBold"
+						           Foreground="{DynamicResource TextPrimaryBrush}"
+						           TextWrapping="Wrap"/>
+						<TextBlock Text="{Binding DiscordHubCtaDescription}"
+						           FontSize="12"
+						           Foreground="{DynamicResource TextSecondaryBrush}"
+						           TextWrapping="Wrap"/>
+					</StackPanel>
+					<Button Grid.Column="1"
+					        Classes="modal-primary"
+					        Content="{Binding DiscordHubCtaButton}"
+					        Command="{Binding OpenDiscordHubCommand}"
+					        FontSize="13" Padding="12,8" MinWidth="0"
+					        VerticalAlignment="Center"/>
+				</Grid>
+			</Border>
+		</Expander>
 
 	</StackPanel>
 </UserControl>

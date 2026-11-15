@@ -2,6 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SUSModder.ViewModels"
         xmlns:local="using:SUSModder.Services.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:fic="using:FluentIcons.Common"
         x:Class="SUSModder.Views.EpicAuthDialog"
         x:DataType="vm:EpicAuthDialogViewModel"
         Title="{local:Localize Dialogs.EpicAuth.Title}"
@@ -36,7 +38,9 @@
 				</Grid.ColumnDefinitions>
 
 				<StackPanel Grid.Column="0" Orientation="Horizontal">
-					<TextBlock Text="🎮" FontSize="28" Margin="0,0,12,0" VerticalAlignment="Center"/>
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Person}" FontSize="28"
+					               Foreground="{DynamicResource IconAccentBrush}"
+					               Margin="0,0,12,0" VerticalAlignment="Center"/>
 					<StackPanel VerticalAlignment="Center">
 						<TextBlock Text="{local:Localize Dialogs.EpicAuth.Header}"
 						           FontSize="18"
@@ -53,7 +57,8 @@
 				<Button Grid.Column="1"
 				        Content="{local:Localize Dialogs.EpicAuth.CancelButton}"
 				        Command="{Binding CancelCommand}"
-				        Classes="secondary-button"
+				        Classes="modal-secondary"
+				        IsCancel="True"
 				        Padding="16,8"
 				        VerticalAlignment="Center"/>
 			</Grid>
@@ -157,8 +162,8 @@
 				<!-- Instrukcje krok po kroku -->
 				<Border Grid.Row="1"
 				        Background="{DynamicResource SecondaryBackgroundBrush}"
-				        BorderBrush="{DynamicResource AccentBrush}"
-				        BorderThickness="2"
+				        BorderBrush="{DynamicResource AccentMutedBrush}"
+				        BorderThickness="1"
 				        CornerRadius="8"
 				        Padding="20"
 				        Margin="0,0,0,20">
@@ -180,7 +185,7 @@
 				<!-- TextBox na wklejenie -->
 				<Border Grid.Row="2"
 				        BorderBrush="{DynamicResource BorderBrush}"
-				        BorderThickness="2"
+				        BorderThickness="1"
 				        CornerRadius="8"
 				        Background="{DynamicResource CardBackgroundBrush}"
 				        Margin="0,0,0,20">
@@ -219,7 +224,7 @@
 				<!-- Auto-open countdown message -->
 				<Border Grid.Row="3"
 				        Background="{DynamicResource SecondaryBackgroundBrush}"
-				        BorderBrush="{DynamicResource AccentBrush}"
+				        BorderBrush="{DynamicResource AccentMutedBrush}"
 				        BorderThickness="1"
 				        CornerRadius="6"
 				        Padding="15,10"
@@ -235,7 +240,7 @@
 						<!-- Status monitorowania schowka -->
 						<TextBlock Text="{Binding ClipboardMonitorStatus}"
 						           FontSize="12"
-						           Foreground="#4ecca3"
+						           Foreground="{DynamicResource SuccessBrush}"
 						           TextAlignment="Center"
 						           TextWrapping="Wrap"
 						           Margin="0,8,0,0"
@@ -248,62 +253,23 @@
 				            Orientation="Horizontal"
 				            HorizontalAlignment="Right"
 				            Spacing="15">
-					<Button Content="{local:Localize Dialogs.EpicAuth.OpenBrowserButton}"
-					        Command="{Binding OpenBrowserCommand}"
-					        Classes="secondary-button"
-					        MinWidth="180"
-					        Padding="15,10"/>
-					<Button Content="{local:Localize Dialogs.EpicAuth.CancelButton}"
-					        Command="{Binding CancelCommand}"
-					        Classes="secondary-button"
-					        MinWidth="120"
-					        Padding="15,10"/>
 					<Button Content="{local:Localize Dialogs.EpicAuth.ConfirmButton}"
 					        Command="{Binding ConfirmCommand}"
 					        IsDefault="True"
-					        Classes="primary-button"
-					        MinWidth="120"
-					        Padding="15,10"/>
+					        Classes="modal-primary"
+					        MinWidth="120"/>
+					<Button Content="{local:Localize Dialogs.EpicAuth.OpenBrowserButton}"
+					        Command="{Binding OpenBrowserCommand}"
+					        Classes="modal-secondary"
+					        MinWidth="180"/>
+					<Button Content="{local:Localize Dialogs.EpicAuth.CancelButton}"
+					        Command="{Binding CancelCommand}"
+					        Classes="modal-secondary"
+					        IsCancel="True"
+					        MinWidth="120"/>
 				</StackPanel>
 			</Grid>
 		</ScrollViewer>
 	</Grid>
 
-	<Window.Styles>
-		<Style Selector="Button.primary-button">
-			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-			<Setter Property="Foreground" Value="White"/>
-			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-			<Setter Property="BorderThickness" Value="0"/>
-			<Setter Property="CornerRadius" Value="6"/>
-			<Setter Property="FontWeight" Value="SemiBold"/>
-			<Setter Property="FontSize" Value="14"/>
-		</Style>
-
-		<Style Selector="Button.primary-button:pointerover">
-			<Setter Property="Opacity" Value="0.9"/>
-		</Style>
-
-		<Style Selector="Button.primary-button:pressed">
-			<Setter Property="Opacity" Value="0.8"/>
-		</Style>
-
-		<Style Selector="Button.secondary-button">
-			<Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
-			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-			<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-			<Setter Property="BorderThickness" Value="1"/>
-			<Setter Property="CornerRadius" Value="6"/>
-			<Setter Property="FontWeight" Value="SemiBold"/>
-			<Setter Property="FontSize" Value="14"/>
-		</Style>
-
-		<Style Selector="Button.secondary-button:pointerover">
-			<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
-		</Style>
-
-		<Style Selector="Button.secondary-button:pressed">
-			<Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
-		</Style>
-	</Window.Styles>
 </Window>

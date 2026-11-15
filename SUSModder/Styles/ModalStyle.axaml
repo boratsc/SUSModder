@@ -1,0 +1,237 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ic="using:FluentIcons.Avalonia">
+
+	<!-- ============================================================
+	     E6: wspólny wzorzec modali (makiety 08–12).
+	     Powierzchnia #202226, r14, hairline #35373C; nagłówek = ikona
+	     w złotym okręgu (success/danger dla stanów) + tytuł + jedno zdanie;
+	     jedna główna akcja GOLD + druga outlined; technikalia pod „Szczegóły”.
+	     Styl globalny (App.axaml) — działa w MainWindow i oknach dialogów.
+	     ============================================================ -->
+
+	<!-- Powierzchnia karty modalu -->
+	<Style Selector="Border.modal-card">
+		<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="CornerRadius" Value="14"/>
+		<Setter Property="BoxShadow" Value="0 8 24 0 #4D000000"/>
+	</Style>
+
+	<!-- Typografia -->
+	<Style Selector="TextBlock.modal-title">
+		<Setter Property="FontSize" Value="22"/>
+		<Setter Property="FontWeight" Value="Bold"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		<Setter Property="TextAlignment" Value="Center"/>
+		<Setter Property="TextWrapping" Value="Wrap"/>
+		<Setter Property="HorizontalAlignment" Value="Center"/>
+	</Style>
+
+	<Style Selector="TextBlock.modal-message">
+		<Setter Property="FontSize" Value="14"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+		<Setter Property="TextAlignment" Value="Center"/>
+		<Setter Property="TextWrapping" Value="Wrap"/>
+		<Setter Property="HorizontalAlignment" Value="Center"/>
+	</Style>
+
+	<Style Selector="TextBlock.modal-section-label">
+		<Setter Property="FontSize" Value="12"/>
+		<Setter Property="FontWeight" Value="SemiBold"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+	</Style>
+
+	<!-- Ikona w okręgu: złoty (domyślnie), success / danger dla stanów -->
+	<Style Selector="Border.modal-icon">
+		<Setter Property="Width" Value="64"/>
+		<Setter Property="Height" Value="64"/>
+		<Setter Property="CornerRadius" Value="32"/>
+		<Setter Property="Background" Value="{DynamicResource AccentSoftFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+		<Setter Property="BorderThickness" Value="1.5"/>
+		<Setter Property="HorizontalAlignment" Value="Center"/>
+	</Style>
+	<Style Selector="Border.modal-icon ic|SymbolIcon">
+		<Setter Property="FontSize" Value="28"/>
+		<Setter Property="Foreground" Value="{DynamicResource IconAccentBrush}"/>
+		<Setter Property="HorizontalAlignment" Value="Center"/>
+		<Setter Property="VerticalAlignment" Value="Center"/>
+	</Style>
+	<Style Selector="Border.modal-icon > TextBlock">
+		<Setter Property="FontSize" Value="28"/>
+		<Setter Property="Foreground" Value="{DynamicResource IconAccentBrush}"/>
+		<Setter Property="HorizontalAlignment" Value="Center"/>
+		<Setter Property="VerticalAlignment" Value="Center"/>
+	</Style>
+
+	<Style Selector="Border.modal-icon.success">
+		<Setter Property="Background" Value="{DynamicResource PositiveActionSoftBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource PositiveActionBrush}"/>
+	</Style>
+	<Style Selector="Border.modal-icon.success ic|SymbolIcon">
+		<Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+	</Style>
+	<Style Selector="Border.modal-icon.success > TextBlock">
+		<Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+	</Style>
+
+	<Style Selector="Border.modal-icon.danger">
+		<Setter Property="Background" Value="{DynamicResource DangerActionSoftBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource DangerActionBrush}"/>
+	</Style>
+	<Style Selector="Border.modal-icon.danger ic|SymbolIcon">
+		<Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+	</Style>
+	<Style Selector="Border.modal-icon.danger > TextBlock">
+		<Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+	</Style>
+
+	<!-- Akcje: GOLD główna / outlined druga / DANGER destrukcyjna -->
+	<Style Selector="Button.modal-primary">
+		<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+		<Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
+		<Setter Property="BorderThickness" Value="0"/>
+		<Setter Property="CornerRadius" Value="8"/>
+		<Setter Property="Padding" Value="20,10"/>
+		<Setter Property="FontSize" Value="14"/>
+		<Setter Property="FontWeight" Value="SemiBold"/>
+		<Setter Property="MinWidth" Value="140"/>
+		<Setter Property="Cursor" Value="Hand"/>
+	</Style>
+	<Style Selector="Button.modal-primary:pointerover">
+		<Setter Property="Background" Value="{DynamicResource PrimaryActionHoverBrush}"/>
+	</Style>
+	<Style Selector="Button.modal-primary:pressed">
+		<Setter Property="Background" Value="{DynamicResource PrimaryActionPressedBrush}"/>
+	</Style>
+
+	<Style Selector="Button.modal-secondary">
+		<Setter Property="Background" Value="Transparent"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="CornerRadius" Value="8"/>
+		<Setter Property="Padding" Value="20,10"/>
+		<Setter Property="FontSize" Value="14"/>
+		<Setter Property="FontWeight" Value="SemiBold"/>
+		<Setter Property="MinWidth" Value="140"/>
+		<Setter Property="Cursor" Value="Hand"/>
+	</Style>
+	<Style Selector="Button.modal-secondary:pointerover">
+		<Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+		<Setter Property="BorderBrush" Value="#43454A"/>
+	</Style>
+	<Style Selector="Button.modal-secondary:pressed">
+		<Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
+	</Style>
+
+	<!-- DANGER: #FF7373 z ciemnym tekstem (AA); pressed ciemniejszy z jasnym tekstem -->
+	<Style Selector="Button.modal-danger">
+		<Setter Property="Background" Value="{DynamicResource DangerActionBrush}"/>
+		<Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
+		<Setter Property="BorderThickness" Value="0"/>
+		<Setter Property="CornerRadius" Value="8"/>
+		<Setter Property="Padding" Value="20,10"/>
+		<Setter Property="FontSize" Value="14"/>
+		<Setter Property="FontWeight" Value="SemiBold"/>
+		<Setter Property="MinWidth" Value="140"/>
+		<Setter Property="Cursor" Value="Hand"/>
+	</Style>
+	<Style Selector="Button.modal-danger:pointerover">
+		<Setter Property="Background" Value="{DynamicResource DangerActionHoverBgBrush}"/>
+	</Style>
+	<Style Selector="Button.modal-danger:pressed">
+		<Setter Property="Background" Value="{DynamicResource DangerActionPressedBrush}"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+	</Style>
+
+	<Style Selector="StackPanel.modal-actions">
+		<Setter Property="Orientation" Value="Horizontal"/>
+		<Setter Property="HorizontalAlignment" Value="Center"/>
+		<Setter Property="Spacing" Value="12"/>
+	</Style>
+
+	<!-- X zamknięcia w oknach dialogów (MainWindow ma statusbar-toggle-button) -->
+	<Style Selector="Button.modal-close">
+		<Setter Property="Width" Value="32"/>
+		<Setter Property="Height" Value="32"/>
+		<Setter Property="CornerRadius" Value="16"/>
+		<Setter Property="Background" Value="Transparent"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+		<Setter Property="BorderThickness" Value="0"/>
+		<Setter Property="Padding" Value="0"/>
+		<Setter Property="Cursor" Value="Hand"/>
+	</Style>
+	<Style Selector="Button.modal-close:pointerover">
+		<Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+	</Style>
+
+	<!-- „Szczegóły”: opcjonalna sekcja na technikalia/logi/changelog -->
+	<Style Selector="Expander.modal-details">
+		<Setter Property="HorizontalAlignment" Value="Stretch"/>
+		<Setter Property="Background" Value="Transparent"/>
+		<Setter Property="BorderThickness" Value="0"/>
+		<Setter Property="Padding" Value="0"/>
+		<Setter Property="CornerRadius" Value="8"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+		<Setter Property="FontSize" Value="13"/>
+	</Style>
+	<Style Selector="Expander.modal-details /template/ ToggleButton#ExpanderHeader">
+		<Setter Property="Background" Value="Transparent"/>
+		<Setter Property="BorderThickness" Value="0"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+		<Setter Property="FontSize" Value="13"/>
+		<Setter Property="MinHeight" Value="28"/>
+		<Setter Property="Padding" Value="0"/>
+		<Setter Property="HorizontalAlignment" Value="Left"/>
+	</Style>
+	<Style Selector="Expander.modal-details /template/ ToggleButton#ExpanderHeader:pointerover">
+		<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+	</Style>
+
+	<!-- Wiersze drugorzędne (wersje/rozmiar) i kroki numerowane -->
+	<Style Selector="Border.modal-info-row">
+		<Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="CornerRadius" Value="8"/>
+		<Setter Property="Padding" Value="12,8"/>
+	</Style>
+
+	<Style Selector="Border.modal-hairline">
+		<Setter Property="Height" Value="1"/>
+		<Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
+		<Setter Property="HorizontalAlignment" Value="Stretch"/>
+	</Style>
+
+	<Style Selector="Border.modal-step-number">
+		<Setter Property="Width" Value="28"/>
+		<Setter Property="Height" Value="28"/>
+		<Setter Property="CornerRadius" Value="14"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="Background" Value="Transparent"/>
+	</Style>
+	<Style Selector="Border.modal-step-number > TextBlock">
+		<Setter Property="FontSize" Value="13"/>
+		<Setter Property="FontWeight" Value="SemiBold"/>
+		<Setter Property="Foreground" Value="{DynamicResource IconAccentBrush}"/>
+		<Setter Property="HorizontalAlignment" Value="Center"/>
+		<Setter Property="VerticalAlignment" Value="Center"/>
+	</Style>
+
+	<Style Selector="TextBlock.modal-step-title">
+		<Setter Property="FontSize" Value="14"/>
+		<Setter Property="FontWeight" Value="SemiBold"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+	</Style>
+	<Style Selector="TextBlock.modal-step-desc">
+		<Setter Property="FontSize" Value="13"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+		<Setter Property="TextWrapping" Value="Wrap"/>
+	</Style>
+
+</Styles>

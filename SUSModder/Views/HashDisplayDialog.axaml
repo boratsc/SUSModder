@@ -2,10 +2,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="using:SUSModder.Views"
         xmlns:local="clr-namespace:SUSModder.Services.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:fic="using:FluentIcons.Common"
         x:Class="SUSModder.Views.HashDisplayDialog"
         x:DataType="views:HashDisplayDialog"
         Title="{local:Localize Tools.HashDisplay.WindowTitle}"
-        Width="500" Height="300"
+        Width="500" Height="360"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         Background="{DynamicResource WindowBackgroundBrush}">
@@ -16,17 +18,16 @@
 
 	<Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto,Auto">
 
-		<!-- Ikona sukcesu i komunikat -->
+		<!-- Ikona sukcesu i komunikat (E6) -->
 		<StackPanel Grid.Row="0"
-                    Orientation="Horizontal"
-                    Spacing="15"
+                    Spacing="12"
                     Margin="0,0,0,20"
                     HorizontalAlignment="Center">
-			<TextBlock Text="✅" FontSize="32" VerticalAlignment="Center"/>
+			<Border Classes="modal-icon success">
+				<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Checkmark}"/>
+			</Border>
 			<TextBlock Text="{Binding Message}"
-                       FontSize="16" FontWeight="Bold"
-                       Foreground="{DynamicResource TextPrimaryBrush}"
-                       VerticalAlignment="Center"/>
+                       Classes="modal-title"/>
 		</StackPanel>
 
 		<!-- Instrukcja -->
@@ -39,8 +40,8 @@
 		<!-- Hash z możliwością zaznaczenia -->
 		<Border Grid.Row="2"
                 Background="{DynamicResource SecondaryBackgroundBrush}"
-                BorderBrush="{DynamicResource AccentBrush}"
-                BorderThickness="2"
+                BorderBrush="{DynamicResource AccentMutedBrush}"
+                BorderThickness="1"
                 CornerRadius="8"
                 Padding="15"
                 Margin="0,0,0,20">
@@ -72,25 +73,14 @@
                     HorizontalAlignment="Center"
                     Spacing="15">
 			<Button x:Name="CopyButton"
+                    Classes="modal-primary"
                     Content="{local:Localize Tools.HashDisplay.CopyButton}"
-                    Click="OnCopyClick"
-                    Background="{DynamicResource AccentBrush}"
-                    Foreground="{DynamicResource OnAccentTextBrush}"
-                    Padding="20,10"
-                    CornerRadius="6"
-                    FontSize="14"
-                    FontWeight="SemiBold"
-                    MinWidth="140"/>
+                    IsDefault="True"
+                    Click="OnCopyClick"/>
 			<Button Content="{local:Localize Tools.HashDisplay.CloseButton}"
-                    Click="OnCloseClick"
-                    Background="{DynamicResource ModCardBackgroundBrush}"
-                    Foreground="{DynamicResource TextPrimaryBrush}"
-                    BorderBrush="{DynamicResource ModCardBorderBrush}"
-                    BorderThickness="1"
-                    Padding="20,10"
-                    CornerRadius="6"
-                    FontSize="14"
-                    MinWidth="140"/>
+                    Classes="modal-secondary"
+                    IsCancel="True"
+                    Click="OnCloseClick"/>
 		</StackPanel>
 	</Grid>
 </Window>

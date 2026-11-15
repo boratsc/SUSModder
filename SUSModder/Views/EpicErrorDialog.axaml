@@ -2,6 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SUSModder.ViewModels"
         xmlns:local="using:SUSModder.Services.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:fic="using:FluentIcons.Common"
         x:Class="SUSModder.Views.EpicErrorDialog"
         x:DataType="vm:EpicErrorDialogViewModel"
         Title="{local:Localize Errors.EpicLaunchError.Title}"
@@ -19,16 +21,20 @@
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
 
-		<!-- Nagłówek -->
-		<TextBlock Grid.Row="0"
-                   Text="{local:Localize Errors.EpicLaunchError.Header}"
-                   Classes="header-text"
-                   Margin="0,0,0,15"
-                   TextWrapping="Wrap"/>
+		<!-- Nagłówek (E6: ikona danger + tytuł) -->
+		<StackPanel Grid.Row="0" Spacing="12" Margin="0,0,0,15">
+			<Border Classes="modal-icon danger">
+				<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Warning}"/>
+			</Border>
+			<TextBlock Text="{local:Localize Errors.EpicLaunchError.Header}"
+                       Classes="modal-title"
+                       TextWrapping="Wrap"/>
+		</StackPanel>
 
 		<!-- Log content -->
 		<Border Grid.Row="1"
-                Classes="content-border"
+                Classes="modal-info-row"
+                Padding="0"
                 Margin="0,0,0,15">
 			<ScrollViewer Classes="content-scroll">
 				<TextBox Name="LogTextBox"
@@ -57,28 +63,16 @@
                     Spacing="10">
 			<Button Content="{local:Localize Errors.EpicLaunchError.CopyLogButton}"
                     Command="{Binding CopyLogCommand}"
-                    Classes="secondary-button"/>
+                    Classes="modal-secondary"/>
 			<Button Content="{local:Localize Errors.EpicLaunchError.CloseButton}"
                     Command="{Binding CloseCommand}"
                     IsDefault="True"
-                    Classes="primary-button"/>
+                    IsCancel="True"
+                    Classes="modal-primary"/>
 		</StackPanel>
 	</Grid>
 
 	<Window.Styles>
-		<Style Selector="TextBlock.header-text">
-			<Setter Property="FontSize" Value="16"/>
-			<Setter Property="FontWeight" Value="Bold"/>
-			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-		</Style>
-
-		<Style Selector="Border.content-border">
-			<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-			<Setter Property="BorderThickness" Value="1"/>
-			<Setter Property="CornerRadius" Value="4"/>
-			<Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
-		</Style>
-
 		<Style Selector="ScrollViewer.content-scroll">
 			<Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
 			<Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
@@ -106,41 +100,6 @@
 		<Style Selector="Run.mod-name-highlight">
 			<Setter Property="FontWeight" Value="Bold"/>
 			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
-		</Style>
-
-		<Style Selector="Button.primary-button">
-			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-			<Setter Property="Foreground" Value="White"/>
-			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-			<Setter Property="BorderThickness" Value="1"/>
-			<Setter Property="Padding" Value="15,8"/>
-			<Setter Property="CornerRadius" Value="4"/>
-			<Setter Property="FontWeight" Value="SemiBold"/>
-		</Style>
-
-		<Style Selector="Button.primary-button:pointerover">
-			<Setter Property="Opacity" Value="0.9"/>
-		</Style>
-
-		<Style Selector="Button.primary-button:pressed">
-			<Setter Property="Opacity" Value="0.8"/>
-		</Style>
-
-		<Style Selector="Button.secondary-button">
-			<Setter Property="Background" Value="{DynamicResource SecondaryBackgroundBrush}"/>
-			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-			<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-			<Setter Property="BorderThickness" Value="1"/>
-			<Setter Property="Padding" Value="15,8"/>
-			<Setter Property="CornerRadius" Value="4"/>
-		</Style>
-
-		<Style Selector="Button.secondary-button:pointerover">
-			<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
-		</Style>
-
-		<Style Selector="Button.secondary-button:pressed">
-			<Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
 		</Style>
 	</Window.Styles>
 </Window>

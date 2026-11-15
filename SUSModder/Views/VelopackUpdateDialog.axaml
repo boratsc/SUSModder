@@ -1,6 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="using:SUSModder.Services.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:fic="using:FluentIcons.Common"
         x:Class="SUSModder.Views.VelopackUpdateDialog"
         Title="{loc:Localize Updates.UpdateAvailable}"
         Width="550" Height="420"
@@ -12,7 +14,7 @@
 
   <Window.Styles>
     <FluentTheme />
-    
+
     <!-- Animacja fade-in dla całego okna -->
     <Style Selector="Window">
       <Style.Animations>
@@ -26,7 +28,7 @@
         </Animation>
       </Style.Animations>
     </Style>
-    
+
     <!-- Animacja dla ikony -->
     <Style Selector="Border.update-icon">
       <Style.Animations>
@@ -42,7 +44,7 @@
         </Animation>
       </Style.Animations>
     </Style>
-    
+
     <!-- Animacja dla contentu -->
     <Style Selector="StackPanel.content-panel">
       <Style.Animations>
@@ -58,113 +60,69 @@
         </Animation>
       </Style.Animations>
     </Style>
-    
-    <!-- Hover effect dla przycisku aktualizacji -->
-    <Style Selector="Button.update-button:pointerover">
-      <Setter Property="Background" Value="{DynamicResource PrimaryActionBrush}"/>
-      <Setter Property="BorderBrush" Value="{DynamicResource PrimaryActionHoverBrush}"/>
-    </Style>
-    
-    <Style Selector="Button.update-button:pressed">
-      <Setter Property="Background" Value="{DynamicResource PrimaryActionHoverBrush}"/>
-    </Style>
-    
-    <!-- Hover effect dla przycisku anuluj -->
-    <Style Selector="Button.cancel-button:pointerover">
-      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-    </Style>
   </Window.Styles>
 
+  <!-- E6 / makieta 10: ikona + tytuł + zdanie, GOLD „Aktualizuj” + outlined „Później”.
+       Wersje pod „Szczegóły”; pasek postępu pobierania zawsze widoczny. -->
   <Border Margin="0,30,0,0">
-    <Grid Margin="30,10,30,30" RowDefinitions="Auto,Auto,Auto">
+    <Grid Margin="30,10,30,24" RowDefinitions="Auto,*,Auto">
 
-      <!-- Ikona aktualizacji z tłem -->
       <Border Grid.Row="0"
-              Classes="update-icon"
-              Width="80" Height="80"
-              CornerRadius="40"
-              Background="{DynamicResource PrimaryActionSoftBrush}"
-              BorderBrush="{DynamicResource PrimaryActionBrush}"
-              BorderThickness="2"
-              HorizontalAlignment="Center"
-              Margin="0,0,0,20">
+              Classes="modal-icon update-icon"
+              Margin="0,0,0,16">
         <Border.RenderTransform>
           <TranslateTransform/>
         </Border.RenderTransform>
-        <TextBlock Text="🚀" 
-                   FontSize="40"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"/>
+        <ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowSync}"/>
       </Border>
 
-      <!-- Zawartość -->
       <StackPanel Grid.Row="1"
                   Classes="content-panel"
-                  Spacing="12"
-                  MinHeight="160">
+                  Spacing="12">
         <StackPanel.RenderTransform>
           <TranslateTransform/>
         </StackPanel.RenderTransform>
-        
-        <!-- Tytuł -->
-        <TextBlock Text="{loc:Localize Updates.NewVersionAvailable}"
-                   FontSize="20" 
-                   FontWeight="Bold"
-                   Foreground="{DynamicResource TextPrimaryBrush}"
-                   HorizontalAlignment="Center"
-                   TextAlignment="Center"/>
 
-        <!-- Wiadomość główna -->
+        <TextBlock Text="{loc:Localize Updates.NewVersionAvailable}" Classes="modal-title"/>
+
         <TextBlock Text="{loc:Localize Updates.DownloadAndInstallQuestion}"
-                   FontSize="14"
-                   Foreground="{DynamicResource TextSecondaryBrush}"
-                   TextWrapping="Wrap"
-                   HorizontalAlignment="Center"
-                   TextAlignment="Center"
+                   Classes="modal-message"
                    MaxWidth="420"
-                   Margin="0,0,0,8"/>
-        
-        <!-- Panel informacji o wersjach -->
-        <Border Background="{DynamicResource ModCardBackgroundBrush}"
-                BorderBrush="{DynamicResource ModCardBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="8"
-                Padding="16,12"
-                Margin="0,4,0,4">
-          <Grid RowDefinitions="Auto,8,Auto" ColumnDefinitions="Auto,*">
-            <!-- Obecna wersja -->
-            <TextBlock Grid.Row="0" Grid.Column="0"
-                       Text="{loc:Localize Updates.CurrentVersion}"
-                       FontSize="13"
-                       FontWeight="Medium"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       VerticalAlignment="Center"/>
-            <TextBlock Grid.Row="0" Grid.Column="1"
-                       x:Name="CurrentVersionText"
-                       Text="2.1.4"
-                       FontSize="13"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource TextPrimaryBrush}"
-                       HorizontalAlignment="Right"
-                       VerticalAlignment="Center"/>
-            
-            <!-- Nowa wersja -->
-            <TextBlock Grid.Row="2" Grid.Column="0"
-                       Text="{loc:Localize Updates.NewVersion}"
-                       FontSize="13"
-                       FontWeight="Medium"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       VerticalAlignment="Center"/>
-            <TextBlock Grid.Row="2" Grid.Column="1"
-                       x:Name="NewVersionText"
-                       Text="2.1.5"
-                       FontSize="13"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource AccentBrush}"
-                       HorizontalAlignment="Right"
-                       VerticalAlignment="Center"/>
-          </Grid>
-        </Border>
+                   Margin="0,0,0,4"/>
+
+        <Expander Classes="modal-details" Header="{loc:Localize UI.Inspector.Details}">
+          <Border Classes="modal-info-row" Margin="0,8,0,0">
+            <Grid RowDefinitions="Auto,8,Auto" ColumnDefinitions="Auto,*">
+              <TextBlock Grid.Row="0" Grid.Column="0"
+                         Text="{loc:Localize Updates.CurrentVersion}"
+                         FontSize="13"
+                         Foreground="{DynamicResource TextSecondaryBrush}"
+                         VerticalAlignment="Center"/>
+              <TextBlock Grid.Row="0" Grid.Column="1"
+                         x:Name="CurrentVersionText"
+                         Text="2.1.4"
+                         FontSize="13"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         HorizontalAlignment="Right"
+                         VerticalAlignment="Center"/>
+
+              <TextBlock Grid.Row="2" Grid.Column="0"
+                         Text="{loc:Localize Updates.NewVersion}"
+                         FontSize="13"
+                         Foreground="{DynamicResource TextSecondaryBrush}"
+                         VerticalAlignment="Center"/>
+              <TextBlock Grid.Row="2" Grid.Column="1"
+                         x:Name="NewVersionText"
+                         Text="2.1.5"
+                         FontSize="13"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource AccentBrush}"
+                         HorizontalAlignment="Right"
+                         VerticalAlignment="Center"/>
+            </Grid>
+          </Border>
+        </Expander>
 
         <!-- Progress panel -->
         <StackPanel x:Name="ProgressPanel" IsVisible="False" Spacing="8" Margin="0,8,0,0">
@@ -179,47 +137,22 @@
                        Maximum="100"
                        Value="0"
                        CornerRadius="3"
-                       Background="{DynamicResource ModCardBackgroundBrush}"
+                       Background="{DynamicResource SecondaryBackgroundBrush}"
                        Foreground="{DynamicResource AccentBrush}"/>
         </StackPanel>
       </StackPanel>
 
-      <!-- Przyciski -->
-      <StackPanel Grid.Row="2"
-                  Orientation="Horizontal"
-                  HorizontalAlignment="Center"
-                  Spacing="12"
-                  Margin="0,20,0,0">
+      <StackPanel Grid.Row="2" Classes="modal-actions" Margin="0,16,0,0">
         <Button x:Name="YesButton"
-                Classes="update-button"
+                Classes="modal-primary"
                 Content="{loc:Localize Updates.YesUpdate}"
-                Width="150"
-                Height="40"
-                FontSize="14"
-                FontWeight="SemiBold"
-                Background="{DynamicResource PrimaryActionBrush}"
-                BorderBrush="{DynamicResource PrimaryActionHoverBrush}"
-                BorderThickness="1"
-                CornerRadius="8"
-                Foreground="{DynamicResource OnAccentTextBrush}"
-                Click="YesButton_Click"
-                Cursor="Hand">
-        </Button>
-
+                IsDefault="True"
+                Click="YesButton_Click"/>
         <Button x:Name="NoButton"
-                Classes="cancel-button"
+                Classes="modal-secondary"
                 Content="{loc:Localize Updates.NoLater}"
-                Width="150"
-                Height="40"
-                FontSize="14"
-                Background="Transparent"
-                BorderBrush="{DynamicResource ModCardBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="8"
-                Foreground="{DynamicResource TextPrimaryBrush}"
-                Click="NoButton_Click"
-                Cursor="Hand">
-        </Button>
+                IsCancel="True"
+                Click="NoButton_Click"/>
       </StackPanel>
 
     </Grid>

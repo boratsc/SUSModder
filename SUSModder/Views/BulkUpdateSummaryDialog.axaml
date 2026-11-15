@@ -37,17 +37,8 @@
 		<Grid Margin="24,10,24,24" RowDefinitions="Auto,Auto,Auto">
 
 			<StackPanel Grid.Row="0" Spacing="10">
-				<TextBlock x:Name="TitleText"
-						   FontSize="19"
-						   FontWeight="Bold"
-						   Foreground="{DynamicResource TextPrimaryBrush}"
-						   HorizontalAlignment="Center"
-						   TextAlignment="Center"/>
-				<TextBlock x:Name="HeaderText"
-						   FontSize="13"
-						   Foreground="{DynamicResource TextSecondaryBrush}"
-						   HorizontalAlignment="Center"
-						   TextAlignment="Center"/>
+				<TextBlock x:Name="TitleText" Classes="modal-title"/>
+				<TextBlock x:Name="HeaderText" Classes="modal-message"/>
 				<TextBlock x:Name="WarningText"
 						   FontSize="12"
 						   Foreground="{DynamicResource DangerBrush}"
@@ -70,26 +61,16 @@
 						HorizontalAlignment="Center"
 						Spacing="12"
 						Margin="0,16,0,0">
-				<Button x:Name="CancelButton"
-						Content="Cancel"
-						Width="160" Height="38"
-						Background="{DynamicResource ModCardBackgroundBrush}"
-						Foreground="{DynamicResource TextPrimaryBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="2"
-						CornerRadius="8"
-						FontWeight="Medium"
-						Click="CancelButton_Click"/>
 				<Button x:Name="ConfirmButton"
 						Content="Update"
-						Width="160" Height="38"
-						Background="{DynamicResource PositiveActionBrush}"
-						Foreground="{DynamicResource OnAccentTextBrush}"
-						BorderBrush="{DynamicResource PositiveActionHoverBrush}"
-						BorderThickness="2"
-						CornerRadius="8"
-						FontWeight="Bold"
+						Classes="modal-primary"
+						IsDefault="True"
 						Click="ConfirmButton_Click"/>
+				<Button x:Name="CancelButton"
+						Content="Cancel"
+						Classes="modal-secondary"
+						IsCancel="True"
+						Click="CancelButton_Click"/>
 			</StackPanel>
 		</Grid>
 	</Border>

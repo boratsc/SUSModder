@@ -14,19 +14,18 @@
 
 	<Grid Margin="20" RowDefinitions="Auto,*,Auto">
 
-		<!-- Nagłówek -->
+		<!-- Nagłówek (E6) -->
 		<TextBlock Grid.Row="0"
                    Text="{loc:Localize Tools.SetLobbySizeHeader}"
-                   FontSize="18" FontWeight="Bold"
-                   Foreground="{DynamicResource TextPrimaryBrush}"
-                   HorizontalAlignment="Center"
+                   Classes="modal-title"
                    Margin="0,0,0,20"/>
 
 		<!-- Zawartość -->
 		<StackPanel Grid.Row="1" Spacing="15">
 			<TextBlock Text="{loc:Localize Tools.SetLobbySizePrompt}"
-                       FontSize="14"
-                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                       Classes="modal-message"
+                       HorizontalAlignment="Stretch"
+                       TextAlignment="Left"/>
 
 			<NumericUpDown x:Name="PlayerCountNumeric"
                           Minimum="4" Maximum="255"
@@ -49,17 +48,14 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Spacing="10">
-			<Button Content="{loc:Localize UI.Buttons.Cancel}"
-                    Width="80" Height="30"
-                    Background="{DynamicResource ModCardBackgroundBrush}"
-                    Foreground="{DynamicResource TextPrimaryBrush}"
-                    BorderBrush="{DynamicResource ModCardBorderBrush}"
-                    Click="CancelButton_Click"/>
 			<Button Content="{loc:Localize UI.Buttons.OK}"
-                    Width="80" Height="30"
-                    Background="{DynamicResource AccentBrush}"
-                    Foreground="{DynamicResource OnAccentTextBrush}"
+                    Classes="modal-primary"
+                    IsDefault="True"
                     Click="OkButton_Click"/>
+			<Button Content="{loc:Localize UI.Buttons.Cancel}"
+                    Classes="modal-secondary"
+                    IsCancel="True"
+                    Click="CancelButton_Click"/>
 		</StackPanel>
 	</Grid>
 </Window>

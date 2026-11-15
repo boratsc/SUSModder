@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="SUSModder.Views.DllUpdateProgressDialog"
-        Width="500" Height="350"
+        Width="500" Height="330"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         Background="{DynamicResource WindowBackgroundBrush}"
@@ -10,7 +10,7 @@
 
 	<Window.Styles>
 		<FluentTheme />
-		
+
 		<!-- Animacja fade-in -->
 		<Style Selector="Window">
 			<Style.Animations>
@@ -26,35 +26,22 @@
 		</Style>
 	</Window.Styles>
 
+	<!-- E6: wzorzec modalu, pasek GOLD (bez neonu/zieleni). Mechanika ProgressFill bez zmian. -->
 	<Border Margin="0,30,0,0">
-		<Grid Margin="30,10,30,30" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+		<Grid Margin="30,10,30,24" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
 
-			<!-- Procent w kółku -->
-			<Border Grid.Row="0"
-					Width="90" Height="90"
-					CornerRadius="45"
-					Background="{DynamicResource PositiveActionSoftBrush}"
-					BorderBrush="{DynamicResource PositiveActionBrush}"
-					BorderThickness="3"
-					HorizontalAlignment="Center"
-					Margin="0,0,0,20">
+			<!-- Procent w złotym okręgu -->
+			<Border Grid.Row="0" Classes="modal-icon" Margin="0,0,0,16">
 				<TextBlock x:Name="BigPercentText"
 						   Text="0%"
-						   FontSize="32"
-						   FontWeight="Bold"
-						   Foreground="{DynamicResource PositiveActionBrush}"
-						   HorizontalAlignment="Center"
-						   VerticalAlignment="Center"/>
+						   FontSize="20"
+						   FontWeight="Bold"/>
 			</Border>
 
 			<!-- Nazwa moda DLL -->
 			<TextBlock Grid.Row="1"
 					   x:Name="DllModNameText"
-					   FontSize="18" 
-					   FontWeight="Bold"
-					   Foreground="{DynamicResource TextPrimaryBrush}"
-					   HorizontalAlignment="Center"
-					   TextAlignment="Center"
+					   Classes="modal-title"
 					   Margin="0,0,0,10"/>
 
 			<!-- Obecna lokalizacja (mod FULL) -->
@@ -69,21 +56,12 @@
 			<!-- Status -->
 			<TextBlock Grid.Row="3"
 					   x:Name="StatusText"
-					   FontSize="13"
-					   Foreground="{DynamicResource TextSecondaryBrush}"
-					   HorizontalAlignment="Center"
-					   TextAlignment="Center"
+					   Classes="modal-message"
 					   Margin="0,0,0,10"/>
 
 			<!-- Pasek postępu -->
-			<Border Grid.Row="4"
-					Background="{DynamicResource ModCardBackgroundBrush}"
-					BorderBrush="{DynamicResource ModCardBorderBrush}"
-					BorderThickness="1"
-					CornerRadius="8"
-					Padding="15,12">
+			<Border Grid.Row="4" Classes="modal-info-row" Padding="15,12">
 				<Grid RowDefinitions="Auto,8,Auto">
-					<!-- Procent -->
 					<TextBlock Grid.Row="0"
 							   x:Name="PercentText"
 							   Text="0%"
@@ -92,16 +70,15 @@
 							   Foreground="{DynamicResource TextSecondaryBrush}"
 							   HorizontalAlignment="Center"/>
 
-					<!-- Progress bar -->
 					<Border Grid.Row="2"
 							Height="8"
-							Background="{DynamicResource ModCardBackgroundBrush}"
+							Background="{DynamicResource SecondaryBackgroundBrush}"
 							BorderBrush="{DynamicResource ModCardBorderBrush}"
 							BorderThickness="1"
 							CornerRadius="4"
 							ClipToBounds="True">
 						<Border x:Name="ProgressFill"
-								Background="{DynamicResource PositiveActionBrush}"
+								Background="{DynamicResource AccentBrush}"
 								CornerRadius="3"
 								HorizontalAlignment="Left"
 								Width="0"/>

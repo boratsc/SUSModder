@@ -22,6 +22,8 @@
 		<StyleInclude Source="/Styles/FabButtonStyle.axaml"/>
 		<StyleInclude Source="/Styles/TooltipStyle.axaml"/>
 		<StyleInclude Source="/Controls/SkeletonCard.axaml"/>
+		<!-- E6: wspólny wzorzec modali — globalnie, bo okna dialogów mają własne Window.Styles -->
+		<StyleInclude Source="/Styles/ModalStyle.axaml"/>
 
 		<!-- Flyouty są poza drzewem MainWindow — styl presenterów musi być globalny -->
 		<Style Selector="FlyoutPresenter.mod-detail-version-flyout-presenter">

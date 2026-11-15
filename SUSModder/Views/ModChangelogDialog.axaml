@@ -2,6 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SUSModder.ViewModels"
         xmlns:loc="using:SUSModder.Services.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:fic="using:FluentIcons.Common"
         x:Class="SUSModder.Views.ModChangelogDialog"
         x:DataType="vm:ModChangelogViewModel"
         Title="{Binding WindowTitle}"
@@ -66,23 +68,14 @@
 	<Border Margin="0,30,0,0">
 		<Grid Margin="24,10,24,24" RowDefinitions="Auto,Auto,Auto">
 
-			<!-- Ikona headera -->
+			<!-- Ikona headera (E6) -->
 			<Border Grid.Row="0"
-			        Classes="mod-changelog-header-icon"
-			        Width="72" Height="72"
-			        CornerRadius="36"
-			        Background="{DynamicResource PackIdentitySoftBrush}"
-			        BorderBrush="{DynamicResource PackIdentityBrush}"
-			        BorderThickness="2"
-			        HorizontalAlignment="Center"
+			        Classes="modal-icon mod-changelog-header-icon"
 			        Margin="0,0,0,16">
 				<Border.RenderTransform>
 					<TranslateTransform/>
 				</Border.RenderTransform>
-				<TextBlock Text="📋"
-				           FontSize="36"
-				           HorizontalAlignment="Center"
-				           VerticalAlignment="Center"/>
+				<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Info}"/>
 			</Border>
 
 			<!-- Tytuł + informacja o fallbacku -->
@@ -94,16 +87,11 @@
 					<TranslateTransform/>
 				</StackPanel.RenderTransform>
 
-				<TextBlock Text="{Binding WindowTitle}"
-				           FontSize="20"
-				           FontWeight="Bold"
-				           Foreground="{DynamicResource TextPrimaryBrush}"
-				           HorizontalAlignment="Center"
-				           TextAlignment="Center"/>
+				<TextBlock Text="{Binding WindowTitle}" Classes="modal-title"/>
 
 				<TextBlock Text="{Binding FallbackLanguageNotice}"
 				           FontSize="12"
-				           Foreground="#F59E0B"
+				           Foreground="{DynamicResource WarningTextBrush}"
 				           HorizontalAlignment="Center"
 				           TextAlignment="Center"
 				           TextWrapping="Wrap"
@@ -132,7 +120,9 @@
 					<!-- Empty -->
 					<StackPanel IsVisible="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:ModChangelogState.Empty}}"
 					            HorizontalAlignment="Center" Margin="0,40">
-						<TextBlock Text="📭" FontSize="32" HorizontalAlignment="Center"/>
+						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Info}" FontSize="32"
+						               Foreground="{DynamicResource TextMutedBrush}"
+						               HorizontalAlignment="Center"/>
 						<TextBlock Text="{Binding StatusMessage}"
 						           FontSize="14"
 						           Foreground="{DynamicResource TextSecondaryBrush}"
@@ -144,7 +134,9 @@
 					<!-- Error -->
 					<StackPanel IsVisible="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:ModChangelogState.Error}}"
 					            HorizontalAlignment="Center" Margin="0,40">
-						<TextBlock Text="⚠️" FontSize="32" HorizontalAlignment="Center"/>
+						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Warning}" FontSize="32"
+						               Foreground="{DynamicResource DangerBrush}"
+						               HorizontalAlignment="Center"/>
 						<TextBlock Text="{Binding StatusMessage}"
 						           FontSize="14"
 						           Foreground="{DynamicResource TextSecondaryBrush}"

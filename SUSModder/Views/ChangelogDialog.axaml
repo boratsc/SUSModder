@@ -1,6 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="using:SUSModder.Services.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:fic="using:FluentIcons.Common"
         x:Class="SUSModder.Views.ChangelogDialog"
         Title="{loc:Localize Changelog.WindowTitle}"
         Width="550" Height="480"
@@ -59,24 +61,6 @@
       </Style.Animations>
     </Style>
 
-    <!-- Hover dla przycisku close -->
-    <Style Selector="Button.close-button:pointerover">
-      <Setter Property="Background" Value="{DynamicResource PrimaryActionBrush}"/>
-      <Setter Property="BorderBrush" Value="{DynamicResource PrimaryActionHoverBrush}"/>
-    </Style>
-    <Style Selector="Button.close-button:pressed">
-      <Setter Property="Background" Value="{DynamicResource PrimaryActionHoverBrush}"/>
-    </Style>
-
-    <!-- Hover dla przycisku GitHub -->
-    <Style Selector="Button.github-button:pointerover">
-      <Setter Property="Background" Value="#1F2937"/>
-      <Setter Property="BorderBrush" Value="#374151"/>
-    </Style>
-    <Style Selector="Button.github-button:pressed">
-      <Setter Property="Background" Value="#111827"/>
-    </Style>
-
     <!-- Styl dla sekcji changeloga -->
     <Style Selector="Border.changelog-section">
       <Setter Property="Background" Value="{DynamicResource ModCardBackgroundBrush}"/>
@@ -99,23 +83,14 @@
   <Border Margin="0,30,0,0">
     <Grid Margin="24,10,24,24" RowDefinitions="Auto,Auto,Auto,Auto">
 
-      <!-- Header z ikoną -->
+      <!-- Header z ikoną (E6) -->
       <Border Grid.Row="0"
-              Classes="changelog-header-icon"
-              Width="72" Height="72"
-              CornerRadius="36"
-              Background="{DynamicResource PrimaryActionSoftBrush}"
-              BorderBrush="{DynamicResource PrimaryActionBrush}"
-              BorderThickness="2"
-              HorizontalAlignment="Center"
+              Classes="modal-icon changelog-header-icon"
               Margin="0,0,0,16">
         <Border.RenderTransform>
           <TranslateTransform/>
         </Border.RenderTransform>
-        <TextBlock Text="🎉"
-                   FontSize="36"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"/>
+        <ic:SymbolIcon Symbol="{x:Static fic:Symbol.Info}"/>
       </Border>
 
       <!-- Tytuł + subtitle -->
@@ -127,19 +102,9 @@
           <TranslateTransform/>
         </StackPanel.RenderTransform>
 
-        <TextBlock Text="{loc:Localize Changelog.WindowTitle}"
-                   FontSize="22"
-                   FontWeight="Bold"
-                   Foreground="{DynamicResource TextPrimaryBrush}"
-                   HorizontalAlignment="Center"
-                   TextAlignment="Center"/>
+        <TextBlock Text="{loc:Localize Changelog.WindowTitle}" Classes="modal-title"/>
 
-        <TextBlock x:Name="VersionDateText"
-                   FontSize="13"
-                   Foreground="{DynamicResource TextSecondaryBrush}"
-                   HorizontalAlignment="Center"
-                   TextAlignment="Center"
-                   Margin="0,2,0,0"/>
+        <TextBlock x:Name="VersionDateText" Classes="modal-message" Margin="0,2,0,0"/>
       </StackPanel>
 
       <!-- Sekcje changeloga (ScrollViewer) -->
@@ -161,31 +126,17 @@
                   Orientation="Horizontal"
                   HorizontalAlignment="Center"
                   Spacing="12">
-        <Button x:Name="GitHubButton"
-                Classes="github-button"
-                Content="{loc:Localize Changelog.GitHubButton}"
-                FontSize="13"
-                Padding="16,8"
-                Cursor="Hand"
-                BorderThickness="1"
-                BorderBrush="{DynamicResource ModCardBorderBrush}"
-                Background="{DynamicResource ModCardBackgroundBrush}"
-                Foreground="{DynamicResource TextPrimaryBrush}"
-                CornerRadius="6"
-                Click="OnGitHubButtonClick"/>
-
         <Button x:Name="CloseButton"
-                Classes="close-button"
+                Classes="modal-primary"
                 Content="{loc:Localize Changelog.CloseButton}"
-                FontSize="13"
-                Padding="24,8"
-                Cursor="Hand"
-                BorderThickness="1"
-                BorderBrush="{DynamicResource PrimaryActionBrush}"
-                Background="{DynamicResource PrimaryActionBrush}"
-                Foreground="{DynamicResource OnAccentTextBrush}"
-                CornerRadius="6"
+                IsDefault="True"
+                IsCancel="True"
                 Click="OnCloseButtonClick"/>
+
+        <Button x:Name="GitHubButton"
+                Classes="modal-secondary"
+                Content="{loc:Localize Changelog.GitHubButton}"
+                Click="OnGitHubButtonClick"/>
       </StackPanel>
     </Grid>
   </Border>

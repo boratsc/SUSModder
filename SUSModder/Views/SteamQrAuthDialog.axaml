@@ -13,13 +13,11 @@
 
 	<Grid RowDefinitions="Auto,*,Auto" Margin="20">
 		<StackPanel Grid.Row="0" Spacing="8">
-			<TextBlock Text="{loc:Localize Dialogs.SteamQr.Header}"
-			           FontSize="18"
-			           FontWeight="Bold"
-			           Foreground="{DynamicResource TextPrimaryBrush}"/>
+			<TextBlock Text="{loc:Localize Dialogs.SteamQr.Header}" Classes="modal-title"
+			           HorizontalAlignment="Stretch" TextAlignment="Left"/>
 			<TextBlock Text="{loc:Localize Dialogs.SteamQr.Description}"
-			           TextWrapping="Wrap"
-			           Foreground="{DynamicResource TextSecondaryBrush}"/>
+			           Classes="modal-message"
+			           HorizontalAlignment="Stretch" TextAlignment="Left"/>
 			<TextBlock Text="{Binding StatusText}"
 			           FontWeight="SemiBold"
 			           Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -46,7 +44,7 @@
 			<TextBlock Text="{Binding ErrorText}"
 			           IsVisible="{Binding HasError}"
 			           TextWrapping="Wrap"
-			           Foreground="#E57373"/>
+			           Foreground="{DynamicResource DangerBrush}"/>
 
 			<Grid ColumnDefinitions="*,Auto,Auto">
 				<ProgressBar Grid.Column="0"
@@ -59,12 +57,13 @@
 				<Button Grid.Column="1"
 				        Content="{loc:Localize Dialogs.SteamQr.FallbackButton}"
 				        Command="{Binding FallbackCommand}"
-				        Classes="secondary-button"
+				        Classes="modal-secondary"
 				        Margin="0,0,8,0"/>
 				<Button Grid.Column="2"
 				        Content="{loc:Localize Dialogs.SteamQr.CancelButton}"
 				        Command="{Binding CancelCommand}"
-				        Classes="secondary-button"/>
+				        Classes="modal-secondary"
+				        IsCancel="True"/>
 			</Grid>
 		</StackPanel>
 	</Grid>

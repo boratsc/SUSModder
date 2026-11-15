@@ -11,20 +11,18 @@
 		<FluentTheme />
 	</Window.Styles>
 
-	<StackPanel Margin="20" Spacing="15">
+	<!-- E6: wspólny wzorzec komunikatu (zdanie + GOLD OK). -->
+	<StackPanel Margin="24" Spacing="15" VerticalAlignment="Center">
 		<TextBlock x:Name="MessageText"
-                   TextWrapping="Wrap"
-                   FontSize="14"
-                   Foreground="{DynamicResource TextPrimaryBrush}"
-                   HorizontalAlignment="Center"
-                   TextAlignment="Center"/>
+                   Classes="modal-message"
+                   Foreground="{DynamicResource TextPrimaryBrush}"/>
 
-		<Button Content="{loc:Localize UI.Buttons.OK}"
+		<Button Classes="modal-primary"
+                Content="{loc:Localize UI.Buttons.OK}"
                 HorizontalAlignment="Center"
-                Width="80" Height="32"
+                IsDefault="True"
+                IsCancel="True"
                 Margin="0,10,0,0"
-                Background="{DynamicResource AccentBrush}"
-                Foreground="{DynamicResource OnAccentTextBrush}"
                 Click="OkButton_Click"/>
 	</StackPanel>
 </Window>

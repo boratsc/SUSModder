@@ -168,7 +168,10 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Install] Exception: {ex.Message}");
-                installResult = ModInstallResult.Failed(ex.Message);
+                // E6: surowy wyjątek tylko do logu (Szczegóły); zdanie główne = bezpieczny komunikat.
+                installResult = ModInstallResult.Failed(
+                    _localizationService.Get("Dialogs.Error.InstallFailed"),
+                    new[] { ex.ToString() });
                 success = false;
             }
             finally
@@ -196,7 +199,8 @@ namespace SUSModder.ViewModels
             if (success && showPostInstallFlow && modConfig != null)
                 await ShowPostInstallFlowAsync(currentSelectedMod, modConfig);
             else if (!success)
-                await ShowPostInstallFailureFlowAsync(currentSelectedMod, installResult);
+                await ShowPostInstallFailureFlowAsync(currentSelectedMod, installResult,
+                    retry: () => InstallModItemAsync(currentSelectedMod));
 
             return success;
         }
@@ -340,7 +344,10 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[InstallSpecificVersion] Exception: {ex.Message}");
-                installResult = ModInstallResult.Failed(ex.Message);
+                // E6: surowy wyjątek tylko do logu (Szczegóły); zdanie główne = bezpieczny komunikat.
+                installResult = ModInstallResult.Failed(
+                    _localizationService.Get("Dialogs.Error.InstallFailed"),
+                    new[] { ex.ToString() });
                 success = false;
             }
             finally
@@ -372,7 +379,8 @@ namespace SUSModder.ViewModels
             if (success)
                 await ShowPostInstallFlowAsync(modItem, modConfig);
             else
-                await ShowPostInstallFailureFlowAsync(modItem, installResult);
+                await ShowPostInstallFailureFlowAsync(modItem, installResult,
+                    retry: () => InstallSpecificVersionAsync(modItem, modConfig, selectedVersion, allConfigs));
         }
 
         /// <summary>
@@ -474,10 +482,11 @@ namespace SUSModder.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"🔍 DEBUG: ModifyEpicAsync threw exception: {ex.Message}");
                 diagnosticsOutput.Write($"[Install Epic] Exception: {ex.Message}");
+                // E6: surowy wyjątek jest już w logu (Szczegóły); nie pokazuj go jako zdanie główne.
                 return ModInstallResult.Failed(
                     MapDownloadVerificationMessage(ex.Message)
                         ?? MapDownloadVerificationMessage(epicManager.LastFailureCode)
-                        ?? ex.Message,
+                        ?? _localizationService.Get("Dialogs.Error.InstallFailed"),
                     diagnosticsOutput.Lines);
             }
         }
@@ -565,7 +574,10 @@ namespace SUSModder.ViewModels
             catch (Exception ex)
             {
                 logCollector.Write($"[Install Steam] Exception: {ex.Message}");
-                return ModInstallResult.Failed(ex.Message, logCollector.Lines);
+                // E6: surowy wyjątek tylko do logu (Szczegóły); zdanie główne = bezpieczny komunikat.
+                return ModInstallResult.Failed(
+                    _localizationService.Get("Dialogs.Error.InstallFailed"),
+                    logCollector.Lines);
             }
         }
 
@@ -752,7 +764,10 @@ namespace SUSModder.ViewModels
             IsPostInstallSuccessVisible = true;
         }
 
-        private async Task ShowPostInstallFailureFlowAsync(ModItem modItem, ModInstallResult? installResult)
+        /// <summary>E6: flow ponowienia instalacji po błędzie (ten sam wariant instalacji).</summary>
+        private Func<Task>? _postInstallFailureRetry;
+
+        private async Task ShowPostInstallFailureFlowAsync(ModItem modItem, ModInstallResult? installResult, Func<Task>? retry = null)
         {
             await RefreshModsListAsync(checkUpdates: false);
             SelectedMod = Mods.FirstOrDefault(m => m.Id == modItem.Id) ?? modItem;
@@ -770,6 +785,8 @@ namespace SUSModder.ViewModels
                 _localizationService);
             vm.CloseRequested += OnPostInstallFailureCloseRequested;
             vm.AiSupportRequested += OnPostInstallFailureAiSupportRequested;
+            vm.RetryRequested += OnPostInstallFailureRetryRequested;
+            _postInstallFailureRetry = retry;
             IsLaunchDiagnosticsVisible = false;
             IsPostInstallSuccessVisible = false;
             PostInstallSuccessViewModel = null;
@@ -784,10 +801,30 @@ namespace SUSModder.ViewModels
 
             vm.AiSupportRequested -= OnPostInstallFailureAiSupportRequested;
             vm.CloseRequested -= OnPostInstallFailureCloseRequested;
+            vm.RetryRequested -= OnPostInstallFailureRetryRequested;
+            _postInstallFailureRetry = null;
 
             IsPostInstallFailureVisible = false;
             PostInstallFailureViewModel = null;
             ShowAiSupportForInstallFailure(vm.ModName, vm.Message, vm.LogText);
+        }
+
+        private void OnPostInstallFailureRetryRequested(object? sender, EventArgs e)
+        {
+            if (sender is not PostInstallFailureViewModel vm)
+                return;
+
+            vm.AiSupportRequested -= OnPostInstallFailureAiSupportRequested;
+            vm.CloseRequested -= OnPostInstallFailureCloseRequested;
+            vm.RetryRequested -= OnPostInstallFailureRetryRequested;
+
+            var retry = _postInstallFailureRetry;
+            _postInstallFailureRetry = null;
+            IsPostInstallFailureVisible = false;
+            PostInstallFailureViewModel = null;
+
+            if (retry != null)
+                _ = retry();
         }
 
         private void OnPostInstallFailureCloseRequested(object? sender, EventArgs e)
@@ -796,6 +833,8 @@ namespace SUSModder.ViewModels
             {
                 vm.AiSupportRequested -= OnPostInstallFailureAiSupportRequested;
                 vm.CloseRequested -= OnPostInstallFailureCloseRequested;
+                vm.RetryRequested -= OnPostInstallFailureRetryRequested;
+                _postInstallFailureRetry = null;
                 IsPostInstallFailureVisible = false;
                 PostInstallFailureViewModel = null;
 

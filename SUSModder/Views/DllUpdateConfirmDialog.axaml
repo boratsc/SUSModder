@@ -6,8 +6,10 @@
         xmlns:config="using:SUSModder.Core.Configuration"
         xmlns:models="using:SUSModder.Core.Models"
         xmlns:local="clr-namespace:SUSModder.Services.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:fic="using:FluentIcons.Common"
         x:Class="SUSModder.Views.DllUpdateConfirmDialog"
-        Width="600" Height="550"
+        Width="600" Height="470"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         Background="{DynamicResource WindowBackgroundBrush}"
@@ -16,7 +18,7 @@
 
 	<Window.Styles>
 		<FluentTheme />
-		
+
 		<!-- Animacja fade-in dla całego okna -->
 		<Style Selector="Window">
 			<Style.Animations>
@@ -30,7 +32,7 @@
 				</Animation>
 			</Style.Animations>
 		</Style>
-		
+
 		<!-- Animacja dla ikony aktualizacji -->
 		<Style Selector="Border.update-icon">
 			<Style.Animations>
@@ -46,7 +48,7 @@
 				</Animation>
 			</Style.Animations>
 		</Style>
-		
+
 		<!-- Animacja dla contentu -->
 		<Style Selector="StackPanel.content-panel">
 			<Style.Animations>
@@ -62,206 +64,146 @@
 				</Animation>
 			</Style.Animations>
 		</Style>
-		
-		<!-- Hover effect dla przycisku aktualizacji -->
-		<Style Selector="Button.update-button:pointerover">
-			<Setter Property="Background" Value="{DynamicResource PositiveActionHoverBrush}"/>
-			<Setter Property="BorderBrush" Value="{DynamicResource PositiveActionPressedBrush}"/>
-		</Style>
-		
-		<Style Selector="Button.update-button:pressed">
-			<Setter Property="Background" Value="{DynamicResource PositiveActionPressedBrush}"/>
-		</Style>
-		
-		<!-- Hover effect dla przycisku anuluj -->
-		<Style Selector="Button.cancel-button:pointerover">
-			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-		</Style>
 	</Window.Styles>
 
+	<!-- E6 / makieta 10 (aktualizacja = akcja niedestrukcyjna → GOLD):
+	     ikona + tytuł + nazwa DLL + nowa wersja; lista lokalizacji pod „Szczegóły”. -->
 	<Border Margin="0,30,0,0">
-		<Grid Margin="30,10,30,30" RowDefinitions="Auto,Auto,Auto">
+		<Grid Margin="30,10,30,24" RowDefinitions="Auto,*,Auto">
 
-			<!-- Ikona aktualizacji DLL -->
 			<Border Grid.Row="0"
-					Classes="update-icon"
-					Width="80" Height="80"
-					CornerRadius="40"
-					Background="{DynamicResource PositiveActionSoftBrush}"
-					BorderBrush="{DynamicResource PositiveActionBrush}"
-					BorderThickness="2"
-					HorizontalAlignment="Center"
-					Margin="0,0,0,20">
+					Classes="modal-icon update-icon"
+					Margin="0,0,0,16">
 				<Border.RenderTransform>
 					<TranslateTransform/>
 				</Border.RenderTransform>
-				<TextBlock Text="📦" 
-						   FontSize="40"
-						   HorizontalAlignment="Center"
-						   VerticalAlignment="Center"/>
+				<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowSync}"/>
 			</Border>
 
-			<!-- Zawartość -->
-			<StackPanel Grid.Row="1"
-						Classes="content-panel"
-						Spacing="12"
-						MinHeight="200">
-				<StackPanel.RenderTransform>
-					<TranslateTransform/>
-				</StackPanel.RenderTransform>
-				
-				<!-- Tytuł -->
-				<TextBlock x:Name="TitleText"
-						   Text="{local:Localize DllManager.UpdateConfirm.Title}"
-						   FontSize="20" 
-						   FontWeight="Bold"
-						   Foreground="{DynamicResource TextPrimaryBrush}"
-						   HorizontalAlignment="Center"
-						   TextAlignment="Center"/>
+			<ScrollViewer Grid.Row="1"
+						  VerticalScrollBarVisibility="Auto"
+						  HorizontalScrollBarVisibility="Disabled"
+						  MaxHeight="300">
+				<StackPanel Classes="content-panel" Spacing="12">
+					<StackPanel.RenderTransform>
+						<TranslateTransform/>
+					</StackPanel.RenderTransform>
 
-				<!-- Nazwa moda DLL -->
-				<TextBlock x:Name="DllModNameText"
-						   FontSize="16"
-						   FontWeight="SemiBold"
-						   Foreground="{DynamicResource AccentBrush}"
-						   HorizontalAlignment="Center"
-						   TextAlignment="Center"
-						   Margin="0,0,0,8"/>
-				
-				<!-- Informacja o nowej wersji -->
-				<Border Background="{DynamicResource ModCardBackgroundBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="1"
-						CornerRadius="8"
-						Padding="12"
-						Margin="0,4,0,4">
-					<StackPanel Orientation="Horizontal" 
-								HorizontalAlignment="Center"
-								Spacing="8">
-						<TextBlock Text="{local:Localize DllManager.UpdateConfirm.NewVersionAvailable}"
-								   FontSize="13"
-								   FontWeight="Medium"
-								   Foreground="{DynamicResource TextSecondaryBrush}"
-								   VerticalAlignment="Center"/>
-						<TextBlock x:Name="NewVersionText"
-								   FontSize="14"
-								   FontWeight="Bold"
-								   Foreground="{DynamicResource PositiveActionBrush}"
-								   VerticalAlignment="Center"/>
-					</StackPanel>
-				</Border>
-				
-				<!-- Lista modów FULL z ich wersjami -->
-				<Border Background="{DynamicResource ModCardBackgroundBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="1"
-						CornerRadius="8"
-						Padding="16,12"
-						Margin="0,8,0,0">
-					<StackPanel>
-						<TextBlock Text="{local:Localize DllManager.UpdateConfirm.UpdateInLocations}"
-								   FontSize="13"
-								   FontWeight="SemiBold"
-								   Foreground="{DynamicResource TextPrimaryBrush}"
-								   Margin="0,0,0,8"/>
-						
-						<ScrollViewer MaxHeight="200" 
-									  VerticalScrollBarVisibility="Auto">
-							<ItemsControl x:Name="LocationsItemsControl">
-								<ItemsControl.ItemTemplate>
-									<DataTemplate x:DataType="models:DllLocationUpdate">
-										<Border Background="{DynamicResource SecondaryBackgroundBrush}"
-												BorderBrush="{DynamicResource ModCardBorderBrush}"
-												BorderThickness="1"
-												CornerRadius="6"
-												Padding="10,8"
-												Margin="0,0,0,6">
-											<Grid ColumnDefinitions="Auto,*,Auto">
-												<!-- Bullet -->
-												<TextBlock Grid.Column="0"
-														   Text="📦" 
-														   FontSize="14"
-														   VerticalAlignment="Center"
-														   Margin="0,0,8,0"/>
-												
-												<!-- Nazwa moda FULL -->
-												<TextBlock Grid.Column="1"
-														   Text="{Binding FullMod.ModName}"
-														   FontSize="13"
-														   FontWeight="Medium"
-														   Foreground="{DynamicResource TextPrimaryBrush}"
-														   VerticalAlignment="Center"/>
-												
-												<!-- Zmiana wersji -->
-												<StackPanel Grid.Column="2"
-															Orientation="Horizontal"
-															Spacing="6"
-															VerticalAlignment="Center">
-													<TextBlock Text="{Binding CurrentVersion}"
-															   FontSize="12"
-															   Foreground="{DynamicResource TextSecondaryBrush}"/>
-													<TextBlock Text="→"
-															   FontSize="12"
-															   Foreground="{DynamicResource AccentBrush}"/>
-													<TextBlock Text="{Binding NewVersion}"
-															   FontSize="12"
-															   FontWeight="SemiBold"
-															   Foreground="{DynamicResource PositiveActionBrush}"/>
-												</StackPanel>
-											</Grid>
-										</Border>
-									</DataTemplate>
-								</ItemsControl.ItemTemplate>
-							</ItemsControl>
-						</ScrollViewer>
-						
-						<TextBlock x:Name="LocationCountText"
-								   FontSize="12"
-								   FontStyle="Italic"
-								   Foreground="{DynamicResource TextSecondaryBrush}"
-								   Margin="0,8,0,0"
-								   HorizontalAlignment="Right"/>
-					</StackPanel>
-				</Border>
-			</StackPanel>
+					<TextBlock x:Name="TitleText"
+							   Text="{local:Localize DllManager.UpdateConfirm.Title}"
+							   Classes="modal-title"/>
 
-			<StackPanel Grid.Row="2"
-						Orientation="Horizontal"
-						HorizontalAlignment="Center"
-						Spacing="12"
-						Margin="0,20,0,0">
-				<Button x:Name="CancelButton"
-						Classes="cancel-button"
-						Content="{local:Localize DllManager.UpdateConfirm.CancelButton}"
-						Width="160" Height="38"
-						Background="{DynamicResource ModCardBackgroundBrush}"
-						Foreground="{DynamicResource TextPrimaryBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="2"
-						CornerRadius="8"
-						FontWeight="Medium"
-						Click="CancelButton_Click"/>
+					<TextBlock x:Name="DllModNameText"
+							   FontSize="16"
+							   FontWeight="SemiBold"
+							   Foreground="{DynamicResource AccentBrush}"
+							   HorizontalAlignment="Center"
+							   TextAlignment="Center"/>
+
+					<!-- Informacja o nowej wersji -->
+					<Border Classes="modal-info-row" HorizontalAlignment="Center">
+						<StackPanel Orientation="Horizontal" Spacing="8">
+							<TextBlock Text="{local:Localize DllManager.UpdateConfirm.NewVersionAvailable}"
+									   FontSize="13"
+									   Foreground="{DynamicResource TextSecondaryBrush}"
+									   VerticalAlignment="Center"/>
+							<TextBlock x:Name="NewVersionText"
+									   FontSize="14"
+									   FontWeight="Bold"
+									   Foreground="{DynamicResource AccentBrush}"
+									   VerticalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+
+					<Expander Classes="modal-details" Header="{local:Localize UI.Inspector.Details}">
+						<!-- Lista modów FULL z ich wersjami -->
+						<Border Classes="modal-info-row" Margin="0,8,0,0">
+							<StackPanel>
+								<TextBlock Text="{local:Localize DllManager.UpdateConfirm.UpdateInLocations}"
+										   FontSize="13"
+										   FontWeight="SemiBold"
+										   Foreground="{DynamicResource TextPrimaryBrush}"
+										   Margin="0,0,0,8"/>
+
+								<ScrollViewer MaxHeight="200"
+											  VerticalScrollBarVisibility="Auto">
+									<ItemsControl x:Name="LocationsItemsControl">
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="models:DllLocationUpdate">
+												<Border Background="{DynamicResource SecondaryBackgroundBrush}"
+														BorderBrush="{DynamicResource ModCardBorderBrush}"
+														BorderThickness="1"
+														CornerRadius="6"
+														Padding="10,8"
+														Margin="0,0,0,6">
+													<Grid ColumnDefinitions="Auto,*,Auto">
+														<ic:SymbolIcon Grid.Column="0"
+																	   Symbol="{x:Static fic:Symbol.Folder}"
+																	   FontSize="14"
+																	   Foreground="{DynamicResource TextSecondaryBrush}"
+																	   VerticalAlignment="Center"
+																	   Margin="0,0,8,0"/>
+														<TextBlock Grid.Column="1"
+																   Text="{Binding FullMod.ModName}"
+																   FontSize="13"
+																   FontWeight="Medium"
+																   Foreground="{DynamicResource TextPrimaryBrush}"
+																   VerticalAlignment="Center"/>
+														<StackPanel Grid.Column="2"
+																	Orientation="Horizontal"
+																	Spacing="6"
+																	VerticalAlignment="Center">
+															<TextBlock Text="{Binding CurrentVersion}"
+																	   FontSize="12"
+																	   Foreground="{DynamicResource TextSecondaryBrush}"/>
+															<TextBlock Text="→"
+																	   FontSize="12"
+																	   Foreground="{DynamicResource AccentBrush}"/>
+															<TextBlock Text="{Binding NewVersion}"
+																	   FontSize="12"
+																	   FontWeight="SemiBold"
+																	   Foreground="{DynamicResource AccentBrush}"/>
+														</StackPanel>
+													</Grid>
+												</Border>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+								</ScrollViewer>
+
+								<TextBlock x:Name="LocationCountText"
+										   FontSize="12"
+										   FontStyle="Italic"
+										   Foreground="{DynamicResource TextSecondaryBrush}"
+										   Margin="0,8,0,0"
+										   HorizontalAlignment="Right"/>
+							</StackPanel>
+						</Border>
+					</Expander>
+				</StackPanel>
+			</ScrollViewer>
+
+			<StackPanel Grid.Row="2" Classes="modal-actions" Margin="0,16,0,0">
 				<Button x:Name="ConfirmButton"
-						Classes="update-button"
+						Classes="modal-primary"
 						Content="{local:Localize DllManager.UpdateConfirm.UpdateAllButton}"
-						Width="180" Height="38"
-						Background="{DynamicResource PositiveActionBrush}"
-						Foreground="{DynamicResource OnAccentTextBrush}"
-						BorderBrush="{DynamicResource PositiveActionHoverBrush}"
-						BorderThickness="2"
-						CornerRadius="8"
-						FontWeight="Bold"
+						IsDefault="True"
 						Click="ConfirmButton_Click">
 					<i:Interaction.Behaviors>
-						<behaviors:ShakeOnLoadBehavior 
-							Intensity="6" 
-							RepeatCount="2" 
+						<behaviors:ShakeOnLoadBehavior
+							Intensity="6"
+							RepeatCount="2"
 							Delay="0:0:0.6" />
 					</i:Interaction.Behaviors>
 					<Button.RenderTransform>
 						<TranslateTransform/>
 					</Button.RenderTransform>
 				</Button>
+				<Button x:Name="CancelButton"
+						Classes="modal-secondary"
+						Content="{local:Localize DllManager.UpdateConfirm.CancelButton}"
+						IsCancel="True"
+						Click="CancelButton_Click"/>
 			</StackPanel>
 		</Grid>
 	</Border>

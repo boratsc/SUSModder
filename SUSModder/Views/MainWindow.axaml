@@ -884,6 +884,7 @@
 				IsVisible="{Binding IsAnyToolModalOpen}"
 				PointerPressed="OnToolModalOverlayPressed">
 			<Border Classes="tool-modal-card"
+					Width="{Binding ToolModalCardWidth}"
 					PointerPressed="OnToolModalPanelPressed">
 				<Grid RowDefinitions="Auto,*">
 					<Grid ColumnDefinitions="*,Auto" Margin="24,20,24,14">

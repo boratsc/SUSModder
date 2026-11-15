@@ -165,6 +165,15 @@ namespace SUSModder.ViewModels
             }
         }
 
+        /// <summary>
+        /// E6: modale stanu (sukces/błąd instalacji, pierwsze uruchomienie) są węższe
+        /// niż panele narzędziowe — jak karty na makietach 08–12.
+        /// </summary>
+        public double ToolModalCardWidth =>
+            IsPostInstallSuccessVisible || IsPostInstallFailureVisible || IsAmongUsNotFoundVisible
+                ? 560
+                : 760;
+
         public ReactiveCommand<Unit, Unit> ToggleStatusBarModeCommand { get; private set; } =
             ReactiveCommand.Create(() => { });
 
@@ -230,6 +239,7 @@ namespace SUSModder.ViewModels
             PostInstallSuccessViewModel = null;
             IsPostInstallFailureVisible = false;
             PostInstallFailureViewModel = null;
+            _postInstallFailureRetry = null;
             IsLaunchDiagnosticsVisible = false;
             IsAiSupportVisible = false;
             DismissAmongUsNotFoundModal(AmongUsNotFoundResult.Close);
@@ -275,6 +285,7 @@ namespace SUSModder.ViewModels
             this.RaisePropertyChanged(nameof(IsDllModalVisible));
             this.RaisePropertyChanged(nameof(IsAnyToolModalOpen));
             this.RaisePropertyChanged(nameof(ToolModalTitle));
+            this.RaisePropertyChanged(nameof(ToolModalCardWidth));
             NotifyModDetailPanelLayoutChanged();
         }
 

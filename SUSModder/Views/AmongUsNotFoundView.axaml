@@ -1,78 +1,89 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:fic="using:FluentIcons.Common"
              x:Class="SUSModder.Views.AmongUsNotFoundView"
              x:DataType="vm:AmongUsNotFoundViewModel"
-             Background="{DynamicResource CardBackgroundBrush}">
+             Background="Transparent">
 
-	<UserControl.Styles>
-		<Style Selector="UserControl">
-			<Style.Animations>
-				<Animation Duration="0:0:0.3" FillMode="Forward">
-					<KeyFrame Cue="0%">
-						<Setter Property="Opacity" Value="0"/>
-					</KeyFrame>
-					<KeyFrame Cue="100%">
-						<Setter Property="Opacity" Value="1"/>
-					</KeyFrame>
-				</Animation>
-			</Style.Animations>
-		</Style>
+	<!-- E6 / makieta 09: „Pierwsze uruchomienie” + zdanie + 3 numerowane kroki,
+	     GOLD „Wybierz folder gry” + outlined „Pomiń na teraz”.
+	     Wybór języka i platformy pozostaje w osobnych dialogach startowych
+	     (LanguageSelectionDialog / PlatformSelectionDialog), autodetekcja bez zmian.
+	     Pełna instrukcja ręczna pod „Szczegóły”. Fade-in: wrapper w MainWindow. -->
 
-		<Style Selector="Button.primary-button:pointerover">
-			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-		</Style>
+	<StackPanel Spacing="16" VerticalAlignment="Center" HorizontalAlignment="Center"
+	            MaxWidth="520" Margin="30">
 
-		<Style Selector="Button.secondary-button:pointerover">
-			<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-		</Style>
-	</UserControl.Styles>
-
-	<StackPanel Spacing="20" VerticalAlignment="Center" Margin="30">
-		<Border HorizontalAlignment="Center">
-			<TextBlock Text="🎮" FontSize="48"/>
+		<Border Classes="modal-icon">
+			<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Folder}"/>
 		</Border>
 
-		<TextBlock FontSize="22"
-		           FontWeight="Bold"
-		           Foreground="{DynamicResource TextPrimaryBrush}"
-		           TextAlignment="Center"
-		           TextWrapping="Wrap"
-		           Text="{Binding Title}"/>
+		<TextBlock Classes="modal-title" Text="{Binding Title}"/>
 
-		<TextBlock FontSize="14"
-		           Foreground="{DynamicResource TextSecondaryBrush}"
-		           TextAlignment="Center"
-		           TextWrapping="Wrap"
-		           Margin="0,0,0,10"
-		           Text="{Binding Message}"/>
+		<TextBlock Classes="modal-message"
+		           Text="{loc:Localize Dialogs.AmongUsNotFound.FirstRunMessage}"/>
 
-		<StackPanel Orientation="Horizontal"
-		            HorizontalAlignment="Center"
-		            Spacing="15">
-			<Button Command="{Binding BrowseCommand}"
-			        Classes="primary-button"
-			        FontSize="16"
-			        FontWeight="SemiBold"
-			        Padding="20,12"
-			        CornerRadius="8"
-			        Background="{DynamicResource AccentBrush}"
-			        Foreground="{DynamicResource OnAccentTextBrush}"
-			        BorderThickness="0"
-			        Content="{Binding BrowseButton}"/>
+		<Border Classes="modal-hairline" Margin="0,4"/>
 
-			<Button Command="{Binding CloseCommand}"
-			        Classes="secondary-button"
-			        FontSize="16"
-			        FontWeight="SemiBold"
-			        Padding="20,12"
-			        CornerRadius="8"
-			        Background="{DynamicResource SecondaryBackgroundBrush}"
-			        BorderBrush="{DynamicResource AccentBrush}"
-			        BorderThickness="1"
-			        Foreground="{DynamicResource TextPrimaryBrush}"
+		<StackPanel Spacing="14">
+			<Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+				<Border Classes="modal-step-number">
+					<TextBlock Text="1"/>
+				</Border>
+				<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+					<TextBlock Classes="modal-step-title"
+					           Text="{loc:Localize Dialogs.AmongUsNotFound.Step1Title}"/>
+					<TextBlock Classes="modal-step-desc"
+					           Text="{loc:Localize Dialogs.AmongUsNotFound.Step1Desc}"/>
+				</StackPanel>
+			</Grid>
+			<Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+				<Border Classes="modal-step-number">
+					<TextBlock Text="2"/>
+				</Border>
+				<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+					<TextBlock Classes="modal-step-title"
+					           Text="{loc:Localize Dialogs.AmongUsNotFound.Step2Title}"/>
+					<TextBlock Classes="modal-step-desc"
+					           Text="{loc:Localize Dialogs.AmongUsNotFound.Step2Desc}"/>
+				</StackPanel>
+			</Grid>
+			<Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+				<Border Classes="modal-step-number">
+					<TextBlock Text="3"/>
+				</Border>
+				<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+					<TextBlock Classes="modal-step-title"
+					           Text="{loc:Localize Dialogs.AmongUsNotFound.Step3Title}"/>
+					<TextBlock Classes="modal-step-desc"
+					           Text="{loc:Localize Dialogs.AmongUsNotFound.Step3Desc}"/>
+				</StackPanel>
+			</Grid>
+		</StackPanel>
+
+		<StackPanel Classes="modal-actions">
+			<Button Classes="modal-primary" Command="{Binding BrowseCommand}">
+				<StackPanel Orientation="Horizontal" Spacing="8">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Folder}" FontSize="16"
+					               Foreground="{DynamicResource OnAccentTextBrush}"/>
+					<TextBlock Text="{Binding BrowseButton}" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Button>
+			<Button Classes="modal-secondary"
+			        Command="{Binding CloseCommand}"
 			        Content="{Binding CloseButton}"/>
 		</StackPanel>
+
+		<Expander Classes="modal-details" Header="{loc:Localize UI.Inspector.Details}">
+			<TextBlock Margin="0,8,0,0"
+			           FontSize="13"
+			           Foreground="{DynamicResource TextSecondaryBrush}"
+			           TextWrapping="Wrap"
+			           Text="{Binding Message}"/>
+		</Expander>
+
 	</StackPanel>
 </UserControl>

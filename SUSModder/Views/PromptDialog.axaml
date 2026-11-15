@@ -26,7 +26,7 @@
 		<Border Grid.Row="1"
 		        BorderBrush="{DynamicResource BorderBrush}"
 		        BorderThickness="1"
-		        CornerRadius="4"
+		        CornerRadius="6"
 		        Background="{DynamicResource SecondaryBackgroundBrush}">
 			<TextBox x:Name="InputTextBox"
 			         Text="{Binding InputText}"
@@ -48,23 +48,15 @@
                     Spacing="10"
                     Margin="0,15,0,0">
 			<Button Content="{loc:Localize UI.Buttons.OK}"
+                    Classes="modal-primary"
                     Click="OnOkClick"
                     IsDefault="True"
-                    MinWidth="80"
-                    Background="{DynamicResource AccentBrush}"
-                    Foreground="{DynamicResource OnAccentTextBrush}"
-                    Padding="10,8"
-                    CornerRadius="4"/>
+                    MinWidth="100"/>
 			<Button Content="{loc:Localize UI.Buttons.Cancel}"
+                    Classes="modal-secondary"
                     Click="OnCancelClick"
                     IsCancel="True"
-                    MinWidth="80"
-                    Background="{DynamicResource ModCardBackgroundBrush}"
-                    Foreground="{DynamicResource TextPrimaryBrush}"
-                    BorderBrush="{DynamicResource ModCardBorderBrush}"
-                    BorderThickness="1"
-                    Padding="10,8"
-                    CornerRadius="4"/>
+                    MinWidth="100"/>
 		</StackPanel>
 	</Grid>
 </Window>
