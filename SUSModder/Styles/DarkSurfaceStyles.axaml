@@ -98,11 +98,7 @@
 		<Setter Property="BoxShadow" Value="0 6 20 0 #4D000000"/>
 	</Style>
 
-	<Style Selector="Window.dark-theme Border.fab-discord-promo-panel">
-		<Setter Property="BoxShadow" Value="0 4 14 0 #40000000"/>
-	</Style>
-
-	<!-- Group tint w FAB menu: neutralny grafit (border z alfą) -->
+	<!-- Group tint w menu „Więcej": neutralny grafit (border z alfą) -->
 	<Style Selector="Window.dark-theme Border.fab-menu-group">
 		<Setter Property="Background" Value="#3335373C"/>
 	</Style>

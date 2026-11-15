@@ -29,6 +29,21 @@ namespace SUSModder.ViewModels
 
         public bool IsDllModalVisible => IsDllModificationsVisible || IsDllInstallDialogVisible;
 
+        private bool _isChatColumnVisible = true;
+
+        /// <summary>
+        /// Widoczność kolumny czatu społeczności (przełącznik dymka na górnej belce).
+        /// Sam panel czatu pozostaje bez zmian do etapu E5.
+        /// </summary>
+        public bool IsChatColumnVisible
+        {
+            get => _isChatColumnVisible;
+            set => this.RaiseAndSetIfChanged(ref _isChatColumnVisible, value);
+        }
+
+        public ReactiveCommand<Unit, Unit> ToggleChatColumnCommand { get; private set; } =
+            ReactiveCommand.Create(() => { });
+
         public bool IsAnyToolModalOpen =>
             IsInfoPanelVisible ||
             IsAdditionalActionsVisible ||
@@ -160,6 +175,7 @@ namespace SUSModder.ViewModels
         {
             ToggleStatusBarModeCommand = ReactiveCommand.Create(ToggleStatusBarMode);
             CloseToolModalCommand = ReactiveCommand.Create(CloseToolModal);
+            ToggleChatColumnCommand = ReactiveCommand.Create(() => { IsChatColumnVisible = !IsChatColumnVisible; });
         }
 
         private void ToggleStatusBarMode()

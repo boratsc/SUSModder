@@ -1,55 +1,7 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Styl dla Floating Action Button (FAB) -->
-    <Style Selector="Button.fab">
-        <Setter Property="Width" Value="56"/>
-        <Setter Property="Height" Value="56"/>
-        <Setter Property="CornerRadius" Value="28"/>
-        <Setter Property="Background" Value="{DynamicResource AccentButtonBackground}"/>
-        <Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
-        <Setter Property="HorizontalContentAlignment" Value="Center"/>
-        <Setter Property="VerticalContentAlignment" Value="Center"/>
-        <Setter Property="Padding" Value="0"/>
-        <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="FontSize" Value="20"/>
-        <Setter Property="RenderTransform" Value="scale(1.0)"/>
-        <Setter Property="Transitions">
-            <Transitions>
-                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2">
-                    <TransformOperationsTransition.Easing>
-                        <CubicEaseOut/>
-                    </TransformOperationsTransition.Easing>
-                </TransformOperationsTransition>
-                <BrushTransition Property="Background" Duration="0:0:0.2"/>
-            </Transitions>
-        </Setter>
-    </Style>
-
-    <!-- FAB hover effect -->
-    <Style Selector="Button.fab:pointerover">
-        <Setter Property="RenderTransform" Value="scale(1.1)"/>
-        <Setter Property="Background" Value="{DynamicResource AccentButtonBackgroundPointerOver}"/>
-    </Style>
-
-    <!-- FAB pressed effect -->
-    <Style Selector="Button.fab:pressed">
-        <Setter Property="RenderTransform" Value="scale(0.95)"/>
-        <Setter Property="Background" Value="{DynamicResource AccentButtonBackgroundPressed}"/>
-    </Style>
-
-    <!-- FAB disabled state -->
-    <Style Selector="Button.fab:disabled">
-        <Setter Property="Opacity" Value="0.45"/>
-        <Setter Property="Cursor" Value="No"/>
-    </Style>
-
-    <!-- FAB active (menu open) state -->
-    <Style Selector="Button.fab.active">
-        <Setter Property="Background" Value="{DynamicResource SystemAccentColorDark1}"/>
-        <Setter Property="RenderTransform" Value="rotate(45deg)"/>
-    </Style>
+    <!-- 4.0: FAB usunięty; style menu („Więcej" na górnej belce) i backdrop zostają. -->
 
     <!-- Overlay/backdrop for menu -->
     <Style Selector="Border.fab-overlay">
@@ -133,7 +85,7 @@
         <Setter Property="Margin" Value="0,4"/>
         <Setter Property="Padding" Value="0"/>
         <Setter Property="CornerRadius" Value="8"/>
-        <Setter Property="Background" Value="#1000BCD4"/>
+        <Setter Property="Background" Value="#1035373C"/>
     </Style>
 
     <Style Selector="Button.fab-menu-subitem">
@@ -167,67 +119,6 @@
         <Setter Property="Background" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
         <Setter Property="Margin" Value="8,8"/>
         <Setter Property="Opacity" Value="0.3"/>
-    </Style>
-
-    <!-- Compact promo card displayed next to FAB -->
-    <Style Selector="Border.fab-discord-promo-panel">
-        <Setter Property="Background" Value="{DynamicResource PaneBackgroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="10"/>
-        <Setter Property="Padding" Value="10,8"/>
-        <Setter Property="Width" Value="320"/>
-        <Setter Property="MinWidth" Value="220"/>
-        <Setter Property="MaxWidth" Value="380"/>
-        <Setter Property="BoxShadow" Value="0 6 20 0 #50000000"/>
-    </Style>
-
-    <Style Selector="Button.fab-discord-promo-join">
-        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-        <Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="CornerRadius" Value="6"/>
-        <Setter Property="Padding" Value="12,6"/>
-        <Setter Property="FontSize" Value="11"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="VerticalAlignment" Value="Center"/>
-        <Setter Property="MinWidth" Value="70"/>
-    </Style>
-
-    <Style Selector="Button.fab-discord-promo-join:pointerover">
-        <Setter Property="Background" Value="{DynamicResource AccentBrushHover}"/>
-    </Style>
-
-    <!-- Slide/fade animation for rotating promo content -->
-    <Style Selector="Grid.fab-discord-promo-content">
-        <Setter Property="Opacity" Value="0"/>
-        <Setter Property="RenderTransform" Value="translateY(12px)"/>
-        <Setter Property="Transitions">
-            <Transitions>
-                <DoubleTransition Property="Opacity" Duration="0:0:0.28" Easing="CubicEaseOut"/>
-                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.28" Easing="CubicEaseOut"/>
-            </Transitions>
-        </Setter>
-    </Style>
-
-    <Style Selector="Grid.fab-discord-promo-content.visible">
-        <Setter Property="Opacity" Value="1"/>
-        <Setter Property="RenderTransform" Value="translateY(0px)"/>
-    </Style>
-
-
-    <!-- FAB badge (update counter) -->
-    <Style Selector="Border.fab-badge">
-        <Setter Property="Background" Value="{DynamicResource BadgeAlertBrush}"/>
-        <Setter Property="CornerRadius" Value="9"/>
-        <Setter Property="MinWidth" Value="18"/>
-        <Setter Property="MinHeight" Value="18"/>
-        <Setter Property="Padding" Value="3,1"/>
-        <Setter Property="HorizontalAlignment" Value="Right"/>
-        <Setter Property="VerticalAlignment" Value="Top"/>
-        <Setter Property="Margin" Value="0,-3,-3,0"/>
-        <Setter Property="ZIndex" Value="10"/>
     </Style>
 
     <!-- Menu item badge (inline with icon) -->

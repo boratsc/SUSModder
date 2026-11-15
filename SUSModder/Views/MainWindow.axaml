@@ -16,7 +16,9 @@
         Classes="dark-theme"
         x:DataType="vm:MainWindowViewModel"
         Width="1270" Height="960"
-        MinWidth="1240" MinHeight="720"
+        MinWidth="900" MinHeight="600"
+        ExtendClientAreaToDecorationsHint="True"
+        WindowDecorations="BorderOnly"
         KeyDown="MainWindow_KeyDown">
 	<i:Interaction.Behaviors>
 		<behaviors:BrowserSessionScrollBehavior/>
@@ -45,6 +47,142 @@
 		<StyleInclude Source="/Styles/BulkModeChipStyle.axaml"/>
 		<StyleInclude Source="/Styles/BrowserTabStyle.axaml"/>
 		<StyleInclude Source="/Styles/DarkSurfaceStyles.axaml"/>
+
+		<!-- ══ 4.0: górna belka ══ -->
+		<Style Selector="Button.topbar-icon-btn">
+			<Setter Property="Width" Value="40"/>
+			<Setter Property="Height" Value="40"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="BorderBrush" Value="Transparent"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Padding" Value="0"/>
+		</Style>
+		<Style Selector="Button.topbar-icon-btn:pointerover">
+			<Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		</Style>
+		<Style Selector="Button.topbar-icon-btn:focus">
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}"/>
+		</Style>
+		<Style Selector="Button.topbar-icon-btn.active">
+			<Setter Property="Background" Value="{DynamicResource AccentSoftFillBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+
+		<!-- Przyciski okna (min / max / close) -->
+		<Style Selector="Button.window-btn">
+			<Setter Property="Width" Value="44"/>
+			<Setter Property="Height" Value="34"/>
+			<Setter Property="CornerRadius" Value="6"/>
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="BorderBrush" Value="Transparent"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+			<Setter Property="Padding" Value="0"/>
+		</Style>
+		<Style Selector="Button.window-btn:pointerover">
+			<Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		</Style>
+		<Style Selector="Button.window-btn:focus">
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}"/>
+		</Style>
+		<Style Selector="Button.window-btn-close:pointerover">
+			<Setter Property="Background" Value="{DynamicResource DangerActionSoftBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+		</Style>
+
+		<!-- Badge nieprzeczytanych czatu (złoto = aktywność) -->
+		<Style Selector="Border.chat-badge">
+			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="CornerRadius" Value="9"/>
+			<Setter Property="MinWidth" Value="18"/>
+			<Setter Property="MinHeight" Value="18"/>
+			<Setter Property="Padding" Value="3,1"/>
+			<Setter Property="ZIndex" Value="10"/>
+		</Style>
+
+		<!-- ══ 4.0: sidebar ══ -->
+		<Style Selector="Button.sidebar-item">
+			<Setter Property="HorizontalAlignment" Value="Stretch"/>
+			<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+			<Setter Property="Padding" Value="12,10"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="BorderBrush" Value="Transparent"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="Cursor" Value="Hand"/>
+		</Style>
+		<Style Selector="Button.sidebar-item:pointerover">
+			<Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		</Style>
+		<Style Selector="Button.sidebar-item:focus">
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}"/>
+		</Style>
+		<Style Selector="Button.sidebar-item.active">
+			<Setter Property="Background" Value="{DynamicResource AccentSoftFillBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentSoftBorderBrush}"/>
+		</Style>
+		<Style Selector="Button.sidebar-item.active:pointerover">
+			<Setter Property="Background" Value="{DynamicResource AccentSoftFillBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+		<Style Selector="TextBlock.sidebar-count">
+			<Setter Property="FontSize" Value="11"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+		</Style>
+
+		<!-- Przycisk filtra (ulubione) przy wyszukiwarce -->
+		<Style Selector="Button.browser-filter-btn">
+			<Setter Property="Width" Value="40"/>
+			<Setter Property="Height" Value="40"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Cursor" Value="Hand"/>
+		</Style>
+		<Style Selector="Button.browser-filter-btn:pointerover">
+			<Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+		</Style>
+		<Style Selector="Button.browser-filter-btn:focus">
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}"/>
+		</Style>
+		<Style Selector="Button.browser-filter-btn.active">
+			<Setter Property="Background" Value="{DynamicResource AccentSoftFillBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentSoftBorderBrush}"/>
+		</Style>
+
+		<!-- Powrót z overlayu szczegółów (wąskie okno) -->
+		<Style Selector="Button.back-btn">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="BorderBrush" Value="Transparent"/>
+			<Setter Property="CornerRadius" Value="6"/>
+			<Setter Property="Padding" Value="8,6"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="Cursor" Value="Hand"/>
+		</Style>
+		<Style Selector="Button.back-btn:pointerover">
+			<Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		</Style>
+		<Style Selector="Button.back-btn:focus">
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}"/>
+		</Style>
 
 		<!-- Wspólny styl dla przycisków panelu szczegółów moda -->
 		<Style Selector="Button.mod-detail-btn">
@@ -88,1115 +226,1109 @@
 		</Style>
 	</Window.Styles>
 
-	<!-- Main Grid replacing SplitView -->
-	<Grid RowDefinitions="*,Auto,Auto">
+	<!-- Szkielet 4.0: górna belka (62px) + treść (sidebar | lista | szczegóły/czat) + bulk bar -->
+	<Grid RowDefinitions="62,*,Auto">
 
 		<Panel Grid.RowSpan="3"
 			   IsHitTestVisible="False"
 			   ZIndex="0">
 			<Rectangle Fill="{DynamicResource HeartsBackgroundBrush}"/>
 			<Rectangle Fill="{DynamicResource WindowBackgroundGradientBrush}"/>
-			<Rectangle Fill="{DynamicResource WindowAccentGlowBrush}" Opacity="0.9"/>
-			<Rectangle Fill="{DynamicResource WindowBulkGlowBrush}" Opacity="0.7"/>
 		</Panel>
 
-		<Grid Grid.Row="0" RowDefinitions="Auto,Auto,*" ColumnDefinitions="*,440">
-			<!-- Belka wsparcia — pełna szerokość okna, nad master-detail -->
-			<Border Grid.Row="0"
-					IsVisible="{Binding IsSupportBannerVisible}"
-					Background="{DynamicResource SecondaryBackgroundBrush}"
-					BorderBrush="{DynamicResource BorderBrush}"
-					BorderThickness="0,0,0,1"
-					Padding="12,8"
-					ZIndex="2">
-				<Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
-					<Border Width="26"
-							Height="26"
-							CornerRadius="8"
-							Background="{DynamicResource ModCardBackgroundBrush}"
+		<!-- ══ GÓRNA BELKA: logo + breadcrumb | czat, Więcej, przyciski okna ══ -->
+		<Border Grid.Row="0"
+				Background="{DynamicResource WindowBackgroundBrush}"
+				BorderBrush="{DynamicResource BorderBrush}"
+				BorderThickness="0,0,0,1"
+				PointerPressed="OnTitleBarPointerPressed"
+				DoubleTapped="OnTitleBarDoubleTapped">
+			<Grid ColumnDefinitions="Auto,*" Margin="16,0,8,0">
+				<StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+					<Image Source="/Assets/logo.png" Width="32" Height="32" VerticalAlignment="Center"/>
+					<TextBlock Text="SUSModder"
+							   FontSize="16" FontWeight="Bold"
+							   Foreground="{DynamicResource TextPrimaryBrush}"
+							   VerticalAlignment="Center"/>
+					<TextBlock Text="/"
+							   FontSize="15"
+							   Foreground="{DynamicResource TextMutedBrush}"
+							   VerticalAlignment="Center"/>
+					<TextBlock Text="{Binding ActiveViewTitle}"
+							   FontSize="14"
+							   Foreground="{DynamicResource TextSecondaryBrush}"
+							   VerticalAlignment="Center"/>
+				</StackPanel>
+
+				<StackPanel Grid.Column="1"
+							Orientation="Horizontal"
+							HorizontalAlignment="Right"
+							Spacing="4"
 							VerticalAlignment="Center">
-						<TextBlock Text="☕"
-								   FontSize="14"
-								   HorizontalAlignment="Center"
-								   VerticalAlignment="Center"/>
-					</Border>
-					<TextBlock Grid.Column="1"
-							   Text="{loc:Localize Support.BannerMessage}"
-							   FontSize="12"
-							   TextWrapping="Wrap"
-							   VerticalAlignment="Center"
-							   Foreground="{DynamicResource TextPrimaryBrush}"/>
-					<Button Grid.Column="2"
-							Content="{loc:Localize Support.BannerLink}"
-							Command="{Binding OpenSupportLinkCommand}"
-							Background="{DynamicResource AccentSoftFillBrush}"
-							Foreground="{DynamicResource AccentBrush}"
-							BorderBrush="{DynamicResource AccentSoftBorderBrush}"
-							BorderThickness="1"
-							CornerRadius="6"
-							Padding="10,5"
-							FontSize="11"
-							VerticalAlignment="Center"/>
-					<Button Grid.Column="3"
-							Content="×"
-							Command="{Binding DismissSupportBannerCommand}"
-							Background="Transparent"
-							Foreground="{DynamicResource TextSecondaryBrush}"
-							BorderThickness="0"
-							Padding="6,2"
-							FontSize="16"
-							VerticalAlignment="Center"
-							ToolTip.Tip="{loc:Localize Support.BannerDismissTooltip}"/>
-				</Grid>
-			</Border>
+					<Button Classes="topbar-icon-btn"
+							Command="{Binding ToggleChatColumnCommand}"
+							AutomationProperties.Name="{loc:Localize UI.TopBar.ChatToggle}"
+							ToolTip.Tip="{loc:Localize UI.TopBar.ChatToggle}">
+						<Panel>
+							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Chat}" FontSize="20"
+										   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+							<Border Classes="chat-badge"
+									IsVisible="{Binding CommunityChat.HasNewMessages}"
+									HorizontalAlignment="Right" VerticalAlignment="Top"
+									Margin="0,-2,-4,0">
+								<TextBlock Text="{Binding CommunityChat.NewMessageCount}"
+										   FontSize="9" FontWeight="Bold"
+										   Foreground="{DynamicResource OnAccentTextBrush}"
+										   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+							</Border>
+						</Panel>
+					</Button>
 
-			<local:BrowserToolbar Grid.Row="1" DataContext="{Binding}"/>
+					<Button Classes="topbar-icon-btn"
+							Classes.active="{Binding IsPaneOpen}"
+							Command="{Binding TogglePaneCommand}"
+							Width="NaN" MinWidth="40"
+							Padding="10,0"
+							AutomationProperties.Name="{loc:Localize UI.TopBar.More}"
+							ToolTip.Tip="{loc:Localize UI.TopBar.More}">
+						<StackPanel Orientation="Horizontal" Spacing="6">
+							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.MoreHorizontal}" FontSize="20" VerticalAlignment="Center"/>
+							<TextBlock Text="{loc:Localize UI.TopBar.More}" FontSize="13" VerticalAlignment="Center"/>
+						</StackPanel>
+					</Button>
 
-			<!-- Left browser; the inspector/chat independently occupies the full right column. -->
-			<Grid Grid.Row="2">
+					<Border Width="1" Height="24"
+							Background="{DynamicResource BorderBrush}"
+							Margin="8,0" VerticalAlignment="Center"/>
 
-			<Panel Grid.Column="0">
-
-			<Panel
-				   Classes="glass-browser-panel"
-				   PointerPressed="ModGridBackground_PointerPressed">
-
-			<!-- Skeleton loading placeholders (widoczne podczas inicjalizacji) -->
-			<ScrollViewer Margin="10"
-						  IsVisible="{Binding IsModsLoading}"
-						  Background="Transparent">
-				<labs:FlexPanel Direction="Row" Wrap="Wrap"
-								JustifyContent="FlexStart"
-								AlignItems="FlexStart"
-								AlignContent="FlexStart">
-					<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
-					<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
-					<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
-					<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
-					<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
-					<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
-				</labs:FlexPanel>
-			</ScrollViewer>
-
-				<Border Margin="10"
-						Classes="glass-empty-state"
-						IsVisible="{Binding ShowBrowserNoResults}"
-						VerticalAlignment="Center"
-						HorizontalAlignment="Center"
-						MaxWidth="420">
-					<StackPanel Spacing="8" HorizontalAlignment="Center">
-						<TextBlock Text="{loc:Localize UI.Browser.NoResults}"
-								   FontSize="16" FontWeight="SemiBold"
-								   TextAlignment="Center"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-					</StackPanel>
-				</Border>
-
-				<controls:PackInstancesHintPanel DataContext="{Binding}"
-											   Margin="10"
-											   IsVisible="{Binding ShowPackInstancesEmptyState}"
-											   VerticalAlignment="Center"
-											   HorizontalAlignment="Center"/>
-
-				<ScrollViewer Margin="10"
-							  VerticalScrollBarVisibility="Auto"
-							  IsVisible="{Binding IsPackInstancesGridVisible}"
-							  Background="Transparent">
-					<StackPanel Spacing="16">
-						<ListBox x:Name="PackInstancesListBox"
-								 ItemsSource="{Binding PackInstances}"
-								 SelectedItem="{Binding SelectedPackInstance}"
-								 Background="Transparent"
-								 BorderThickness="0">
-							<ListBox.ItemsPanel>
-								<ItemsPanelTemplate>
-									<labs:FlexPanel Direction="Row"
-													Wrap="Wrap"
-													JustifyContent="FlexStart"
-													AlignItems="FlexStart"
-													AlignContent="FlexStart"
-													RowSpacing="0"
-													ColumnSpacing="0">
-										<i:Interaction.Behaviors>
-											<behaviors:LayoutAnimationBehavior/>
-										</i:Interaction.Behaviors>
-									</labs:FlexPanel>
-								</ItemsPanelTemplate>
-							</ListBox.ItemsPanel>
-							<ListBox.ItemTemplate>
-								<DataTemplate>
-									<controls:PackInstanceCard/>
-								</DataTemplate>
-							</ListBox.ItemTemplate>
-						</ListBox>
-
-						<controls:PackInstancesHintPanel DataContext="{Binding}"
-														 HorizontalAlignment="Center"
-														 ShowEmptyStateMessage="False"/>
-					</StackPanel>
-				</ScrollViewer>
-
-				<ListBox x:Name="DllModsListBox"
-						 Margin="10"
-						 IsVisible="{Binding IsDllAddonsGridVisible}"
-						 ItemsSource="{Binding DllMods}"
-						 SelectedItem="{Binding SelectedDllMod}"
-						 Background="Transparent"
-						 BorderThickness="0">
-					<ListBox.ItemsPanel>
-						<ItemsPanelTemplate>
-							<labs:FlexPanel Direction="Row"
-											Wrap="Wrap"
-											JustifyContent="FlexStart"
-											AlignItems="FlexStart"
-											AlignContent="FlexStart"
-											RowSpacing="0"
-											ColumnSpacing="0">
-								<i:Interaction.Behaviors>
-									<behaviors:LayoutAnimationBehavior/>
-								</i:Interaction.Behaviors>
-							</labs:FlexPanel>
-						</ItemsPanelTemplate>
-					</ListBox.ItemsPanel>
-					<ListBox.ItemTemplate>
-						<DataTemplate>
-							<controls:DllAddonCard/>
-						</DataTemplate>
-					</ListBox.ItemTemplate>
-				</ListBox>
-
-				<ListBox x:Name="ModsListBox"
-						 Margin="10"
-						 IsVisible="{Binding IsBrowserGridVisible}"
-						 ItemsSource="{Binding Mods}"
-						 SelectedItem="{Binding SelectedMod}"
-						 Background="Transparent"
-						 BorderThickness="0">
-					<ListBox.ItemsPanel>
-						<ItemsPanelTemplate>
-							<labs:FlexPanel Direction="Row" 
-											Wrap="Wrap"
-											JustifyContent="FlexStart"
-											AlignItems="FlexStart"
-											AlignContent="FlexStart"
-											RowSpacing="0"
-											ColumnSpacing="0">
-								<i:Interaction.Behaviors>
-									<behaviors:LayoutAnimationBehavior/>
-								</i:Interaction.Behaviors>
-							</labs:FlexPanel>
-						</ItemsPanelTemplate>
-					</ListBox.ItemsPanel>
-					<ListBox.ItemTemplate>
-						<DataTemplate>
-							<Panel ToolTip.ShowDelay="300">
-								<i:Interaction.Behaviors>
-									<behaviors:DoubleClickBehavior
-										DoubleClickCommand="{Binding $parent[Window].DataContext.ModDoubleClickCommand}"
-										CommandParameter="{Binding}"
-										DoubleClickInterval="300"/>
-								</i:Interaction.Behaviors>
-								<ToolTip.Tip>
-									<StackPanel Spacing="4" MaxWidth="260">
-										<TextBlock Text="{Binding Name}"
-												   FontWeight="Bold"
-												   FontSize="14"/>
-										<Rectangle Height="1"
-												   Fill="{DynamicResource ModCardBorderBrush}"
-												   Margin="0,2,0,4"
-												   Opacity="0.5"/>
-										<StackPanel Orientation="Horizontal" Spacing="6">
-											<TextBlock Text="{loc:Localize UI.Labels.ModVersion}"
-													   FontWeight="SemiBold"
-													   FontSize="11"
-													   Opacity="0.7"/>
-											<TextBlock Text="{Binding ModVersion, TargetNullValue=—}"
-													   FontSize="11"/>
-										</StackPanel>
-										<StackPanel Orientation="Horizontal" Spacing="6">
-											<TextBlock Text="{loc:Localize UI.Labels.GameVersion}"
-													   FontWeight="SemiBold"
-													   FontSize="11"
-													   Opacity="0.7"/>
-											<TextBlock Text="{Binding AmongVersion, TargetNullValue=—}"
-													   FontSize="11"/>
-										</StackPanel>
-										<StackPanel Orientation="Horizontal" Spacing="6">
-											<TextBlock Text="{loc:Localize UI.Labels.Status}"
-													   FontWeight="SemiBold"
-													   FontSize="11"
-													   Opacity="0.7"/>
-											<TextBlock Text="{loc:Localize UI.ModStatus.Installed}"
-													   FontSize="11"
-													   Foreground="{DynamicResource StatusInstalledTextBrush}"
-													   IsVisible="{Binding IsInstalled}"/>
-											<TextBlock Text="{loc:Localize UI.ModStatus.NotInstalled}"
-													   FontSize="11"
-													   Foreground="{DynamicResource StatusMissingTextBrush}"
-													   IsVisible="{Binding IsInstalled, Converter={StaticResource InverseBoolConverter}}"/>
-										</StackPanel>
-									</StackPanel>
-								</ToolTip.Tip>
-								<controls:ModCard/>
-							</Panel>
-						</DataTemplate>
-					</ListBox.ItemTemplate>
-				</ListBox>
-
-				<local:BulkModeChip HorizontalAlignment="Right"
-									VerticalAlignment="Top"
-									Margin="12,10,24,0"
-									ZIndex="2"
-									IsVisible="{Binding IsBulkChipVisible}"
-									DataContext="{Binding}"/>
-			</Panel>
-			</Panel>
+					<Button Classes="window-btn"
+							Click="OnMinimizeClicked"
+							AutomationProperties.Name="{loc:Localize UI.Window.Minimize}"
+							ToolTip.Tip="{loc:Localize UI.Window.Minimize}">
+						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Subtract}" FontSize="16"/>
+					</Button>
+					<Button Classes="window-btn"
+							x:Name="MaximizeButton"
+							Click="OnMaximizeClicked"
+							AutomationProperties.Name="{loc:Localize UI.Window.MaximizeRestore}"
+							ToolTip.Tip="{loc:Localize UI.Window.MaximizeRestore}">
+						<ic:SymbolIcon x:Name="MaximizeIcon" Symbol="{x:Static fic:Symbol.Maximize}" FontSize="16"/>
+					</Button>
+					<Button Classes="window-btn window-btn-close"
+							Click="OnCloseClicked"
+							AutomationProperties.Name="{loc:Localize UI.Window.Close}"
+							ToolTip.Tip="{loc:Localize UI.Window.Close}">
+						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Dismiss}" FontSize="16"/>
+					</Button>
+				</StackPanel>
 			</Grid>
+		</Border>
 
-			<!-- Prawa kolumna: opcjonalne szczegóły nad stałym czatem ogólnym.
-			     Wysokość wiersza szczegółów zarządza code-behind (GridSplitter + zwijanie bez zaznaczenia). -->
-			<Grid Grid.Column="1" Grid.Row="0" Grid.RowSpan="3"
-			      x:Name="RightColumnGrid">
-				<Grid.RowDefinitions>
-					<RowDefinition Height="0"/>
-					<RowDefinition Height="Auto"/>
-					<RowDefinition Height="*"/>
-				</Grid.RowDefinitions>
+		<!-- ══ TREŚĆ: sidebar 230 | lista 440 | prawa kolumna (szczegóły + czat) ══
+		     Przy szerokości < 1100 px prawa kolumna staje się overlayem z przyciskiem powrotu
+		     (szerokości kolumn i wierszy zarządza code-behind: ApplyRightColumnLayout). -->
+		<Grid Grid.Row="1" x:Name="ContentGrid" ColumnDefinitions="230,440,*">
 
-				<!-- Szczegóły: mod / DLL / instancja paczki (wyłącznie jedna widoczna) -->
-				<Panel Grid.Row="0"
-				       IsVisible="{Binding IsBrowserDetailPanelVisible}"
-				       MinHeight="180">
-					<Border x:Name="PackInstanceDetailDrawerHost"
-					        Classes="mod-detail-host"
-					        IsVisible="{Binding IsPackInstancePanelVisible}">
-						<local:PackInstanceDetailDrawer DataContext="{Binding}"/>
-					</Border>
-
-					<Border x:Name="ModDetailDrawerHost"
-					        Classes="mod-detail-host"
-					        IsVisible="{Binding IsModPanelVisible}">
-						<local:ModDetailDrawer x:Name="ModDetailDrawerControl" DataContext="{Binding}"/>
-					</Border>
-
-					<Border x:Name="DllAddonInspectorHost"
-					        Classes="mod-detail-host"
-					        IsVisible="{Binding IsDllPanelVisible}">
-						<local:DllAddonInspector DataContext="{Binding}"/>
-					</Border>
-				</Panel>
-
-				<GridSplitter Grid.Row="1"
-				              Height="6"
-				              HorizontalAlignment="Stretch"
-				              VerticalAlignment="Center"
-				              ResizeDirection="Rows"
-				              Background="Transparent"
-				              IsVisible="{Binding IsBrowserDetailPanelVisible}"/>
-
-				<!-- Czat ogólny: zawsze obecny, niezależny od zaznaczenia -->
-				<Border Grid.Row="2" Classes="mod-detail-host">
-					<local:CommunityChatPanel DataContext="{Binding CommunityChat}"/>
-				</Border>
-			</Grid>
-		</Grid>
-
-			<local:BulkActionBar Grid.Row="1" DataContext="{Binding}"/>
-
-			<!-- STATUS BAR - Panel statusu na dole -->
-			<Border x:Name="StatusBar"
-					Grid.Row="2"
-					Classes="status-bar">
-
-				<Grid ColumnDefinitions="Auto,*,Auto" Margin="16,5,16,5" ColumnSpacing="6">
-					<Grid Grid.Column="0"
-						  Width="56" Height="56">
-						<Button x:Name="FabButton"
-								Classes="fab"
-								Classes.active="{Binding IsPaneOpen}"
-								Command="{Binding TogglePaneCommand}"
-								ToolTip.Tip="{Binding FabBadgeTooltip}">
-							<i:Interaction.Behaviors>
-								<behaviors:RippleBehavior RippleColor="#FFFFFF" RippleOpacity="0.25" RippleDuration="500"/>
-							</i:Interaction.Behaviors>
-							<Grid>
-								<ic:SymbolIcon x:Name="FabIcon" Symbol="{x:Static fic:Symbol.Navigation}" FontSize="20" Foreground="{DynamicResource OnAccentTextBrush}"/>
+			<!-- SIDEBAR -->
+			<Border Grid.Column="0"
+					Background="{DynamicResource PaneBackgroundBrush}"
+					BorderBrush="{DynamicResource BorderBrush}"
+					BorderThickness="0,0,1,0"
+					KeyDown="SidebarNav_KeyDown">
+				<Grid RowDefinitions="*,Auto">
+					<StackPanel Grid.Row="0" Margin="12,16,12,0" Spacing="4">
+						<Button Classes="sidebar-item"
+								Classes.active="{Binding IsCatalogTab}"
+								Command="{Binding SelectBrowserTabCommand}"
+								CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.Catalog}"
+								AutomationProperties.Name="{loc:Localize UI.Tabs.Catalog}">
+							<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Grid}" FontSize="18" VerticalAlignment="Center"/>
+								<TextBlock Grid.Column="1" Text="{loc:Localize UI.Tabs.Catalog}" VerticalAlignment="Center"/>
+								<TextBlock Grid.Column="2" Classes="sidebar-count" Text="{Binding Mods.Count}"/>
 							</Grid>
 						</Button>
-						<Border Classes="fab-badge"
-								IsVisible="{Binding FabHasBadge}"
-								HorizontalAlignment="Right"
-								VerticalAlignment="Top"
-								Margin="0,-3,-3,0">
-							<TextBlock Text="{Binding FabBadgeCount}" FontSize="9"
-									   Foreground="White"
-									   HorizontalAlignment="Center"
-									   VerticalAlignment="Center"/>
-						</Border>
-					</Grid>
-
-					<Border Grid.Column="1"
-							Classes="statusbar-discord-promo"
-							IsVisible="{Binding IsDiscordPromoStatusBarMode}">
-						<Grid>
-							<Grid x:Name="FabDiscordPromoContent"
-								  Classes="fab-discord-promo-content visible"
-								  IsVisible="{Binding HasPromotedDiscord}"
-								  ColumnDefinitions="Auto,*,Auto"
-								  ColumnSpacing="10">
-								<Grid Grid.Column="0" Width="40" Height="40">
-									<Border Width="40" Height="40"
-											CornerRadius="20"
-											Background="{DynamicResource AccentBrush}"
-											IsVisible="{Binding CurrentPromotedDiscordHasIcon, Converter={x:Static BoolConverters.Not}}">
-										<TextBlock Text="💬"
-												   FontSize="16"
-												   HorizontalAlignment="Center"
-												   VerticalAlignment="Center"
-												   Foreground="{DynamicResource OnAccentTextBrush}"/>
-									</Border>
-
-									<Border Width="40" Height="40"
-											CornerRadius="20"
-											ClipToBounds="True"
-											IsVisible="{Binding CurrentPromotedDiscordHasIcon}">
-										<Image Source="{Binding CurrentPromotedDiscordIconBitmap}"
-											   Width="40"
-											   Height="40"
-											   Stretch="UniformToFill"/>
-									</Border>
-								</Grid>
-
-								<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-									<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.OfficialBadge}"
-										   FontSize="10"
-										   FontWeight="SemiBold"
-										   Foreground="{DynamicResource AccentBrush}"
-										   IsVisible="{Binding CurrentPromotedDiscordIsOfficial}"/>
-									<TextBlock Text="{Binding CurrentPromotedDiscordName}"
-										   FontSize="13"
-											   FontWeight="SemiBold"
-											   TextTrimming="CharacterEllipsis"
-											   Foreground="{DynamicResource TextPrimaryBrush}"/>
-									<TextBlock Text="{Binding CurrentPromotedDiscordDescription}"
-											   FontSize="11"
-											   MaxLines="2"
-											   TextWrapping="Wrap"
-											   TextTrimming="CharacterEllipsis"
-											   Foreground="{DynamicResource TextSecondaryBrush}"/>
-								</StackPanel>
-
-								<Button Grid.Column="2"
-										Classes="fab-discord-promo-join"
-										Content="{loc:Localize RecommendedDiscords.JoinButton}"
-										Command="{Binding OpenPromotedDiscordInviteCommand}"
-									CommandParameter="{Binding CurrentPromotedDiscordInviteLink}"/>
+						<Button Classes="sidebar-item"
+								Classes.active="{Binding IsMyPacksTab}"
+								Command="{Binding SelectBrowserTabCommand}"
+								CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.MyPacks}"
+								AutomationProperties.Name="{loc:Localize UI.Tabs.MyPacks}">
+							<Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Layer}" FontSize="18" VerticalAlignment="Center"/>
+								<TextBlock Grid.Column="1" Text="{loc:Localize UI.Tabs.MyPacks}" VerticalAlignment="Center"/>
 							</Grid>
+						</Button>
+						<Button Classes="sidebar-item"
+								Classes.active="{Binding IsDllAddonsTab}"
+								Command="{Binding SelectBrowserTabCommand}"
+								CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.DllAddons}"
+								AutomationProperties.Name="{loc:Localize UI.Tabs.DllAddons}">
+							<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.PuzzlePiece}" FontSize="18" VerticalAlignment="Center"/>
+								<TextBlock Grid.Column="1" Text="{loc:Localize UI.Tabs.DllAddons}" VerticalAlignment="Center"/>
+								<TextBlock Grid.Column="2" Classes="sidebar-count" Text="{Binding DllMods.Count}"/>
+							</Grid>
+						</Button>
+					</StackPanel>
 
-							<TextBlock Text="{loc:Localize RecommendedDiscords.LoadingServers}"
-									   FontSize="12"
-									   Foreground="{DynamicResource TextSecondaryBrush}"
-									   VerticalAlignment="Center"
-									   HorizontalAlignment="Center"
-									   IsVisible="{Binding HasPromotedDiscord, Converter={x:Static BoolConverters.Not}}"/>
-						</Grid>
-					</Border>
-
-					<Grid Grid.Column="1"
-						  IsVisible="{Binding IsSystemStatusBarMode}"
-						  ColumnDefinitions="2*,2*,1*"
-						  ColumnSpacing="10">
-						<!-- SEKCJA 1: Statystyki modów -->
-						<Border Grid.Column="0" Classes="status-section">
-							<StackPanel Orientation="Horizontal" Spacing="15">
-								<Border Classes="status-icon-container" Background="{DynamicResource StatusIconModsBrush}">
-									<TextBlock Text="📦" FontSize="24" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-								</Border>
-
-								<StackPanel VerticalAlignment="Center" Spacing="2">
-									<TextBlock Classes="status-main-text"
-											   Text="{Binding ModsStatusMainText}"
-											   Foreground="{DynamicResource UpdateAlertBrush}"
-											   IsVisible="{Binding !!AvailableUpdatesCount}"/>
-									<TextBlock Classes="status-main-text"
-											   Text="{Binding ModsStatusMainText}"
-											   IsVisible="{Binding !AvailableUpdatesCount}"/>
-									<TextBlock Classes="status-sub-text" Text="{Binding ModsStatusSubText}"/>
-								</StackPanel>
-							</StackPanel>
-
-							<ToolTip.Tip>
-								<TextBlock Text="{Binding ModsStatusTooltip}"
-										   FontSize="11"
-										   MaxWidth="350"
-										   TextWrapping="Wrap"/>
-							</ToolTip.Tip>
-						</Border>
-
-						<!-- SEKCJA 2: Przestrzeń dyskowa -->
-						<Border Grid.Column="1" Classes="status-section">
-							<Button Command="{Binding ShowStorageOverviewCommand}"
-							        Background="Transparent" BorderThickness="0" Padding="0"
-							        HorizontalContentAlignment="Stretch"
-							        AutomationProperties.Name="{loc:Localize UI.Storage.Open}">
-							<StackPanel Orientation="Horizontal" Spacing="15">
-								<Border Classes="status-icon-container" Background="{DynamicResource StatusIconStorageBrush}">
-									<TextBlock Text="💾" FontSize="24" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-								</Border>
-
-								<StackPanel VerticalAlignment="Center" Spacing="4" Width="250">
-									<TextBlock Classes="status-main-text" Text="{Binding LibraryStorageStatusText}"
-									           TextTrimming="CharacterEllipsis"/>
-
-									<Grid>
-										<ProgressBar Value="{Binding DiskUsagePercentage}"
-													 Maximum="100"
-													 Height="8"
-													 CornerRadius="4"
-													 Foreground="{Binding DiskUsagePercentage, Converter={StaticResource DiskUsageColorConverter}}"/>
-										<TextBlock Classes="status-sub-text"
-												   HorizontalAlignment="Right"
-												   Margin="0,-2,0,0">
-											<Run Text="{Binding DiskUsagePercentage, StringFormat='{}{0:F1}%'}"/>
-										</TextBlock>
-									</Grid>
-								</StackPanel>
-							</StackPanel>
-
-							</Button>
-							<ToolTip.Tip>
-								<StackPanel>
-									<TextBlock Text="{loc:Localize UI.Storage.Open}" FontWeight="Bold" Margin="0,0,0,5"/>
-									<TextBlock Text="{Binding DiskSpaceDetailsTooltip}" FontSize="11"/>
-								</StackPanel>
-							</ToolTip.Tip>
-						</Border>
-
-						<!-- SEKCJA 3: Status API -->
-						<Border Grid.Column="2" Classes="status-section">
-							<StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
-								<Ellipse Width="16" Height="16"
-										 Fill="{Binding ApiStatusColor}"
-										 Classes="status-pulse"/>
-
-								<StackPanel VerticalAlignment="Center">
-									<TextBlock Classes="status-main-text" Text="{loc:Localize UI.StatusBar.API}"/>
-									<TextBlock Classes="status-sub-text" Text="{Binding ApiStatusText}"/>
-									<TextBlock Classes="status-sub-text"
-											   Text="{Binding OnlineUsersText}"
-											   IsVisible="{Binding IsApiOnline}"/>
-								</StackPanel>
-							</StackPanel>
-
-							<ToolTip.Tip>
-								<StackPanel>
-									<TextBlock Text="{loc:Localize UI.StatusBar.ServerStatus}" FontWeight="Bold" Margin="0,0,0,5"/>
-									<TextBlock FontSize="11">
-										<Run Text="{loc:Localize UI.StatusBar.URL}"/>
-										<Run Text="{Binding ApiBaseUrl}"/>
-									</TextBlock>
-									<TextBlock FontSize="11">
-										<Run Text="{loc:Localize UI.StatusBar.LastCheck}"/>
-										<Run Text="{Binding LastApiCheck, StringFormat='{}{0:HH:mm:ss}'}"/>
-									</TextBlock>
-									<TextBlock FontSize="11" IsVisible="{Binding IsApiOnline}">
-										<Run Text="{loc:Localize UI.StatusBar.Latency}"/>
-										<Run Text="{Binding ApiPingMs}"/>
-										<Run Text="{loc:Localize UI.StatusBar.Ms}"/>
-									</TextBlock>
-								</StackPanel>
-							</ToolTip.Tip>
-						</Border>
-					</Grid>
-
-					<Button Grid.Column="2"
-							Classes="statusbar-toggle-button"
-							Command="{Binding ToggleStatusBarModeCommand}">
-						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowSwap}" FontSize="20"/>
-						<ToolTip.Tip>
-							<StackPanel>
-								<TextBlock Text="{loc:Localize UI.StatusBar.SwitchToSystemStatus}"
-										   IsVisible="{Binding IsDiscordPromoStatusBarMode}"/>
-								<TextBlock Text="{loc:Localize UI.StatusBar.SwitchToDiscordPromo}"
-										   IsVisible="{Binding IsSystemStatusBarMode}"/>
-							</StackPanel>
-						</ToolTip.Tip>
-					</Button>
+					<StackPanel Grid.Row="1" Margin="12,0,12,16">
+						<Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,0,0,12"/>
+						<Button Classes="sidebar-item"
+								Classes.active="{Binding IsAppSettingsVisible}"
+								Command="{Binding ShowAppSettingsCommand}"
+								AutomationProperties.Name="{loc:Localize UI.Sidebar.Settings}">
+							<Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Settings}" FontSize="18" VerticalAlignment="Center"/>
+								<TextBlock Grid.Column="1" Text="{loc:Localize UI.Sidebar.Settings}" VerticalAlignment="Center"/>
+							</Grid>
+						</Button>
+					</StackPanel>
 				</Grid>
 			</Border>
 
-			<!-- Modal dla paneli narzędziowych -->
-			<Border Grid.Row="0"
-					Grid.RowSpan="2"
-					Classes="tool-modal-overlay"
-					IsVisible="{Binding IsAnyToolModalOpen}"
-					PointerPressed="OnToolModalOverlayPressed">
-				<Border Classes="tool-modal-card"
-						PointerPressed="OnToolModalPanelPressed">
-					<Grid RowDefinitions="Auto,*">
-						<Grid ColumnDefinitions="*,Auto" Margin="24,20,24,14">
-							<TextBlock Grid.Column="0"
-									   Text="{Binding ToolModalTitle}"
-									   FontSize="20"
-									   FontWeight="Bold"
-									   VerticalAlignment="Center"/>
-							<Button Grid.Column="1"
-									Classes="statusbar-toggle-button"
-									Command="{Binding CloseToolModalCommand}">
-								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Dismiss}" FontSize="20"/>
-							</Button>
-						</Grid>
-
-					<Grid Grid.Row="1" Margin="24,0,24,24">
-								<local:InfoPanel IsVisible="{Binding IsInfoPanelVisible}"
-												 DataContext="{Binding}"
-												 Classes="fade-in-panel"/>
-
-								<local:AdditionalActionsPanel IsVisible="{Binding IsAdditionalActionsVisible}"
-															  DataContext="{Binding}"
-															  Classes="fade-in-panel"/>
-
-								<Panel IsVisible="{Binding IsSUStatsConfigVisible}" Classes="fade-in-panel">
-									<local:SUStatsConfigView/>
-								</Panel>
-
-								<Panel IsVisible="{Binding IsAppSettingsVisible}" Classes="fade-in-panel">
-									<local:AppSettingsView/>
-								</Panel>
-
-								<local:DllManagementPanel IsVisible="{Binding IsDllModalVisible}"/>
-
-							<ContentControl Content="{Binding DllSelectionModalViewModel}"
-												Classes="fade-in-panel"
-												IsVisible="{Binding IsDllSelectionModalVisible}">
-								<ContentControl.DataTemplates>
-									<DataTemplate DataType="vm:DllModSelectionViewModel">
-										<local:DllModSelectionView/>
-									</DataTemplate>
-								</ContentControl.DataTemplates>
-							</ContentControl>
-
-								<Panel IsVisible="{Binding IsRecommendedDiscordsVisible}" Classes="fade-in-panel">
-									<local:RecommendedDiscordsPanel/>
-								</Panel>
-
-						<Panel IsVisible="{Binding IsRepairOptionsVisible}" Classes="fade-in-panel">
-							<local:RepairOptionsPanel/>
-						</Panel>
-
-						<ContentControl Content="{Binding PostInstallSuccessViewModel}"
-										IsVisible="{Binding IsPostInstallSuccessVisible}"
-										Classes="fade-in-panel">
-							<ContentControl.DataTemplates>
-								<DataTemplate DataType="vm:PostInstallSuccessViewModel">
-									<local:PostInstallSuccessView/>
-								</DataTemplate>
-							</ContentControl.DataTemplates>
-						</ContentControl>
-
-						<ContentControl Content="{Binding PostInstallFailureViewModel}"
-										IsVisible="{Binding IsPostInstallFailureVisible}"
-										Classes="fade-in-panel">
-							<ContentControl.DataTemplates>
-								<DataTemplate DataType="vm:PostInstallFailureViewModel">
-									<local:PostInstallFailureView/>
-								</DataTemplate>
-							</ContentControl.DataTemplates>
-						</ContentControl>
-
-						<ContentControl Content="{Binding AmongUsNotFoundViewModel}"
-										IsVisible="{Binding IsAmongUsNotFoundVisible}"
-										Classes="fade-in-panel">
-							<ContentControl.DataTemplates>
-								<DataTemplate DataType="vm:AmongUsNotFoundViewModel">
-									<local:AmongUsNotFoundView/>
-								</DataTemplate>
-							</ContentControl.DataTemplates>
-						</ContentControl>
-
-						<ContentControl Content="{Binding ModPackCodeEntryViewModel}"
-										IsVisible="{Binding IsModPackCodeEntryVisible}"
-										Classes="fade-in-panel">
-							<ContentControl.DataTemplates>
-								<DataTemplate DataType="vm:ModPackCodeEntryViewModel">
-									<local:ModPackCodeEntryView/>
-								</DataTemplate>
-							</ContentControl.DataTemplates>
-						</ContentControl>
-
-						<ContentControl Content="{Binding ModPackCreatorContent}"
-										IsVisible="{Binding IsModPackCreatorVisible}"
-										Classes="fade-in-panel"/>
-
-						<ContentControl Content="{Binding ModPackResultViewModel}"
-										IsVisible="{Binding IsModPackResultVisible}"
-										Classes="fade-in-panel">
-							<ContentControl.DataTemplates>
-								<DataTemplate DataType="vm:ModPackResultViewModel">
-									<local:ModPackResultView/>
-								</DataTemplate>
-							</ContentControl.DataTemplates>
-						</ContentControl>
-
-						<ContentControl Content="{Binding ModPackPreviewViewModel}"
-										IsVisible="{Binding IsModPackPreviewVisible}"
-										Classes="fade-in-panel">
-							<ContentControl.DataTemplates>
-								<DataTemplate DataType="vm:ModPackPreviewViewModel">
-									<local:ModPackPreviewView/>
-								</DataTemplate>
-							</ContentControl.DataTemplates>
-						</ContentControl>
-
-						<ContentControl Content="{Binding ModPackManagerContent}"
-										IsVisible="{Binding IsModPackManagerVisible}"
-										Classes="fade-in-panel">
-							<ContentControl.DataTemplates>
-								<DataTemplate DataType="vm:SharedModPacksViewModel">
-									<local:SharedPacksListView/>
-								</DataTemplate>
-							</ContentControl.DataTemplates>
-						</ContentControl>
-
-						<ContentControl Content="{Binding VersionSelectionModalViewModel}"
-										IsVisible="{Binding IsVersionSelectionModalVisible}"
-										Classes="fade-in-panel">
-							<ContentControl.DataTemplates>
-								<DataTemplate DataType="vm:VersionSelectionViewModel">
-									<local:VersionSelectionPanel/>
-								</DataTemplate>
-							</ContentControl.DataTemplates>
-						</ContentControl>
-
-						<!-- Launch Diagnostics Panel -->
-						<Panel IsVisible="{Binding IsLaunchDiagnosticsVisible}" Classes="fade-in-panel">
-							<Border Background="{StaticResource SystemAltMediumLowColor}" CornerRadius="8" Padding="16"
-									Margin="0,0,0,12">
-								<StackPanel Spacing="10">
-									<TextBlock Text="{Binding LaunchDiagnosticsTitle}" FontSize="18" FontWeight="Bold"/>
-									<TextBlock Text="{Binding LaunchDiagnosticsSeverity}" FontSize="14"/>
-									<TextBlock Text="{Binding LaunchDiagnosticsSummary}" TextWrapping="Wrap"/>
-									<TextBlock Text="{Binding LaunchDiagnosticsCodes}" TextWrapping="Wrap" Opacity="0.7" FontSize="12"/>
-									<WrapPanel Orientation="Horizontal" Margin="0,8,0,0">
-										<Button Content="{Binding LaunchDiagBtnOpenModFolder}" Click="OnOpenModFolderClicked"
-												Classes="secondary" Padding="12,6" Margin="0,0,6,6"/>
-										<Button Content="{Binding LaunchDiagBtnOpenLogs}" Click="OnOpenBepInExLogsClicked"
-												Classes="secondary" Padding="12,6" Margin="0,0,6,6"/>
-										<Button Content="{Binding LaunchDiagBtnSupportBundle}" Click="OnGenerateSupportBundleClicked"
-												Classes="secondary" Padding="12,6" Margin="0,0,6,6"/>
-										<Button Content="{Binding LaunchDiagBtnAiSupport}" Click="OnOpenAiSupportClicked"
-												Classes="accent" Padding="12,6" Margin="0,0,6,6"/>
-										<Button Content="{Binding LaunchDiagBtnClose}" Click="OnCloseLaunchDiagnosticsClicked"
-												Padding="12,6" Margin="0,0,6,6"/>
-									</WrapPanel>
-								</StackPanel>
-							</Border>
-						</Panel>
-
-						<!-- AI Support Panel -->
-						<Panel IsVisible="{Binding IsAiSupportVisible}" Classes="fade-in-panel">
-							<Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="8" Padding="16"
-									Margin="0,0,0,12">
-								<ScrollViewer VerticalScrollBarVisibility="Auto"
-											  HorizontalScrollBarVisibility="Disabled"
-											  MaxHeight="560">
-								<StackPanel Spacing="10">
-									<TextBlock Text="{Binding AiSupportTitle}" FontSize="18" FontWeight="Bold"/>
-									<TextBlock Text="{Binding AiSupportPrivacyNoticeText}"
-											   TextWrapping="Wrap" Opacity="0.8" FontSize="12"
-											   IsVisible="{Binding !AiSupportPrivacyAccepted}"/>
-									<Button Content="{Binding AiSupportAcceptPrivacyBtn}"
-											IsVisible="{Binding !AiSupportPrivacyAccepted}"
-											Click="OnAiSupportAcceptPrivacyClicked" Classes="accent" Padding="12,6"/>
-									<StackPanel IsVisible="{Binding AiSupportPrivacyAccepted}" Spacing="8">
-												<TextBox Text="{Binding AiSupportProblem}" PlaceholderText="{Binding AiSupportProblemPlaceholder}"
-														 AcceptsReturn="True"
-														 TextWrapping="Wrap"
-														 MinHeight="90"
-														 MaxHeight="180"/>
-										<CheckBox IsChecked="{Binding AiSupportIncludeDiagnostics}"
-												  Content="{Binding AiSupportIncludeDiagnosticsLabel}"/>
-										<Button Content="{Binding AiSupportAnalyzeBtn}" Click="OnAnalyzeAiSupportClicked"
-												Classes="accent" Padding="12,6"
-												IsEnabled="{Binding !AiSupportIsLoading}"/>
-										<ProgressBar IsVisible="{Binding AiSupportIsLoading}" IsIndeterminate="True"/>
-										<Border IsVisible="{Binding AiSupportResultSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-												Background="{DynamicResource PaneBackgroundBrush}" CornerRadius="4" Padding="10"
-												MaxHeight="260">
-											<ScrollViewer VerticalScrollBarVisibility="Auto"
-														  HorizontalScrollBarVisibility="Disabled">
-											<StackPanel Spacing="6">
-												<TextBlock Text="{Binding AiSupportResultSummary}" TextWrapping="Wrap"/>
-												<TextBlock Text="{Binding AiSupportResultWarnings}" TextWrapping="Wrap"
-														   Foreground="#FFB900" IsVisible="{Binding AiSupportResultWarnings, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-												<StackPanel Orientation="Vertical" Margin="0,6,0,0" Spacing="6">
-													<Button Content="{Binding AiSupportHelpedBtn}" Click="OnAiSupportHelpedClicked"
-															Classes="accent" Padding="12,6" HorizontalAlignment="Left"/>
-													<Button Content="{Binding AiSupportNotHelpedBtn}" Click="OnAiSupportNotHelpedClicked"
-															Classes="secondary" Padding="12,6" HorizontalAlignment="Left"/>
-													<Button Content="{Binding AiSupportGenerateReportBtn}" Click="OnGenerateSupportBundleClicked"
-															Classes="secondary" Padding="12,6" HorizontalAlignment="Left"/>
-												</StackPanel>
-											</StackPanel>
-											</ScrollViewer>
-										</Border>
-									</StackPanel>
-									<Button Content="{Binding AiSupportCloseBtn}" Click="OnCloseAiSupportClicked" Padding="12,6"/>
-								</StackPanel>
-								</ScrollViewer>
-							</Border>
-						</Panel>
-					</Grid>
-					</Grid>
-				</Border>
-			</Border>
-
-			<!-- Globalny modal dla komunikatów/potwierdzeń/prompt -->
-			<Border Grid.Row="0"
-					Grid.RowSpan="2"
-					Classes="tool-modal-overlay"
-					IsVisible="{Binding IsInlineDialogVisible}"
-					PointerPressed="OnInlineDialogOverlayPressed">
-				<Border Classes="tool-modal-card"
-						Width="560"
-						MaxWidth="640"
-						MaxHeight="500"
-						MinHeight="220"
-						PointerPressed="OnInlineDialogCardPressed">
-					<Grid RowDefinitions="Auto,*,Auto">
-						<Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="20,16,20,8">
-							<TextBlock Grid.Column="0"
-									   Text="{Binding InlineDialogTitle}"
-									   FontSize="18"
-									   FontWeight="Bold"
-									   VerticalAlignment="Center"/>
-							<Button Grid.Column="1"
-									Classes="statusbar-toggle-button"
-									IsVisible="{Binding IsInlineDialogDismissible}"
-									Click="OnInlineDialogSecondaryClick">
-								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Dismiss}" FontSize="20"/>
-							</Button>
-						</Grid>
-
-						<StackPanel Grid.Row="1" Margin="20,0,20,10" Spacing="10">
-							<ScrollViewer MaxHeight="240"
-										  VerticalScrollBarVisibility="Auto">
-								<TextBlock Text="{Binding InlineDialogMessage}"
-										   TextWrapping="Wrap"
-										   FontSize="13"
-										   Foreground="{DynamicResource TextPrimaryBrush}"/>
-							</ScrollViewer>
-
-							<Border IsVisible="{Binding IsInlineDialogPrompt}"
-									BorderBrush="{DynamicResource BorderBrush}"
-									BorderThickness="1"
-									CornerRadius="6"
-									Background="{DynamicResource SecondaryBackgroundBrush}">
-								<TextBox Text="{Binding InlineDialogInputText, Mode=TwoWay}"
-										 PlaceholderText="{loc:Localize PromptDialog.EnterNamePlaceholder}"
-										 AcceptsReturn="True"
-										 TextWrapping="Wrap"
-										 MinHeight="120"
-										 Background="Transparent"
-										 BorderThickness="0"
-										 Padding="10"/>
-							</Border>
-						</StackPanel>
-
-						<StackPanel Grid.Row="2"
-									Orientation="Horizontal"
-									HorizontalAlignment="Right"
-									Spacing="10"
-									Margin="20,0,20,16">
-							<Button Content="{Binding InlineDialogSecondaryButtonText}"
-									IsVisible="{Binding IsInlineDialogSecondaryVisible}"
-									MinWidth="100"
-									Padding="10,8"
-									Background="{DynamicResource ModCardBackgroundBrush}"
-									Foreground="{DynamicResource TextPrimaryBrush}"
-									BorderBrush="{DynamicResource ModCardBorderBrush}"
-									BorderThickness="1"
-									CornerRadius="6"
-									Click="OnInlineDialogSecondaryClick"/>
-							<Button Content="{Binding InlineDialogPrimaryButtonText}"
-									MinWidth="100"
-									Padding="10,8"
-									Background="{DynamicResource AccentBrush}"
-									Foreground="{DynamicResource OnAccentTextBrush}"
-									CornerRadius="6"
-									Click="OnInlineDialogPrimaryClick"/>
-						</StackPanel>
-					</Grid>
-				</Border>
-			</Border>
-
-			<!-- Modal ostrzeżenia antywirusowego -->
-			<Border Grid.Row="0"
-					Grid.RowSpan="2"
-					Classes="tool-modal-overlay"
-					IsVisible="{Binding IsAntivirusWarningVisible}">
-				<Border Classes="tool-modal-card"
-						Width="620"
-						MaxWidth="680"
-						MaxHeight="560"
-						MinHeight="300"
-						PointerPressed="OnAntivirusWarningCardPressed">
-					<Grid RowDefinitions="Auto,*,Auto" Margin="24,22,24,18">
-						<StackPanel Grid.Row="0" Spacing="10">
-							<TextBlock Text="{Binding AntivirusWarningTitle}"
-									   FontSize="20"
-									   FontWeight="Bold"/>
-							<TextBlock Text="{Binding AntivirusWarningIntro}"
-									   TextWrapping="Wrap"
-									   Foreground="{DynamicResource TextPrimaryBrush}"/>
-						</StackPanel>
-
-						<ScrollViewer Grid.Row="1"
-								  Margin="0,18,0,18"
-								  VerticalScrollBarVisibility="Auto">
-							<StackPanel Spacing="14">
-								<StackPanel Spacing="8">
-									<TextBlock Text="{Binding AntivirusWarningProductsHeader}"
-										   FontSize="14"
-										   FontWeight="SemiBold"/>
-									<ItemsControl ItemsSource="{Binding AntivirusWarningProducts}">
-										<ItemsControl.ItemTemplate>
-											<DataTemplate>
-												<StackPanel Orientation="Horizontal" Spacing="10" Margin="0,2,0,2">
-													<TextBlock Text="•"
-															   FontSize="18"
-															   Foreground="{DynamicResource AccentBrush}"/>
-													<TextBlock Text="{Binding .}"
-															   TextWrapping="Wrap"
-															   Foreground="{DynamicResource TextPrimaryBrush}"/>
-												</StackPanel>
-											</DataTemplate>
-										</ItemsControl.ItemTemplate>
-									</ItemsControl>
-								</StackPanel>
-
-								<Border BorderBrush="{DynamicResource BorderBrush}"
-										BorderThickness="1"
-										CornerRadius="10"
-										Padding="14"
-										Background="{DynamicResource SecondaryBackgroundBrush}">
-									<TextBlock Text="{Binding AntivirusWarningRecommendation}"
-										   TextWrapping="Wrap"
-										   Foreground="{DynamicResource TextPrimaryBrush}"/>
-								</Border>
-
-								<Border BorderBrush="{DynamicResource BorderBrush}"
-										BorderThickness="1"
-										CornerRadius="10"
-										Padding="14"
-										Background="{DynamicResource SecondaryBackgroundBrush}">
-									<StackPanel Spacing="6">
-										<TextBlock Text="{Binding AntivirusWarningSecurityNote}"
-												   TextWrapping="Wrap"
-												   FontSize="12"
-												   Opacity="0.9"
-												   Foreground="{DynamicResource TextPrimaryBrush}"/>
-									</StackPanel>
-								</Border>
-							</StackPanel>
-						</ScrollViewer>
-
-						<Grid Grid.Row="2" RowDefinitions="Auto,Auto" RowSpacing="14">
-							<CheckBox Content="{Binding AntivirusWarningCheckboxText}"
-									  IsChecked="{Binding IsAntivirusWarningAcknowledged, Mode=TwoWay}"
-									  Foreground="{DynamicResource TextPrimaryBrush}"/>
-							<Button Grid.Row="1"
-									Content="OK"
-									HorizontalAlignment="Right"
-									MinWidth="110"
-									Padding="10,8"
-									Background="{DynamicResource AccentBrush}"
-									Foreground="{DynamicResource OnAccentTextBrush}"
-									CornerRadius="6"
-									IsEnabled="{Binding CanConfirmAntivirusWarning}"
-									Click="OnAntivirusWarningConfirmClick"/>
-						</Grid>
-					</Grid>
-				</Border>
-			</Border>
-
-			<!-- FAB Menu Overlay (backdrop) -->
-			<Border Grid.Row="0" Grid.RowSpan="3"
-					Classes="fab-overlay"
-					Classes.visible="{Binding IsPaneOpen}"
-					PointerPressed="OnOverlayPressed"/>
-
-			<!-- FAB Menu Panel — kotwica przy FAB (pozycja w code-behind) -->
-			<Border x:Name="FabMenuPanel"
-					Grid.Row="0"
-					Grid.RowSpan="3"
-					Classes="fab-menu-panel"
-					Classes.visible="{Binding IsPaneOpen}"
-					HorizontalAlignment="Left"
-					VerticalAlignment="Bottom"
-					Margin="16,0,0,76"
-					ZIndex="150"
-					PointerPressed="OnMenuPanelPressed">
-
-				<ScrollViewer x:Name="FabMenuScroll"
-							  VerticalScrollBarVisibility="Auto"
-							  HorizontalScrollBarVisibility="Disabled">
-				<StackPanel Spacing="4">
-					<!-- Menu Header -->
-					<TextBlock Text="{loc:Localize UI.Menu.Title}"
-							   FontSize="18"
-							   FontWeight="Bold"
-							   Margin="4,4,4,12"
+			<!-- LISTA: nagłówek widoku + wyszukiwarka + filtr, poniżej browser -->
+			<Grid Grid.Column="1" RowDefinitions="Auto,*">
+				<StackPanel Grid.Row="0" Margin="20,20,16,12" Spacing="4">
+					<TextBlock Text="{Binding ActiveViewTitle}"
+							   FontSize="22" FontWeight="SemiBold"
 							   Foreground="{DynamicResource TextPrimaryBrush}"/>
-
-					<!-- Menu Items with FluentIcons -->
-					<!-- Sprawdź aktualizacje modów -->
-					<Button Classes="fab-menu-item"
-							Command="{Binding CheckForModUpdatesFromMenuCommand}">
-						<i:Interaction.Behaviors>
-							<behaviors:RippleBehavior/>
-						</i:Interaction.Behaviors>
-						<StackPanel Orientation="Horizontal" Spacing="12">
-							<Grid>
-								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowDownload}" 
-											  FontSize="20" Foreground="#FF5722"/>
-								<Border Classes="fab-menu-item-badge"
-										IsVisible="{Binding FabHasBadge}">
-									<TextBlock Text="{Binding FabBadgeCount}" FontSize="9" 
-											  Foreground="White"
-											  HorizontalAlignment="Center"
-											  VerticalAlignment="Center"/>
-								</Border>
+					<TextBlock Text="{Binding ActiveViewSubtitle}"
+							   FontSize="12"
+							   Foreground="{DynamicResource TextMutedBrush}"/>
+					<Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,12,0,0">
+						<Border Classes="browser-search-box" Height="40">
+							<Grid ColumnDefinitions="Auto,*">
+								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Search}" FontSize="16"
+											   Margin="12,0,0,0" VerticalAlignment="Center"
+											   Foreground="{DynamicResource TextMutedBrush}"/>
+								<TextBox Grid.Column="1"
+										 Text="{Binding BrowserSearchText, Mode=TwoWay}"
+										 PlaceholderText="{loc:Localize UI.Browser.SearchPlaceholder}"
+										 AutomationProperties.Name="{loc:Localize UI.Browser.SearchPlaceholder}"
+										 Background="Transparent" BorderThickness="0"
+										 VerticalAlignment="Center" Padding="8,0"/>
 							</Grid>
-							<TextBlock Text="{loc:Localize UI.Menu.CheckModUpdates}" 
-									  VerticalAlignment="Center"/>
-						</StackPanel>
-					</Button>
+						</Border>
+						<Button Grid.Column="1"
+								Classes="browser-filter-btn"
+								Classes.active="{Binding BrowserFavoritesOnly}"
+								Command="{Binding ToggleFavoritesFilterCommand}"
+								IsVisible="{Binding IsMyPacksTab, Converter={x:Static BoolConverters.Not}}"
+								AutomationProperties.Name="{loc:Localize UI.Favorites.Filter}"
+								ToolTip.Tip="{loc:Localize UI.Favorites.Filter}">
+							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Star}" FontSize="18"/>
+						</Button>
+						<local:BulkModeChip Grid.Column="2" DataContext="{Binding}"/>
+					</Grid>
+				</StackPanel>
 
-					<Button Classes="fab-menu-item"
-							Command="{Binding FixBlackScreenCommand}">
-						<i:Interaction.Behaviors>
-							<behaviors:RippleBehavior/>
-						</i:Interaction.Behaviors>
-						<StackPanel Orientation="Horizontal" Spacing="12">
-							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Toolbox}" FontSize="20" Foreground="#FF9800"/>
-							<TextBlock Text="{loc:Localize UI.Menu.RepairGame}" VerticalAlignment="Center"/>
-						</StackPanel>
-					</Button>
+				<Panel Grid.Row="1"
+					   Classes="glass-browser-panel"
+					   PointerPressed="ModGridBackground_PointerPressed">
 
-					<Button Classes="fab-menu-item"
-							Command="{Binding ShowAdditionalActionsCommand}">
-						<i:Interaction.Behaviors>
-							<behaviors:RippleBehavior/>
-						</i:Interaction.Behaviors>
-						<StackPanel Orientation="Horizontal" Spacing="12">
-							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Wrench}" FontSize="20" Foreground="#F44336"/>
-							<TextBlock Text="{loc:Localize UI.Menu.ToUConfigs}" VerticalAlignment="Center"/>
-						</StackPanel>
-					</Button>
+					<!-- Skeleton loading placeholders (widoczne podczas inicjalizacji) -->
+					<ScrollViewer Margin="10"
+								  IsVisible="{Binding IsModsLoading}"
+								  Background="Transparent">
+						<labs:FlexPanel Direction="Row" Wrap="Wrap"
+										JustifyContent="FlexStart"
+										AlignItems="FlexStart"
+										AlignContent="FlexStart">
+							<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
+							<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
+							<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
+							<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
+							<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
+							<Border Width="340" Height="160" CornerRadius="12" Classes="skeleton-card"/>
+						</labs:FlexPanel>
+					</ScrollViewer>
 
-					<Button Classes="fab-menu-item"
-							Command="{Binding ShowRecommendedDiscordsCommand}">
-						<i:Interaction.Behaviors>
-							<behaviors:RippleBehavior/>
-						</i:Interaction.Behaviors>
-						<StackPanel Orientation="Horizontal" Spacing="12">
-							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.PeopleTeam}" FontSize="20" Foreground="#4CAF50"/>
-							<TextBlock Text="{loc:Localize UI.Menu.RecommendedDiscords}" VerticalAlignment="Center"/>
-						</StackPanel>
-					</Button>
-
-					<Button Classes="fab-menu-item"
-							Command="{Binding ShowSUStatsConfigCommand}">
-						<i:Interaction.Behaviors>
-							<behaviors:RippleBehavior/>
-						</i:Interaction.Behaviors>
-						<StackPanel Orientation="Horizontal" Spacing="12">
-							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.DataBarVertical}" FontSize="20" Foreground="#E91E63"/>
-							<TextBlock Text="{loc:Localize UI.Menu.SUStats}" VerticalAlignment="Center"/>
-						</StackPanel>
-					</Button>
-
-
-					<Border Classes="fab-menu-group">
-						<StackPanel Spacing="2">
-							<Button Classes="fab-menu-item"
-									Command="{Binding ToggleFabModPackActionsCommand}">
-								<i:Interaction.Behaviors>
-									<behaviors:RippleBehavior/>
-								</i:Interaction.Behaviors>
-								<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-									<ic:SymbolIcon Grid.Column="0" Symbol="{x:Static fic:Symbol.Box}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
-									<TextBlock Grid.Column="1"
-											   Text="{loc:Localize ModPacks.MenuGroup}"
-											   VerticalAlignment="Center"
-											   TextWrapping="Wrap"/>
-									<TextBlock Grid.Column="2" Text="▼" VerticalAlignment="Center" FontSize="10"
-											   IsVisible="{Binding IsFabModPackActionsExpanded}"/>
-									<TextBlock Grid.Column="2" Text="▶" VerticalAlignment="Center" FontSize="10"
-											   IsVisible="{Binding IsFabModPackActionsExpanded, Converter={x:Static BoolConverters.Not}}"/>
-								</Grid>
-							</Button>
-
-							<StackPanel Spacing="2" Margin="28,0,0,4"
-										IsVisible="{Binding IsFabModPackActionsExpanded}">
-								<Button Classes="fab-menu-subitem"
-										Command="{Binding CreateLocalPackCommand}">
-									<TextBlock Text="{loc:Localize UI.Packs.CreateLocal}" TextWrapping="Wrap" MaxWidth="220"/>
-								</Button>
-								<Button Classes="fab-menu-subitem"
-										Command="{Binding CreateAndSharePackCommand}">
-									<TextBlock Text="{loc:Localize UI.Packs.CreateAndShare}" TextWrapping="Wrap" MaxWidth="220"/>
-								</Button>
-								<Button Classes="fab-menu-subitem"
-										Command="{Binding ShareExistingPackCommand}">
-									<TextBlock Text="{loc:Localize ModPacks.ShareMenu}" TextWrapping="Wrap" MaxWidth="220"/>
-								</Button>
-								<Button Classes="fab-menu-subitem"
-										Command="{Binding EnterModPackCodeCommand}">
-									<StackPanel Orientation="Horizontal" Spacing="8">
-										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ClipboardPaste}" FontSize="16" Foreground="{DynamicResource IconAccentBrush}"/>
-										<TextBlock Text="{loc:Localize ModPacks.EnterCodeMenu}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="190"/>
-									</StackPanel>
-								</Button>
-								<Button Classes="fab-menu-subitem"
-										Command="{Binding ShowModPackManagerCommand}">
-									<StackPanel Orientation="Horizontal" Spacing="8">
-										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.CloudArrowUp}" FontSize="16" Foreground="{DynamicResource IconAccentBrush}"/>
-										<TextBlock Text="{loc:Localize ModPacks.Shared.ManageFromLimit}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="190"/>
-									</StackPanel>
-								</Button>
-							</StackPanel>
+					<Border Margin="10"
+							Classes="glass-empty-state"
+							IsVisible="{Binding ShowBrowserNoResults}"
+							VerticalAlignment="Center"
+							HorizontalAlignment="Center"
+							MaxWidth="420">
+						<StackPanel Spacing="8" HorizontalAlignment="Center">
+							<TextBlock Text="{loc:Localize UI.Browser.NoResults}"
+									   FontSize="16" FontWeight="SemiBold"
+									   TextAlignment="Center"
+									   Foreground="{DynamicResource TextPrimaryBrush}"/>
 						</StackPanel>
 					</Border>
 
-					<Button Classes="fab-menu-item"
-							Command="{Binding ShowAppSettingsCommand}">
-						<i:Interaction.Behaviors>
-							<behaviors:RippleBehavior/>
-						</i:Interaction.Behaviors>
-						<StackPanel Orientation="Horizontal" Spacing="12">
-							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Settings}" FontSize="20" Foreground="#2196F3"/>
-							<TextBlock Text="{loc:Localize UI.Menu.Settings}" VerticalAlignment="Center"/>
+					<controls:PackInstancesHintPanel DataContext="{Binding}"
+												   Margin="10"
+												   IsVisible="{Binding ShowPackInstancesEmptyState}"
+												   VerticalAlignment="Center"
+												   HorizontalAlignment="Center"/>
+
+					<ScrollViewer Margin="10"
+								  VerticalScrollBarVisibility="Auto"
+								  IsVisible="{Binding IsPackInstancesGridVisible}"
+								  Background="Transparent">
+						<StackPanel Spacing="16">
+							<ListBox x:Name="PackInstancesListBox"
+									 ItemsSource="{Binding PackInstances}"
+									 SelectedItem="{Binding SelectedPackInstance}"
+									 Background="Transparent"
+									 BorderThickness="0">
+								<ListBox.ItemsPanel>
+									<ItemsPanelTemplate>
+										<labs:FlexPanel Direction="Row"
+														Wrap="Wrap"
+														JustifyContent="FlexStart"
+														AlignItems="FlexStart"
+														AlignContent="FlexStart"
+														RowSpacing="0"
+														ColumnSpacing="0">
+											<i:Interaction.Behaviors>
+												<behaviors:LayoutAnimationBehavior/>
+											</i:Interaction.Behaviors>
+										</labs:FlexPanel>
+									</ItemsPanelTemplate>
+								</ListBox.ItemsPanel>
+								<ListBox.ItemTemplate>
+									<DataTemplate>
+										<controls:PackInstanceCard/>
+									</DataTemplate>
+								</ListBox.ItemTemplate>
+							</ListBox>
+
+							<controls:PackInstancesHintPanel DataContext="{Binding}"
+															 HorizontalAlignment="Center"
+															 ShowEmptyStateMessage="False"/>
 						</StackPanel>
-					</Button>
+					</ScrollViewer>
+
+					<ListBox x:Name="DllModsListBox"
+							 Margin="10"
+							 IsVisible="{Binding IsDllAddonsGridVisible}"
+							 ItemsSource="{Binding DllMods}"
+							 SelectedItem="{Binding SelectedDllMod}"
+							 Background="Transparent"
+							 BorderThickness="0">
+						<ListBox.ItemsPanel>
+							<ItemsPanelTemplate>
+								<labs:FlexPanel Direction="Row"
+												Wrap="Wrap"
+												JustifyContent="FlexStart"
+												AlignItems="FlexStart"
+												AlignContent="FlexStart"
+												RowSpacing="0"
+												ColumnSpacing="0">
+									<i:Interaction.Behaviors>
+										<behaviors:LayoutAnimationBehavior/>
+									</i:Interaction.Behaviors>
+								</labs:FlexPanel>
+							</ItemsPanelTemplate>
+						</ListBox.ItemsPanel>
+						<ListBox.ItemTemplate>
+							<DataTemplate>
+								<controls:DllAddonCard/>
+							</DataTemplate>
+						</ListBox.ItemTemplate>
+					</ListBox>
+
+					<ListBox x:Name="ModsListBox"
+							 Margin="10"
+							 IsVisible="{Binding IsBrowserGridVisible}"
+							 ItemsSource="{Binding Mods}"
+							 SelectedItem="{Binding SelectedMod}"
+							 Background="Transparent"
+							 BorderThickness="0">
+						<ListBox.ItemsPanel>
+							<ItemsPanelTemplate>
+								<labs:FlexPanel Direction="Row"
+												Wrap="Wrap"
+												JustifyContent="FlexStart"
+												AlignItems="FlexStart"
+												AlignContent="FlexStart"
+												RowSpacing="0"
+												ColumnSpacing="0">
+									<i:Interaction.Behaviors>
+										<behaviors:LayoutAnimationBehavior/>
+									</i:Interaction.Behaviors>
+								</labs:FlexPanel>
+							</ItemsPanelTemplate>
+						</ListBox.ItemsPanel>
+						<ListBox.ItemTemplate>
+							<DataTemplate>
+								<Panel ToolTip.ShowDelay="300">
+									<i:Interaction.Behaviors>
+										<behaviors:DoubleClickBehavior
+											DoubleClickCommand="{Binding $parent[Window].DataContext.ModDoubleClickCommand}"
+											CommandParameter="{Binding}"
+											DoubleClickInterval="300"/>
+									</i:Interaction.Behaviors>
+									<ToolTip.Tip>
+										<StackPanel Spacing="4" MaxWidth="260">
+											<TextBlock Text="{Binding Name}"
+													   FontWeight="Bold"
+													   FontSize="14"/>
+											<Rectangle Height="1"
+													   Fill="{DynamicResource ModCardBorderBrush}"
+													   Margin="0,2,0,4"
+													   Opacity="0.5"/>
+											<StackPanel Orientation="Horizontal" Spacing="6">
+												<TextBlock Text="{loc:Localize UI.Labels.ModVersion}"
+														   FontWeight="SemiBold"
+														   FontSize="11"
+														   Opacity="0.7"/>
+												<TextBlock Text="{Binding ModVersion, TargetNullValue=—}"
+														   FontSize="11"/>
+											</StackPanel>
+											<StackPanel Orientation="Horizontal" Spacing="6">
+												<TextBlock Text="{loc:Localize UI.Labels.GameVersion}"
+														   FontWeight="SemiBold"
+														   FontSize="11"
+														   Opacity="0.7"/>
+												<TextBlock Text="{Binding AmongVersion, TargetNullValue=—}"
+														   FontSize="11"/>
+											</StackPanel>
+											<StackPanel Orientation="Horizontal" Spacing="6">
+												<TextBlock Text="{loc:Localize UI.Labels.Status}"
+														   FontWeight="SemiBold"
+														   FontSize="11"
+														   Opacity="0.7"/>
+												<TextBlock Text="{loc:Localize UI.ModStatus.Installed}"
+														   FontSize="11"
+														   Foreground="{DynamicResource StatusInstalledTextBrush}"
+														   IsVisible="{Binding IsInstalled}"/>
+												<TextBlock Text="{loc:Localize UI.ModStatus.NotInstalled}"
+														   FontSize="11"
+														   Foreground="{DynamicResource StatusMissingTextBrush}"
+														   IsVisible="{Binding IsInstalled, Converter={StaticResource InverseBoolConverter}}"/>
+											</StackPanel>
+										</StackPanel>
+									</ToolTip.Tip>
+									<controls:ModCard/>
+								</Panel>
+							</DataTemplate>
+						</ListBox.ItemTemplate>
+					</ListBox>
+				</Panel>
+			</Grid>
+
+			<!-- PRAWA KOLUMNA: szczegóły nad czatem (czat zostaje do E5).
+			     Wąskie okno: overlay nad listą z przyciskiem powrotu. -->
+			<Border Grid.Column="2"
+					x:Name="RightColumnHost"
+					Background="{DynamicResource WindowBackgroundBrush}"
+					BorderBrush="{DynamicResource BorderBrush}"
+					BorderThickness="1,0,0,0">
+				<Grid x:Name="RightColumnGrid" RowDefinitions="Auto,0,Auto,*">
+
+					<Border x:Name="DetailBackRow"
+							Grid.Row="0"
+							IsVisible="False"
+							BorderBrush="{DynamicResource BorderBrush}"
+							BorderThickness="0,0,0,1"
+							Padding="12,8">
+						<Button Classes="back-btn"
+								Click="OnDetailBackClicked"
+								HorizontalAlignment="Left"
+								AutomationProperties.Name="{loc:Localize UI.Browser.Back}">
+							<StackPanel Orientation="Horizontal" Spacing="8">
+								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowLeft}" FontSize="16" VerticalAlignment="Center"/>
+								<TextBlock Text="{loc:Localize UI.Browser.Back}" VerticalAlignment="Center"/>
+							</StackPanel>
+						</Button>
+					</Border>
+
+					<!-- Szczegóły: mod / DLL / instancja paczki (wyłącznie jedna widoczna) -->
+					<Panel Grid.Row="1"
+					       IsVisible="{Binding IsBrowserDetailPanelVisible}"
+					       MinHeight="180">
+						<Border x:Name="PackInstanceDetailDrawerHost"
+						        Classes="mod-detail-host"
+						        IsVisible="{Binding IsPackInstancePanelVisible}">
+							<local:PackInstanceDetailDrawer DataContext="{Binding}"/>
+						</Border>
+
+						<Border x:Name="ModDetailDrawerHost"
+						        Classes="mod-detail-host"
+						        IsVisible="{Binding IsModPanelVisible}">
+							<local:ModDetailDrawer x:Name="ModDetailDrawerControl" DataContext="{Binding}"/>
+						</Border>
+
+						<Border x:Name="DllAddonInspectorHost"
+						        Classes="mod-detail-host"
+						        IsVisible="{Binding IsDllPanelVisible}">
+							<local:DllAddonInspector DataContext="{Binding}"/>
+						</Border>
+					</Panel>
+
+					<GridSplitter x:Name="DetailChatSplitter"
+					              Grid.Row="2"
+					              Height="6"
+					              HorizontalAlignment="Stretch"
+					              VerticalAlignment="Center"
+					              ResizeDirection="Rows"
+					              Background="Transparent"
+					              IsVisible="{Binding IsBrowserDetailPanelVisible}"/>
+
+					<!-- Czat ogólny: przełączany dymkiem na belce, niezależny od zaznaczenia -->
+					<Border Grid.Row="3"
+							Classes="mod-detail-host"
+							IsVisible="{Binding IsChatColumnVisible}">
+						<local:CommunityChatPanel DataContext="{Binding CommunityChat}"/>
+					</Border>
+				</Grid>
+			</Border>
+		</Grid>
+
+		<!-- Bulk bar: pełna szerokość okna, pod treścią (jak w dawnym układzie) -->
+		<local:BulkActionBar Grid.Row="2" DataContext="{Binding}"/>
+
+		<!-- Modal dla paneli narzędziowych -->
+		<Border Grid.Row="0"
+				Grid.RowSpan="3"
+				Classes="tool-modal-overlay"
+				IsVisible="{Binding IsAnyToolModalOpen}"
+				PointerPressed="OnToolModalOverlayPressed">
+			<Border Classes="tool-modal-card"
+					PointerPressed="OnToolModalPanelPressed">
+				<Grid RowDefinitions="Auto,*">
+					<Grid ColumnDefinitions="*,Auto" Margin="24,20,24,14">
+						<TextBlock Grid.Column="0"
+								   Text="{Binding ToolModalTitle}"
+								   FontSize="20"
+								   FontWeight="Bold"
+								   VerticalAlignment="Center"/>
+						<Button Grid.Column="1"
+								Classes="statusbar-toggle-button"
+								Command="{Binding CloseToolModalCommand}">
+							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Dismiss}" FontSize="20"/>
+						</Button>
+					</Grid>
+
+				<Grid Grid.Row="1" Margin="24,0,24,24">
+							<local:InfoPanel IsVisible="{Binding IsInfoPanelVisible}"
+											 DataContext="{Binding}"
+											 Classes="fade-in-panel"/>
+
+							<local:AdditionalActionsPanel IsVisible="{Binding IsAdditionalActionsVisible}"
+														  DataContext="{Binding}"
+														  Classes="fade-in-panel"/>
+
+							<Panel IsVisible="{Binding IsSUStatsConfigVisible}" Classes="fade-in-panel">
+								<local:SUStatsConfigView/>
+							</Panel>
+
+							<Panel IsVisible="{Binding IsAppSettingsVisible}" Classes="fade-in-panel">
+								<local:AppSettingsView/>
+							</Panel>
+
+							<local:DllManagementPanel IsVisible="{Binding IsDllModalVisible}"/>
+
+						<ContentControl Content="{Binding DllSelectionModalViewModel}"
+											Classes="fade-in-panel"
+											IsVisible="{Binding IsDllSelectionModalVisible}">
+							<ContentControl.DataTemplates>
+								<DataTemplate DataType="vm:DllModSelectionViewModel">
+									<local:DllModSelectionView/>
+								</DataTemplate>
+							</ContentControl.DataTemplates>
+						</ContentControl>
+
+							<Panel IsVisible="{Binding IsRecommendedDiscordsVisible}" Classes="fade-in-panel">
+								<local:RecommendedDiscordsPanel/>
+							</Panel>
+
+					<Panel IsVisible="{Binding IsRepairOptionsVisible}" Classes="fade-in-panel">
+						<local:RepairOptionsPanel/>
+					</Panel>
+
+					<ContentControl Content="{Binding PostInstallSuccessViewModel}"
+									IsVisible="{Binding IsPostInstallSuccessVisible}"
+									Classes="fade-in-panel">
+						<ContentControl.DataTemplates>
+							<DataTemplate DataType="vm:PostInstallSuccessViewModel">
+								<local:PostInstallSuccessView/>
+							</DataTemplate>
+						</ContentControl.DataTemplates>
+					</ContentControl>
+
+					<ContentControl Content="{Binding PostInstallFailureViewModel}"
+									IsVisible="{Binding IsPostInstallFailureVisible}"
+									Classes="fade-in-panel">
+						<ContentControl.DataTemplates>
+							<DataTemplate DataType="vm:PostInstallFailureViewModel">
+								<local:PostInstallFailureView/>
+							</DataTemplate>
+						</ContentControl.DataTemplates>
+					</ContentControl>
+
+					<ContentControl Content="{Binding AmongUsNotFoundViewModel}"
+									IsVisible="{Binding IsAmongUsNotFoundVisible}"
+									Classes="fade-in-panel">
+						<ContentControl.DataTemplates>
+							<DataTemplate DataType="vm:AmongUsNotFoundViewModel">
+								<local:AmongUsNotFoundView/>
+							</DataTemplate>
+						</ContentControl.DataTemplates>
+					</ContentControl>
+
+					<ContentControl Content="{Binding ModPackCodeEntryViewModel}"
+									IsVisible="{Binding IsModPackCodeEntryVisible}"
+									Classes="fade-in-panel">
+						<ContentControl.DataTemplates>
+							<DataTemplate DataType="vm:ModPackCodeEntryViewModel">
+								<local:ModPackCodeEntryView/>
+							</DataTemplate>
+						</ContentControl.DataTemplates>
+					</ContentControl>
+
+					<ContentControl Content="{Binding ModPackCreatorContent}"
+									IsVisible="{Binding IsModPackCreatorVisible}"
+									Classes="fade-in-panel"/>
+
+					<ContentControl Content="{Binding ModPackResultViewModel}"
+									IsVisible="{Binding IsModPackResultVisible}"
+									Classes="fade-in-panel">
+						<ContentControl.DataTemplates>
+							<DataTemplate DataType="vm:ModPackResultViewModel">
+								<local:ModPackResultView/>
+							</DataTemplate>
+						</ContentControl.DataTemplates>
+					</ContentControl>
+
+					<ContentControl Content="{Binding ModPackPreviewViewModel}"
+									IsVisible="{Binding IsModPackPreviewVisible}"
+									Classes="fade-in-panel">
+						<ContentControl.DataTemplates>
+							<DataTemplate DataType="vm:ModPackPreviewViewModel">
+								<local:ModPackPreviewView/>
+							</DataTemplate>
+						</ContentControl.DataTemplates>
+					</ContentControl>
+
+					<ContentControl Content="{Binding ModPackManagerContent}"
+									IsVisible="{Binding IsModPackManagerVisible}"
+									Classes="fade-in-panel">
+						<ContentControl.DataTemplates>
+							<DataTemplate DataType="vm:SharedModPacksViewModel">
+								<local:SharedPacksListView/>
+							</DataTemplate>
+						</ContentControl.DataTemplates>
+					</ContentControl>
+
+					<ContentControl Content="{Binding VersionSelectionModalViewModel}"
+									IsVisible="{Binding IsVersionSelectionModalVisible}"
+									Classes="fade-in-panel">
+						<ContentControl.DataTemplates>
+							<DataTemplate DataType="vm:VersionSelectionViewModel">
+								<local:VersionSelectionPanel/>
+							</DataTemplate>
+						</ContentControl.DataTemplates>
+					</ContentControl>
+
+					<!-- Launch Diagnostics Panel -->
+					<Panel IsVisible="{Binding IsLaunchDiagnosticsVisible}" Classes="fade-in-panel">
+						<Border Background="{StaticResource SystemAltMediumLowColor}" CornerRadius="8" Padding="16"
+								Margin="0,0,0,12">
+							<StackPanel Spacing="10">
+								<TextBlock Text="{Binding LaunchDiagnosticsTitle}" FontSize="18" FontWeight="Bold"/>
+								<TextBlock Text="{Binding LaunchDiagnosticsSeverity}" FontSize="14"/>
+								<TextBlock Text="{Binding LaunchDiagnosticsSummary}" TextWrapping="Wrap"/>
+								<TextBlock Text="{Binding LaunchDiagnosticsCodes}" TextWrapping="Wrap" Opacity="0.7" FontSize="12"/>
+								<WrapPanel Orientation="Horizontal" Margin="0,8,0,0">
+									<Button Content="{Binding LaunchDiagBtnOpenModFolder}" Click="OnOpenModFolderClicked"
+											Classes="secondary" Padding="12,6" Margin="0,0,6,6"/>
+									<Button Content="{Binding LaunchDiagBtnOpenLogs}" Click="OnOpenBepInExLogsClicked"
+											Classes="secondary" Padding="12,6" Margin="0,0,6,6"/>
+									<Button Content="{Binding LaunchDiagBtnSupportBundle}" Click="OnGenerateSupportBundleClicked"
+											Classes="secondary" Padding="12,6" Margin="0,0,6,6"/>
+									<Button Content="{Binding LaunchDiagBtnAiSupport}" Click="OnOpenAiSupportClicked"
+											Classes="accent" Padding="12,6" Margin="0,0,6,6"/>
+									<Button Content="{Binding LaunchDiagBtnClose}" Click="OnCloseLaunchDiagnosticsClicked"
+											Padding="12,6" Margin="0,0,6,6"/>
+								</WrapPanel>
+							</StackPanel>
+						</Border>
+					</Panel>
+
+					<!-- AI Support Panel -->
+					<Panel IsVisible="{Binding IsAiSupportVisible}" Classes="fade-in-panel">
+						<Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="8" Padding="16"
+								Margin="0,0,0,12">
+							<ScrollViewer VerticalScrollBarVisibility="Auto"
+										  HorizontalScrollBarVisibility="Disabled"
+										  MaxHeight="560">
+							<StackPanel Spacing="10">
+								<TextBlock Text="{Binding AiSupportTitle}" FontSize="18" FontWeight="Bold"/>
+								<TextBlock Text="{Binding AiSupportPrivacyNoticeText}"
+										   TextWrapping="Wrap" Opacity="0.8" FontSize="12"
+										   IsVisible="{Binding !AiSupportPrivacyAccepted}"/>
+								<Button Content="{Binding AiSupportAcceptPrivacyBtn}"
+										IsVisible="{Binding !AiSupportPrivacyAccepted}"
+										Click="OnAiSupportAcceptPrivacyClicked" Classes="accent" Padding="12,6"/>
+								<StackPanel IsVisible="{Binding AiSupportPrivacyAccepted}" Spacing="8">
+											<TextBox Text="{Binding AiSupportProblem}" PlaceholderText="{Binding AiSupportProblemPlaceholder}"
+													 AcceptsReturn="True"
+													 TextWrapping="Wrap"
+													 MinHeight="90"
+													 MaxHeight="180"/>
+									<CheckBox IsChecked="{Binding AiSupportIncludeDiagnostics}"
+											  Content="{Binding AiSupportIncludeDiagnosticsLabel}"/>
+									<Button Content="{Binding AiSupportAnalyzeBtn}" Click="OnAnalyzeAiSupportClicked"
+											Classes="accent" Padding="12,6"
+											IsEnabled="{Binding !AiSupportIsLoading}"/>
+									<ProgressBar IsVisible="{Binding AiSupportIsLoading}" IsIndeterminate="True"/>
+									<Border IsVisible="{Binding AiSupportResultSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+											Background="{DynamicResource PaneBackgroundBrush}" CornerRadius="4" Padding="10"
+											MaxHeight="260">
+										<ScrollViewer VerticalScrollBarVisibility="Auto"
+													  HorizontalScrollBarVisibility="Disabled">
+										<StackPanel Spacing="6">
+											<TextBlock Text="{Binding AiSupportResultSummary}" TextWrapping="Wrap"/>
+											<TextBlock Text="{Binding AiSupportResultWarnings}" TextWrapping="Wrap"
+													   Foreground="#FFB900" IsVisible="{Binding AiSupportResultWarnings, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+											<StackPanel Orientation="Vertical" Margin="0,6,0,0" Spacing="6">
+												<Button Content="{Binding AiSupportHelpedBtn}" Click="OnAiSupportHelpedClicked"
+														Classes="accent" Padding="12,6" HorizontalAlignment="Left"/>
+												<Button Content="{Binding AiSupportNotHelpedBtn}" Click="OnAiSupportNotHelpedClicked"
+														Classes="secondary" Padding="12,6" HorizontalAlignment="Left"/>
+												<Button Content="{Binding AiSupportGenerateReportBtn}" Click="OnGenerateSupportBundleClicked"
+														Classes="secondary" Padding="12,6" HorizontalAlignment="Left"/>
+											</StackPanel>
+										</StackPanel>
+										</ScrollViewer>
+									</Border>
+								</StackPanel>
+								<Button Content="{Binding AiSupportCloseBtn}" Click="OnCloseAiSupportClicked" Padding="12,6"/>
+							</StackPanel>
+							</ScrollViewer>
+						</Border>
+					</Panel>
+				</Grid>
+				</Grid>
+			</Border>
+		</Border>
+
+		<!-- Globalny modal dla komunikatów/potwierdzeń/prompt -->
+		<Border Grid.Row="0"
+				Grid.RowSpan="3"
+				Classes="tool-modal-overlay"
+				IsVisible="{Binding IsInlineDialogVisible}"
+				PointerPressed="OnInlineDialogOverlayPressed">
+			<Border Classes="tool-modal-card"
+					Width="560"
+					MaxWidth="640"
+					MaxHeight="500"
+					MinHeight="220"
+					PointerPressed="OnInlineDialogCardPressed">
+				<Grid RowDefinitions="Auto,*,Auto">
+					<Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="20,16,20,8">
+						<TextBlock Grid.Column="0"
+								   Text="{Binding InlineDialogTitle}"
+								   FontSize="18"
+								   FontWeight="Bold"
+								   VerticalAlignment="Center"/>
+						<Button Grid.Column="1"
+								Classes="statusbar-toggle-button"
+								IsVisible="{Binding IsInlineDialogDismissible}"
+								Click="OnInlineDialogSecondaryClick">
+							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Dismiss}" FontSize="20"/>
+						</Button>
+					</Grid>
+
+					<StackPanel Grid.Row="1" Margin="20,0,20,10" Spacing="10">
+						<ScrollViewer MaxHeight="240"
+									  VerticalScrollBarVisibility="Auto">
+							<TextBlock Text="{Binding InlineDialogMessage}"
+									   TextWrapping="Wrap"
+									   FontSize="13"
+									   Foreground="{DynamicResource TextPrimaryBrush}"/>
+						</ScrollViewer>
+
+						<Border IsVisible="{Binding IsInlineDialogPrompt}"
+								BorderBrush="{DynamicResource BorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Background="{DynamicResource SecondaryBackgroundBrush}">
+							<TextBox Text="{Binding InlineDialogInputText, Mode=TwoWay}"
+									 PlaceholderText="{loc:Localize PromptDialog.EnterNamePlaceholder}"
+									 AcceptsReturn="True"
+									 TextWrapping="Wrap"
+									 MinHeight="120"
+									 Background="Transparent"
+									 BorderThickness="0"
+									 Padding="10"/>
+						</Border>
+					</StackPanel>
+
+					<StackPanel Grid.Row="2"
+								Orientation="Horizontal"
+								HorizontalAlignment="Right"
+								Spacing="10"
+								Margin="20,0,20,16">
+						<Button Content="{Binding InlineDialogSecondaryButtonText}"
+								IsVisible="{Binding IsInlineDialogSecondaryVisible}"
+								MinWidth="100"
+								Padding="10,8"
+								Background="{DynamicResource ModCardBackgroundBrush}"
+								Foreground="{DynamicResource TextPrimaryBrush}"
+								BorderBrush="{DynamicResource ModCardBorderBrush}"
+								BorderThickness="1"
+								CornerRadius="6"
+								Click="OnInlineDialogSecondaryClick"/>
+						<Button Content="{Binding InlineDialogPrimaryButtonText}"
+								MinWidth="100"
+								Padding="10,8"
+								Background="{DynamicResource AccentBrush}"
+								Foreground="{DynamicResource OnAccentTextBrush}"
+								CornerRadius="6"
+								Click="OnInlineDialogPrimaryClick"/>
+					</StackPanel>
+				</Grid>
+			</Border>
+		</Border>
+
+		<!-- Modal ostrzeżenia antywirusowego -->
+		<Border Grid.Row="0"
+				Grid.RowSpan="3"
+				Classes="tool-modal-overlay"
+				IsVisible="{Binding IsAntivirusWarningVisible}">
+			<Border Classes="tool-modal-card"
+					Width="620"
+					MaxWidth="680"
+					MaxHeight="560"
+					MinHeight="300"
+					PointerPressed="OnAntivirusWarningCardPressed">
+				<Grid RowDefinitions="Auto,*,Auto" Margin="24,22,24,18">
+					<StackPanel Grid.Row="0" Spacing="10">
+						<TextBlock Text="{Binding AntivirusWarningTitle}"
+								   FontSize="20"
+								   FontWeight="Bold"/>
+						<TextBlock Text="{Binding AntivirusWarningIntro}"
+								   TextWrapping="Wrap"
+								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+					</StackPanel>
+
+					<ScrollViewer Grid.Row="1"
+							  Margin="0,18,0,18"
+							  VerticalScrollBarVisibility="Auto">
+						<StackPanel Spacing="14">
+							<StackPanel Spacing="8">
+								<TextBlock Text="{Binding AntivirusWarningProductsHeader}"
+									   FontSize="14"
+									   FontWeight="SemiBold"/>
+								<ItemsControl ItemsSource="{Binding AntivirusWarningProducts}">
+									<ItemsControl.ItemTemplate>
+										<DataTemplate>
+											<StackPanel Orientation="Horizontal" Spacing="10" Margin="0,2,0,2">
+												<TextBlock Text="•"
+														   FontSize="18"
+														   Foreground="{DynamicResource AccentBrush}"/>
+												<TextBlock Text="{Binding .}"
+														   TextWrapping="Wrap"
+														   Foreground="{DynamicResource TextPrimaryBrush}"/>
+											</StackPanel>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</StackPanel>
+
+							<Border BorderBrush="{DynamicResource BorderBrush}"
+									BorderThickness="1"
+									CornerRadius="10"
+									Padding="14"
+									Background="{DynamicResource SecondaryBackgroundBrush}">
+								<TextBlock Text="{Binding AntivirusWarningRecommendation}"
+										   TextWrapping="Wrap"
+										   Foreground="{DynamicResource TextPrimaryBrush}"/>
+							</Border>
+
+							<Border BorderBrush="{DynamicResource BorderBrush}"
+									BorderThickness="1"
+									CornerRadius="10"
+									Padding="14"
+									Background="{DynamicResource SecondaryBackgroundBrush}">
+								<StackPanel Spacing="6">
+									<TextBlock Text="{Binding AntivirusWarningSecurityNote}"
+											   TextWrapping="Wrap"
+											   FontSize="12"
+											   Opacity="0.9"
+											   Foreground="{DynamicResource TextPrimaryBrush}"/>
+								</StackPanel>
+							</Border>
+						</StackPanel>
+					</ScrollViewer>
+
+					<Grid Grid.Row="2" RowDefinitions="Auto,Auto" RowSpacing="14">
+						<CheckBox Content="{Binding AntivirusWarningCheckboxText}"
+								  IsChecked="{Binding IsAntivirusWarningAcknowledged, Mode=TwoWay}"
+								  Foreground="{DynamicResource TextPrimaryBrush}"/>
+						<Button Grid.Row="1"
+								Content="OK"
+								HorizontalAlignment="Right"
+								MinWidth="110"
+								Padding="10,8"
+								Background="{DynamicResource AccentBrush}"
+								Foreground="{DynamicResource OnAccentTextBrush}"
+								CornerRadius="6"
+								IsEnabled="{Binding CanConfirmAntivirusWarning}"
+								Click="OnAntivirusWarningConfirmClick"/>
+					</Grid>
+				</Grid>
+			</Border>
+		</Border>
+
+		<!-- Menu „Więcej" — backdrop (zamyka po kliknięciu w tło) -->
+		<Border Grid.Row="0" Grid.RowSpan="3"
+				Classes="fab-overlay"
+				Classes.visible="{Binding IsPaneOpen}"
+				PointerPressed="OnOverlayPressed"/>
+
+		<!-- Menu „Więcej" — kotwica pod przyciskiem na górnej belce.
+		     Przejmuje wszystkie pozycje dawnego FAB menu + status API/dysku/modów. -->
+		<Border Grid.Row="0" Grid.RowSpan="3"
+				Classes="fab-menu-panel"
+				Classes.visible="{Binding IsPaneOpen}"
+				HorizontalAlignment="Right"
+				VerticalAlignment="Top"
+				Margin="0,66,12,0"
+				ZIndex="150"
+				PointerPressed="OnMenuPanelPressed"
+				Button.Click="OnMoreMenuItemClick">
+
+			<ScrollViewer VerticalScrollBarVisibility="Auto"
+						  HorizontalScrollBarVisibility="Disabled"
+						  MaxHeight="620">
+			<StackPanel Spacing="4">
+				<TextBlock Text="{loc:Localize UI.Menu.Title}"
+						   FontSize="18"
+						   FontWeight="Bold"
+						   Margin="4,4,4,12"
+						   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+				<!-- Status (dawniej dolny pasek statusu): API / mody / dysk -->
+				<StackPanel Margin="8,0,8,4" Spacing="8">
+					<Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+						<Ellipse Width="10" Height="10"
+								 Fill="{Binding ApiStatusColor}"
+								 VerticalAlignment="Center"/>
+						<StackPanel Grid.Column="1">
+							<TextBlock Text="{loc:Localize UI.StatusBar.API}"
+									   FontSize="12" FontWeight="SemiBold"
+									   Foreground="{DynamicResource TextPrimaryBrush}"/>
+							<TextBlock Text="{Binding ApiStatusText}"
+									   FontSize="11"
+									   Foreground="{DynamicResource TextSecondaryBrush}"/>
+							<TextBlock Text="{Binding OnlineUsersText}"
+									   FontSize="11"
+									   Foreground="{DynamicResource TextSecondaryBrush}"
+									   IsVisible="{Binding IsApiOnline}"/>
+						</StackPanel>
+					</Grid>
+
+					<StackPanel ToolTip.Tip="{Binding ModsStatusTooltip}">
+						<TextBlock Text="{Binding ModsStatusMainText}"
+								   FontSize="12" FontWeight="SemiBold"
+								   Foreground="{DynamicResource UpdateAlertBrush}"
+								   IsVisible="{Binding !!AvailableUpdatesCount}"/>
+						<TextBlock Text="{Binding ModsStatusMainText}"
+								   FontSize="12" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextPrimaryBrush}"
+								   IsVisible="{Binding !AvailableUpdatesCount}"/>
+						<TextBlock Text="{Binding ModsStatusSubText}"
+								   FontSize="11"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+					</StackPanel>
 
 					<Button Classes="fab-menu-item"
-							Command="{Binding ShowInfoCommand}">
-						<i:Interaction.Behaviors>
-							<behaviors:RippleBehavior/>
-						</i:Interaction.Behaviors>
-						<StackPanel Orientation="Horizontal" Spacing="12">
-							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Info}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
-							<TextBlock Text="{loc:Localize UI.Menu.Info}" VerticalAlignment="Center"/>
+							Command="{Binding ShowStorageOverviewCommand}"
+							Padding="0" Margin="0"
+							AutomationProperties.Name="{loc:Localize UI.Storage.Open}">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.HardDrive}" FontSize="16"
+										   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+							<StackPanel>
+								<TextBlock Text="{loc:Localize UI.Storage.Open}"
+										   FontSize="12" FontWeight="SemiBold"/>
+								<TextBlock Text="{Binding LibraryStorageStatusText}"
+										   FontSize="11"
+										   Foreground="{DynamicResource TextSecondaryBrush}"/>
+							</StackPanel>
 						</StackPanel>
 					</Button>
 				</StackPanel>
-				</ScrollViewer>
-			</Border>
 
-			<!-- Toast notification overlay – na samej górze z-order, nad modalami -->
-			<local:ToastHost Grid.Row="0" Grid.RowSpan="3"/>
+				<Border Classes="fab-menu-separator"/>
+
+				<!-- Sprawdź aktualizacje modów -->
+				<Button Classes="fab-menu-item"
+						Command="{Binding CheckForModUpdatesFromMenuCommand}"
+						ToolTip.Tip="{Binding FabBadgeTooltip}">
+					<i:Interaction.Behaviors>
+						<behaviors:RippleBehavior/>
+					</i:Interaction.Behaviors>
+					<StackPanel Orientation="Horizontal" Spacing="12">
+						<Grid>
+							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowDownload}"
+										  FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
+							<Border Classes="fab-menu-item-badge"
+									IsVisible="{Binding FabHasBadge}">
+								<TextBlock Text="{Binding FabBadgeCount}" FontSize="9"
+										   Foreground="White"
+										   HorizontalAlignment="Center"
+										   VerticalAlignment="Center"/>
+							</Border>
+						</Grid>
+						<TextBlock Text="{loc:Localize UI.Menu.CheckModUpdates}"
+								  VerticalAlignment="Center"/>
+					</StackPanel>
+				</Button>
+
+				<Button Classes="fab-menu-item"
+						Command="{Binding FixBlackScreenCommand}">
+					<i:Interaction.Behaviors>
+						<behaviors:RippleBehavior/>
+					</i:Interaction.Behaviors>
+					<StackPanel Orientation="Horizontal" Spacing="12">
+						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Toolbox}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
+						<TextBlock Text="{loc:Localize UI.Menu.RepairGame}" VerticalAlignment="Center"/>
+					</StackPanel>
+				</Button>
+
+				<Button Classes="fab-menu-item"
+						Command="{Binding ShowAdditionalActionsCommand}">
+					<i:Interaction.Behaviors>
+						<behaviors:RippleBehavior/>
+					</i:Interaction.Behaviors>
+					<StackPanel Orientation="Horizontal" Spacing="12">
+						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Wrench}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
+						<TextBlock Text="{loc:Localize UI.Menu.ToUConfigs}" VerticalAlignment="Center"/>
+					</StackPanel>
+				</Button>
+
+				<Button Classes="fab-menu-item"
+						Command="{Binding ShowRecommendedDiscordsCommand}">
+					<i:Interaction.Behaviors>
+						<behaviors:RippleBehavior/>
+					</i:Interaction.Behaviors>
+					<StackPanel Orientation="Horizontal" Spacing="12">
+						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.PeopleTeam}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
+						<TextBlock Text="{loc:Localize UI.Menu.RecommendedDiscords}" VerticalAlignment="Center"/>
+					</StackPanel>
+				</Button>
+
+				<Button Classes="fab-menu-item"
+						Command="{Binding ShowSUStatsConfigCommand}">
+					<i:Interaction.Behaviors>
+						<behaviors:RippleBehavior/>
+					</i:Interaction.Behaviors>
+					<StackPanel Orientation="Horizontal" Spacing="12">
+						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.DataBarVertical}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
+						<TextBlock Text="{loc:Localize UI.Menu.SUStats}" VerticalAlignment="Center"/>
+					</StackPanel>
+				</Button>
+
+				<Button Classes="fab-menu-item"
+						Command="{Binding ShowRolesCommand}">
+					<i:Interaction.Behaviors>
+						<behaviors:RippleBehavior/>
+					</i:Interaction.Behaviors>
+					<StackPanel Orientation="Horizontal" Spacing="12">
+						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Person}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
+						<TextBlock Text="{loc:Localize UI.Buttons.Roles}" VerticalAlignment="Center"/>
+					</StackPanel>
+				</Button>
+
+				<Button Classes="fab-menu-item"
+						Click="OnShowConsoleClicked"
+						AutomationProperties.Name="{loc:Localize Settings.Advanced.ShowConsole.Label}">
+					<i:Interaction.Behaviors>
+						<behaviors:RippleBehavior/>
+					</i:Interaction.Behaviors>
+					<StackPanel Orientation="Horizontal" Spacing="12">
+						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.WindowConsole}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
+						<TextBlock Text="{loc:Localize Settings.Advanced.ShowConsole.Label}" VerticalAlignment="Center"/>
+					</StackPanel>
+				</Button>
+
+				<Border Classes="fab-menu-group">
+					<StackPanel Spacing="2">
+						<Button Classes="fab-menu-item"
+								x:Name="PackGroupToggle"
+								Command="{Binding ToggleFabModPackActionsCommand}">
+							<i:Interaction.Behaviors>
+								<behaviors:RippleBehavior/>
+							</i:Interaction.Behaviors>
+							<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+								<ic:SymbolIcon Grid.Column="0" Symbol="{x:Static fic:Symbol.Box}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
+								<TextBlock Grid.Column="1"
+										   Text="{loc:Localize ModPacks.MenuGroup}"
+										   VerticalAlignment="Center"
+										   TextWrapping="Wrap"/>
+								<TextBlock Grid.Column="2" Text="▼" VerticalAlignment="Center" FontSize="10"
+										   IsVisible="{Binding IsFabModPackActionsExpanded}"/>
+								<TextBlock Grid.Column="2" Text="▶" VerticalAlignment="Center" FontSize="10"
+										   IsVisible="{Binding IsFabModPackActionsExpanded, Converter={x:Static BoolConverters.Not}}"/>
+							</Grid>
+						</Button>
+
+						<StackPanel Spacing="2" Margin="28,0,0,4"
+									IsVisible="{Binding IsFabModPackActionsExpanded}">
+							<Button Classes="fab-menu-subitem"
+									Command="{Binding CreateLocalPackCommand}">
+								<TextBlock Text="{loc:Localize UI.Packs.CreateLocal}" TextWrapping="Wrap" MaxWidth="220"/>
+							</Button>
+							<Button Classes="fab-menu-subitem"
+									Command="{Binding CreateAndSharePackCommand}">
+								<TextBlock Text="{loc:Localize UI.Packs.CreateAndShare}" TextWrapping="Wrap" MaxWidth="220"/>
+							</Button>
+							<Button Classes="fab-menu-subitem"
+									Command="{Binding ShareExistingPackCommand}">
+								<TextBlock Text="{loc:Localize ModPacks.ShareMenu}" TextWrapping="Wrap" MaxWidth="220"/>
+							</Button>
+							<Button Classes="fab-menu-subitem"
+									Command="{Binding EnterModPackCodeCommand}">
+								<StackPanel Orientation="Horizontal" Spacing="8">
+									<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ClipboardPaste}" FontSize="16" Foreground="{DynamicResource IconAccentBrush}"/>
+									<TextBlock Text="{loc:Localize ModPacks.EnterCodeMenu}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="190"/>
+								</StackPanel>
+							</Button>
+							<Button Classes="fab-menu-subitem"
+									Command="{Binding ShowModPackManagerCommand}">
+								<StackPanel Orientation="Horizontal" Spacing="8">
+									<ic:SymbolIcon Symbol="{x:Static fic:Symbol.CloudArrowUp}" FontSize="16" Foreground="{DynamicResource IconAccentBrush}"/>
+									<TextBlock Text="{loc:Localize ModPacks.Shared.ManageFromLimit}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="190"/>
+								</StackPanel>
+							</Button>
+						</StackPanel>
+					</StackPanel>
+				</Border>
+
+				<Button Classes="fab-menu-item"
+						Command="{Binding ShowAppSettingsCommand}">
+					<i:Interaction.Behaviors>
+						<behaviors:RippleBehavior/>
+					</i:Interaction.Behaviors>
+					<StackPanel Orientation="Horizontal" Spacing="12">
+						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Settings}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
+						<TextBlock Text="{loc:Localize UI.Menu.Settings}" VerticalAlignment="Center"/>
+					</StackPanel>
+				</Button>
+
+				<Button Classes="fab-menu-item"
+						Command="{Binding ShowInfoCommand}">
+					<i:Interaction.Behaviors>
+						<behaviors:RippleBehavior/>
+					</i:Interaction.Behaviors>
+					<StackPanel Orientation="Horizontal" Spacing="12">
+						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Info}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
+						<TextBlock Text="{loc:Localize UI.Menu.Info}" VerticalAlignment="Center"/>
+					</StackPanel>
+				</Button>
+			</StackPanel>
+			</ScrollViewer>
+		</Border>
+
+		<!-- Toast notification overlay – na samej górze z-order, nad modalami -->
+		<local:ToastHost Grid.Row="0" Grid.RowSpan="3"/>
 
 	</Grid>
 </Window>

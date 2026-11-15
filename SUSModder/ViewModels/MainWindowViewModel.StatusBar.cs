@@ -175,10 +175,10 @@ namespace SUSModder.ViewModels
 
         public string ApiStatusColor => ApiStatus switch
         {
-            ApiConnectionStatus.Online => "#4CAF50", // Zielony
-            ApiConnectionStatus.Offline => "#F44336", // Czerwony
-            ApiConnectionStatus.Checking => "#FFC107", // Żółty
-            _ => "#9E9E9E" // Szary
+            ApiConnectionStatus.Online => "#55C58D", // success (paleta 4.0)
+            ApiConnectionStatus.Offline => "#FF7373", // danger
+            ApiConnectionStatus.Checking => "#FFCB58", // warning
+            _ => "#95989E" // muted
         };
 
         public bool IsApiOnline => ApiStatus == ApiConnectionStatus.Online;

@@ -19,7 +19,7 @@
                    HorizontalAlignment="Stretch"
                    VerticalAlignment="Stretch"/>
 
-            <!-- Loading Progress Bar at Bottom - Bright cyan/yellow gradient -->
+            <!-- Pasek postępu na dole — złota paleta 4.0 (bez glow) -->
             <Border Height="6"
                     VerticalAlignment="Bottom"
                     HorizontalAlignment="Stretch"
@@ -29,22 +29,14 @@
                         HorizontalAlignment="Left"
                         Width="0"
                         CornerRadius="0,0,0,12">
-                    <!-- Gradient from cyan to yellow-green - very visible on blue -->
+                    <!-- Gradient złota palety: gold → goldHighlight → goldPressed -->
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
-                            <GradientStop Color="#00F5FF" Offset="0.0" />
-                            <GradientStop Color="#00FFAA" Offset="0.5" />
-                            <GradientStop Color="#FFEB3B" Offset="1.0" />
+                            <GradientStop Color="#F7AE27" Offset="0.0" />
+                            <GradientStop Color="#FFCB58" Offset="0.5" />
+                            <GradientStop Color="#DC8D12" Offset="1.0" />
                         </LinearGradientBrush>
                     </Border.Background>
-                    <!-- Animated Gradient Effect - Enhanced with brighter glow -->
-                    <Border.Effect>
-                        <DropShadowEffect Color="#00FFAA"
-                                        BlurRadius="25"
-                                        OffsetX="0"
-                                        OffsetY="0"
-                                        Opacity="1.0"/>
-                    </Border.Effect>
                 </Border>
             </Border>
 

@@ -114,7 +114,23 @@
       "SearchPlaceholder": "Search…",
       "SelectMode": "Select",
       "ExitSelectMode": "Done",
-      "NoResults": "No results for the current filter"
+      "NoResults": "No results for the current filter",
+      "CatalogSubtitle": "Pick a mod and install it in one click.",
+      "MyPacksSubtitle": "Your ready-to-play configurations.",
+      "DllAddonsSubtitle": "Add-ons you can enable in your packs.",
+      "Back": "Back to list"
+    },
+    "TopBar": {
+      "More": "More",
+      "ChatToggle": "Community chat"
+    },
+    "Window": {
+      "Minimize": "Minimize",
+      "MaximizeRestore": "Maximize / restore",
+      "Close": "Close"
+    },
+    "Sidebar": {
+      "Settings": "Settings"
     },
     "Inspector": {
       "Details": "Details",

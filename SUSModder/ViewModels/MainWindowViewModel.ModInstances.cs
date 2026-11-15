@@ -60,6 +60,8 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(IsMyPacksTab));
                 this.RaisePropertyChanged(nameof(IsCatalogTab));
                 this.RaisePropertyChanged(nameof(IsDllAddonsTab));
+                this.RaisePropertyChanged(nameof(ActiveViewTitle));
+                this.RaisePropertyChanged(nameof(ActiveViewSubtitle));
                 this.RaisePropertyChanged(nameof(IsBrowserGridVisible));
                 this.RaisePropertyChanged(nameof(IsPackInstancesGridVisible));
                 this.RaisePropertyChanged(nameof(IsDllAddonsGridVisible));
@@ -94,6 +96,22 @@ namespace SUSModder.ViewModels
         public bool IsMyPacksTab => ActiveBrowserTab == ModBrowserTab.MyPacks;
         public bool IsCatalogTab => ActiveBrowserTab == ModBrowserTab.Catalog;
         public bool IsDllAddonsTab => ActiveBrowserTab == ModBrowserTab.DllAddons;
+
+        /// <summary>Nazwa aktywnego widoku (breadcrumb na górnej belce + nagłówek listy).</summary>
+        public string ActiveViewTitle => ActiveBrowserTab switch
+        {
+            ModBrowserTab.MyPacks => _localizationService.Get("UI.Tabs.MyPacks"),
+            ModBrowserTab.DllAddons => _localizationService.Get("UI.Tabs.DllAddons"),
+            _ => _localizationService.Get("UI.Tabs.Catalog")
+        };
+
+        /// <summary>Podtytuł aktywnego widoku (muted, pod nagłówkiem listy).</summary>
+        public string ActiveViewSubtitle => ActiveBrowserTab switch
+        {
+            ModBrowserTab.MyPacks => _localizationService.Get("UI.Browser.MyPacksSubtitle"),
+            ModBrowserTab.DllAddons => _localizationService.Get("UI.Browser.DllAddonsSubtitle"),
+            _ => _localizationService.Get("UI.Browser.CatalogSubtitle")
+        };
         public bool IsPackInstancesGridVisible =>
             IsMyPacksTab && !IsModsLoading && HasPackInstances && !ShowBrowserNoResults;
         public bool IsBrowserGridVisible =>

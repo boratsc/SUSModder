@@ -18,6 +18,7 @@ using SUSModder.Services;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia.Input;
+using Avalonia.LogicalTree;
 using FluentIcons.Common;
 using FluentIcons.Avalonia;
 
@@ -150,14 +151,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     {
         InitializeComponent();
 
-        _fabDiscordPromoContent = this.FindControl<Grid>("FabDiscordPromoContent");
-
-        var statusBar = this.FindControl<Border>("StatusBar");
-        if (statusBar != null)
-            statusBar.LayoutUpdated += (_, _) => UpdateFabMenuLayout();
-
-        LayoutUpdated += (_, _) => UpdateFabMenuLayout();
-
         var modsList = this.FindControl<ListBox>("ModsListBox");
         if (modsList != null)
             modsList.SelectionChanged += ModsListBox_SelectionChanged;
@@ -169,6 +162,9 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         var dllList = this.FindControl<ListBox>("DllModsListBox");
         if (dllList != null)
             dllList.SelectionChanged += DllModsListBox_SelectionChanged;
+
+        // Responsywność: < 1100 px prawa kolumna staje się overlayem nad listą.
+        SizeChanged += (_, _) => ApplyRightColumnLayout();
 
         // Inicjalizuj komendy
         RemoveSingleInstanceCommand = ReactiveCommand.CreateFromTask(RemoveSingleInstanceAsync);
@@ -189,19 +185,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                   })
                   .DisposeWith(disposables);
 
-                vm.WhenAnyValue(x => x.CurrentPromotedDiscord)
-                  .Subscribe(_ => TriggerDiscordPromoScrollAnimation())
-                  .DisposeWith(disposables);
-
-                // Aktualizuj ikonę FAB na podstawie stanu aktualizacji
-                vm.WhenAnyValue(x => x.FabHasBadge, x => x.IsAnyModInstalling)
-                  .Subscribe(_ =>
-                  {
-                      System.Diagnostics.Debug.WriteLine($"[FAB-DEBUG] WhenAnyValue fired: FabHasBadge={vm.FabHasBadge}, IsAnyModInstalling={vm.IsAnyModInstalling}");
-                      UpdateFabIcon(vm);
-                  })
-                  .DisposeWith(disposables);
-
                 vm.WhenAnyValue(x => x.IsBulkSelectionMode)
                   .Subscribe(active =>
                   {
@@ -213,23 +196,14 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                   })
                   .DisposeWith(disposables);
 
-                vm.WhenAnyValue(x => x.IsPaneOpen)
-                  .Subscribe(_ => UpdateFabMenuLayout())
+                // Prawa kolumna: szczegóły zwijają się bez zaznaczenia, czat przełącza dymek na belce.
+                vm.WhenAnyValue(x => x.IsBrowserDetailPanelVisible, x => x.IsChatColumnVisible)
+                  .Subscribe(_ => ApplyRightColumnLayout())
                   .DisposeWith(disposables);
-
-                // Prawa kolumna: wiersz szczegółów zwija się, gdy brak wybranego elementu —
-                // wtedy czat ogólny zajmuje całą wysokość kolumny.
-                vm.WhenAnyValue(x => x.IsBrowserDetailPanelVisible)
-                  .Subscribe(ApplyBrowserDetailsRowHeight)
-                  .DisposeWith(disposables);
-
-                vm.WhenAnyValue(x => x.IsDiscordPromoStatusBarMode, x => x.IsSystemStatusBarMode)
-                  .Subscribe(_ => UpdateFabMenuLayout())
-                  .DisposeWith(disposables);
-
             }
         });
 
+        ApplyRightColumnLayout();
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -238,6 +212,13 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         if (change.Property == IsVisibleProperty || change.Property == WindowStateProperty)
             UpdateCommunityChatLifecycle();
+
+        if (change.Property == WindowStateProperty)
+        {
+            var icon = this.FindControl<SymbolIcon>("MaximizeIcon");
+            if (icon != null)
+                icon.Symbol = WindowState == WindowState.Maximized ? Symbol.SquareMultiple : Symbol.Maximize;
+        }
     }
 
     // ── Czat ogólny: lifecycle + podział prawej kolumny ──────
@@ -262,71 +243,132 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     /// <summary>Zapamiętana wysokość wiersza szczegółów (po ewentualnym dragu GridSplittera).</summary>
     private GridLength? _detailsRowRemembered;
 
-    private void ApplyBrowserDetailsRowHeight(bool detailsVisible)
+    /// <summary>
+    /// Układ prawej kolumny (szczegóły + czat). Szerokie okno: kolumna obok listy;
+    /// wąskie (&lt; 1100 px): overlay nad listą z przyciskiem powrotu. Bez ściskania tekstu.
+    /// </summary>
+    private void ApplyRightColumnLayout()
     {
-        var grid = this.FindControl<Grid>("RightColumnGrid");
-        if (grid is null || grid.RowDefinitions.Count == 0)
+        if (DataContext is not MainWindowViewModel vm)
             return;
 
-        var row = grid.RowDefinitions[0];
-        if (detailsVisible)
+        var content = this.FindControl<Grid>("ContentGrid");
+        var host = this.FindControl<Border>("RightColumnHost");
+        var grid = this.FindControl<Grid>("RightColumnGrid");
+        if (content == null || host == null || grid == null || grid.RowDefinitions.Count < 4)
+            return;
+
+        var details = vm.IsBrowserDetailPanelVisible;
+        var chat = vm.IsChatColumnVisible;
+        var visible = details || chat;
+        var narrow = Bounds.Width > 0 && Bounds.Width < 1100;
+
+        content.ColumnDefinitions[1].Width = narrow
+            ? new GridLength(1, GridUnitType.Star)
+            : new GridLength(440);
+        content.ColumnDefinitions[2].Width = !narrow && visible
+            ? new GridLength(1, GridUnitType.Star)
+            : new GridLength(0);
+        host.SetValue(Grid.ColumnProperty, narrow ? 1 : 2);
+        host.SetValue(Grid.ColumnSpanProperty, narrow ? 2 : 1);
+        host.ZIndex = narrow ? 50 : 0;
+        host.IsVisible = visible;
+
+        var back = this.FindControl<Border>("DetailBackRow");
+        if (back != null)
+            back.IsVisible = narrow && visible;
+
+        var rows = grid.RowDefinitions;
+        if (details)
         {
-            row.Height = _detailsRowRemembered ?? new GridLength(3, GridUnitType.Star);
+            rows[1].Height = _detailsRowRemembered ?? new GridLength(3, GridUnitType.Star);
         }
         else
         {
             // Nie zapamiętujemy stanu startowego (0px) — tylko realny rozmiar użytkownika.
-            if (row.Height.IsStar || row.Height.Value > 0)
-                _detailsRowRemembered = row.Height;
-
-            row.Height = new GridLength(0);
+            if (rows[1].Height.IsStar || rows[1].Height.Value > 0)
+                _detailsRowRemembered = rows[1].Height;
+            rows[1].Height = new GridLength(0);
         }
+
+        rows[3].Height = chat ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+
+        var splitter = this.FindControl<GridSplitter>("DetailChatSplitter");
+        if (splitter != null)
+            splitter.IsVisible = details && chat;
     }
 
-    /// <summary>
-    /// Kotwiczy menu FAB tuż nad przyciskiem (wysokość paska statusu + przewijanie przy długiej liście).
-    /// </summary>
-    private void UpdateFabMenuLayout()
+    // ── Górna belka: chrome okna (przeciąganie, min/max/close) ──
+
+    private void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        var panel = this.FindControl<Border>("FabMenuPanel");
-        var scroll = this.FindControl<ScrollViewer>("FabMenuScroll");
-        var statusBar = this.FindControl<Border>("StatusBar");
-        if (panel == null)
-            return;
-
-        const double gapAboveStatusBar = 10;
-        var statusHeight = statusBar?.Bounds.Height ?? 0;
-        if (statusHeight < 1)
-            statusHeight = 76;
-
-        panel.Margin = new Thickness(16, 0, 0, statusHeight + gapAboveStatusBar);
-
-        if (scroll == null || Bounds.Height < 1)
-            return;
-
-        var topReserve = 24;
-        var maxMenuHeight = Math.Max(200, Bounds.Height - statusHeight - gapAboveStatusBar - topReserve);
-        scroll.MaxHeight = maxMenuHeight;
+        // Przyciski obsługują własne kliknięcia (e.Handled) — przeciągamy tylko wolny obszar belki.
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            BeginMoveDrag(e);
     }
 
-    /// <summary>
-    /// Aktualizuje ikonę FAB na podstawie stanu aktualizacji i instalacji.
-    /// Ustawiana w code-behind, bo compiled binding nie aktualizuje ikony SymbolIcon.
-    /// </summary>
-    private void UpdateFabIcon(MainWindowViewModel vm)
+    private void OnTitleBarDoubleTapped(object? sender, TappedEventArgs e)
     {
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            var icon = this.FindControl<SymbolIcon>("FabIcon");
-            System.Diagnostics.Debug.WriteLine($"[FAB-DEBUG] UpdateFabIcon: icon={(icon != null ? "found" : "NULL")}, FabHasBadge={vm.FabHasBadge}, IsAnyModInstalling={vm.IsAnyModInstalling}");
-            if (icon == null) return;
+        for (Control? c = e.Source as Control; c != null && c != sender; c = c.Parent as Control)
+            if (c is Button)
+                return;
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    }
 
-            var newSymbol = vm.IsAnyModInstalling ? Symbol.ArrowSync
-                          : vm.FabHasBadge ? Symbol.ArrowDownload
-                          : Symbol.Navigation;
-            System.Diagnostics.Debug.WriteLine($"[FAB-DEBUG] Setting icon.Symbol = {newSymbol} (was {icon.Symbol})");
-            icon.Symbol = newSymbol;
-        });
+    private void OnMinimizeClicked(object? sender, RoutedEventArgs e)
+        => WindowState = WindowState.Minimized;
+
+    private void OnMaximizeClicked(object? sender, RoutedEventArgs e)
+        => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+
+    private void OnCloseClicked(object? sender, RoutedEventArgs e)
+        => Close();
+
+    // ── Sidebar: nawigacja klawiaturą (strzałki góra/dół; Enter aktywuje fokusowany przycisk) ──
+
+    private void SidebarNav_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key is not (Key.Up or Key.Down) || sender is not Control root)
+            return;
+
+        var buttons = root.GetLogicalDescendants().OfType<Button>().ToList();
+        if (buttons.Count == 0)
+            return;
+
+        var index = buttons.FindIndex(b => b.IsFocused);
+        var next = e.Key == Key.Down
+            ? buttons[(index + 1) % buttons.Count]
+            : buttons[(index - 1 + buttons.Count) % buttons.Count];
+        next.Focus();
+        e.Handled = true;
+    }
+
+    /// <summary>Powrót z overlayu szczegółów/czatu w wąskim oknie.</summary>
+    private void OnDetailBackClicked(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        vm.IsChatColumnVisible = false;
+        if (vm.IsDllPanelVisible)
+            vm.CloseDllDetailCommand.Execute().Subscribe();
+        else if (vm.IsPackInstancePanelVisible)
+            vm.ClosePackInstanceDetailCommand.Execute().Subscribe();
+        else if (vm.IsModPanelVisible)
+            vm.CloseModDetailCommand.Execute().Subscribe();
+    }
+
+    /// <summary>Konsola deweloperska z menu „Więcej" (ta sama ścieżka co przełącznik w Ustawieniach).</summary>
+    private void OnShowConsoleClicked(object? sender, RoutedEventArgs e)
+        => ConsoleWindow.ShowConsole();
+
+    /// <summary>Akcje menu „Więcej" zamykają menu (toggle grupy zestawów zostaje otwarty).</summary>
+    private void OnMoreMenuItemClick(object? sender, RoutedEventArgs e)
+    {
+        if (e.Source is Button btn && btn.Name == "PackGroupToggle")
+            return;
+        if (DataContext is MainWindowViewModel vm)
+            vm.IsPaneOpen = false;
     }
 
     private ModItem? _bulkListSelectionAnchor;
@@ -431,7 +473,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         for (Control? c = e.Source as Control; c != null; c = c.Parent as Control)
         {
-            if (c is ListBoxItem or Controls.ModCard or Controls.PackInstanceCard or Controls.DllAddonCard or CheckBox or BulkModeChip or BrowserTabBar or BrowserToolbar)
+            if (c is ListBoxItem or Controls.ModCard or Controls.PackInstanceCard or Controls.DllAddonCard or CheckBox or BulkModeChip)
                 return;
             if (c is Button btn && btn.Classes.Contains("bulk-mode-chip"))
                 return;
@@ -452,6 +494,14 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             return;
         if (DataContext is not MainWindowViewModel vm)
             return;
+
+        if (vm.IsPaneOpen)
+        {
+            vm.IsPaneOpen = false;
+            e.Handled = true;
+            return;
+        }
+
         if (vm.IsAnyToolModalOpen)
             return;
 
@@ -469,11 +519,19 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             return;
         }
 
-        if (!vm.IsModPanelVisible)
+        if (vm.IsModPanelVisible)
+        {
+            vm.CloseModDetailCommand.Execute().Subscribe();
+            e.Handled = true;
             return;
+        }
 
-        vm.CloseModDetailCommand.Execute().Subscribe();
-        e.Handled = true;
+        // Wąskie okno: Escape zamyka overlay samego czatu.
+        if (Bounds.Width < 1100 && vm.IsChatColumnVisible)
+        {
+            vm.IsChatColumnVisible = false;
+            e.Handled = true;
+        }
     }
 
     private async Task RemoveSingleInstanceAsync()
@@ -926,25 +984,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         {
             vm.ResolveAntivirusWarning();
         }
-    }
-
-    private Grid? _fabDiscordPromoContent;
-    private int _discordPromoAnimationVersion;
-
-    private async void TriggerDiscordPromoScrollAnimation()
-    {
-        if (_fabDiscordPromoContent == null)
-            return;
-
-        var animationVersion = ++_discordPromoAnimationVersion;
-        _fabDiscordPromoContent.Classes.Remove("visible");
-
-        await Task.Delay(45);
-
-        if (animationVersion != _discordPromoAnimationVersion || _fabDiscordPromoContent == null)
-            return;
-
-        _fabDiscordPromoContent.Classes.Add("visible");
     }
 
     private void OnMenuPanelPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)

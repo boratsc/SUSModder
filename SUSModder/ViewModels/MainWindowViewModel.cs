@@ -737,6 +737,8 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
                 localizationNotify.PropertyChanged += (s, e) =>
                 {
                     this.RaisePropertyChanged(nameof(ToolModalTitle));
+                    this.RaisePropertyChanged(nameof(ActiveViewTitle));
+                    this.RaisePropertyChanged(nameof(ActiveViewSubtitle));
                     RaisePromotedDiscordDerivedProperties();
                     RefreshLaunchDiagnosticsPanelStrings();
                 };
