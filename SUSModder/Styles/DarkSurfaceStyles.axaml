@@ -2,10 +2,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
 	<!-- ============================================================
-	     Dark (płaski) — nadpisania warstwy "surface" dla motywu Dark.
-	     Kafelki: r10, ramka 1px #243B53, zaznaczenie = teal 1px, bez
-	     dużych cieni/gradientów. Glass ma własny plik (efekt szkła zostaje).
-	     Klasa okna ustawiana w MainWindow.GlassTheme.cs.
+	     Dark (płaski) — nadpisania warstwy "surface" jedynego motywu
+	     (grafitowo-złota paleta 4.0). Kafelki: r10, ramka 1px #35373C,
+	     zaznaczenie = złoto 1px, bez dużych cieni/gradientów.
+	     Klasa okna "dark-theme" ustawiana w MainWindow.axaml.
 	     ============================================================ -->
 
 	<!-- === Kafelki przeglądarki === -->
@@ -29,7 +29,7 @@
 	<Style Selector="Window.dark-theme ListBoxItem:selected Border.browser-card">
 		<Setter Property="BorderBrush" Value="{DynamicResource SelectionBarBrush}"/>
 		<Setter Property="BorderThickness" Value="1"/>
-		<Setter Property="BoxShadow" Value="0 0 0 1 #3320C5C5"/>
+		<Setter Property="BoxShadow" Value="0 0 0 1 #33F7AE27"/>
 	</Style>
 
 	<Style Selector="Window.dark-theme ListBoxItem:selected Border.browser-card Border.browser-selection-bar">
@@ -49,7 +49,7 @@
 	<Style Selector="Window.dark-theme Border.browser-card.bulk-checked">
 		<Setter Property="BorderBrush" Value="{DynamicResource BulkSelectionBrush}"/>
 		<Setter Property="BorderThickness" Value="1"/>
-		<Setter Property="BoxShadow" Value="0 0 0 1 #3317A2A2"/>
+		<Setter Property="BoxShadow" Value="0 0 0 1 #33DC8D12"/>
 	</Style>
 
 	<Style Selector="Window.dark-theme Border.browser-card ProgressBar">
@@ -102,9 +102,9 @@
 		<Setter Property="BoxShadow" Value="0 4 14 0 #40000000"/>
 	</Style>
 
-	<!-- Group tint w FAB menu: cyan -> neutralna paleta -->
+	<!-- Group tint w FAB menu: neutralny grafit (border z alfą) -->
 	<Style Selector="Window.dark-theme Border.fab-menu-group">
-		<Setter Property="Background" Value="#33243B53"/>
+		<Setter Property="Background" Value="#3335373C"/>
 	</Style>
 
 	<!-- === Przyciski panelu szczegółów: r6 === -->
