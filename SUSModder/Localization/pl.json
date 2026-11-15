@@ -118,7 +118,9 @@
       "CatalogSubtitle": "Wybierz mod i zainstaluj jednym kliknięciem.",
       "MyPacksSubtitle": "Twoje gotowe konfiguracje do gry.",
       "DllAddonsSubtitle": "Dodatki, które możesz włączyć w zestawach.",
-      "Back": "Wróć do listy"
+      "Back": "Wróć do listy",
+      "NoResultsHint": "Nie znaleziono modów. Zmień frazę lub wyczyść filtry.",
+      "ClearFilters": "Wyczyść filtry"
     },
     "TopBar": {
       "More": "Więcej",
@@ -147,6 +149,10 @@
       "ShowMore": "Pokaż więcej ({0})",
       "ShowLess": "Pokaż mniej",
       "MoreActions": "Dodatkowe akcje",
+      "CompatCheck": "Sprawdzenie zgodności",
+      "CompatReady": "Gotowy do użycia",
+      "CompatWarning": "Niektóre DLL nieprzetestowane",
+      "CompatError": "Niekompatybilne DLL",
       "Compat": {
         "Loading": "Ładowanie kompatybilności…"
       },
@@ -259,7 +265,11 @@
       "Size": "Rozmiar",
       "Status": "Status",
       "Name": "Nazwa",
-      "Path": "Ścieżka"
+      "Path": "Ścieżka",
+      "Type": "Typ",
+      "GameCompatibility": "Zgodność",
+      "LastUpdated": "Ostatnia aktualizacja",
+      "Repository": "Repozytorium"
     },
     "Menu": {
       "Title": "Menu",
@@ -1020,6 +1030,7 @@
     "Full": "Pełny mod",
     "Dll": "Modyfikacja DLL",
     "Vanilla": "Wersja waniliowa",
+    "Game": "Gra",
     "Unknown": "Nieznany typ"
   },
   "About": {

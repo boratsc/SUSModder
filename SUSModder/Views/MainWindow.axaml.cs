@@ -407,6 +407,22 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         vm.ToggleBulkModCheckCommand.Execute(clicked).Subscribe();
     }
 
+    /// <summary>
+    /// E3: Enter aktywuje zaznaczony mod (ta sama ścieżka co dwuklik);
+    /// w trybie bulk przełącza zaznaczenie checkboxa. Strzałki obsługuje ListBox.
+    /// </summary>
+    private void ModsListBox_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || DataContext is not MainWindowViewModel vm || vm.SelectedMod is not { } mod)
+            return;
+
+        if (vm.IsBulkSelectionMode)
+            vm.ToggleBulkModCheckCommand.Execute(mod).Subscribe();
+        else
+            vm.ModDoubleClickCommand.Execute(mod).Subscribe();
+        e.Handled = true;
+    }
+
     private void PackInstancesListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_revertingBulkPackSelection || sender is not ListBox listBox)
@@ -473,7 +489,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         for (Control? c = e.Source as Control; c != null; c = c.Parent as Control)
         {
-            if (c is ListBoxItem or Controls.ModCard or Controls.PackInstanceCard or Controls.DllAddonCard or CheckBox or BulkModeChip)
+            if (c is ListBoxItem or Controls.PackInstanceCard or Controls.DllAddonCard or CheckBox or BulkModeChip)
                 return;
             if (c is Button btn && btn.Classes.Contains("bulk-mode-chip"))
                 return;

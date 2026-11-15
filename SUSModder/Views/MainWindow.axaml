@@ -40,6 +40,7 @@
 	<Window.Styles>
 		<!-- Importowane style -->
 		<StyleInclude Source="/Styles/ModCardStyle.axaml"/>
+		<StyleInclude Source="/Styles/CatalogListStyle.axaml"/>
 		<StyleInclude Source="/Styles/ModDetailPanelStyle.axaml"/>
 		<StyleInclude Source="/Styles/MenuButtonStyle.axaml"/>
 		<StyleInclude Source="/Styles/PanelStyles.axaml"/>
@@ -443,17 +444,29 @@
 						</labs:FlexPanel>
 					</ScrollViewer>
 
+					<!-- Stan pusty (makieta 13): komunikat + wyczyść filtry. -->
 					<Border Margin="10"
-							Classes="glass-empty-state"
+							Classes="catalog-empty-state"
 							IsVisible="{Binding ShowBrowserNoResults}"
 							VerticalAlignment="Center"
-							HorizontalAlignment="Center"
+							HorizontalAlignment="Stretch"
 							MaxWidth="420">
 						<StackPanel Spacing="8" HorizontalAlignment="Center">
 							<TextBlock Text="{loc:Localize UI.Browser.NoResults}"
 									   FontSize="16" FontWeight="SemiBold"
 									   TextAlignment="Center"
 									   Foreground="{DynamicResource TextPrimaryBrush}"/>
+							<TextBlock Text="{loc:Localize UI.Browser.NoResultsHint}"
+									   FontSize="12"
+									   TextAlignment="Center"
+									   TextWrapping="Wrap"
+									   Foreground="{DynamicResource TextMutedBrush}"/>
+							<Button Classes="catalog-detail-secondary"
+									HorizontalAlignment="Center"
+									Margin="0,4,0,0"
+									Content="{loc:Localize UI.Browser.ClearFilters}"
+									Command="{Binding ClearBrowserFiltersCommand}"
+									AutomationProperties.Name="{loc:Localize UI.Browser.ClearFilters}"/>
 						</StackPanel>
 					</Border>
 
@@ -530,34 +543,23 @@
 						</ListBox.ItemTemplate>
 					</ListBox>
 
+					<!-- E3: katalog jako pionowa lista wierszy (domyślny VirtualizingStackPanel).
+					     Klik = zaznaczenie (SelectedMod), dwuklik/Enter = istniejąca aktywacja moda. -->
 					<ListBox x:Name="ModsListBox"
-							 Margin="10"
+							 Classes="catalog-list"
+							 Margin="10,0,10,10"
 							 IsVisible="{Binding IsBrowserGridVisible}"
 							 ItemsSource="{Binding Mods}"
 							 SelectedItem="{Binding SelectedMod}"
+							 KeyDown="ModsListBox_KeyDown"
 							 Background="Transparent"
 							 BorderThickness="0">
-						<ListBox.ItemsPanel>
-							<ItemsPanelTemplate>
-								<labs:FlexPanel Direction="Row"
-												Wrap="Wrap"
-												JustifyContent="FlexStart"
-												AlignItems="FlexStart"
-												AlignContent="FlexStart"
-												RowSpacing="0"
-												ColumnSpacing="0">
-									<i:Interaction.Behaviors>
-										<behaviors:LayoutAnimationBehavior/>
-									</i:Interaction.Behaviors>
-								</labs:FlexPanel>
-							</ItemsPanelTemplate>
-						</ListBox.ItemsPanel>
 						<ListBox.ItemTemplate>
-							<DataTemplate>
+							<DataTemplate x:DataType="vm:ModItem">
 								<Panel ToolTip.ShowDelay="300">
 									<i:Interaction.Behaviors>
 										<behaviors:DoubleClickBehavior
-											DoubleClickCommand="{Binding $parent[Window].DataContext.ModDoubleClickCommand}"
+											DoubleClickCommand="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ModDoubleClickCommand}"
 											CommandParameter="{Binding}"
 											DoubleClickInterval="300"/>
 									</i:Interaction.Behaviors>
@@ -602,7 +604,78 @@
 											</StackPanel>
 										</StackPanel>
 									</ToolTip.Tip>
-									<controls:ModCard/>
+									<Border Classes="catalog-row"
+											Classes.bulk-checked="{Binding IsCheckedForBulk}">
+										<Panel>
+											<Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+												<Border Grid.Column="0" Classes="catalog-row-icon">
+													<Image Source="{Binding IconSourceKey, Converter={StaticResource StringToBitmapConverter}}"
+														   Width="44" Height="44" Stretch="UniformToFill"/>
+												</Border>
+												<StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+													<TextBlock Classes="catalog-row-title" Text="{Binding Name}"/>
+													<TextBlock Classes="catalog-row-subtitle" Text="{Binding CatalogRowSubtitle}"/>
+												</StackPanel>
+												<StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+													<Panel Width="8" Height="8" VerticalAlignment="Center">
+														<Ellipse Width="8" Height="8"
+																 Fill="{DynamicResource StatusBusyBrush}"
+																 IsVisible="{Binding ShowStatusBusy}"/>
+														<Ellipse Width="8" Height="8"
+																 Fill="{DynamicResource StatusUpdateBrush}"
+																 IsVisible="{Binding ShowStatusUpdate}"/>
+														<Ellipse Width="8" Height="8"
+																 Fill="{DynamicResource StatusInstalledBrush}"
+																 IsVisible="{Binding ShowStatusInstalled}"/>
+														<Ellipse Width="8" Height="8"
+																 Fill="{DynamicResource StatusNotInstalledBrush}"
+																 IsVisible="{Binding ShowStatusNotInstalled}"/>
+													</Panel>
+													<Border Classes="catalog-row-badge">
+														<TextBlock Classes="catalog-row-badge-text"
+																   Text="{Binding CatalogTypeBadge}"/>
+													</Border>
+												</StackPanel>
+												<StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+													<!-- Gwiazdka: hover/focus wiersza lub gdy ulubiony (stały slot 28px). -->
+													<Panel Width="28" Height="28">
+														<ToggleButton Classes="catalog-row-star"
+																	  IsChecked="{Binding IsFavorite, Mode=OneWay}"
+																	  Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ToggleFavoriteCommand}"
+																	  CommandParameter="{Binding}"
+																	  ToolTip.Tip="{loc:Localize UI.Favorites.Toggle}"
+																	  AutomationProperties.Name="{loc:Localize UI.Favorites.Toggle}">
+															<ToggleButton.IsVisible>
+																<MultiBinding Converter="{x:Static BoolConverters.And}">
+																	<Binding Path="CanFavorite"/>
+																	<MultiBinding Converter="{x:Static BoolConverters.Or}">
+																		<Binding Path="IsFavorite"/>
+																		<Binding Path="$parent[ListBoxItem].IsPointerOver"/>
+																		<Binding Path="$parent[ListBoxItem].IsKeyboardFocusWithin"/>
+																	</MultiBinding>
+																</MultiBinding>
+															</ToggleButton.IsVisible>
+															<Panel>
+																<TextBlock Text="★" IsVisible="{Binding IsFavorite}"
+																		   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+																<TextBlock Text="☆" IsVisible="{Binding IsFavorite, Converter={x:Static BoolConverters.Not}}"
+																		   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+															</Panel>
+														</ToggleButton>
+													</Panel>
+													<CheckBox IsChecked="{Binding IsCheckedForBulk}"
+															  IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsBulkSelectionMode}"
+															  IsEnabled="{Binding IsBulkEligible}"
+															  VerticalAlignment="Center"/>
+												</StackPanel>
+											</Grid>
+											<ProgressBar Classes="catalog-row-progress"
+														 Minimum="0" Maximum="100"
+														 Value="{Binding InstallProgress}"
+														 IsVisible="{Binding IsInstalling}"/>
+										</Panel>
+									</Border>
+									<Border Classes="catalog-row-separator"/>
 								</Panel>
 							</DataTemplate>
 						</ListBox.ItemTemplate>

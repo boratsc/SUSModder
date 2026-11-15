@@ -1,0 +1,272 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<!-- ══ 4.0 E3: katalog jako lista wierszy + szczegóły z CTA ══
+	     Złoty akcent tylko dla CTA/zaznaczenia/focusu; hairline #35373C; bez glow.
+	     Selektory listy są scoped do ListBox.catalog-list, żeby nie ruszać list DLL/zestawów (E4). -->
+
+	<!-- ── Lista ── -->
+	<Style Selector="ListBox.catalog-list">
+		<Setter Property="Background" Value="Transparent"/>
+		<Setter Property="BorderThickness" Value="0"/>
+	</Style>
+
+	<Style Selector="ListBox.catalog-list ListBoxItem">
+		<Setter Property="Padding" Value="0"/>
+		<Setter Property="Margin" Value="0"/>
+		<Setter Property="Background" Value="Transparent"/>
+		<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+		<Setter Property="AutomationProperties.Name" Value="{ReflectionBinding Name}"/>
+	</Style>
+
+	<!-- Globalny ListBoxStyles nadaje zaznaczonym Borderom złotą ramkę 2px —
+	     w wierszach resetujemy to i stylujemy tylko obramowanie wiersza/plakietki. -->
+	<Style Selector="ListBox.catalog-list ListBoxItem:selected Border">
+		<Setter Property="BorderBrush" Value="Transparent"/>
+		<Setter Property="BorderThickness" Value="0"/>
+	</Style>
+
+	<Style Selector="Border.catalog-row">
+		<Setter Property="Height" Value="68"/>
+		<Setter Property="Padding" Value="12,0"/>
+		<Setter Property="CornerRadius" Value="10"/>
+		<Setter Property="Background" Value="Transparent"/>
+		<Setter Property="BorderBrush" Value="Transparent"/>
+		<Setter Property="BorderThickness" Value="1"/>
+	</Style>
+
+	<Style Selector="ListBox.catalog-list ListBoxItem:pointerover Border.catalog-row">
+		<Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+	</Style>
+
+	<!-- Zaznaczenie: subtelne złote obramowanie 1px + soft fill, bez poświaty. -->
+	<Style Selector="ListBox.catalog-list ListBoxItem:selected Border.catalog-row">
+		<Setter Property="Background" Value="{DynamicResource AccentSoftFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+	</Style>
+
+	<Style Selector="ListBox.catalog-list ListBoxItem:focus Border.catalog-row">
+		<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+	</Style>
+
+	<Style Selector="Border.catalog-row.bulk-checked">
+		<Setter Property="Background" Value="{DynamicResource AccentSoftFillBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource BulkSelectionBrush}"/>
+	</Style>
+
+	<Style Selector="Border.catalog-row-separator">
+		<Setter Property="Height" Value="1"/>
+		<Setter Property="VerticalAlignment" Value="Bottom"/>
+		<Setter Property="Margin" Value="12,0"/>
+		<Setter Property="Background" Value="{DynamicResource ModCardBorderBrush}"/>
+		<Setter Property="IsHitTestVisible" Value="False"/>
+	</Style>
+
+	<Style Selector="Border.catalog-row-icon">
+		<Setter Property="Width" Value="44"/>
+		<Setter Property="Height" Value="44"/>
+		<Setter Property="CornerRadius" Value="12"/>
+		<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+		<Setter Property="ClipToBounds" Value="True"/>
+		<Setter Property="VerticalAlignment" Value="Center"/>
+	</Style>
+
+	<Style Selector="TextBlock.catalog-row-title">
+		<Setter Property="FontSize" Value="14"/>
+		<Setter Property="FontWeight" Value="SemiBold"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		<Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+		<Setter Property="MaxLines" Value="1"/>
+	</Style>
+
+	<Style Selector="TextBlock.catalog-row-subtitle">
+		<Setter Property="FontSize" Value="12"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+		<Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+		<Setter Property="MaxLines" Value="1"/>
+	</Style>
+
+	<Style Selector="Border.catalog-row-badge">
+		<Setter Property="CornerRadius" Value="6"/>
+		<Setter Property="Padding" Value="6,2"/>
+		<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="VerticalAlignment" Value="Center"/>
+	</Style>
+
+	<Style Selector="ListBox.catalog-list ListBoxItem:selected Border.catalog-row-badge">
+		<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+	</Style>
+
+	<Style Selector="TextBlock.catalog-row-badge-text">
+		<Setter Property="FontSize" Value="10"/>
+		<Setter Property="FontWeight" Value="SemiBold"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+	</Style>
+
+	<Style Selector="ToggleButton.catalog-row-star">
+		<Setter Property="Width" Value="28"/>
+		<Setter Property="Height" Value="28"/>
+		<Setter Property="Padding" Value="0"/>
+		<Setter Property="Background" Value="Transparent"/>
+		<Setter Property="BorderThickness" Value="0"/>
+		<Setter Property="CornerRadius" Value="6"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+		<Setter Property="Cursor" Value="Hand"/>
+		<Setter Property="VerticalAlignment" Value="Center"/>
+	</Style>
+	<Style Selector="ToggleButton.catalog-row-star:pointerover">
+		<Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+	</Style>
+	<Style Selector="ToggleButton.catalog-row-star:checked">
+		<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+	</Style>
+	<Style Selector="ToggleButton.catalog-row-star:focus">
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+	</Style>
+
+	<Style Selector="ProgressBar.catalog-row-progress">
+		<Setter Property="Height" Value="3"/>
+		<Setter Property="CornerRadius" Value="2"/>
+		<Setter Property="VerticalAlignment" Value="Bottom"/>
+		<Setter Property="Margin" Value="12,0,12,4"/>
+		<Setter Property="Background" Value="{DynamicResource ModCardBorderBrush}"/>
+		<Setter Property="Foreground" Value="{DynamicResource StatusBusyBrush}"/>
+	</Style>
+
+	<!-- ── Stan pusty (makieta 13) ── -->
+	<Style Selector="Border.catalog-empty-state">
+		<Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="CornerRadius" Value="12"/>
+		<Setter Property="Padding" Value="24,20"/>
+	</Style>
+
+	<!-- ── Szczegóły moda ── -->
+	<Style Selector="Border.catalog-detail-icon">
+		<Setter Property="Width" Value="88"/>
+		<Setter Property="Height" Value="88"/>
+		<Setter Property="CornerRadius" Value="16"/>
+		<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+		<Setter Property="ClipToBounds" Value="True"/>
+	</Style>
+
+	<Style Selector="Border.catalog-detail-chip">
+		<Setter Property="CornerRadius" Value="6"/>
+		<Setter Property="Padding" Value="8,3"/>
+		<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="VerticalAlignment" Value="Center"/>
+	</Style>
+
+	<Style Selector="TextBlock.catalog-detail-chip-text">
+		<Setter Property="FontSize" Value="11"/>
+		<Setter Property="FontWeight" Value="SemiBold"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+	</Style>
+
+	<!-- Jedno złote CTA (instalacja / uruchomienie / aktualizacja). -->
+	<Style Selector="Button.catalog-detail-cta">
+		<Setter Property="MinWidth" Value="150"/>
+		<Setter Property="Padding" Value="16,10"/>
+		<Setter Property="CornerRadius" Value="8"/>
+		<Setter Property="FontSize" Value="14"/>
+		<Setter Property="FontWeight" Value="SemiBold"/>
+		<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+		<Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="BorderBrush" Value="Transparent"/>
+		<Setter Property="Cursor" Value="Hand"/>
+	</Style>
+	<Style Selector="Button.catalog-detail-cta:pointerover /template/ ContentPresenter">
+		<Setter Property="Background" Value="{DynamicResource PrimaryActionHoverBrush}"/>
+	</Style>
+	<Style Selector="Button.catalog-detail-cta:pressed /template/ ContentPresenter">
+		<Setter Property="Background" Value="{DynamicResource PrimaryActionPressedBrush}"/>
+	</Style>
+	<Style Selector="Button.catalog-detail-cta:focus">
+		<Setter Property="BorderBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+	</Style>
+	<Style Selector="Button.catalog-detail-cta:disabled">
+		<Setter Property="Opacity" Value="0.5"/>
+	</Style>
+
+	<Style Selector="SplitButton.catalog-detail-cta">
+		<Setter Property="MinWidth" Value="150"/>
+		<Setter Property="Padding" Value="16,10"/>
+		<Setter Property="CornerRadius" Value="8"/>
+		<Setter Property="FontSize" Value="14"/>
+		<Setter Property="FontWeight" Value="SemiBold"/>
+		<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+		<Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
+		<Setter Property="Cursor" Value="Hand"/>
+	</Style>
+
+	<!-- Akcje drugorzędne: outlined. -->
+	<Style Selector="Button.catalog-detail-secondary">
+		<Setter Property="Padding" Value="12,9"/>
+		<Setter Property="CornerRadius" Value="8"/>
+		<Setter Property="FontSize" Value="13"/>
+		<Setter Property="Background" Value="Transparent"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		<Setter Property="Cursor" Value="Hand"/>
+	</Style>
+	<Style Selector="Button.catalog-detail-secondary:pointerover">
+		<Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+	</Style>
+	<Style Selector="Button.catalog-detail-secondary:focus">
+		<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+	</Style>
+	<Style Selector="Button.catalog-detail-secondary:disabled">
+		<Setter Property="Opacity" Value="0.5"/>
+	</Style>
+
+	<!-- Rozwijany wiersz „Kompatybilne DLL". -->
+	<Style Selector="Button.catalog-detail-dllrow">
+		<Setter Property="HorizontalAlignment" Value="Stretch"/>
+		<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+		<Setter Property="Padding" Value="14,12"/>
+		<Setter Property="CornerRadius" Value="10"/>
+		<Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
+		<Setter Property="BorderThickness" Value="0"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		<Setter Property="Cursor" Value="Hand"/>
+	</Style>
+	<Style Selector="Button.catalog-detail-dllrow:pointerover">
+		<Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+	</Style>
+	<Style Selector="Button.catalog-detail-dllrow:focus">
+		<Setter Property="BorderThickness" Value="1"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+	</Style>
+
+	<!-- Tabela informacji technicznych. -->
+	<Style Selector="Border.catalog-detail-hairline">
+		<Setter Property="Height" Value="1"/>
+		<Setter Property="Background" Value="{DynamicResource ModCardBorderBrush}"/>
+	</Style>
+	<Style Selector="TextBlock.catalog-detail-techlabel">
+		<Setter Property="FontSize" Value="12"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+		<Setter Property="VerticalAlignment" Value="Center"/>
+	</Style>
+	<Style Selector="TextBlock.catalog-detail-techvalue">
+		<Setter Property="FontSize" Value="12"/>
+		<Setter Property="FontWeight" Value="SemiBold"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		<Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+		<Setter Property="MaxLines" Value="1"/>
+		<Setter Property="VerticalAlignment" Value="Center"/>
+	</Style>
+
+</Styles>

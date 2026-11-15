@@ -70,6 +70,7 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _availableReleases, value);
                 this.RaisePropertyChanged(nameof(BrowserSubtitle));
+                this.RaisePropertyChanged(nameof(CatalogRowSubtitle));
                 this.RaisePropertyChanged(nameof(ShowBetaInstall));
                 this.RaisePropertyChanged(nameof(ShowNormalInstall));
             }
@@ -82,6 +83,7 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _cardInstallation, value);
                 this.RaisePropertyChanged(nameof(BrowserSubtitle));
+                this.RaisePropertyChanged(nameof(CatalogRowSubtitle));
             }
         }
 
@@ -93,7 +95,9 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _latestStableVersion, value);
                 this.RaisePropertyChanged(nameof(ShowNewerBetaOnCard));
+                this.RaisePropertyChanged(nameof(CatalogTypeBadge));
                 this.RaisePropertyChanged(nameof(BrowserSubtitle));
+                this.RaisePropertyChanged(nameof(CatalogRowSubtitle));
                 this.RaisePropertyChanged(nameof(ShowInstallationSubtitle));
                 this.RaisePropertyChanged(nameof(ShowBetaInstall));
                 this.RaisePropertyChanged(nameof(ShowNormalInstall));
@@ -110,6 +114,8 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(HasAvailableBeta));
                 this.RaisePropertyChanged(nameof(AvailableBetaText));
                 this.RaisePropertyChanged(nameof(ShowNewerBetaOnCard));
+                this.RaisePropertyChanged(nameof(CatalogTypeBadge));
+                this.RaisePropertyChanged(nameof(CatalogRowSubtitle));
                 this.RaisePropertyChanged(nameof(ShowInstallationSubtitle));
                 this.RaisePropertyChanged(nameof(ShowBetaInstall));
                 this.RaisePropertyChanged(nameof(ShowNormalInstall));
@@ -124,7 +130,9 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _isInstalledBeta, value);
                 this.RaisePropertyChanged(nameof(ShowBetaInstalledBadge));
+                this.RaisePropertyChanged(nameof(CatalogTypeBadge));
                 this.RaisePropertyChanged(nameof(BrowserSubtitle));
+                this.RaisePropertyChanged(nameof(CatalogRowSubtitle));
             }
         }
 
@@ -313,7 +321,11 @@ namespace SUSModder.ViewModels
         public string Description
         {
             get => _description;
-            set => this.RaiseAndSetIfChanged(ref _description, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _description, value);
+                this.RaisePropertyChanged(nameof(CatalogRowSubtitle));
+            }
         }
 
         public string PngFileName
@@ -337,6 +349,7 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(IsAutoUpdateToggleVisible));
                 this.RaisePropertyChanged(nameof(HasAvailableBeta));
                 this.RaisePropertyChanged(nameof(BrowserSubtitle));
+                this.RaisePropertyChanged(nameof(CatalogRowSubtitle));
             }
         }
 
@@ -347,6 +360,7 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _amongVersion, value);
                 this.RaisePropertyChanged(nameof(BrowserSubtitle));
+                this.RaisePropertyChanged(nameof(CatalogRowSubtitle));
             }
         }
 
@@ -360,6 +374,7 @@ namespace SUSModder.ViewModels
                 this.RaiseAndSetIfChanged(ref _installPath, value);
                 this.RaisePropertyChanged(nameof(IsInstalled));
                 this.RaisePropertyChanged(nameof(BrowserSubtitle));
+                this.RaisePropertyChanged(nameof(CatalogRowSubtitle));
                 this.RaisePropertyChanged(nameof(ShowInstallationSubtitle));
                 this.RaisePropertyChanged(nameof(ShowBetaInstall));
                 this.RaisePropertyChanged(nameof(ShowNormalInstall));
@@ -434,6 +449,7 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _modType, value);
                 this.RaisePropertyChanged(nameof(IsVanilla));
+                this.RaisePropertyChanged(nameof(CatalogTypeBadge));
                 this.RaisePropertyChanged(nameof(IsAutoUpdateToggleVisible));
                 this.RaisePropertyChanged(nameof(HasAvailableBeta));
                 this.RaisePropertyChanged(nameof(ShowNewerBetaOnCard));
@@ -542,6 +558,25 @@ namespace SUSModder.ViewModels
         }
 
         public string TypeBadge => IsDllMod ? "DLL" : IsFullMod ? "FULL" : ModType;
+
+        /// <summary>
+        /// Etykieta typu dla wiersza katalogu 4.0 (Gra / Pełny mod / BETA / DLL) —
+        /// presentation-only, na bazie istniejących stanów typu i bety.
+        /// </summary>
+        public string CatalogTypeBadge =>
+            IsVanilla ? Loc?.Get("ModTypes.Game") ?? "Gra"
+            : IsDllMod ? "DLL"
+            : IsInstalledBeta || ShowNewerBetaOnCard ? Loc?.Get("UI.Beta.Badge") ?? "BETA"
+            : IsFullMod ? Loc?.Get("ModTypes.Full") ?? "Pełny mod"
+            : TypeBadge;
+
+        /// <summary>Podtytuł wiersza katalogu: wersja (z grą) + krótki opis, jedna linia.</summary>
+        public string CatalogRowSubtitle =>
+            string.IsNullOrWhiteSpace(Description)
+                ? BrowserSubtitle
+                : string.IsNullOrWhiteSpace(BrowserSubtitle)
+                    ? Description
+                    : $"{BrowserSubtitle} · {Description}";
 
         public int InstallProgress
         {

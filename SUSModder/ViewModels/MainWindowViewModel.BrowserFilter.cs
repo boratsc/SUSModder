@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive;
 using ReactiveUI;
 
 namespace SUSModder.ViewModels
@@ -9,6 +10,9 @@ namespace SUSModder.ViewModels
     {
         private string _browserSearchText = string.Empty;
         private bool _browserFavoritesOnly;
+
+        /// <summary>Czyści wyszukiwanie i filtr ulubionych (stan pusty katalogu, makieta 13).</summary>
+        public ReactiveCommand<Unit, Unit> ClearBrowserFiltersCommand { get; private set; } = null!;
 
         public bool BrowserFavoritesOnly
         {
@@ -46,6 +50,11 @@ namespace SUSModder.ViewModels
 
         private void InitializeBrowserFilter()
         {
+            ClearBrowserFiltersCommand = ReactiveCommand.Create(() =>
+            {
+                BrowserSearchText = string.Empty;
+                BrowserFavoritesOnly = false;
+            });
             InitializeIconAssets();
             _localizationService.PropertyChanged += OnLibraryLanguageChanged;
             InitializeStorageOverview();

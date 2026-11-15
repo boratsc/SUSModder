@@ -118,7 +118,9 @@
       "CatalogSubtitle": "Pick a mod and install it in one click.",
       "MyPacksSubtitle": "Your ready-to-play configurations.",
       "DllAddonsSubtitle": "Add-ons you can enable in your packs.",
-      "Back": "Back to list"
+      "Back": "Back to list",
+      "NoResultsHint": "No mods found. Change your search or clear the filters.",
+      "ClearFilters": "Clear filters"
     },
     "TopBar": {
       "More": "More",
@@ -147,6 +149,10 @@
       "ShowMore": "Show more ({0})",
       "ShowLess": "Show less",
       "MoreActions": "More actions",
+      "CompatCheck": "Compatibility check",
+      "CompatReady": "Ready to use",
+      "CompatWarning": "Some DLLs untested",
+      "CompatError": "Incompatible DLLs",
       "Compat": {
         "Loading": "Loading compatibility…"
       },
@@ -259,7 +265,11 @@
       "Size": "Size",
       "Status": "Status",
       "Name": "Name",
-      "Path": "Path"
+      "Path": "Path",
+      "Type": "Type",
+      "GameCompatibility": "Compatibility",
+      "LastUpdated": "Last updated",
+      "Repository": "Repository"
     },
     "Menu": {
       "Title": "Menu",
@@ -1020,6 +1030,7 @@
     "Full": "Full mod",
     "Dll": "DLL modification",
     "Vanilla": "Vanilla version",
+    "Game": "Game",
     "Unknown": "Unknown type"
   },
   "About": {
