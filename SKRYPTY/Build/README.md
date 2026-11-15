@@ -1,11 +1,11 @@
 # Build scripts — quick reference
 
-## Polityka podpisów (docelowa)
+## Polityka podpisów
 
 | Kanał | Authenticode | Uwagi |
 |-------|--------------|--------|
-| `beta` | **SignPath** (domyślnie) | `signingMode=signpath` w RC; escape hatch: `none` |
-| `release` | **SignPath** (domyślnie) | to samo — oba kanały mogą być podpisane |
+| `beta` | Brak podpisu (domyślnie) | `signingMode=none` w RC |
+| `release` | Brak podpisu (domyślnie) | `signingMode=none` w RC |
 
 Publiczne buildy Velopack **wymagają** `PublishSingleFile=false` (unpacked). Gate: `Assert-NotSingleFile.ps1`.
 
@@ -43,7 +43,7 @@ Nie traktuj samego poprawnego builda jako testu rzeczywistej aktualizacji.
 
 ### SignPath / Authenticode (CI)
 
-Domyślny `signingMode` w `release-candidate.yml`: **`signpath`** (beta i release).
+Domyślny `signingMode` w `release-candidate.yml`: **`none`** (beta i release). Tryb `signpath` pozostaje opcjonalny.
 
 Wymagane GitHub configuration:
 
@@ -55,8 +55,7 @@ Wymagane GitHub configuration:
 | Variable | `SIGNPATH_SIGNING_POLICY_SLUG` | np. `test-signing` / `release-signing` |
 | Variable | `SIGNPATH_ARTIFACT_CONFIGURATION_SLUG` | opcjonalnie; domyślnie `velopack-channel` |
 
-W portalu SignPath utwórz Artifact Configuration o slug `velopack-channel` na podstawie XML:
-`.signpath/artifact-configurations/velopack-channel.xml`
+Opcjonalny tryb SignPath wymaga istniejącej konfiguracji artefaktu w portalu; lokalny szablon XML został usunięty.
 
 Flow CI: pack → upload unsigned bundle (Setup/Update/Portable/nupkg) → SignPath → apply → `Assert-AuthenticodeSigned.ps1` → deploy/draft.
 

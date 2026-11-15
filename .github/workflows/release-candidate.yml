@@ -31,7 +31,7 @@ on:
         options:
           - signpath
           - none
-        default: signpath
+        default: none
       changelogMarkdown:
         description: "User-facing changelog bullets for Discord (empty = announce without changes block)"
         required: false
