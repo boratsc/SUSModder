@@ -13,6 +13,7 @@
         Icon="/Assets/icon.ico"
         Title="{Binding WindowTitle}"
         x:Class="SUSModder.Views.MainWindow"
+        Classes="dark-theme"
         x:DataType="vm:MainWindowViewModel"
         Width="1270" Height="960"
         MinWidth="1240" MinHeight="720"
@@ -43,8 +44,6 @@
 		<StyleInclude Source="/Styles/StatusBarStyle.axaml"/>
 		<StyleInclude Source="/Styles/BulkModeChipStyle.axaml"/>
 		<StyleInclude Source="/Styles/BrowserTabStyle.axaml"/>
-		<StyleInclude Source="/Styles/GlassSurfaceStyles.axaml"/>
-		<StyleInclude Source="/Styles/GlassOpaqueFallbackStyles.axaml"/>
 		<StyleInclude Source="/Styles/DarkSurfaceStyles.axaml"/>
 
 		<!-- Wspólny styl dla przycisków panelu szczegółów moda -->
@@ -1190,18 +1189,6 @@
 						<StackPanel Orientation="Horizontal" Spacing="12">
 							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Info}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
 							<TextBlock Text="{loc:Localize UI.Menu.Info}" VerticalAlignment="Center"/>
-						</StackPanel>
-					</Button>
-
-					<Border Classes="fab-menu-separator"/>
-					<Button Classes="fab-menu-item"
-							Command="{Binding ToggleThemeCommand}">
-						<i:Interaction.Behaviors>
-							<behaviors:RippleBehavior/>
-						</i:Interaction.Behaviors>
-						<StackPanel Orientation="Horizontal" Spacing="12">
-							<TextBlock Text="{Binding ThemeButtonIcon}" FontSize="20" VerticalAlignment="Center"/>
-							<TextBlock Text="{Binding ThemeButtonText}" VerticalAlignment="Center"/>
 						</StackPanel>
 					</Button>
 				</StackPanel>

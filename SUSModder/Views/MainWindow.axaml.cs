@@ -227,19 +227,14 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                   .Subscribe(_ => UpdateFabMenuLayout())
                   .DisposeWith(disposables);
 
-                SubscribeGlassThemeChanges(vm, disposables);
             }
         });
 
-        InitializeGlassThemeHooks();
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-
-        if (change.Property == ActualTransparencyLevelProperty)
-            OnGlassTransparencyLevelChanged();
 
         if (change.Property == IsVisibleProperty || change.Property == WindowStateProperty)
             UpdateCommunityChatLifecycle();

@@ -1,51 +1,52 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-	<!-- ============ Dark (palleta użytkownika) — płaski, stonowany ============
-	     BG #101820 · panele #172630 · inputy/obramowania #243B53 · akcent #20C5C5
-	     tekst #F0EEE8 / #97AAB8 · success #45B889 · warning #D9A441 · danger #D95C48
-	     Kafelki: r10, ramka 1px, zaznaczenie teal. Przyciski/inputy: r6.
-	     Bez neonu, gradientów i dużych cieni (poza szkłem). -->
+	<!-- ============ 4.0 Minimalistyczny — grafitowo-złota paleta (jedyny motyw) ============
+	     BG #101113 · sidebar #151618 · panele #1A1C1F · raised/inputy #202226 · hover #2B2D31
+	     obramowania #35373C · tekst #F4F4F4 / #BFC1C4 / #95989E · akcent #F7AE27
+	     success #55C58D · warning #FFCB58 · danger #FF7373 · info #8FC9EE
+	     Akcent tylko dla CTA/zaznaczenia/aktywności; zieleń i czerwień wyłącznie dla stanów.
+	     Bez neonu, gradientów-glow i dużych cieni. Zaznaczenie: subtelne złote obramowanie. -->
 
 	<!-- v3 semantic tokens -->
-	<Color x:Key="SurfaceBaseColor">#101820</Color>
-	<Color x:Key="SurfaceElevatedColor">#172630</Color>
-	<Color x:Key="SurfaceCardColor">#172630</Color>
-	<Color x:Key="SurfaceOverlayColor">#80050B12</Color>
-	<Color x:Key="AccentPrimaryColor">#20C5C5</Color>
-	<Color x:Key="AccentMutedColor">#177079</Color>
-	<Color x:Key="StatusInstalledColor">#45B889</Color>
-	<Color x:Key="StatusUpdateColor">#D9A441</Color>
-	<Color x:Key="StatusBusyColor">#3FCFCF</Color>
-	<Color x:Key="StatusNotInstalledColor">#97AAB8</Color>
-	<Color x:Key="SelectionBarColor">#20C5C5</Color>
-	<Color x:Key="BulkSelectionColor">#17A2A2</Color>
-	<Color x:Key="SurfaceGlassFillColor">#FF172630</Color>
+	<Color x:Key="SurfaceBaseColor">#101113</Color>
+	<Color x:Key="SurfaceElevatedColor">#1A1C1F</Color>
+	<Color x:Key="SurfaceCardColor">#1A1C1F</Color>
+	<Color x:Key="SurfaceOverlayColor">#80101113</Color>
+	<Color x:Key="AccentPrimaryColor">#F7AE27</Color>
+	<Color x:Key="AccentMutedColor">#DC8D12</Color>
+	<Color x:Key="StatusInstalledColor">#55C58D</Color>
+	<Color x:Key="StatusUpdateColor">#FFCB58</Color>
+	<Color x:Key="StatusBusyColor">#FFCB58</Color>
+	<Color x:Key="StatusNotInstalledColor">#95989E</Color>
+	<Color x:Key="SelectionBarColor">#F7AE27</Color>
+	<Color x:Key="BulkSelectionColor">#DC8D12</Color>
+	<Color x:Key="SurfaceGlassFillColor">#FF1A1C1F</Color>
 
 	<!-- Legacy aliases (2.x keys → nowa paleta) -->
-	<Color x:Key="PrimaryBackgroundColor">#101820</Color>
-	<Color x:Key="SecondaryBackgroundColor">#172630</Color>
-	<Color x:Key="TertiaryBackgroundColor">#243B53</Color>
-	<Color x:Key="MenuBackgroundColor">#172630</Color>
-	<Color x:Key="CardBackgroundColor">#172630</Color>
-	<Color x:Key="BorderColor">#243B53</Color>
-	<Color x:Key="TextPrimaryColor">#F0EEE8</Color>
-	<Color x:Key="TextSecondaryColor">#97AAB8</Color>
-	<Color x:Key="AccentColor">#20C5C5</Color>
-	<Color x:Key="DangerColor">#D95C48</Color>
-	<Color x:Key="SuccessColor">#45B889</Color>
-	<Color x:Key="WindowBackgroundColor">#101820</Color>
-	<Color x:Key="PaneBackgroundColor">#172630</Color>
-	<Color x:Key="ModCardBackgroundColor">#172630</Color>
-	<Color x:Key="ModCardBorderColor">#243B53</Color>
-	<Color x:Key="GridSplitterColor">#243B53</Color>
-	<Color x:Key="ListBoxSelectionColor">#20C5C5</Color>
-	<Color x:Key="InstallPathBorderColor">#20C5C5</Color>
-	<Color x:Key="DllButtonColor">#D9A441</Color>
-	<Color x:Key="WarningColor">#D9A441</Color>
-	<Color x:Key="StatusBarBackgroundColor">#101820</Color>
-	<Color x:Key="StatusBarBorderColor">#243B53</Color>
-	<Color x:Key="StatusBarSectionHoverColor">#243B53</Color>
+	<Color x:Key="PrimaryBackgroundColor">#101113</Color>
+	<Color x:Key="SecondaryBackgroundColor">#1A1C1F</Color>
+	<Color x:Key="TertiaryBackgroundColor">#202226</Color>
+	<Color x:Key="MenuBackgroundColor">#1A1C1F</Color>
+	<Color x:Key="CardBackgroundColor">#1A1C1F</Color>
+	<Color x:Key="BorderColor">#35373C</Color>
+	<Color x:Key="TextPrimaryColor">#F4F4F4</Color>
+	<Color x:Key="TextSecondaryColor">#BFC1C4</Color>
+	<Color x:Key="AccentColor">#F7AE27</Color>
+	<Color x:Key="DangerColor">#FF7373</Color>
+	<Color x:Key="SuccessColor">#55C58D</Color>
+	<Color x:Key="WindowBackgroundColor">#101113</Color>
+	<Color x:Key="PaneBackgroundColor">#151618</Color>
+	<Color x:Key="ModCardBackgroundColor">#1A1C1F</Color>
+	<Color x:Key="ModCardBorderColor">#35373C</Color>
+	<Color x:Key="GridSplitterColor">#35373C</Color>
+	<Color x:Key="ListBoxSelectionColor">#F7AE27</Color>
+	<Color x:Key="InstallPathBorderColor">#F7AE27</Color>
+	<Color x:Key="DllButtonColor">#FFCB58</Color>
+	<Color x:Key="WarningColor">#FFCB58</Color>
+	<Color x:Key="StatusBarBackgroundColor">#101113</Color>
+	<Color x:Key="StatusBarBorderColor">#35373C</Color>
+	<Color x:Key="StatusBarSectionHoverColor">#2B2D31</Color>
 
 	<!-- v3 brushes -->
 	<SolidColorBrush x:Key="SurfaceBaseBrush" Color="{StaticResource SurfaceBaseColor}"/>
@@ -62,7 +63,7 @@
 	<SolidColorBrush x:Key="BulkSelectionBrush" Color="{StaticResource BulkSelectionColor}"/>
 	<SolidColorBrush x:Key="SurfaceGlassFillBrush" Color="{StaticResource SurfaceGlassFillColor}"/>
 
-	<!-- Tło okna: CIEMNE = płaskie (bez gradientu i glow — wyjątek tylko dla szkła) -->
+	<!-- Tło okna: płaskie (bez gradientu i glow) -->
 	<SolidColorBrush x:Key="WindowBackgroundGradientBrush" Color="{StaticResource WindowBackgroundColor}"/>
 	<SolidColorBrush x:Key="WindowAccentGlowBrush" Color="Transparent"/>
 	<SolidColorBrush x:Key="WindowBulkGlowBrush" Color="Transparent"/>
@@ -77,6 +78,7 @@
 	<SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}"/>
 	<SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
 	<SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+	<SolidColorBrush x:Key="AccentBrushHover" Color="{StaticResource PrimaryActionHoverColor}"/>
 	<SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
 	<SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
 	<SolidColorBrush x:Key="WindowBackgroundBrush" Color="{StaticResource WindowBackgroundColor}"/>
@@ -93,42 +95,42 @@
 	<SolidColorBrush x:Key="StatusBarBorderBrush" Color="{StaticResource StatusBarBorderColor}"/>
 	<SolidColorBrush x:Key="StatusBarSectionHoverBrush" Color="{StaticResource StatusBarSectionHoverColor}"/>
 
-	<!-- Akcenty pomocnicze (wspólne klucze ze Szklanym — patrz plan DOC/PLAN) -->
-	<Color x:Key="OnAccentTextColor">#101820</Color>
-	<Color x:Key="IconAccentColor">#20C5C5</Color>
-	<Color x:Key="AccentSoftFillColor">#1F20C5C5</Color>
-	<Color x:Key="AccentSoftBorderColor">#4D20C5C5</Color>
-	<Color x:Key="StatusIconModsColor">#243B53</Color>
-	<Color x:Key="StatusIconStorageColor">#177079</Color>
-	<Color x:Key="UpdateAlertColor">#D9A441</Color>
-	<Color x:Key="StatusInstalledTextColor">#45B889</Color>
-	<Color x:Key="StatusMissingTextColor">#D95C48</Color>
-	<Color x:Key="PrimaryActionColor">#20C5C5</Color>
-	<Color x:Key="PrimaryActionHoverColor">#17A2A2</Color>
-	<Color x:Key="PrimaryActionPressedColor">#128C8C</Color>
-	<Color x:Key="PrimaryActionSoftColor">#1F20C5C5</Color>
-	<Color x:Key="PositiveActionColor">#45B889</Color>
-	<Color x:Key="PositiveActionHoverColor">#3A9C74</Color>
-	<Color x:Key="PositiveActionPressedColor">#2F7D5D</Color>
-	<Color x:Key="PositiveActionSoftColor">#1F45B889</Color>
-	<Color x:Key="DangerActionColor">#D95C48</Color>
-	<Color x:Key="DangerActionHoverColor">#C24E3B</Color>
-	<Color x:Key="DangerActionSoftColor">#1FD95C48</Color>
-	<Color x:Key="DangerActionHoverBgColor">#E2705E</Color>
-	<Color x:Key="DangerActionPressedColor">#C24E3B</Color>
-	<Color x:Key="PackIdentityColor">#17A2A2</Color>
-	<Color x:Key="PackIdentitySoftColor">#2617A2A2</Color>
-	<Color x:Key="ModDetailIconGlowColor">#2620C5C5</Color>
-	<Color x:Key="BadgeAlertColor">#D95C48</Color>
-	<Color x:Key="BulkChipActiveFillColor">#2620C5C5</Color>
+	<!-- Akcenty pomocnicze -->
+	<Color x:Key="OnAccentTextColor">#101113</Color>
+	<Color x:Key="IconAccentColor">#F7AE27</Color>
+	<Color x:Key="AccentSoftFillColor">#1FF7AE27</Color>
+	<Color x:Key="AccentSoftBorderColor">#4DF7AE27</Color>
+	<Color x:Key="StatusIconModsColor">#35373C</Color>
+	<Color x:Key="StatusIconStorageColor">#DC8D12</Color>
+	<Color x:Key="UpdateAlertColor">#FFCB58</Color>
+	<Color x:Key="StatusInstalledTextColor">#55C58D</Color>
+	<Color x:Key="StatusMissingTextColor">#FF7373</Color>
+	<Color x:Key="PrimaryActionColor">#F7AE27</Color>
+	<Color x:Key="PrimaryActionHoverColor">#FFCB58</Color>
+	<Color x:Key="PrimaryActionPressedColor">#DC8D12</Color>
+	<Color x:Key="PrimaryActionSoftColor">#1FF7AE27</Color>
+	<Color x:Key="PositiveActionColor">#55C58D</Color>
+	<Color x:Key="PositiveActionHoverColor">#3FA873</Color>
+	<Color x:Key="PositiveActionPressedColor">#2F855B</Color>
+	<Color x:Key="PositiveActionSoftColor">#1F55C58D</Color>
+	<Color x:Key="DangerActionColor">#FF7373</Color>
+	<Color x:Key="DangerActionHoverColor">#C24848</Color>
+	<Color x:Key="DangerActionSoftColor">#1FFF7373</Color>
+	<Color x:Key="DangerActionHoverBgColor">#FF8F8F</Color>
+	<Color x:Key="DangerActionPressedColor">#C24848</Color>
+	<Color x:Key="PackIdentityColor">#DC8D12</Color>
+	<Color x:Key="PackIdentitySoftColor">#26DC8D12</Color>
+	<Color x:Key="ModDetailIconGlowColor">#26F7AE27</Color>
+	<Color x:Key="BadgeAlertColor">#FF7373</Color>
+	<Color x:Key="BulkChipActiveFillColor">#26F7AE27</Color>
 	<!-- WIP surfaces (drawer/chat/storage) — wartości palety -->
-	<Color x:Key="WarningTextColor">#D9A441</Color>
-	<Color x:Key="ErrorChipFillColor">#26D95C48</Color>
-	<Color x:Key="ErrorChipBorderColor">#D95C48</Color>
-	<Color x:Key="InfoChipFillColor">#1F20C5C5</Color>
-	<Color x:Key="InfoChipBorderColor">#20C5C5</Color>
-	<Color x:Key="WarningBannerFillColor">#33D9A441</Color>
-	<Color x:Key="ErrorBannerFillColor">#33D95C48</Color>
+	<Color x:Key="WarningTextColor">#FFCB58</Color>
+	<Color x:Key="ErrorChipFillColor">#26FF7373</Color>
+	<Color x:Key="ErrorChipBorderColor">#FF7373</Color>
+	<Color x:Key="InfoChipFillColor">#1F8FC9EE</Color>
+	<Color x:Key="InfoChipBorderColor">#8FC9EE</Color>
+	<Color x:Key="WarningBannerFillColor">#33FFCB58</Color>
+	<Color x:Key="ErrorBannerFillColor">#33FF7373</Color>
 
 	<SolidColorBrush x:Key="OnAccentTextBrush" Color="{StaticResource OnAccentTextColor}"/>
 	<SolidColorBrush x:Key="IconAccentBrush" Color="{StaticResource IconAccentColor}"/>
@@ -165,43 +167,43 @@
 	<SolidColorBrush x:Key="WarningBannerFillBrush" Color="{StaticResource WarningBannerFillColor}"/>
 	<SolidColorBrush x:Key="ErrorBannerFillBrush" Color="{StaticResource ErrorBannerFillColor}"/>
 
-	<!-- Gradient ramki inspektora (klucz wspólny; Dark używa go w ModDetailPanelStyle) -->
+	<!-- Subtelna złota ramka inspektora (bez neonu) -->
 	<LinearGradientBrush x:Key="ModDetailBorderGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
-		<GradientStop Color="#5520C5C5" Offset="0"/>
-		<GradientStop Color="#33177079" Offset="0.45"/>
-		<GradientStop Color="#55243B53" Offset="1"/>
+		<GradientStop Color="#55F7AE27" Offset="0"/>
+		<GradientStop Color="#33DC8D12" Offset="0.45"/>
+		<GradientStop Color="#5535373C" Offset="1"/>
 	</LinearGradientBrush>
 
-	<!-- Geometria: kafelki r10 -->
+	<!-- Geometria: kafelki r10 (geometria docelowa w etapach E2+) -->
 	<CornerRadius x:Key="TileCornerRadius">10</CornerRadius>
 
-	<!-- Nakładki na zasoby FluentTheme (tylko Dark; Light/Pink zostają bez zmian) -->
-	<Color x:Key="SystemAccentColor">#FF20C5C5</Color>
-	<Color x:Key="SystemAccentColorLight1">#FF3FCFCF</Color>
-	<Color x:Key="SystemAccentColorLight2">#FF6CDDDD</Color>
-	<Color x:Key="SystemAccentColorLight3">#FF9BE7E7</Color>
-	<Color x:Key="SystemAccentColorDark1">#FF17A2A2</Color>
-	<Color x:Key="SystemAccentColorDark2">#FF128C8C</Color>
-	<Color x:Key="SystemAccentColorDark3">#FF0E7878</Color>
+	<!-- Nadpisania zasobów FluentTheme dla jedynej palety -->
+	<Color x:Key="SystemAccentColor">#FFF7AE27</Color>
+	<Color x:Key="SystemAccentColorLight1">#FFFFCB58</Color>
+	<Color x:Key="SystemAccentColorLight2">#FFFFD97E</Color>
+	<Color x:Key="SystemAccentColorLight3">#FFFFE7B0</Color>
+	<Color x:Key="SystemAccentColorDark1">#FFDC8D12</Color>
+	<Color x:Key="SystemAccentColorDark2">#FFB8740E</Color>
+	<Color x:Key="SystemAccentColorDark3">#FF935D0B</Color>
 	<SolidColorBrush x:Key="AccentButtonBackground" Color="{StaticResource AccentPrimaryColor}"/>
-	<SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="{StaticResource StatusBusyColor}"/>
-	<SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="{StaticResource BulkSelectionColor}"/>
+	<SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="{StaticResource PrimaryActionHoverColor}"/>
+	<SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="{StaticResource PrimaryActionPressedColor}"/>
 	<SolidColorBrush x:Key="AccentButtonForeground" Color="{StaticResource OnAccentTextColor}"/>
 	<SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="{StaticResource OnAccentTextColor}"/>
 	<SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="{StaticResource OnAccentTextColor}"/>
 	<SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource SecondaryBackgroundColor}"/>
-	<SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource TertiaryBackgroundColor}"/>
-	<SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource AccentMutedColor}"/>
+	<SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#2B2D31"/>
+	<SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BorderColor}"/>
 	<SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BorderColor}"/>
 	<SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource TextPrimaryColor}"/>
 	<SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="{StaticResource BorderColor}"/>
 	<SolidColorBrush x:Key="TextControlBackground" Color="{StaticResource TertiaryBackgroundColor}"/>
-	<SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#2A4463"/>
+	<SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#2B2D31"/>
 	<SolidColorBrush x:Key="TextControlBorderBrush" Color="{StaticResource BorderColor}"/>
-	<SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#2F5473"/>
+	<SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#43454A"/>
 	<SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="{StaticResource AccentPrimaryColor}"/>
 	<SolidColorBrush x:Key="TextControlForeground" Color="{StaticResource TextPrimaryColor}"/>
 	<SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="{StaticResource TextSecondaryColor}"/>
-	<SolidColorBrush x:Key="TextControlSelectionHighlightColor" Color="#6620C5C5"/>
+	<SolidColorBrush x:Key="TextControlSelectionHighlightColor" Color="#66F7AE27"/>
 	<CornerRadius x:Key="ControlCornerRadius">6</CornerRadius>
 </ResourceDictionary>

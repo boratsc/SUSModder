@@ -388,14 +388,6 @@
       "SwitchToSystemStatus": "Pokaż status systemu",
       "SwitchToDiscordPromo": "Pokaż polecane Discordy"
     },
-    "Theme": {
-      "SwitchToLight": "Motyw jasny",
-      "SwitchToPink": "Motyw różowy",
-      "SwitchToGlass": "Motyw szklany",
-      "SwitchToDark": "Motyw ciemny",
-      "Glass": "Szklany",
-      "GlassDescription": "Półprzezroczysty motyw z rozmyciem tła systemowego (Windows Mica/Acrylic)"
-    },
     "DeveloperMenu": {
       "RemoveSingleInstance": "Usuń SingleInstance",
       "LaunchMultiple": "Uruchom wybraną ilość instancji"
@@ -805,20 +797,6 @@
         "Description": "Zmiana języka nastąpi natychmiast",
         "Polish": "Polski",
         "English": "English"
-      },
-      "Theme": {
-        "Label": "Motyw",
-        "Description": "Wybierz motyw kolorystyczny aplikacji",
-        "Dark": "Ciemny",
-        "Pink": "Różowy",
-        "Glass": "Szklany"
-      },
-      "Appearance": {
-        "Label": "Motyw Szklany",
-        "Description": "Ustawienia wyglądu motywu Szklany",
-        "ReduceTransparency": "Wyłącz przezroczystość",
-        "ReduceTransparencyDescription": "Używa nieprzezroczystego tła zamiast efektu Mica/Acrylic — lepsza czytelność i dostępność.",
-        "TransparencyWarning": "Efekt szkła może być automatycznie ograniczony, gdy Windows ma wyłączone efekty przezroczystości lub włączony wysoki kontrast."
       },
       "GameMode": {
         "Label": "Tryb gry",

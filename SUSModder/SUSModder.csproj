@@ -80,9 +80,6 @@
     <AvaloniaResource Update="Styles\LinkButtonStyle.axaml">
       <SubType>Designer</SubType>
     </AvaloniaResource>
-    <AvaloniaResource Update="Themes\PinkTheme.axaml">
-      <SubType>Designer</SubType>
-    </AvaloniaResource>
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Views\VelopackUpdateDialog.axaml.cs">

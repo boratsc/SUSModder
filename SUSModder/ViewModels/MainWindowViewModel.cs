@@ -1,4 +1,4 @@
-﻿using ReactiveUI;
+using ReactiveUI;
 using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Reactive.Disposables;
@@ -43,7 +43,7 @@ namespace SUSModder.ViewModels
     /// - MainWindowViewModel.DllManagement.cs - DLL mod management
     /// - MainWindowViewModel.Dialogs.cs - Dialog methods
     /// - MainWindowViewModel.Initialization.cs - App initialization
-    /// - MainWindowViewModel.ThemeManagement.cs - Theme switching
+    /// - MainWindowViewModel.AppSettings.cs - application settings
     /// - MainWindowViewModel.AppSettings.cs - Settings management
     /// - MainWindowViewModel.ExternalActions.cs - External actions (Discord, donations, etc.)
     /// </summary>
@@ -54,13 +54,6 @@ namespace SUSModder.ViewModels
         private bool _isPaneOpen;
         private bool _isFabModPackActionsExpanded;
         private ModItem? _selectedMod;
-        private ThemeType _currentTheme = ThemeType.Dark;
-        private ResourceDictionary? _currentThemeDictionary;
-        private Styles? _glassFlyoutStyles;
-        private readonly Uri _darkThemeUri = new Uri("avares://SUSModder/Themes/DarkTheme.axaml");
-        private readonly Uri _lightThemeUri = new Uri("avares://SUSModder/Themes/LightTheme.axaml");
-        private readonly Uri _pinkThemeUri = new Uri("avares://SUSModder/Themes/PinkTheme.axaml");
-        private readonly Uri _glassThemeUri = new Uri("avares://SUSModder/Themes/SzklanyTheme.axaml");
 
         private bool _isInfoPanelVisible = false;
         private string _appVersion = string.Empty;
@@ -408,27 +401,6 @@ namespace SUSModder.ViewModels
             set => this.RaiseAndSetIfChanged(ref _modsWithoutDllInstalled, value);
         }
 
-        public enum ThemeType
-        {
-            Dark,
-            Light,
-            Pink,
-            Glass
-        }
-
-        public ThemeType CurrentTheme
-        {
-            get => _currentTheme;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _currentTheme, value);
-                this.RaisePropertyChanged(nameof(ThemeButtonText));
-                this.RaisePropertyChanged(nameof(ThemeButtonIcon));
-                this.RaisePropertyChanged(nameof(IsGlassTheme));
-                ApplyTheme(_currentTheme);
-            }
-        }
-
         public ObservableCollection<ModItem> Mods { get; } = new();
 
         private bool _isModsLoading;
@@ -482,35 +454,6 @@ namespace SUSModder.ViewModels
         }
 
 
-        public string ThemeButtonText => CurrentTheme switch
-        {
-            ThemeType.Dark => _localizationService.Get("UI.Theme.SwitchToLight"),
-            ThemeType.Light => _localizationService.Get("UI.Theme.SwitchToPink"),
-            ThemeType.Pink => _localizationService.Get("UI.Theme.SwitchToGlass"),
-            ThemeType.Glass => _localizationService.Get("UI.Theme.SwitchToDark"),
-            _ => _localizationService.Get("UI.Theme.SwitchToDark")
-        };
-
-        public string ThemeButtonIcon => CurrentTheme switch
-        {
-            ThemeType.Dark => "☀️",
-            ThemeType.Light => "💖",
-            ThemeType.Pink => "🪟",
-            ThemeType.Glass => "🌙",
-            _ => "🌙"
-        };
-
-        public bool IsGlassTheme => CurrentTheme == ThemeType.Glass;
-
-        private bool _glassReduceTransparency;
-
-        public bool GlassReduceTransparency
-        {
-            get => _glassReduceTransparency;
-            private set => this.RaiseAndSetIfChanged(ref _glassReduceTransparency, value);
-        }
-
-        public bool IsDarkTheme => CurrentTheme == ThemeType.Dark || CurrentTheme == ThemeType.Glass;
 
         public ModItem? SelectedMod
         {
@@ -643,7 +586,6 @@ namespace SUSModder.ViewModels
         #region Commands
 
         public ReactiveCommand<Unit, Unit> TogglePaneCommand { get; }
-        public ReactiveCommand<Unit, Unit> ToggleThemeCommand { get; }
         public ReactiveCommand<Unit, Unit> InstallCommand { get; }
         public ReactiveCommand<Unit, Unit> InstallWithVersionSelectionCommand { get; }
         public ReactiveCommand<Unit, Unit> UninstallCommand { get; }
@@ -744,7 +686,6 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
 
             // Initialize commands
             TogglePaneCommand = ReactiveCommand.Create(TogglePane);
-            ToggleThemeCommand = ReactiveCommand.Create(ToggleTheme);
             InstallCommand = ReactiveCommand.Create(Install);
             InstallWithVersionSelectionCommand = ReactiveCommand.CreateFromTask(InstallWithVersionSelection);
             UninstallCommand = ReactiveCommand.Create(Uninstall);
@@ -795,7 +736,6 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             {
                 localizationNotify.PropertyChanged += (s, e) =>
                 {
-                    this.RaisePropertyChanged(nameof(ThemeButtonText));
                     this.RaisePropertyChanged(nameof(ToolModalTitle));
                     RaisePromotedDiscordDerivedProperties();
                     RefreshLaunchDiagnosticsPanelStrings();
@@ -817,11 +757,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             InitializeDiscordPromo();
 
             // ClearEpicLogsOnStartup przeniesione do InitializeServicesAsync (tworzy ciężki EpicVersionManager)
-            LoadSavedTheme();
-            LoadGlassAccessibilitySettings();
             // LoadAppVersion() jest teraz wywoływane wewnątrz InitializeApplicationAsync() (KROK 0)
-            // ApplyTheme jest wywoływane po LoadSavedTheme
-            ApplyTheme(CurrentTheme);
             // InitializeApplicationAsync() jest teraz wywoływane z App.axaml.cs po pokazaniu splash screen
 
             // Migracja istniejących instalacji jest teraz wewnątrz InitializeApplicationAsync()
@@ -924,3 +860,4 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
         #endregion
     }
 }
+

@@ -1,4 +1,4 @@
-﻿using ReactiveUI;
+using ReactiveUI;
 using System.Reactive;
 using System.Threading.Tasks;
 using System;
@@ -45,8 +45,6 @@ namespace SUSModder.ViewModels
         // Ustawienia system tray (domyślnie włączone od v2.4.0)
         private bool _minimizeToTray = true;
         private bool _originalMinimizeToTray = true;
-        private bool _glassReduceTransparency;
-        private bool _originalGlassReduceTransparency;
         private bool _showQuickLaunchInTray = true;
         private bool _originalShowQuickLaunchInTray = true;
         private bool _preferDepotDownloader;
@@ -284,17 +282,6 @@ namespace SUSModder.ViewModels
                 CheckForChanges();
             }
         }
-
-        public bool GlassReduceTransparency
-        {
-            get => _glassReduceTransparency;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _glassReduceTransparency, value);
-                CheckForChanges();
-            }
-        }
-
         public bool PreferDepotDownloader
         {
             get => _preferDepotDownloader;
@@ -304,9 +291,6 @@ namespace SUSModder.ViewModels
                 CheckForChanges();
             }
         }
-
-        public bool IsGlassAppearanceSectionVisible => _currentTheme == "glass";
-
         public bool IsSteamDepotDownloaderSectionVisible => IsSteamMode;
 
         #region Epic: selektor wersji narzędzia legendary.exe
@@ -647,9 +631,6 @@ namespace SUSModder.ViewModels
             _localizationService?.GetFormatted(key, args) ?? key;
 
         #endregion
-
-        private string _currentTheme = "dark";
-
         public LanguageOption? SelectedLanguage
         {
             get
@@ -741,16 +722,8 @@ namespace SUSModder.ViewModels
                 _minimizeToTray = userSettings.MinimizeToTray;
                 _originalMinimizeToTray = _minimizeToTray;
                 _showQuickLaunchInTray = userSettings.ShowQuickLaunchInTray;
-                _originalShowQuickLaunchInTray = _showQuickLaunchInTray;
-
-                _currentTheme = userSettings.Theme ?? "dark";
-                _glassReduceTransparency = userSettings.GlassReduceTransparency;
-                _originalGlassReduceTransparency = _glassReduceTransparency;
-                _preferDepotDownloader = userSettings.PreferDepotDownloader;
-                _originalPreferDepotDownloader = _preferDepotDownloader;
-                this.RaisePropertyChanged(nameof(IsGlassAppearanceSectionVisible));
-                this.RaisePropertyChanged(nameof(GlassReduceTransparency));
-                this.RaisePropertyChanged(nameof(PreferDepotDownloader));
+                _originalShowQuickLaunchInTray = _showQuickLaunchInTray;                _preferDepotDownloader = userSettings.PreferDepotDownloader;
+                _originalPreferDepotDownloader = _preferDepotDownloader;                this.RaisePropertyChanged(nameof(PreferDepotDownloader));
                 this.RaisePropertyChanged(nameof(IsSteamDepotDownloaderSectionVisible));
 
                 // Załaduj GameMode z user settings
@@ -808,7 +781,6 @@ namespace SUSModder.ViewModels
                                _telemetryEnabled != _originalTelemetryEnabled ||
                                _minimizeToTray != _originalMinimizeToTray ||
                                _showQuickLaunchInTray != _originalShowQuickLaunchInTray ||
-                               _glassReduceTransparency != _originalGlassReduceTransparency ||
                                _preferDepotDownloader != _originalPreferDepotDownloader;
             this.RaisePropertyChanged(nameof(WindowTitle));
         }
@@ -980,9 +952,7 @@ namespace SUSModder.ViewModels
                     settings.TelemetryEnabled = TelemetryEnabled;
                     settings.UpdateChannel = UpdateChannel;
                     settings.MinimizeToTray = MinimizeToTray;
-                    settings.ShowQuickLaunchInTray = ShowQuickLaunchInTray;
-                    settings.GlassReduceTransparency = GlassReduceTransparency;
-                    settings.PreferDepotDownloader = PreferDepotDownloader;
+                    settings.ShowQuickLaunchInTray = ShowQuickLaunchInTray;                    settings.PreferDepotDownloader = PreferDepotDownloader;
                     if (_selectedLanguage != null)
                     {
                         settings.Language = _selectedLanguage.Code;
@@ -998,9 +968,7 @@ namespace SUSModder.ViewModels
                 _originalGameMode = GameMode;
                 _originalTelemetryEnabled = TelemetryEnabled;
                 _originalMinimizeToTray = MinimizeToTray;
-                _originalShowQuickLaunchInTray = ShowQuickLaunchInTray;
-                _originalGlassReduceTransparency = GlassReduceTransparency;
-                _originalPreferDepotDownloader = PreferDepotDownloader;
+                _originalShowQuickLaunchInTray = ShowQuickLaunchInTray;                _originalPreferDepotDownloader = PreferDepotDownloader;
                 HasUnsavedChanges = false;
 
                 // Powiadom o zapisaniu ustawień

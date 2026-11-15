@@ -388,14 +388,6 @@
       "SwitchToSystemStatus": "Show system status",
       "SwitchToDiscordPromo": "Show Discord promotions"
     },
-    "Theme": {
-      "SwitchToLight": "Light theme",
-      "SwitchToPink": "Pink theme",
-      "SwitchToGlass": "Glass theme",
-      "SwitchToDark": "Dark theme",
-      "Glass": "Glass",
-      "GlassDescription": "Semi-transparent theme with system backdrop blur (Windows Mica/Acrylic)"
-    },
     "DeveloperMenu": {
       "RemoveSingleInstance": "Remove SingleInstance",
       "LaunchMultiple": "Launch selected number of instances"
@@ -805,20 +797,6 @@
         "Description": "Language change will take effect immediately",
         "Polish": "Polski",
         "English": "English"
-      },
-      "Theme": {
-        "Label": "Theme",
-        "Description": "Choose application color theme",
-        "Dark": "Dark",
-        "Pink": "Pink",
-        "Glass": "Glass"
-      },
-      "Appearance": {
-        "Label": "Glass theme",
-        "Description": "Glass theme appearance settings",
-        "ReduceTransparency": "Reduce transparency",
-        "ReduceTransparencyDescription": "Uses an opaque background instead of Mica/Acrylic — better readability and accessibility.",
-        "TransparencyWarning": "The glass effect may be automatically limited when Windows transparency effects are off or high contrast is enabled."
       },
       "GameMode": {
         "Label": "Game mode",
