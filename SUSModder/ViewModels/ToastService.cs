@@ -230,5 +230,13 @@ namespace SUSModder.ViewModels
         {
             Enqueue(ToastNotification.Create(ToastType.Info, title, subtitle, autoCloseMs, onClick));
         }
+
+        /// <summary>
+        /// E5: tworzy i enqueue'uje toast czatu (autor + jednoliniowy podgląd, klik otwiera czat).
+        /// </summary>
+        public void ShowChat(string title, string author, string preview, Action? onClick = null)
+        {
+            Enqueue(ToastNotification.CreateChat(title, author, preview, onClick));
+        }
     }
 }

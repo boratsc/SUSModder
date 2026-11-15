@@ -29,19 +29,19 @@ namespace SUSModder.ViewModels
 
         public bool IsDllModalVisible => IsDllModificationsVisible || IsDllInstallDialogVisible;
 
-        private bool _isChatColumnVisible = true;
+        private bool _isChatOpen;
 
         /// <summary>
-        /// Widoczność kolumny czatu społeczności (przełącznik dymka na górnej belce).
-        /// Sam panel czatu pozostaje bez zmian do etapu E5.
+        /// E5: stan nakładki czatu społeczności (dymek na belce, klik toastu, X, Escape).
+        /// Czat nie ma stałej kolumny; domyślnie zamknięty.
         /// </summary>
-        public bool IsChatColumnVisible
+        public bool IsChatOpen
         {
-            get => _isChatColumnVisible;
-            set => this.RaiseAndSetIfChanged(ref _isChatColumnVisible, value);
+            get => _isChatOpen;
+            set => this.RaiseAndSetIfChanged(ref _isChatOpen, value);
         }
 
-        public ReactiveCommand<Unit, Unit> ToggleChatColumnCommand { get; private set; } =
+        public ReactiveCommand<Unit, Unit> ToggleChatCommand { get; private set; } =
             ReactiveCommand.Create(() => { });
 
         public bool IsAnyToolModalOpen =>
@@ -175,7 +175,29 @@ namespace SUSModder.ViewModels
         {
             ToggleStatusBarModeCommand = ReactiveCommand.Create(ToggleStatusBarMode);
             CloseToolModalCommand = ReactiveCommand.Create(CloseToolModal);
-            ToggleChatColumnCommand = ReactiveCommand.Create(() => { IsChatColumnVisible = !IsChatColumnVisible; });
+            ToggleChatCommand = ReactiveCommand.Create(() => { IsChatOpen = !IsChatOpen; });
+        }
+
+        /// <summary>
+        /// E5: mapuje plan polityki toastów czatu na ToastService.
+        /// ≥2 wiadomości: toast grupowy + najwyżej 2 najnowsze podglądy (wzorzec hosta: max 3 widoczne).
+        /// Klik toastu otwiera nakładkę; X usuwa tylko toast (obsługa hosta).
+        /// </summary>
+        private void OnChatToastsRequested(ChatToastPlan plan)
+        {
+            if (plan.GroupCount is int count)
+                ToastService.ShowChat(
+                    _localizationService.GetFormatted("UI.CommunityChat.NewMessages", count),
+                    _localizationService.Get("UI.CommunityChat.Title"),
+                    _localizationService.Get("UI.CommunityChat.Toast.GroupHint"),
+                    () => IsChatOpen = true);
+
+            foreach (var message in plan.Previews)
+                ToastService.ShowChat(
+                    _localizationService.Get("UI.CommunityChat.Toast.SingleTitle"),
+                    message.AuthorDisplay,
+                    message.DisplayContent,
+                    () => IsChatOpen = true);
         }
 
         private void ToggleStatusBarMode()

@@ -82,10 +82,8 @@ namespace SUSModder.ViewModels
             OpenPromotedDiscordInviteCommand = ReactiveCommand.Create<string>(OpenPromotedDiscordInvite);
             OpenOfficialDiscordHubCommand = ReactiveCommand.Create(OfficialDiscordHub.Open);
 
-            _discordPromoRotationTimer.Interval = TimeSpan.FromSeconds(DiscordPromoRotationSeconds);
-            _discordPromoRotationTimer.Tick += (_, _) => RotateDiscordPromo();
-
-            _ = LoadDiscordPromoServersAsync();
+            // E5: rotacja promo nie ma powierzchni UI od E2 — timer i ładowanie wyłączone.
+            // Komendy zostają (Ustawienia/Dodatkowe akcje i Polecane Discordy nadal ich używają).
         }
 
         private async Task LoadDiscordPromoServersAsync()

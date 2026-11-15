@@ -652,6 +652,11 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
                     _localizationService.Get("UI.CommunityChat.Delete.ConfirmTitle"));
             CommunityChat.Start();
 
+            // E5: czat jako nakładka — stan współdzielony z VM czatu, toasty wg polityki ChatToastPolicy.
+            CommunityChat.RequestChatOpen = open => IsChatOpen = open;
+            CommunityChat.ChatToastsRequested += OnChatToastsRequested;
+            this.WhenAnyValue(x => x.IsChatOpen).Subscribe(open => CommunityChat.IsChatOpen = open);
+
             // Inicjalizuj VM do zarządzania paczkami udostępnionymi przez użytkownika
             SharedPacks = new SharedModPacksViewModel(
                 App.GetService<IModPackService>(),
@@ -740,6 +745,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
                     this.RaisePropertyChanged(nameof(ToolModalTitle));
                     this.RaisePropertyChanged(nameof(ActiveViewTitle));
                     this.RaisePropertyChanged(nameof(ActiveViewSubtitle));
+                    this.RaisePropertyChanged(nameof(ChatOnlineText));
                     RaisePromotedDiscordDerivedProperties();
                     RefreshLaunchDiagnosticsPanelStrings();
                 };

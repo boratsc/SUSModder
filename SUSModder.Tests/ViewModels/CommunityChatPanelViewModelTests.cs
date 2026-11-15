@@ -404,6 +404,9 @@ public sealed class CommunityChatPanelViewModelTests
             };
 
         var vm = NewVm(fake, new FakeLocalizationService(), TimeSpan.FromMilliseconds(15));
+        // E5: auto-scroll dotyczy otwartej nakładki; przy zamkniętym czacie nowe wiadomości
+        // budują badge nieprzeczytanych (osobny test CommunityChatOverlayTests).
+        vm.IsChatOpen = true;
         var scrollEvents = 0;
         vm.ScrollToBottomRequested += () => Interlocked.Increment(ref scrollEvents);
 

@@ -11,7 +11,10 @@ namespace SUSModder.ViewModels
         Success,
         Warning,
         Error,
-        Info
+        Info,
+
+        /// <summary>E5: toast czatu społeczności (autor + jednoliniowy podgląd treści).</summary>
+        Chat
     }
 
     /// <summary>
@@ -94,6 +97,25 @@ namespace SUSModder.ViewModels
         /// </summary>
         public Action? OnClick { get; set; }
 
+        /// <summary>E5: toast czatu — układ autor + podgląd zamiast title/subtitle.</summary>
+        public bool IsChat => Type == ToastType.Chat;
+
+        private string _chatAuthor = string.Empty;
+        /// <summary>E5: autor wiadomości (złota linia pod tytułem).</summary>
+        public string ChatAuthor
+        {
+            get => _chatAuthor;
+            set => this.RaiseAndSetIfChanged(ref _chatAuthor, value);
+        }
+
+        private string _chatPreview = string.Empty;
+        /// <summary>E5: jedna linia treści wiadomości (ellipsis w widoku).</summary>
+        public string ChatPreview
+        {
+            get => _chatPreview;
+            set => this.RaiseAndSetIfChanged(ref _chatPreview, value);
+        }
+
         /// <summary>
         /// Znacznik czasu utworzenia toasta.
         /// </summary>
@@ -108,6 +130,7 @@ namespace SUSModder.ViewModels
             ToastType.Warning => "⚠️",
             ToastType.Error => "❌",
             ToastType.Info => "ℹ️",
+            ToastType.Chat => "💬",
             _ => "ℹ️"
         };
 
@@ -120,6 +143,7 @@ namespace SUSModder.ViewModels
             ToastType.Warning => "#FF9800",
             ToastType.Error => "#F44336",
             ToastType.Info => "#2196F3",
+            ToastType.Chat => "#F7AE27",
             _ => "#2196F3"
         };
 
@@ -132,6 +156,7 @@ namespace SUSModder.ViewModels
             ToastType.Warning => "#1AFF9800",
             ToastType.Error => "#1AF44336",
             ToastType.Info => "#1A2196F3",
+            ToastType.Chat => "#1AF7AE27",
             _ => "#1A2196F3"
         };
 
@@ -147,6 +172,7 @@ namespace SUSModder.ViewModels
                 ToastType.Warning => 6000,
                 ToastType.Error => 8000,
                 ToastType.Info => 4000,
+                ToastType.Chat => 6000,
                 _ => 4000
             };
         }
@@ -167,8 +193,23 @@ namespace SUSModder.ViewModels
                     ToastType.Warning => 6000,
                     ToastType.Error => 8000,
                     ToastType.Info => 4000,
+                    ToastType.Chat => 6000,
                     _ => 4000
                 }),
+                OnClick = onClick
+            };
+        }
+
+        /// <summary>E5: toast czatu — tytuł + autor (złoto) + jednoliniowy podgląd treści.</summary>
+        public static ToastNotification CreateChat(string title, string author, string preview, Action? onClick = null)
+        {
+            return new ToastNotification
+            {
+                Type = ToastType.Chat,
+                Title = title,
+                ChatAuthor = author,
+                ChatPreview = preview,
+                AutoCloseMs = 6000,
                 OnClick = onClick
             };
         }

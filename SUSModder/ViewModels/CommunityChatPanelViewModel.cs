@@ -124,6 +124,7 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
         DeleteCommand = ReactiveCommand.CreateFromTask<CommunityChatMessageViewModel>(DeleteAsync);
         RefreshCommand = ReactiveCommand.CreateFromTask(async () =>
             await RefreshOnceAsync(ActiveToken));
+        CloseChatCommand = ReactiveCommand.Create(() => RequestChatOpen?.Invoke(false));
         OpenRulesCommand = ReactiveCommand.Create(() => { IsRulesVisible = true; });
         AcknowledgeRulesCommand = ReactiveCommand.Create(AcknowledgeRules);
         DismissHeuristicCommand = ReactiveCommand.Create(() =>
@@ -269,12 +270,60 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
             this.RaiseAndSetIfChanged(ref _newMessageCount, value);
             this.RaisePropertyChanged(nameof(HasNewMessages));
             this.RaisePropertyChanged(nameof(NewMessagesText));
+            this.RaisePropertyChanged(nameof(ChatToggleLabel));
         }
     }
 
     public bool HasNewMessages => NewMessageCount > 0;
 
     public string NewMessagesText => _loc.GetFormatted("UI.CommunityChat.NewMessages", NewMessageCount);
+
+    /// <summary>E5: etykieta dymka na belce dla czytnika ekranu — z liczbą nieprzeczytanych, nie sama cyfra.</summary>
+    public string ChatToggleLabel => HasNewMessages
+        ? _loc.GetFormatted("UI.TopBar.ChatToggleUnread", NewMessageCount)
+        : _loc.Get("UI.TopBar.ChatToggle");
+
+    private bool _isChatOpen;
+
+    /// <summary>
+    /// E5: nakładka czatu otwarta (właścicielem stanu jest MainWindowViewModel, pushowany tutaj).
+    /// Otwarcie czyści nieprzeczytane, przewija do najnowszych i przenosi fokus do pola pisania.
+    /// </summary>
+    public bool IsChatOpen
+    {
+        get => _isChatOpen;
+        set
+        {
+            if (_isChatOpen == value)
+                return;
+
+            _isChatOpen = value;
+            this.RaisePropertyChanged(nameof(IsChatOpen));
+            if (!value)
+                return;
+
+            NewMessageCount = 0;
+            UserAtBottom = true;
+            ScrollToBottomRequested?.Invoke();
+            if (!IsRulesVisible)
+                FocusInputRequested?.Invoke();
+        }
+    }
+
+    private bool _windowFocused = true;
+
+    /// <summary>E5: okno główne ma focus (MainWindow ustawia przy Activated/Deactivated).</summary>
+    public bool WindowFocused
+    {
+        get => _windowFocused;
+        set => _windowFocused = value;
+    }
+
+    /// <summary>E5: żądanie zmiany stanu nakładki (właściciel: MainWindowViewModel). X panelu używa tego.</summary>
+    public Action<bool>? RequestChatOpen { get; set; }
+
+    /// <summary>E5: plan toastów dla nowych wiadomości (null = brak). MainWindowViewModel mapuje na ToastService.</summary>
+    public event Action<ChatToastPlan>? ChatToastsRequested;
 
     /// <summary>
     /// Użytkownik jest przy końcu listy. Widok zgłasza to przez <see cref="NotifyUserAtBottom"/>.
@@ -346,6 +395,7 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
     public ReactiveCommand<CommunityChatMessageViewModel, Unit> DeleteCommand { get; }
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> SendCommand { get; }
+    public ReactiveCommand<Unit, Unit> CloseChatCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenRulesCommand { get; }
     public ReactiveCommand<Unit, Unit> AcknowledgeRulesCommand { get; }
     public ReactiveCommand<Unit, Unit> DismissHeuristicCommand { get; }
@@ -598,6 +648,7 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
     private void MergeMessages(IReadOnlyList<CommunityChatMessage> snapshot)
     {
         var target = new List<CommunityChatMessageViewModel>(snapshot.Count);
+        var freshItems = new List<CommunityChatMessageViewModel>();
         var newCount = 0;
 
         foreach (var message in snapshot)
@@ -614,6 +665,7 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
                 var created = new CommunityChatMessageViewModel(message, _loc);
                 _itemsById[created.Id] = created;
                 target.Add(created);
+                freshItems.Add(created);
                 newCount++;
             }
         }
@@ -640,10 +692,20 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
 
         if (newCount > 0)
         {
-            if (UserAtBottom)
+            // E5: auto-scroll tylko gdy nakładka otwarta; przy zamkniętym czacie
+            // nowe wiadomości budują licznik nieprzeczytanych (badge dymka).
+            if (IsChatOpen && UserAtBottom)
                 ScrollToBottomRequested?.Invoke();
-            else
+            else if (HasLoadedSuccessfully)
                 NewMessageCount += newCount;
+        }
+
+        // Pierwszy udany odczyt to baseline przeczytanej historii — bez badge i toastów.
+        if (HasLoadedSuccessfully && freshItems.Count > 0)
+        {
+            var plan = ChatToastPolicy.Plan(freshItems, IsChatOpen, WindowFocused);
+            if (plan is not null)
+                ChatToastsRequested?.Invoke(plan);
         }
     }
 
@@ -948,6 +1010,7 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
         // Etykiety i względny czas — historia i szkic zostają nietknięte.
         this.RaisePropertyChanged(nameof(BannerText));
         this.RaisePropertyChanged(nameof(NewMessagesText));
+        this.RaisePropertyChanged(nameof(ChatToggleLabel));
         this.RaisePropertyChanged(nameof(RulesTitle));
         this.RaisePropertyChanged(nameof(RulesText));
         this.RaisePropertyChanged(nameof(RulesButtonLabel));

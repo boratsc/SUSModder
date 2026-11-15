@@ -126,7 +126,8 @@
     },
     "TopBar": {
       "More": "Więcej",
-      "ChatToggle": "Czat społeczności"
+      "ChatToggle": "Czat społeczności",
+      "ChatToggleUnread": "Czat społeczności — {0} nowych wiadomości"
     },
     "Window": {
       "Minimize": "Minimalizuj",
@@ -295,7 +296,13 @@
       "CheckModUpdates": "Sprawdź aktualizacje modów"
     },
     "CommunityChat": {
-      "Title": "Czat",
+      "Title": "Czat społeczności",
+      "Online": "{0} online",
+      "Close": "Zamknij czat",
+      "Toast": {
+        "SingleTitle": "Nowa wiadomość",
+        "GroupHint": "Kliknij, aby zobaczyć nieprzeczytane wiadomości"
+      },
       "Subtitle": "Wspólny dla wszystkich modów",
       "Placeholder": "Napisz wiadomość…",
       "Send": "Wyślij",

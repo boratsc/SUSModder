@@ -126,7 +126,8 @@
     },
     "TopBar": {
       "More": "More",
-      "ChatToggle": "Community chat"
+      "ChatToggle": "Community chat",
+      "ChatToggleUnread": "Community chat — {0} new messages"
     },
     "Window": {
       "Minimize": "Minimize",
@@ -295,7 +296,13 @@
       "CheckModUpdates": "Check mod updates"
     },
     "CommunityChat": {
-      "Title": "Chat",
+      "Title": "Community chat",
+      "Online": "{0} online",
+      "Close": "Close chat",
+      "Toast": {
+        "SingleTitle": "New message",
+        "GroupHint": "Click to see unread messages"
+      },
       "Subtitle": "Shared across all mods",
       "Placeholder": "Write a message…",
       "Send": "Send",

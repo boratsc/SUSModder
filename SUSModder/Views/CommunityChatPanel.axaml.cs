@@ -72,8 +72,12 @@ public partial class CommunityChatPanel : UserControl
 
     private void OnFocusInputRequested()
     {
-        _inputBox ??= this.FindControl<TextBox>("InputBox");
-        _inputBox?.Focus();
+        // E5: fokus po otwarciu nakładki — odłożony, aż overlay będzie widoczny i zmierzony.
+        Dispatcher.UIThread.Post(() =>
+        {
+            _inputBox ??= this.FindControl<TextBox>("InputBox");
+            _inputBox?.Focus();
+        });
     }
 
     private void OnScrollToBottomRequested()

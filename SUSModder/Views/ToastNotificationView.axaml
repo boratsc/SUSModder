@@ -4,6 +4,12 @@
              x:Class="SUSModder.Views.ToastNotificationView"
              x:DataType="vm:ToastNotification"
              Opacity="{Binding Opacity}">
+    <UserControl.Styles>
+        <!-- E5: toast czatu do 405 px (makieta 03/04); pozostałe typy bez zmian. -->
+        <Style Selector="Border.chat-toast">
+            <Setter Property="MaxWidth" Value="405"/>
+        </Style>
+    </UserControl.Styles>
     <UserControl.Transitions>
         <Transitions>
             <!-- Płynny fade-out gdy model ustawia Opacity=0 (auto-close timer) -->
@@ -14,6 +20,7 @@
             BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="1"
             CornerRadius="10"
+            Classes.chat-toast="{Binding IsChat}"
             MinWidth="280"
             MaxWidth="380"
             BoxShadow="0 4 16 0 #30000000"
@@ -36,8 +43,9 @@
                            VerticalAlignment="Top"
                            Margin="0,1,8,0"/>
 
-                <!-- Tytuł + subtitle -->
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                <!-- Tytuł + subtitle (toasty operacyjne) -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"
+                            IsVisible="{Binding !IsChat}">
                     <TextBlock Text="{Binding Title}"
                                FontSize="13"
                                FontWeight="SemiBold"
@@ -48,6 +56,28 @@
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                TextWrapping="Wrap"
                                IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                </StackPanel>
+
+                <!-- E5: toast czatu — tytuł, autor (złoto), jedna linia treści z ellipsis -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2"
+                            IsVisible="{Binding IsChat}">
+                    <TextBlock Text="{Binding Title}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="NoWrap"
+                               TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding ChatAuthor}"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource AccentBrush}"
+                               TextWrapping="NoWrap"
+                               TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding ChatPreview}"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextWrapping="NoWrap"
+                               TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
 
                 <!-- Przycisk zamknięcia -->

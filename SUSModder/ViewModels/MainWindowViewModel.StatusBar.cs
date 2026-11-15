@@ -126,10 +126,14 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _onlineUsersCount, value);
                 this.RaisePropertyChanged(nameof(OnlineUsersText));
+                this.RaisePropertyChanged(nameof(ChatOnlineText));
             }
         }
 
         public string OnlineUsersText => _localizationService.GetFormatted("UI.StatusBar.OnlineUsers", OnlineUsersCount);
+
+        /// <summary>E5: licznik online w nagłówku nakładki czatu (makieta 02).</summary>
+        public string ChatOnlineText => _localizationService.GetFormatted("UI.CommunityChat.Online", OnlineUsersCount);
 
         public ApiConnectionStatus ApiStatus
         {

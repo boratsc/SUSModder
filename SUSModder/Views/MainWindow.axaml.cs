@@ -196,9 +196,22 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                   })
                   .DisposeWith(disposables);
 
-                // Prawa kolumna: szczegóły zwijają się bez zaznaczenia, czat przełącza dymek na belce.
-                vm.WhenAnyValue(x => x.IsBrowserDetailPanelVisible, x => x.IsChatColumnVisible)
+                // E5: stan początkowy fokusu okna (IsActive mógł już zajść przed podpięciem VM).
+                vm.CommunityChat.WindowFocused = IsActive;
+
+                // E5: prawa kolumna = tylko szczegóły (czat jest nakładką pod dymkiem).
+                vm.WhenAnyValue(x => x.IsBrowserDetailPanelVisible)
                   .Subscribe(_ => ApplyRightColumnLayout())
+                  .DisposeWith(disposables);
+
+                // E5: po zamknięciu czatu fokus wraca do dymka na belce.
+                vm.WhenAnyValue(x => x.IsChatOpen)
+                  .Subscribe(open =>
+                  {
+                      if (!open)
+                          Avalonia.Threading.Dispatcher.UIThread.Post(
+                              () => this.FindControl<Button>("ChatToggleButton")?.Focus());
+                  })
                   .DisposeWith(disposables);
             }
         });
@@ -213,6 +226,10 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         if (change.Property == IsVisibleProperty || change.Property == WindowStateProperty)
             UpdateCommunityChatLifecycle();
 
+        // E5: fokus okna dla polityki toastów czatu (brak toastów gdy czat otwarty I okno ma focus).
+        if (change.Property == IsActiveProperty && DataContext is MainWindowViewModel vm)
+            vm.CommunityChat.WindowFocused = change.NewValue is true;
+
         if (change.Property == WindowStateProperty)
         {
             var icon = this.FindControl<SymbolIcon>("MaximizeIcon");
@@ -221,7 +238,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         }
     }
 
-    // ── Czat ogólny: lifecycle + podział prawej kolumny ──────
+    // ── Czat ogólny: lifecycle pollingu (pauza tylko dla okna, nie dla zamkniętego czatu) ──
 
     /// <summary>
     /// Pauzuje polling czatu, gdy okno jest ukryte (tray) lub zminimalizowane;
@@ -240,12 +257,11 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             vm.CommunityChat.Resume();
     }
 
-    /// <summary>Zapamiętana wysokość wiersza szczegółów (po ewentualnym dragu GridSplittera).</summary>
-    private GridLength? _detailsRowRemembered;
-
     /// <summary>
-    /// Układ prawej kolumny (szczegóły + czat). Szerokie okno: kolumna obok listy;
-    /// wąskie (&lt; 1100 px): overlay nad listą z przyciskiem powrotu. Bez ściskania tekstu.
+    /// E5: układ regionów — lista 440 + szczegóły na reszcie (pełna wysokość);
+    /// bez zaznaczenia lista pełnej szerokości. Wąskie okno (&lt; 1100 px): szczegóły
+    /// jako overlay nad listą z przyciskiem powrotu. Czat = nakładka pod dymkiem,
+    /// rozmiar ograniczony dostępną przestrzenią (min(520, szer) × min(690, wys)).
     /// </summary>
     private void ApplyRightColumnLayout()
     {
@@ -254,49 +270,37 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         var content = this.FindControl<Grid>("ContentGrid");
         var host = this.FindControl<Border>("RightColumnHost");
-        var grid = this.FindControl<Grid>("RightColumnGrid");
-        if (content == null || host == null || grid == null || grid.RowDefinitions.Count < 4)
+        if (content == null || host == null)
             return;
 
         var details = vm.IsBrowserDetailPanelVisible;
-        var chat = vm.IsChatColumnVisible;
-        var visible = details || chat;
         var narrow = Bounds.Width > 0 && Bounds.Width < 1100;
+        var sideBySide = details && !narrow;
 
-        content.ColumnDefinitions[1].Width = narrow
-            ? new GridLength(1, GridUnitType.Star)
-            : new GridLength(440);
-        content.ColumnDefinitions[2].Width = !narrow && visible
+        content.ColumnDefinitions[1].Width = sideBySide
+            ? new GridLength(440)
+            : new GridLength(1, GridUnitType.Star);
+        content.ColumnDefinitions[2].Width = sideBySide
             ? new GridLength(1, GridUnitType.Star)
             : new GridLength(0);
         host.SetValue(Grid.ColumnProperty, narrow ? 1 : 2);
         host.SetValue(Grid.ColumnSpanProperty, narrow ? 2 : 1);
         host.ZIndex = narrow ? 50 : 0;
-        host.IsVisible = visible;
+        host.IsVisible = details;
 
         var back = this.FindControl<Border>("DetailBackRow");
         if (back != null)
-            back.IsVisible = narrow && visible;
+            back.IsVisible = narrow && details;
 
-        var rows = grid.RowDefinitions;
-        if (details)
+        var chat = this.FindControl<Border>("ChatOverlayHost");
+        if (chat != null && Bounds.Width > 0 && content.Bounds.Height > 0)
         {
-            rows[1].Height = _detailsRowRemembered ?? new GridLength(3, GridUnitType.Star);
+            chat.Width = Math.Min(520, Bounds.Width - 24);
+            chat.MaxHeight = Math.Min(690, content.Bounds.Height - 8);
         }
-        else
-        {
-            // Nie zapamiętujemy stanu startowego (0px) — tylko realny rozmiar użytkownika.
-            if (rows[1].Height.IsStar || rows[1].Height.Value > 0)
-                _detailsRowRemembered = rows[1].Height;
-            rows[1].Height = new GridLength(0);
-        }
-
-        rows[3].Height = chat ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
-
-        var splitter = this.FindControl<GridSplitter>("DetailChatSplitter");
-        if (splitter != null)
-            splitter.IsVisible = details && chat;
     }
+
+
 
     // ── Górna belka: chrome okna (przeciąganie, min/max/close) ──
 
@@ -343,13 +347,12 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         e.Handled = true;
     }
 
-    /// <summary>Powrót z overlayu szczegółów/czatu w wąskim oknie.</summary>
+    /// <summary>Powrót z overlayu szczegółów w wąskim oknie.</summary>
     private void OnDetailBackClicked(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel vm)
             return;
 
-        vm.IsChatColumnVisible = false;
         if (vm.IsDllPanelVisible)
             vm.CloseDllDetailCommand.Execute().Subscribe();
         else if (vm.IsPackInstancePanelVisible)
@@ -550,8 +553,17 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             return;
         }
 
-        if (vm.IsAnyToolModalOpen)
+        // E5: warstwy Escape — Więcej → czat → modale/szczegóły.
+        // Modale zachowują własną obsługę; czat zamykamy tylko gdy brak modala.
+        if (vm.IsAnyToolModalOpen || vm.IsInlineDialogVisible || vm.IsAntivirusWarningVisible)
             return;
+
+        if (vm.IsChatOpen)
+        {
+            vm.IsChatOpen = false;
+            e.Handled = true;
+            return;
+        }
 
         if (vm.IsDllPanelVisible)
         {
@@ -570,14 +582,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         if (vm.IsModPanelVisible)
         {
             vm.CloseModDetailCommand.Execute().Subscribe();
-            e.Handled = true;
-            return;
-        }
-
-        // Wąskie okno: Escape zamyka overlay samego czatu.
-        if (Bounds.Width < 1100 && vm.IsChatColumnVisible)
-        {
-            vm.IsChatColumnVisible = false;
             e.Handled = true;
         }
     }

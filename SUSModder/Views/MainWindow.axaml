@@ -266,14 +266,18 @@
 							Spacing="4"
 							VerticalAlignment="Center">
 					<Button Classes="topbar-icon-btn"
-							Command="{Binding ToggleChatColumnCommand}"
-							AutomationProperties.Name="{loc:Localize UI.TopBar.ChatToggle}"
-							ToolTip.Tip="{loc:Localize UI.TopBar.ChatToggle}">
+							x:Name="ChatToggleButton"
+							Classes.active="{Binding IsChatOpen}"
+							Command="{Binding ToggleChatCommand}"
+							AutomationProperties.Name="{Binding CommunityChat.ChatToggleLabel}"
+							ToolTip.Tip="{Binding CommunityChat.ChatToggleLabel}">
 						<Panel>
 							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Chat}" FontSize="20"
 										   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+							<!-- E5: badge gold z ciemnym tekstem; opis czytnika z liczbą, nie sama cyfra. -->
 							<Border Classes="chat-badge"
 									IsVisible="{Binding CommunityChat.HasNewMessages}"
+									AutomationProperties.Name="{Binding CommunityChat.NewMessagesText}"
 									HorizontalAlignment="Right" VerticalAlignment="Top"
 									Margin="0,-2,-4,0">
 								<TextBlock Text="{Binding CommunityChat.NewMessageCount}"
@@ -324,9 +328,9 @@
 			</Grid>
 		</Border>
 
-		<!-- ══ TREŚĆ: sidebar 230 | lista 440 | prawa kolumna (szczegóły + czat) ══
-		     Przy szerokości < 1100 px prawa kolumna staje się overlayem z przyciskiem powrotu
-		     (szerokości kolumn i wierszy zarządza code-behind: ApplyRightColumnLayout). -->
+		<!-- ══ TREŚĆ: sidebar 230 | lista 440 | szczegóły na reszcie (pełna wysokość) ══
+		     Bez zaznaczenia lista pełnej szerokości; < 1100 px szczegóły jako overlay z powrotem.
+		     Czat = osobna nakładka pod dymkiem (E5). Szerokości zarządza ApplyRightColumnLayout. -->
 		<Grid Grid.Row="1" x:Name="ContentGrid" ColumnDefinitions="230,440,*">
 
 			<!-- SIDEBAR -->
@@ -797,14 +801,14 @@
 				</Panel>
 			</Grid>
 
-			<!-- PRAWA KOLUMNA: szczegóły nad czatem (czat zostaje do E5).
+			<!-- PRAWA KOLUMNA: szczegóły na pełnej wysokości (E5: czat jako osobna nakładka).
 			     Wąskie okno: overlay nad listą z przyciskiem powrotu. -->
 			<Border Grid.Column="2"
 					x:Name="RightColumnHost"
 					Background="{DynamicResource WindowBackgroundBrush}"
 					BorderBrush="{DynamicResource BorderBrush}"
 					BorderThickness="1,0,0,0">
-				<Grid x:Name="RightColumnGrid" RowDefinitions="Auto,0,Auto,*">
+				<Grid x:Name="RightColumnGrid" RowDefinitions="Auto,*">
 
 					<Border x:Name="DetailBackRow"
 							Grid.Row="0"
@@ -846,27 +850,32 @@
 						</Border>
 					</Panel>
 
-					<GridSplitter x:Name="DetailChatSplitter"
-					              Grid.Row="2"
-					              Height="6"
-					              HorizontalAlignment="Stretch"
-					              VerticalAlignment="Center"
-					              ResizeDirection="Rows"
-					              Background="Transparent"
-					              IsVisible="{Binding IsBrowserDetailPanelVisible}"/>
-
-					<!-- Czat ogólny: przełączany dymkiem na belce, niezależny od zaznaczenia -->
-					<Border Grid.Row="3"
-							Classes="mod-detail-host"
-							IsVisible="{Binding IsChatColumnVisible}">
-						<local:CommunityChatPanel DataContext="{Binding CommunityChat}"/>
-					</Border>
 				</Grid>
 			</Border>
 		</Grid>
 
 		<!-- Bulk bar: pełna szerokość okna, pod treścią (jak w dawnym układzie) -->
 		<local:BulkActionBar Grid.Row="2" DataContext="{Binding}"/>
+
+		<!-- E5: CZAT JAKO NAKŁADKA — kotwica top-right pod dymkiem na belce, nad treścią,
+		     POD modalami/menu „Więcej"; ToastHost (ostatni w drzewie) zostaje nad wszystkim.
+		     Rozmiar min(520, dostępna szerokość) × min(690, wysokość treści) — ApplyRightColumnLayout.
+		     Jedyny dopuszczalny cień: subtelny cień nakładki. -->
+		<Border Grid.Row="1"
+				x:Name="ChatOverlayHost"
+				HorizontalAlignment="Right"
+				VerticalAlignment="Top"
+				Margin="0,4,12,0"
+				Width="520"
+				MaxHeight="690"
+				CornerRadius="14"
+				Background="{DynamicResource SecondaryBackgroundBrush}"
+				BorderBrush="{DynamicResource BorderBrush}"
+				BorderThickness="1"
+				BoxShadow="0 8 24 0 #40000000"
+				IsVisible="{Binding IsChatOpen}">
+			<local:CommunityChatPanel DataContext="{Binding CommunityChat}"/>
+		</Border>
 
 		<!-- Modal dla paneli narzędziowych -->
 		<Border Grid.Row="0"
