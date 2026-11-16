@@ -18,9 +18,11 @@ using SUSModder.Core.Services.Localization;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.Data;
 using SUSModder.Core.Diagnostics;
+using SUSModder.Core.Diagnostics.Environment;
 using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Services.Discord;
 using SUSModder.Core.Utilities;
+using SUSModder.ViewModels.Helpers;
 
 namespace SUSModder;
 
@@ -564,16 +566,20 @@ public partial class App : Application
             Debug.WriteLine($"[App] Błąd podczas monitu Among Us: {ex.Message}");
         }
 
+        // Aktualizacje startują PRZED koordynatorem środowiska: modal propozycji (pokazywany
+        // każdemu userowi jednorazowo) nie może wstrzymywać aktualizacji — to regresja względem
+        // starego flow, gdzie modal AV dotyczył tylko części userów. Toasty aktualizacji są
+        // niemodalne, więc nie nakładają się na dialogi; kolejność modalów koordynatora bez zmian.
+        _ = viewModel.CheckForUpdatesAfterMainWindowLoadAsync();
+
         try
         {
-            await ShowAntivirusWarningIfNeededAsync(mainWindow, userSettingsService);
+            await RunEnvironmentCheckCoordinatorAsync(mainWindow, userSettingsService);
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[App] Błąd podczas sprawdzania antywirusa: {ex.Message}");
+            Debug.WriteLine($"[App] Błąd podczas sprawdzania środowiska: {ex.Message}");
         }
-
-        _ = viewModel.CheckForUpdatesAfterMainWindowLoadAsync();
 
         // Główna pętla wystartowała — dopiero teraz bezpieczny headless-test logowania Steam
         // po ŚWIEŻO ukończonej pierwszej konfiguracji z wybranym Steam (jednorazowo w procesie).
@@ -593,17 +599,77 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// Jeden koordynator startowy zamiast osobnego ostrzeżenia AV:
+    /// (a) detekcja AV w tle (LastDetectionResult dostępny dla instalacji),
+    /// (b) jednorazowa propozycja sprawdzenia środowiska (także dla istniejących userów),
+    /// (c) gdy propozycja już była — dotychczasowa karta AV po zmianie zestawu.
+    /// Aktualizacje startują przed koordynatorem (nie czeka na modal); headless-test Steam dopiero po nim.
+    /// </summary>
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-    private async Task ShowAntivirusWarningIfNeededAsync(MainWindow mainWindow, UserSettingsService userSettingsService)
+    private async Task RunEnvironmentCheckCoordinatorAsync(MainWindow mainWindow, UserSettingsService userSettingsService)
     {
         if (!OperatingSystem.IsWindows())
         {
             return;
         }
 
-        var antivirusDetectionService = new AntivirusDetectionService();
         // Detekcja od razu — LastDetectionResult jest dostępny przy błędach Access Denied podczas instalacji.
-        var result = await Task.Run(antivirusDetectionService.DetectInstalledThirdPartyAntivirus);
+        var avResult = await Task.Run(() => new AntivirusDetectionService().DetectInstalledThirdPartyAntivirus());
+        var decision = EnvironmentCheckFlow.Decide(userSettingsService.LoadUserSettings(), avResult);
+        if (decision == EnvironmentCheckFlowDecision.Nothing)
+        {
+            return;
+        }
+
+        if (decision == EnvironmentCheckFlowDecision.ShowAvWarning)
+        {
+            await ShowAntivirusWarningForDetectionAsync(mainWindow, userSettingsService, avResult);
+            return;
+        }
+
+        await Task.Delay(1200);
+
+        // Zamknięcie dialogu bez wyboru (Esc/X) = Nie teraz (ShowDialog<bool> zwraca false).
+        var check = await Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            var dialog = new EnvironmentCheckProposalDialog();
+            return await dialog.ShowDialog<bool>(mainWindow);
+        });
+
+        // Propozycja jednorazowa: wersję zapisujemy przy obu wyborach.
+        userSettingsService.UpdateUserSetting(settings =>
+            settings.EnvironmentCheckPromptVersion = EnvironmentCheckPrompt.CurrentVersion);
+
+        if (!check)
+        {
+            // Nie teraz: bez checków; legacy ostrzeżenie AV, jeśli sygnatura zestawu się zmieniła.
+            await ShowAntivirusWarningForDetectionAsync(mainWindow, userSettingsService, avResult);
+            return;
+        }
+
+        // Sprawdź: raport zawiera check AV, więc nie dublujemy modala AV — po raporcie
+        // potwierdzamy sygnaturę tylko, gdy AV był wykryty i pokazany w raporcie.
+        if (mainWindow.ViewModel == null)
+        {
+            return;
+        }
+
+        var report = await mainWindow.ViewModel.ShowEnvironmentCheckReportAsync();
+        if (report != null
+            && EnvironmentCheckFlow.ShouldAcknowledgeAntivirusAfterReport(
+                report, avResult, userSettingsService.LoadUserSettings()))
+        {
+            userSettingsService.UpdateUserSetting(settings =>
+                settings.AntivirusWarningAcknowledgedSignature = avResult.Signature);
+        }
+    }
+
+    /// <summary>Legacy karta AV: tylko gdy wykryto inny antywirus i sygnatura nie została potwierdzona.</summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private async Task ShowAntivirusWarningForDetectionAsync(
+        MainWindow mainWindow, UserSettingsService userSettingsService, AntivirusDetectionResult result)
+    {
         if (!result.HasThirdPartyAntivirus)
         {
             return;

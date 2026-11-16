@@ -11,15 +11,17 @@ namespace SUSModder.Core.Services
     {
         public static AntivirusDetectionResult Empty { get; } = new(Array.Empty<string>());
 
-        public AntivirusDetectionResult(IReadOnlyList<string> productNames)
+        public AntivirusDetectionResult(IReadOnlyList<string> productNames, bool sourcesAvailable = true)
         {
             ProductNames = productNames;
             Signature = string.Join("|", productNames.OrderBy(name => name, StringComparer.OrdinalIgnoreCase));
+            SourcesAvailable = sourcesAvailable;
         }
 
         public IReadOnlyList<string> ProductNames { get; }
 
         public string Signature { get; }
+        public bool SourcesAvailable { get; }
 
         public bool HasThirdPartyAntivirus => ProductNames.Count > 0;
     }
@@ -93,32 +95,32 @@ namespace SUSModder.Core.Services
         {
             if (!OperatingSystem.IsWindows())
             {
-                var empty = AntivirusDetectionResult.Empty;
+                var empty = new AntivirusDetectionResult(Array.Empty<string>(), false);
                 SetLastDetectionResult(empty);
                 return empty;
             }
 
-            return DetectInstalledThirdPartyAntivirusWindows();
+            return DetectInstalledThirdPartyAntivirusWindows(TryDetectFromSecurityCenter, TryDetectFromInstalledApplications);
         }
 
         [SupportedOSPlatform("windows")]
-        private AntivirusDetectionResult DetectInstalledThirdPartyAntivirusWindows()
+        internal AntivirusDetectionResult DetectInstalledThirdPartyAntivirusWindows(
+            Func<ISet<string>, bool> securityCenterSource,
+            Func<ISet<string>, bool> registrySource)
         {
             var names = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            TryDetectFromSecurityCenter(names);
-            TryDetectFromInstalledApplications(names);
+            var sourcesAvailable = securityCenterSource(names) | registrySource(names);
 
             var result = names.Count == 0
-                ? AntivirusDetectionResult.Empty
-                : new AntivirusDetectionResult(names.ToArray());
+                ? new AntivirusDetectionResult(Array.Empty<string>(), sourcesAvailable)
+                : new AntivirusDetectionResult(names.ToArray(), sourcesAvailable);
 
             SetLastDetectionResult(result);
             return result;
         }
 
         [SupportedOSPlatform("windows")]
-        private static void TryDetectFromSecurityCenter(ISet<string> names)
+        private static bool TryDetectFromSecurityCenter(ISet<string> names)
         {
             try
             {
@@ -132,25 +134,27 @@ namespace SUSModder.Core.Services
                     var rawName = item["displayName"]?.ToString();
                     TryAddDetectedName(rawName, names, requireKnownVendor: false);
                 }
+                return true;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[AntivirusDetection] Failed to query antivirus products: {ex.Message}");
+                return false;
             }
         }
 
         [SupportedOSPlatform("windows")]
-        private static void TryDetectFromInstalledApplications(ISet<string> names)
+        private static bool TryDetectFromInstalledApplications(ISet<string> names)
         {
             try
             {
+                bool queried = false;
                 foreach (var registryPath in UninstallRegistryPaths)
                 {
                     using var uninstallRoot = Registry.LocalMachine.OpenSubKey(registryPath);
                     if (uninstallRoot == null)
-                    {
                         continue;
-                    }
+                    queried = true;
 
                     foreach (var subKeyName in uninstallRoot.GetSubKeyNames())
                     {
@@ -159,10 +163,12 @@ namespace SUSModder.Core.Services
                         TryAddDetectedName(displayName, names, requireKnownVendor: true);
                     }
                 }
+                return queried;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[AntivirusDetection] Failed to query installed applications: {ex.Message}");
+                return false;
             }
         }
 

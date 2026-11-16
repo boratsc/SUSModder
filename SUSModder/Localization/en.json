@@ -507,17 +507,24 @@
         "NotFound": "regionInfo.json file does not exist."
       },
       "Firewall": {
-        "Title": "Firewall Exceptions",
-        "Description": "Adds inbound and outbound rules for Among Us.exe to Windows Firewall (Steam only).",
-        "SelectModTitle": "Select mod for firewall",
-        "SelectModDescription": "Select an installed mod for which you want to add Windows Firewall exceptions.",
-        "AddException": "Add Exception",
-        "ConfirmMessage": "Do you want to add firewall exceptions for mod {0}? Requires administrator privileges.",
-        "Success": "Firewall exceptions for mod {0} have been added successfully.",
-        "Error": "Error while adding firewall exceptions: {0}",
-        "ProcessError": "Failed to start netsh process.",
-        "ExeNotFound": "Among Us.exe not found at path: {0}",
-        "NoModsInstalled": "No full mods installed. Install a mod first."
+        "Title": "Windows Firewall",
+        "Description": "Let the game connect to the internet (Windows Firewall). Windows will ask for administrator approval — this is normal.",
+        "SelectModTitle": "Choose a game or mod",
+        "SelectModDescription": "Choose which game or mod you want to allow to connect to the internet.",
+        "AddException": "Add permission",
+        "VanillaEntry": "Among Us (base game)",
+        "PredictedPathWarning": "The game has not been downloaded yet. The permission will apply to the location where the game will be installed.",
+        "ConfirmMessage": "Do you want to let {0} connect to the internet? Windows will ask for administrator approval — this is normal.",
+        "Success": "Permission added. The game can connect to the internet.",
+        "PartialSuccess": "One of the permissions was not added. Try again.",
+        "NameConflict": "A different permission with this name already exists in Windows Firewall. We don't touch settings that aren't ours.\n\nWhat you can do:\n1. Rename the mod and try again.\n2. Or open Windows Firewall and remove the old permission yourself.",
+        "NameConflictOpenFirewall": "Open Windows Firewall",
+        "NameConflictOpenError": "Could not open Windows Firewall. Open the Start menu, type “firewall” and launch “Windows Defender Firewall with Advanced Security”, then remove the old permission yourself.",
+        "Error": "Could not add the permission. Try again.",
+        "InvalidPath": "Cannot add the permission — the game path is invalid.",
+        "ProcessError": "Could not start the Windows tool. Try again.",
+        "ExeNotFound": "The game file was not found. Install the game or a mod and try again.",
+        "NoModsInstalled": "Among Us or installed mods were not found. Install the game or a mod and try again."
       },
       "EpicAuth": {
         "Title": "Epic Games Account",
@@ -545,10 +552,134 @@
         "GameNotInstalled": "Among Us was not found in your Steam library. Install the game and retry configuration from the repair tools.",
         "ProcessLeftOpen": "Note: the test process could not be confirmed as owned by this test, so it was not closed automatically. Close Among Us manually if it is still running.",
         "Failed": "Steam login test failed: {0}",
-        "WindowsOnly": "This feature is only available on Windows."
+        "WindowsOnly": "This feature is only available on Windows.",
+        "BetaBranchMismatchTitle": "Among Us is on a test version",
+        "BetaBranchMismatch": "Among Us is set to a test version (beta) in Steam. Mods work with the normal game version. Change it: Steam → Among Us → Properties → Betas → None. Wait for Steam to download the normal version.",
+        "BetaToastHint": "Click this message to open Steam.",
+        "BranchUnknownTitle": "Game version not checked",
+        "BranchUnknown": "Could not check which game version you have on Steam. The login test was skipped.",
+        "BranchUnknownOverrideConfirm": "Could not check the game version. Run the login test anyway?"
+      },
+      "EnvironmentCheck": {
+        "Title": "Check if mods will work",
+        "Description": "Checks Windows and Steam settings that may get in the way of mods. Changes nothing."
       },
       "Cancelled": "Operation cancelled by user.",
       "Error": "Error during repair: {0}"
+    },
+    "EnvironmentCheck": {
+      "Title": "Will mods work?",
+      "ReadOnlyNote": "This is only a check — we won't change anything on your PC or in the game.",
+      "Running": "Checking Windows and Steam settings…",
+      "Recheck": "Check again",
+      "Timestamp": "Checked: {0}",
+      "Error": "Could not finish the check. Please try again.",
+      "SummaryOk": "Everything looks good.",
+      "SummaryProblems": "Things that may get in the way of mods: {0}.",
+      "ShowRest": "Show the remaining details",
+      "Proposal": {
+        "Title": "Check if mods will work on this PC?",
+        "Message": "This is only a check — we won't change anything on your PC. You can do it later: menu → “Repair Among Us” → “Check if mods will work”.",
+        "Check": "Check",
+        "Skip": "Not now"
+      },
+      "Status": {
+        "Ok": "Good",
+        "Info": "Information",
+        "Warning": "May cause issues",
+        "Error": "Problem",
+        "Unknown": "Not checked",
+        "NotApplicable": "Not applicable"
+      },
+      "Checks": {
+        "sac": "Smart App Control (Windows)",
+        "firewall": {
+          "profiles": "Windows Firewall",
+          "thirdparty": "Other firewall software",
+          "rules": "Firewall permission for the game"
+        },
+        "av": {
+          "thirdparty": "Third-party antivirus"
+        },
+        "defender": {
+          "realtime": "Real-time protection",
+          "cfa": "Important folder protection",
+          "tamper": "Antivirus settings protection"
+        },
+        "steam": {
+          "installed": "Among Us on Steam",
+          "beta": "Among Us game version"
+        }
+      },
+      "Code": {
+        "env": {
+          "sac": {
+            "not_applicable": "This Windows feature is not present on this system.",
+            "off": "Smart App Control is off — it does not block mods.",
+            "enforce": "Smart App Control may block mods. It is a Windows feature that only allows known, trusted apps.",
+            "evaluation": "Smart App Control is only watching for now and blocks nothing, but it may start blocking mods.",
+            "unknown": "Could not check Smart App Control. You can see this setting in Windows Security."
+          },
+          "firewall": {
+            "unknown": "Could not check Windows Firewall.",
+            "disabled": "Windows Firewall is turned off for the network you are using. The game should work, but your PC is less protected.",
+            "enabled": "Windows Firewall is on — this is normal and safe.",
+            "thirdparty_unknown": "Could not check whether other firewall software is present.",
+            "thirdparty_none": "No other firewall software — only Windows Firewall manages network access.",
+            "thirdparty_detected": "Other firewall software is present: {0}. It may also decide whether the game can access the network.",
+            "rules_unknown": "Could not check the firewall permission for the game.",
+            "rules_not_applicable": "The game file was not found, so there is nothing to check.",
+            "rules_missing": "Windows Firewall has no permission for this game yet. Add it with the firewall tool — button below.",
+            "rules_drift": "The firewall permission points to a different game file than the one you use. Refresh it with the firewall tool.",
+            "rules_ok": "Windows Firewall has a correct permission for this game."
+          },
+          "av": {
+            "unknown": "Could not check the antivirus.",
+            "detected": "Antivirus: {0}. It may block mod files — see the instructions below.",
+            "none": "No other antivirus — only Windows protection is active."
+          },
+          "defender": {
+            "unknown": "Could not check Windows protection.",
+            "realtime_on": "Real-time protection is on — this is the standard Windows setting.",
+            "realtime_off": "Real-time protection is off. Mods should work freely, but your PC is less protected.",
+            "cfa_unknown": "Could not check folder protection.",
+            "cfa_off": "Folder protection is off — mods can save files freely.",
+            "cfa_on": "Folder protection is on and may block mods from saving files.",
+            "tamper_unknown": "Could not check antivirus settings protection.",
+            "tamper_on": "Antivirus settings protection is on — nobody can quietly change the security settings.",
+            "tamper_off": "Antivirus settings protection is off. It does not interfere with the game, but consider turning it on in Windows Security."
+          },
+          "steam": {
+            "not_applicable": "Not applicable — this installation is not from Steam.",
+            "unknown": "Could not check the Steam installation.",
+            "installed": "Among Us is installed on Steam.",
+            "multiple": "There are several Among Us installations on Steam ({0}). SUSModder may check a different copy than the one you play.",
+            "files_only": "The game files are on disk, but Steam does not see this installation. Launch the game through Steam so it recognizes it.",
+            "not_found": "Among Us was not found on Steam. Install the game on Steam if you want to use it.",
+            "beta_not_applicable": "Not applicable — this installation is not from Steam.",
+            "beta_unknown": "Could not check which game version you have on Steam.",
+            "beta_default": "The game is on the normal version — this is the right version for mods.",
+            "beta_nondefault": "Among Us is set to a test version (beta) in Steam. Mods work with the normal game version.",
+            "beta_inconsistent": "The game version settings in Steam don't match each other. Steam may download a different version than you expect — set the normal version (instructions below)."
+          }
+        }
+      },
+      "Action": {
+        "OpenWindowsSecurity": "Open Windows Security",
+        "OpenSteam": "Open Steam",
+        "OpenFirewallTool": "Open firewall tool",
+        "SacInstruction": "Smart App Control protects your whole PC. If mods don't work, this feature may block them because they are not digitally signed. 1. Open Windows Security with the button below. 2. See whether Smart App Control is on — Windows Security will show the details. 3. The decision is yours — we do not change this setting.",
+        "SteamBetaInstruction": "1. Open Steam with the button below. 2. Right-click Among Us in your library and choose \"Properties\". 3. Go to \"Betas\" and select \"None\". 4. Wait for Steam to download the normal game version.",
+        "AvInstruction": "The antivirus may block or remove mod files. 1. Open your antivirus. 2. Add the folder \"{0}\" to its exceptions (trusted items). 3. If a mod was removed, install it again in SUSModder. SUSModder does not change antivirus settings automatically.",
+        "CfaInstruction": "1. Click \"Open Windows Security\". 2. Go to \"Virus & threat protection\" and find \"Controlled folder access\". 3. Allow Among Us to save files in protected folders."
+      },
+      "Detail": {
+        "Code": "Code: {0}",
+        "Path": "Path: {0}",
+        "RulePath": "Firewall permission points to: {0}",
+        "TargetPath": "The game is here: {0}",
+        "Branch": "Steam version: {0}"
+      }
     }
   },
   "DllManager": {

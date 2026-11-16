@@ -9,6 +9,7 @@ namespace SUSModder.ViewModels
         Firewall,
         SteamLoginCheck,
         EpicLogout,
-        EpicLogin
+        EpicLogin,
+        EnvironmentCheck
     }
 }

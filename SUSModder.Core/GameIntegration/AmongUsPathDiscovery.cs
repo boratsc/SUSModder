@@ -136,6 +136,27 @@ namespace SUSModder.Core.GameIntegration
             return results;
         }
 
+        /// <summary>
+        /// Wyniki wiarygodne są tylko przy dokładnie jednym katalogu; zero oznacza brak manifestu,
+        /// a wiele różnych katalogów niejednoznaczne powiązanie (branch pozostaje Unknown).
+        /// </summary>
+        public static IReadOnlyList<(string InstallDir, string ManifestPath)> TryFindSteamInstallsWithManifest()
+        {
+            var results = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var root in GetAllSteamLibraryRoots())
+            {
+                var manifestPath = Path.Combine(root, "steamapps", $"appmanifest_{SteamAppId}.acf");
+                var manifest = SUSModder.Core.GameIntegration.Steam.SteamAppManifest.TryRead(manifestPath);
+                if (string.IsNullOrWhiteSpace(manifest?.InstallDir) ||
+                    manifest.InstallDir != Path.GetFileName(manifest.InstallDir))
+                    continue;
+                var installDir = NormalizePath(Path.Combine(root, "steamapps", "common", manifest.InstallDir));
+                if (IsValidInstallDirectory(installDir))
+                    results.TryAdd(installDir, manifestPath);
+            }
+            return results.Select(p => (p.Key, p.Value)).ToArray();
+        }
+
         private static IEnumerable<string> GetAllSteamLibraryRoots()
         {
             var roots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

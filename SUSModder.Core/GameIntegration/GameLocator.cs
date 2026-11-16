@@ -173,7 +173,7 @@ namespace SUSModder.Core.GameIntegration
 
             // Zbuduj ścieżkę InstallPath analogicznie do innych modów Epic:
             // {ModsInstallPath}\Among Us - Vanilla\AmongUs
-            string installPath = Path.Combine(PathSettings.ModsInstallPath, "Among Us - Vanilla", "AmongUs");
+            string installPath = Path.GetDirectoryName(EpicInstallPathResolver.GetVanillaExpectedExePath(PathSettings.ModsInstallPath))!;
             Console.WriteLine($"[Epic Vanilla] Among Us znaleziony na koncie Epic. InstallPath: {installPath}");
 
             return SaveVanillaMod(modConfigs, configuration, userSettingsService, userMode, installPath);

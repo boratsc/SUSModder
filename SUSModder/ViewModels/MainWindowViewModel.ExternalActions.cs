@@ -2,10 +2,13 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
+using SUSModder.Core.GameIntegration;
+using SUSModder.Core.Services;
 using SUSModder.Core.Utilities;
 using SUSModder.Core.Services.Localization;
 using SUSModder.Views;
@@ -174,6 +177,10 @@ namespace SUSModder.ViewModels
 
                 case RepairOption.EpicLogin:
                     await ExecuteEpicLoginAsync();
+                    break;
+
+                case RepairOption.EnvironmentCheck:
+                    await ShowEnvironmentCheckReportAsync();
                     break;
 
                 case RepairOption.None:
@@ -451,15 +458,31 @@ namespace SUSModder.ViewModels
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         private async Task ExecuteFixFirewallAsync()
         {
+            string? scriptPath = null;
+            string? outPath = null;
             try
             {
-                // Pobierz zainstalowane mody (full mods z InstallPath)
-                var installedMods = Mods
-                    .Where(m => !string.IsNullOrEmpty(m.InstallPath) && m.ModType == "full")
-                    .Select(m => new FirewallModItem { Name = m.Name, InstallPath = m.InstallPath! })
-                    .ToList();
+                // Kandydaci: vanilla bieżącego trybu + zainstalowane mody full.
+                var settings = _userSettingsService.LoadUserSettings();
+                var mode = DeterminePlatform();
+                string? steamVanillaDir = null;
+                if (!string.Equals(mode, "epic", StringComparison.OrdinalIgnoreCase))
+                {
+                    steamVanillaDir = AmongUsPathDiscovery.IsValidInstallDirectory(settings.VanillaInstallPath)
+                        ? settings.VanillaInstallPath
+                        : GameLocator.TryFindSteamPath();
+                }
 
-                if (!installedMods.Any())
+                var candidates = FirewallToolPlan.BuildCandidates(
+                    mode,
+                    steamVanillaDir,
+                    PathSettings.ModsInstallPath,
+                    Mods.Where(m => !string.IsNullOrEmpty(m.InstallPath) && m.ModType == "full")
+                        .Select(m => (m.Name, m.InstallPath)),
+                    _localizationService.Get("UI.Repair.Firewall.VanillaEntry"),
+                    File.Exists);
+
+                if (candidates.Count == 0)
                 {
                     await ShowMessageAsync(
                         _localizationService.Get("Dialogs.Info.Title"),
@@ -467,8 +490,8 @@ namespace SUSModder.ViewModels
                     return;
                 }
 
-                // Pokaż dialog wyboru moda
-                var dialog = new FirewallModSelectionDialog(installedMods);
+                // Pokaż dialog wyboru (jawny wybór + potwierdzenie zostają).
+                var dialog = new FirewallModSelectionDialog(candidates);
                 var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
 
                 if (mainWindow != null)
@@ -481,79 +504,107 @@ namespace SUSModder.ViewModels
                     return;
                 }
 
-                // Sprawdź czy użytkownik wybrał mod
-                if (dialog.SelectedMod == null)
+                var selected = dialog.SelectedMod;
+                if (selected == null)
                 {
                     return; // Anulowano
                 }
 
-                var selectedMod = dialog.SelectedMod;
-                string amongUsExePath = Path.Combine(selectedMod.InstallPath, "Among Us.exe");
-
-                // Sprawdź czy plik exe istnieje
-                if (!File.Exists(amongUsExePath))
+                string targetExePath = selected.ExePath;
+                if (!FirewallRuleService.IsValidProgramPath(targetExePath))
                 {
+                    System.Diagnostics.Debug.WriteLine($"[FixFirewall] Nieprawidłowa ścieżka programu: {targetExePath}");
                     await ShowErrorDialogAsync(
-                        string.Format(_localizationService.Get("UI.Repair.Firewall.ExeNotFound"), amongUsExePath),
+                        _localizationService.Get("UI.Repair.Firewall.InvalidPath"),
+                        _localizationService.Get("Dialogs.Error.Title"));
+                    return;
+                }
+
+                // Steam: exe musi istnieć. Epic: predykcja dopuszczona (IsPredicted).
+                if (!selected.IsPredicted && !File.Exists(targetExePath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[FixFirewall] Nie znaleziono pliku gry: {targetExePath}");
+                    await ShowErrorDialogAsync(
+                        _localizationService.Get("UI.Repair.Firewall.ExeNotFound"),
                         _localizationService.Get("Dialogs.Error.Title"));
                     return;
                 }
 
                 // Potwierdzenie
                 var confirmResult = await ShowConfirmDialogAsync(
-                    string.Format(_localizationService.Get("UI.Repair.Firewall.ConfirmMessage"), selectedMod.Name),
+                    string.Format(_localizationService.Get("UI.Repair.Firewall.ConfirmMessage"), selected.Name),
                     _localizationService.Get("Dialogs.Confirm.Title"));
 
                 if (!confirmResult)
                     return;
 
-                System.Diagnostics.Debug.WriteLine($"[FixFirewall] Dodawanie wyjątków dla: {amongUsExePath}");
+                // Vanilla → "Among Us - Vanilla" (spójne z checkiem firewall.rules w Core).
+                string ruleBaseName = FirewallRuleService.BuildRuleBaseName(selected.IsVanilla ? "Vanilla" : selected.Name);
 
-                // Nazwa reguły
-                string ruleName = $"Among Us - {selectedMod.Name}";
-                string escapedPath = amongUsExePath.Replace("\"", "\\\"");
+                // Ownership pre-check bez elewacji — nie usuwamy cudzych reguł.
+                var inboundOutput = await FirewallRuleService.TryShowRuleVerboseAsync(ruleBaseName, "Inbound");
+                var outboundOutput = await FirewallRuleService.TryShowRuleVerboseAsync(ruleBaseName, "Outbound");
+                var decision = FirewallToolPlan.Decide(inboundOutput, outboundOutput, targetExePath);
+                if (decision == FirewallToolDecision.Conflict)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[FixFirewall] Konflikt nazwy reguły: {ruleBaseName}");
+                    await ShowFirewallNameConflictAsync();
+                    return;
+                }
 
-                // Komendy netsh do dodania reguł (przychodzące i wychodzące)
-                string addInboundRule = $"netsh advfirewall firewall add rule name=\"{ruleName} (Inbound)\" dir=in action=allow program=\"{escapedPath}\" enable=yes";
-                string addOutboundRule = $"netsh advfirewall firewall add rule name=\"{ruleName} (Outbound)\" dir=out action=allow program=\"{escapedPath}\" enable=yes";
+                // Dane dynamiczne (nazwa, ścieżka) wyłącznie w walidowanym skrypcie;
+                // w linii cmd tylko nasze stałe ścieżki tymczasowe. Jedna elewacja.
+                var script = FirewallRuleService.BuildNetshScript(
+                    new FirewallRuleRequest(ruleBaseName, targetExePath),
+                    deleteOwnFirst: decision == FirewallToolDecision.Replace);
+                var tempBaseName = Path.Combine(Path.GetTempPath(), "susmodder-firewall-" + Guid.NewGuid().ToString("N"));
+                scriptPath = tempBaseName + ".txt";
+                outPath = tempBaseName + ".out";
+                // Acceptance 2026-11-16 (Win11 26300 PL): netsh -f przyjmuje skrypt wyłącznie jako UTF-8 bez BOM
+                // (UTF-16 LE BOM = "command not found", OEM = zniekształcone polskie znaki).
+                File.WriteAllText(scriptPath, script, new UTF8Encoding(false));
 
-                // Najpierw usuń istniejące reguły (jeśli są) - by nie tworzyć duplikatów
-                string deleteInboundRule = $"netsh advfirewall firewall delete rule name=\"{ruleName} (Inbound)\"";
-                string deleteOutboundRule = $"netsh advfirewall firewall delete rule name=\"{ruleName} (Outbound)\"";
-
-                // Połącz wszystkie komendy
-                string combinedCommands = $"{deleteInboundRule} & {deleteOutboundRule} & {addInboundRule} & {addOutboundRule}";
+                System.Diagnostics.Debug.WriteLine($"[FixFirewall] Wykonanie skryptu dla: {targetExePath} (decision={decision})");
 
                 var processInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    Arguments = $"/c {combinedCommands}",
+                    Arguments = $"/c netsh -f \"{scriptPath}\" > \"{outPath}\" 2>&1",
                     UseShellExecute = true,
                     Verb = "runas", // Wymaga uprawnień administratora
                     CreateNoWindow = true
                 };
 
-                using (var process = Process.Start(processInfo))
+                var process = Process.Start(processInfo);
+                if (process == null)
                 {
-                    if (process == null)
-                    {
-                        throw new InvalidOperationException(_localizationService.Get("UI.Repair.Firewall.ProcessError"));
-                    }
-                    await Task.Run(() => process.WaitForExit());
-
-                    // netsh zwraca 0 przy sukcesie
-                    if (process.ExitCode != 0)
-                    {
-                        // Niektóre komendy delete mogą zwrócić błąd jeśli reguła nie istnieje - to nie jest krytyczne
-                        System.Diagnostics.Debug.WriteLine($"[FixFirewall] Exit code: {process.ExitCode} - może być OK jeśli reguły nie istniały wcześniej");
-                    }
+                    await ShowErrorDialogAsync(
+                        _localizationService.Get("UI.Repair.Firewall.ProcessError"),
+                        _localizationService.Get("Dialogs.Error.Title"));
+                    return;
                 }
 
-                System.Diagnostics.Debug.WriteLine("[FixFirewall] Reguły firewalla zostały dodane.");
+                using (process)
+                {
+                    await Task.Run(() => process.WaitForExit());
+                }
 
+                // Wynik uczciwie z odczytu reguł, nie z kodu wyjścia cmd.
+                var outcome = FirewallRuleService.ParseScriptOutput(
+                    FirewallToolPlan.ReadOutputFile(outPath), targetExePath);
+                var messageKey = FirewallToolPlan.OutcomeMessageKey(outcome);
+                if (messageKey == "UI.Repair.Firewall.NameConflict")
+                {
+                    await ShowFirewallNameConflictAsync();
+                    return;
+                }
+
+                var titleKey = messageKey == "UI.Repair.Firewall.Success"
+                    ? "Dialogs.Success.Title"
+                    : "Dialogs.Info.Title";
                 await ShowMessageAsync(
-                    _localizationService.Get("Dialogs.Success.Title"),
-                    string.Format(_localizationService.Get("UI.Repair.Firewall.Success"), selectedMod.Name));
+                    _localizationService.Get(titleKey),
+                    _localizationService.Get(messageKey));
             }
             catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
             {
@@ -565,10 +616,55 @@ namespace SUSModder.ViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[FixFirewall] Błąd: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[FixFirewall] Błąd: {ex}");
                 await ShowErrorDialogAsync(
-                    string.Format(_localizationService.Get("UI.Repair.Firewall.Error"), ex.Message),
+                    _localizationService.Get("UI.Repair.Firewall.Error"),
                     _localizationService.Get("Dialogs.Error.Title"));
+            }
+            finally
+            {
+                foreach (var tempFile in new[] { scriptPath, outPath })
+                {
+                    if (tempFile == null)
+                        continue;
+                    try
+                    {
+                        if (File.Exists(tempFile))
+                            File.Delete(tempFile);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[FixFirewall] Nie udało się usunąć pliku tymczasowego: {ex.Message}");
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Konflikt nazwy pozwolenia: instrukcja 1-2-3 + jeden przycisk akcji (istniejący wzorzec
+        /// ShowConfirmDialogAsync z przyciskami, jak „Otwórz Steam" przy wersji beta).
+        /// </summary>
+        private async Task ShowFirewallNameConflictAsync()
+        {
+            var openFirewall = await ShowConfirmDialogAsync(
+                _localizationService.Get("UI.Repair.Firewall.NameConflict"),
+                _localizationService.Get("Dialogs.Info.Title"),
+                _localizationService.Get("UI.Repair.Firewall.NameConflictOpenFirewall"),
+                _localizationService.Get("UI.Buttons.Close"));
+
+            if (!openFirewall)
+                return;
+
+            try
+            {
+                Process.Start(new ProcessStartInfo("wf.msc") { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FixFirewall] Nie udało się otworzyć Zapory Windows: {ex.Message}");
+                await ShowMessageAsync(
+                    _localizationService.Get("Dialogs.Info.Title"),
+                    _localizationService.Get("UI.Repair.Firewall.NameConflictOpenError"));
             }
         }
 

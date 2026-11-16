@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using SUSModder.Core.GameIntegration.Steam;
+using SUSModder.ViewModels.Helpers;
 
 namespace SUSModder.ViewModels
 {
@@ -95,6 +96,59 @@ namespace SUSModder.ViewModels
             }
 
             var (type, title, message) = BuildSteamLoginCheckMessage(result);
+
+            // Ścieżka ręczna: przy nieustalonej wersji gry pytamy o uruchomienie mimo to.
+            // Auto-ścieżka (toast) nigdy nie override'uje — guard Core pozostaje twardy.
+            if (result.Status == SteamHeadlessLoginStatus.BranchUnknown)
+            {
+                var runAnyway = await ShowConfirmDialogAsync(
+                    _localizationService.Get("UI.Repair.SteamLoginCheck.BranchUnknownOverrideConfirm"),
+                    title);
+
+                if (!runAnyway)
+                {
+                    await ShowMessageAsync(
+                        _localizationService.Get("Dialogs.Info.Title"),
+                        _localizationService.Get("UI.Repair.Cancelled"));
+                    return;
+                }
+
+                try
+                {
+                    result = await RunSteamLoginCheckOnceAsync(allowUnknownBranch: true);
+                }
+                catch (Exception ex)
+                {
+                    await ShowErrorDialogAsync(
+                        string.Format(_localizationService.Get("UI.Repair.Error"), ex.Message),
+                        _localizationService.Get("Dialogs.Error.Title"));
+                    return;
+                }
+
+                if (result == null)
+                {
+                    await ShowMessageAsync(
+                        _localizationService.Get("Dialogs.Info.Title"),
+                        _localizationService.Get("UI.Repair.SteamLoginCheck.Running"));
+                    return;
+                }
+
+                (type, title, message) = BuildSteamLoginCheckMessage(result);
+            }
+
+            // Wersja testowa (beta): zamiast samego OK dajemy jeden przycisk „Otwórz Steam".
+            if (result.Status == SteamHeadlessLoginStatus.BetaBranchMismatch)
+            {
+                var openSteam = await ShowConfirmDialogAsync(
+                    message,
+                    title,
+                    _localizationService.Get("UI.EnvironmentCheck.Action.OpenSteam"),
+                    _localizationService.Get("UI.Buttons.Close"));
+                if (openSteam)
+                    TryOpenSteamForBeta();
+                return;
+            }
+
             if (type == ToastType.Error)
             {
                 await ShowErrorDialogAsync(message, title);
@@ -108,8 +162,10 @@ namespace SUSModder.ViewModels
         /// <summary>
         /// Wspólny przebieg testu z toastem „w trakcie — kliknij, aby anulować".
         /// Zwraca null, gdy inny test już trwa (brak równoległych nasłuchów).
+        /// <paramref name="allowUnknownBranch"/> wyłącznie po potwierdzeniu użytkownika
+        /// w ścieżce ręcznej (BranchUnknown); auto-ścieżka zawsze bez override.
         /// </summary>
-        private async Task<SteamHeadlessLoginResult?> RunSteamLoginCheckOnceAsync()
+        private async Task<SteamHeadlessLoginResult?> RunSteamLoginCheckOnceAsync(bool allowUnknownBranch = false)
         {
             lock (_steamLoginCheckLock)
             {
@@ -136,7 +192,7 @@ namespace SUSModder.ViewModels
             try
             {
                 var verifier = new SteamHeadlessLoginVerifier();
-                var result = await verifier.RunAsync(_activeSteamLoginCheck.Token);
+                var result = await verifier.RunAsync(_activeSteamLoginCheck.Token, allowUnknownBranch);
                 System.Diagnostics.Debug.WriteLine(
                     $"[SteamLoginCheck] Wynik: {result.Status} (log: {result.LogPath ?? "-"}, " +
                     $"zamknięto: {result.OwnInstanceStopped}, niepotwierdzony: {result.OwnInstanceUnconfirmed}).");
@@ -167,6 +223,14 @@ namespace SUSModder.ViewModels
         {
             var (type, title, message) = BuildSteamLoginCheckMessage(result);
             var logPath = result.LogPath;
+            Action? onClick = logPath == null ? null : () => TryOpenSteamLoginCheckLog(logPath);
+
+            // Beta: toast klikalny otwiera Steam (instrukcja zmiany wersji jest w treści).
+            if (result.Status == SteamHeadlessLoginStatus.BetaBranchMismatch)
+            {
+                message += "\n" + _localizationService.Get("UI.Repair.SteamLoginCheck.BetaToastHint");
+                onClick = TryOpenSteamForBeta;
+            }
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -175,63 +239,31 @@ namespace SUSModder.ViewModels
                     title,
                     message,
                     autoCloseMs: type == ToastType.Error ? 12000 : 8000,
-                    onClick: logPath == null ? null : () => TryOpenSteamLoginCheckLog(logPath));
+                    onClick: onClick);
                 ToastService.Enqueue(toast);
             });
         }
 
+        /// <summary>Otwiera stronę Among Us w Steam (best-effort) — akcja przy wersji testowej (beta).</summary>
+        private static void TryOpenSteamForBeta()
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(SteamLinks.AmongUsGameProperties) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SteamLoginCheck] Nie udało się otworzyć Steam: {ex.Message}");
+            }
+        }
+
         /// <summary>
-        /// Mapowanie wyniku na komunikat zlokalizowany (tytuł + treść). Bez fałszywych sukcesów:
+        /// Mapowanie wyniku na komunikat zlokalizowany (tytuł + treść) — logika w testowalnym
+        /// helperze <see cref="SteamLoginCheckMessages"/>. Bez fałszywych sukcesów:
         /// „Confirmed" tylko po markerze w logu bieżącego uruchomienia.
         /// </summary>
         private (ToastType Type, string Title, string Message) BuildSteamLoginCheckMessage(SteamHeadlessLoginResult result)
-        {
-            var loc = _localizationService;
-            string? extra = result.OwnInstanceUnconfirmed
-                ? loc.Get("UI.Repair.SteamLoginCheck.ProcessLeftOpen")
-                : null;
-
-            return result.Status switch
-            {
-                SteamHeadlessLoginStatus.Confirmed => (
-                    ToastType.Success,
-                    loc.Get("Dialogs.Success.Title"),
-                    Append(loc.Get("UI.Repair.SteamLoginCheck.Success"), extra)),
-
-                SteamHeadlessLoginStatus.NotConfirmed => (
-                    ToastType.Warning,
-                    loc.Get("UI.Repair.SteamLoginCheck.NotConfirmedTitle"),
-                    Append(loc.GetFormatted("UI.Repair.SteamLoginCheck.NotConfirmed", result.LogPath ?? "-"), extra)),
-
-                SteamHeadlessLoginStatus.Cancelled => (
-                    ToastType.Info,
-                    loc.Get("Dialogs.Info.Title"),
-                    Append(loc.Get("UI.Repair.Cancelled"), extra)),
-
-                SteamHeadlessLoginStatus.GameAlreadyRunning => (
-                    ToastType.Info,
-                    loc.Get("Dialogs.Info.Title"),
-                    loc.Get("UI.Repair.SteamLoginCheck.GameRunning")),
-
-                SteamHeadlessLoginStatus.SteamUnavailable => (
-                    ToastType.Error,
-                    loc.Get("Dialogs.Error.Title"),
-                    loc.Get("UI.Repair.SteamLoginCheck.SteamUnavailable")),
-
-                SteamHeadlessLoginStatus.GameNotInstalled => (
-                    ToastType.Warning,
-                    loc.Get("UI.Repair.SteamLoginCheck.NotConfirmedTitle"),
-                    loc.Get("UI.Repair.SteamLoginCheck.GameNotInstalled")),
-
-                _ => (
-                    ToastType.Error,
-                    loc.Get("Dialogs.Error.Title"),
-                    Append(loc.GetFormatted("UI.Repair.SteamLoginCheck.Failed", result.Diagnostic ?? "-"), extra)),
-            };
-        }
-
-        private static string Append(string message, string? extra) =>
-            extra == null ? message : message + "\n\n" + extra;
+            => SteamLoginCheckMessages.Build(_localizationService, result);
 
         /// <summary>
         /// Otwiera folder z logiem diagnostycznym testu (explorer /select). Best-effort.

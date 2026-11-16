@@ -7,12 +7,15 @@ using System.Linq;
 namespace SUSModder.Views;
 
 /// <summary>
-/// Reprezentuje mod do wyboru w dialogu firewalla
+/// Reprezentuje grę lub mod do wyboru w dialogu firewalla.
+/// ExePath to docelowa ścieżka programu; IsPredicted = gra jeszcze nie pobrana (Epic).
 /// </summary>
 public class FirewallModItem
 {
     public string Name { get; set; } = string.Empty;
-    public string InstallPath { get; set; } = string.Empty;
+    public string ExePath { get; set; } = string.Empty;
+    public bool IsPredicted { get; set; }
+    public bool IsVanilla { get; set; }
 }
 
 /// <summary>

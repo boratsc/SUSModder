@@ -1,0 +1,178 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SUSModder.Services.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:fic="using:FluentIcons.Common"
+        xmlns:conv="using:SUSModder.Converters"
+        xmlns:helpers="using:SUSModder.ViewModels.Helpers"
+        x:Class="SUSModder.Views.EnvironmentCheckReportDialog"
+        Title="{loc:Localize UI.EnvironmentCheck.Title}"
+        Width="760" Height="640"
+        MinWidth="560" MinHeight="440"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        AutomationProperties.Name="{loc:Localize UI.EnvironmentCheck.Title}">
+
+    <Window.Resources>
+        <conv:EnvironmentCheckStatusToSymbolConverter x:Key="StatusToSymbol"/>
+        <conv:EnvironmentCheckStatusToBrushConverter x:Key="StatusToBrush"/>
+
+        <DataTemplate x:Key="CheckRowTemplate" x:DataType="helpers:EnvironmentCheckRow">
+            <Border Classes="check-row"
+                    AutomationProperties.Name="{Binding AutomationName}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                    <ic:SymbolIcon Grid.Column="0"
+                                   Symbol="{Binding Status, Converter={StaticResource StatusToSymbol}}"
+                                   Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}"
+                                   FontSize="20"
+                                   VerticalAlignment="Top"
+                                   Margin="0,2,0,0"/>
+                    <StackPanel Grid.Column="1" Spacing="5">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Classes="check-title" Text="{Binding Title}"/>
+                            <TextBlock Classes="check-status"
+                                       Text="{Binding StatusLabel}"
+                                       Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
+                        </StackPanel>
+                        <TextBlock Classes="check-description" Text="{Binding Description}"/>
+                        <TextBlock Classes="check-instruction"
+                                   Text="{Binding Instruction}"
+                                   IsVisible="{Binding HasInstruction}"/>
+                        <Button Classes="modal-secondary check-action"
+                                Content="{Binding ActionLabel}"
+                                IsVisible="{Binding HasAction}"
+                                AutomationProperties.Name="{Binding ActionLabel}"
+                                Click="OnRowActionClick"/>
+                        <!-- Technikalia (ścieżki, kod) dopiero tutaj — nie w głównym widoku karty -->
+                        <Expander Classes="modal-details"
+                                  Header="{loc:Localize UI.Inspector.Details}"
+                                  IsVisible="{Binding HasDetails}"
+                                  AutomationProperties.Name="{loc:Localize UI.Inspector.Details}">
+                            <TextBlock Classes="check-description"
+                                       Text="{Binding Details}"
+                                       Margin="0,4,0,0"/>
+                        </Expander>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Window.Styles>
+        <FluentTheme />
+
+        <Style Selector="Border.check-row">
+            <Setter Property="Background" Value="{DynamicResource ModCardBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+
+        <Style Selector="TextBlock.check-title">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
+        <Style Selector="TextBlock.check-status">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style Selector="TextBlock.check-description">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
+        <Style Selector="TextBlock.check-instruction">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
+        <Style Selector="Button.check-action">
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid Margin="24" RowDefinitions="Auto,Auto,*,Auto">
+
+        <!-- Nagłówek: tytuł + jednozdaniowe podsumowanie + zapewnienie o tylko-odczycie -->
+        <StackPanel Grid.Row="0" Spacing="6" Margin="0,0,0,14">
+            <TextBlock Text="{loc:Localize UI.EnvironmentCheck.Title}"
+                       FontSize="20" FontWeight="Bold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+            <TextBlock Text="{loc:Localize UI.EnvironmentCheck.ReadOnlyNote}"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+            <TextBlock x:Name="SummaryText"
+                       IsVisible="False"
+                       FontSize="14" FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+        </StackPanel>
+
+        <!-- Postęp / błąd (wzajemnie wykluczające się) -->
+        <StackPanel Grid.Row="1" x:Name="ProgressPanel" Spacing="8" Margin="0,0,0,12">
+            <ProgressBar IsIndeterminate="True" Height="4"
+                         AutomationProperties.Name="{loc:Localize UI.EnvironmentCheck.Running}"/>
+            <TextBlock Text="{loc:Localize UI.EnvironmentCheck.Running}"
+                       FontSize="13"
+                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+        </StackPanel>
+        <TextBlock Grid.Row="1" x:Name="ErrorText"
+                   IsVisible="False"
+                   Margin="0,0,0,12"
+                   FontSize="13"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource DangerBrush}"/>
+
+        <!-- Wyniki: problems-first, „Nie dotyczy" ukryte; Info/Ok bez akcji zwinięte na dole -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="4">
+                <ItemsControl x:Name="ResultsList"
+                              ItemTemplate="{StaticResource CheckRowTemplate}"
+                              AutomationProperties.Name="{loc:Localize UI.EnvironmentCheck.Title}"/>
+                <Expander x:Name="RestExpander"
+                          Classes="modal-details"
+                          Header="{loc:Localize UI.EnvironmentCheck.ShowRest}"
+                          AutomationProperties.Name="{loc:Localize UI.EnvironmentCheck.ShowRest}"
+                          IsVisible="False">
+                    <ItemsControl x:Name="RestList"
+                                  ItemTemplate="{StaticResource CheckRowTemplate}"
+                                  Margin="0,6,0,0"
+                                  AutomationProperties.Name="{loc:Localize UI.EnvironmentCheck.ShowRest}"/>
+                </Expander>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Stopka: timestamp + ponów + zamknij (Esc) -->
+        <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" Margin="0,16,0,0">
+            <TextBlock Grid.Column="0" x:Name="TimestampText"
+                       IsVisible="False"
+                       VerticalAlignment="Center"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+            <Button Grid.Column="1" x:Name="RecheckButton"
+                    Classes="modal-secondary"
+                    Content="{loc:Localize UI.EnvironmentCheck.Recheck}"
+                    AutomationProperties.Name="{loc:Localize UI.EnvironmentCheck.Recheck}"
+                    IsEnabled="False"
+                    Click="OnRecheckClick"/>
+            <Button Grid.Column="2"
+                    Classes="modal-primary"
+                    Content="{loc:Localize UI.Buttons.Close}"
+                    AutomationProperties.Name="{loc:Localize UI.Buttons.Close}"
+                    IsCancel="True"
+                    Click="OnCloseClick"/>
+        </Grid>
+    </Grid>
+</Window>

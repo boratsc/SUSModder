@@ -1973,27 +1973,12 @@ namespace SUSModder.Core.GameIntegration
 
         private static string ResolveEpicBaseInstallDirectory(ModConfiguration modConfig)
         {
-            if (!string.IsNullOrWhiteSpace(modConfig.InstallPath))
-            {
-                return TrimEpicGameSubdirectory(modConfig.InstallPath);
-            }
-
-            return Path.Combine(PathSettings.ModsInstallPath, modConfig.ModName ?? string.Empty);
+            return EpicInstallPathResolver.GetBaseInstallDirectory(modConfig.InstallPath, PathSettings.ModsInstallPath, modConfig.ModName);
         }
 
-        private static string TrimEpicGameSubdirectory(string path)
+        internal static string ResolveEpicGameExePath(string baseInstallDirectory)
         {
-            var trimmed = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            var directoryName = Path.GetFileName(trimmed);
-
-            return string.Equals(directoryName, "AmongUs", StringComparison.OrdinalIgnoreCase)
-                ? Path.GetDirectoryName(trimmed) ?? trimmed
-                : trimmed;
-        }
-
-        private static string ResolveEpicGameExePath(string baseInstallDirectory)
-        {
-            var epicExePath = Path.Combine(baseInstallDirectory, "AmongUs", "Among Us.exe");
+            var epicExePath = EpicInstallPathResolver.GetExpectedGameExePath(baseInstallDirectory);
             if (File.Exists(epicExePath))
                 return epicExePath;
 

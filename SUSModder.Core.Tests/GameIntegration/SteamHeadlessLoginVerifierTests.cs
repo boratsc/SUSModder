@@ -26,6 +26,9 @@ public sealed class SteamHeadlessLoginVerifierTests
         public List<string?> ReadLogPaths { get; } = new();
         public Func<string, int[]> Finder { get; set; } = _ => Array.Empty<int>();
         public Exception? FinderError { get; set; }
+        public SteamBranchResult Branch { get; set; } = new(SteamBranchStatus.Default, null);
+        public Exception? BranchError { get; set; }
+        public int LogPathCalls { get; set; }
         public List<int> Killed { get; } = new();
         public List<string> DeletedLogs { get; } = new();
         public string LogPath { get; set; } = @"C:\AppData\SUSModder\Logs\steam-headless-test.log";
@@ -49,10 +52,44 @@ public sealed class SteamHeadlessLoginVerifierTests
             },
             killConfirmedPid: (pid, _) => Killed.Add(pid),
             deleteOwnLog: path => DeletedLogs.Add(path),
-            logPathFactory: () => LogPath,
+            logPathFactory: () => { LogPathCalls++; return LogPath; },
             timeout: timeout,
             pollInterval: poll,
-            isGameInstalled: () => true);
+            isGameInstalled: () => true,
+            branchProbe: () => { if (BranchError != null) throw BranchError; return Branch; });
+    }
+
+    [Theory]
+    [InlineData(SteamBranchStatus.NonDefault, SteamHeadlessLoginStatus.BetaBranchMismatch)]
+    [InlineData(SteamBranchStatus.Inconsistent, SteamHeadlessLoginStatus.BetaBranchMismatch)]
+    [InlineData(SteamBranchStatus.Unknown, SteamHeadlessLoginStatus.BranchUnknown)]
+    public async Task UnsafeBranchStopsBeforeLogOrLaunch(SteamBranchStatus branch, SteamHeadlessLoginStatus expected)
+    {
+        var env = new FakeEnv { Branch = new(branch, "beta") };
+        var result = await env.Build(FastTimeout, FastPoll).RunAsync();
+        Assert.Equal(expected, result.Status);
+        Assert.Null(env.LaunchedUri);
+        Assert.Equal(0, env.LogPathCalls);
+    }
+
+    [Fact]
+    public async Task UnknownBranchCanBeExplicitlyAllowed()
+    {
+        var env = new FakeEnv { Branch = new(SteamBranchStatus.Unknown, null), LogProvider = _ => null };
+        var result = await env.Build(TimeSpan.FromMilliseconds(30), FastPoll).RunAsync(allowUnknownBranch: true);
+        Assert.NotNull(env.LaunchedUri);
+        Assert.Equal(1, env.LogPathCalls);
+        Assert.Equal(SteamHeadlessLoginStatus.NotConfirmed, result.Status);
+    }
+
+    [Fact]
+    public async Task BranchProbeExceptionIsUnknown()
+    {
+        var env = new FakeEnv { BranchError = new InvalidOperationException() };
+        var result = await env.Build(FastTimeout, FastPoll).RunAsync();
+        Assert.Equal(SteamHeadlessLoginStatus.BranchUnknown, result.Status);
+        Assert.Null(env.LaunchedUri);
+        Assert.Equal(0, env.LogPathCalls);
     }
 
     private static readonly TimeSpan FastTimeout = TimeSpan.FromMilliseconds(120);
@@ -78,7 +115,8 @@ public sealed class SteamHeadlessLoginVerifierTests
         var verifier = new SteamHeadlessLoginVerifier(
             isGameRunning: () => false,
             isGameInstalled: () => false,
-            launchUri: _ => launched = true);
+            launchUri: _ => launched = true,
+            branchProbe: () => new SteamBranchResult(SteamBranchStatus.Default, null));
 
         var result = await verifier.RunAsync();
 

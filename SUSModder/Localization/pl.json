@@ -507,17 +507,24 @@
         "NotFound": "Plik regionInfo.json nie istnieje."
       },
       "Firewall": {
-        "Title": "Wyjątki firewalla",
-        "Description": "Dodaje reguły przychodzące i wychodzące dla Among Us.exe w zaporze Windows (tylko Steam).",
-        "SelectModTitle": "Wybierz mod dla firewalla",
-        "SelectModDescription": "Wybierz zainstalowany mod, dla którego chcesz dodać wyjątki do zapory Windows.",
-        "AddException": "Dodaj wyjątek",
-        "ConfirmMessage": "Czy chcesz dodać wyjątki firewalla dla moda {0}? Wymaga uprawnień administratora.",
-        "Success": "Wyjątki firewalla dla moda {0} zostały dodane pomyślnie.",
-        "Error": "Błąd podczas dodawania wyjątków firewalla: {0}",
-        "ProcessError": "Nie udało się uruchomić procesu netsh.",
-        "ExeNotFound": "Nie znaleziono pliku Among Us.exe w ścieżce: {0}",
-        "NoModsInstalled": "Brak zainstalowanych modów typu full. Zainstaluj najpierw jakiś mod."
+        "Title": "Zapora Windows",
+        "Description": "Pozwól grze łączyć się z internetem (Zapora Windows). Windows zapyta o zgodę administratora — to normalne.",
+        "SelectModTitle": "Wybierz grę lub moda",
+        "SelectModDescription": "Wybierz, której grze lub modowi chcesz pozwolić na łączenie się z internetem.",
+        "AddException": "Dodaj pozwolenie",
+        "VanillaEntry": "Among Us (podstawowa gra)",
+        "PredictedPathWarning": "Gra nie została jeszcze pobrana. Pozwolenie będzie dotyczyć miejsca, gdzie gra się zainstaluje.",
+        "ConfirmMessage": "Czy chcesz pozwolić grze {0} łączyć się z internetem? Windows zapyta o zgodę administratora — to normalne.",
+        "Success": "Pozwolenie dodane. Gra może łączyć się z internetem.",
+        "PartialSuccess": "Jedno z pozwoleń nie zostało dodane. Spróbuj ponownie.",
+        "NameConflict": "Istnieje już inne pozwolenie o tej nazwie w Zaporze Windows. Nie ruszamy cudzych ustawień.\n\nCo możesz zrobić:\n1. Zmień nazwę moda i spróbuj ponownie.\n2. Albo otwórz Zaporę Windows i usuń stare pozwolenie ręcznie.",
+        "NameConflictOpenFirewall": "Otwórz Zaporę Windows",
+        "NameConflictOpenError": "Nie udało się otworzyć Zapory Windows. Otwórz menu Start, wpisz „zapora” i uruchom „Zapora Windows Defender z zabezpieczeniami zaawansowanymi”, a potem usuń stare pozwolenie ręcznie.",
+        "Error": "Nie udało się dodać pozwolenia. Spróbuj ponownie.",
+        "InvalidPath": "Nie można dodać pozwolenia — ścieżka do gry jest nieprawidłowa.",
+        "ProcessError": "Nie udało się uruchomić narzędzia Windows. Spróbuj ponownie.",
+        "ExeNotFound": "Nie znaleziono pliku gry. Zainstaluj grę lub moda i spróbuj ponownie.",
+        "NoModsInstalled": "Nie znaleziono gry Among Us ani zainstalowanych modów. Zainstaluj grę lub moda i spróbuj ponownie."
       },
       "EpicAuth": {
         "Title": "Konto Epic Games",
@@ -545,10 +552,134 @@
         "GameNotInstalled": "Nie znaleziono Among Us w bibliotece Steam. Zainstaluj grę i ponów konfigurację w narzędziach naprawy.",
         "ProcessLeftOpen": "Uwaga: nie udało się potwierdzić, że proces testu należy do tego testu, więc nie został zamknięty automatycznie. Zamknij Among Us ręcznie, jeśli nadal działa.",
         "Failed": "Test logowania Steam nie powiódł się: {0}",
-        "WindowsOnly": "Ta funkcja jest dostępna tylko w systemie Windows."
+        "WindowsOnly": "Ta funkcja jest dostępna tylko w systemie Windows.",
+        "BetaBranchMismatchTitle": "Among Us jest na wersji testowej",
+        "BetaBranchMismatch": "Among Us ma w Steam ustawioną wersję testową (beta). Mody działają na zwykłej wersji gry. Zmień to: Steam → Among Us → Właściwości → Betas → Brak. Poczekaj, aż Steam pobierze zwykłą wersję.",
+        "BetaToastHint": "Kliknij ten komunikat, aby otworzyć Steam.",
+        "BranchUnknownTitle": "Nie sprawdzono wersji gry",
+        "BranchUnknown": "Nie udało się sprawdzić, jaką wersję gry masz w Steam. Test logowania został pominięty.",
+        "BranchUnknownOverrideConfirm": "Nie udało się sprawdzić wersji gry. Uruchomić test logowania mimo to?"
+      },
+      "EnvironmentCheck": {
+        "Title": "Sprawdź, czy mody będą działać",
+        "Description": "Sprawdza ustawienia Windows i Steam, które mogą przeszkadzać modom. Nic nie zmienia."
       },
       "Cancelled": "Operacja anulowana przez użytkownika.",
       "Error": "Wystąpił błąd podczas naprawy: {0}"
+    },
+    "EnvironmentCheck": {
+      "Title": "Czy mody będą działać?",
+      "ReadOnlyNote": "To tylko sprawdzenie — nic nie zmieniamy w komputerze ani w grze.",
+      "Running": "Sprawdzamy ustawienia Windows i Steam…",
+      "Recheck": "Sprawdź ponownie",
+      "Timestamp": "Sprawdzono: {0}",
+      "Error": "Nie udało się dokończyć sprawdzenia. Spróbuj ponownie.",
+      "SummaryOk": "Wszystko wygląda dobrze.",
+      "SummaryProblems": "Rzeczy, które mogą przeszkadzać modom: {0}.",
+      "ShowRest": "Pokaż pozostałe szczegóły",
+      "Proposal": {
+        "Title": "Sprawdzić, czy mody będą działać na tym komputerze?",
+        "Message": "To tylko sprawdzenie — nic nie zmieniamy w komputerze. Możesz to zrobić później: menu → „Napraw Among Us” → „Sprawdź, czy mody będą działać”.",
+        "Check": "Sprawdź",
+        "Skip": "Nie teraz"
+      },
+      "Status": {
+        "Ok": "Dobrze",
+        "Info": "Informacja",
+        "Warning": "Może przeszkadzać",
+        "Error": "Problem",
+        "Unknown": "Nie sprawdzono",
+        "NotApplicable": "Nie dotyczy"
+      },
+      "Checks": {
+        "sac": "Smart App Control (Windows)",
+        "firewall": {
+          "profiles": "Zapora Windows",
+          "thirdparty": "Inna zapora sieciowa",
+          "rules": "Zezwolenie zapory dla gry"
+        },
+        "av": {
+          "thirdparty": "Antywirus spoza Windows"
+        },
+        "defender": {
+          "realtime": "Ochrona w czasie rzeczywistym",
+          "cfa": "Ochrona ważnych folderów",
+          "tamper": "Ochrona ustawień antywirusa"
+        },
+        "steam": {
+          "installed": "Among Us w Steam",
+          "beta": "Wersja gry Among Us"
+        }
+      },
+      "Code": {
+        "env": {
+          "sac": {
+            "not_applicable": "Ta funkcja Windows nie występuje w tym systemie.",
+            "off": "Smart App Control jest wyłączony — nie blokuje modów.",
+            "enforce": "Smart App Control może blokować mody. To funkcja Windows, która przepuszcza tylko znane, sprawdzone aplikacje.",
+            "evaluation": "Smart App Control na razie tylko obserwuje i nic nie blokuje, ale może zacząć blokować mody.",
+            "unknown": "Nie udało się sprawdzić Smart App Control. Możesz zobaczyć to ustawienie w Windows Security."
+          },
+          "firewall": {
+            "unknown": "Nie udało się sprawdzić zapory Windows.",
+            "disabled": "Zapora Windows jest wyłączona w sieci, z której korzystasz. Gra powinna działać, ale komputer jest mniej chroniony.",
+            "enabled": "Zapora Windows jest włączona — to normalne i bezpieczne.",
+            "thirdparty_unknown": "Nie udało się sprawdzić, czy jest inna zapora sieciowa.",
+            "thirdparty_none": "Nie ma innej zapory sieciowej — o dostęp do sieci dba tylko Zapora Windows.",
+            "thirdparty_detected": "Jest inna zapora sieciowa: {0}. Ona też może decydować, czy gra ma dostęp do sieci.",
+            "rules_unknown": "Nie udało się sprawdzić zezwolenia zapory dla gry.",
+            "rules_not_applicable": "Nie znaleziono pliku gry, więc nie ma czego sprawdzać.",
+            "rules_missing": "Zapora Windows nie ma zezwolenia dla tej gry. Dodaj je narzędziem firewalla — przycisk poniżej.",
+            "rules_drift": "Zezwolenie zapory dotyczy innego pliku gry niż ten, którego używasz. Odśwież je narzędziem firewalla.",
+            "rules_ok": "Zapora Windows ma poprawne zezwolenie dla tej gry."
+          },
+          "av": {
+            "unknown": "Nie udało się sprawdzić antywirusa.",
+            "detected": "Antywirus: {0}. Może blokować pliki modów — zobacz instrukcję poniżej.",
+            "none": "Nie ma innego antywirusa — działa tylko ochrona Windows."
+          },
+          "defender": {
+            "unknown": "Nie udało się sprawdzić ochrony Windows.",
+            "realtime_on": "Ochrona w czasie rzeczywistym jest włączona — to standardowe ustawienie Windows.",
+            "realtime_off": "Ochrona w czasie rzeczywistym jest wyłączona. Mody powinny działać swobodnie, ale komputer jest mniej chroniony.",
+            "cfa_unknown": "Nie udało się sprawdzić ochrony folderów.",
+            "cfa_off": "Ochrona folderów jest wyłączona — mody mogą swobodnie zapisywać pliki.",
+            "cfa_on": "Ochrona folderów jest włączona i może blokować zapisywanie plików przez mody.",
+            "tamper_unknown": "Nie udało się sprawdzić ochrony ustawień antywirusa.",
+            "tamper_on": "Ochrona ustawień antywirusa jest włączona — nikt nie może po cichu zmienić zabezpieczeń.",
+            "tamper_off": "Ochrona ustawień antywirusa jest wyłączona. Nie przeszkadza grze, ale warto ją włączyć w Windows Security."
+          },
+          "steam": {
+            "not_applicable": "Nie dotyczy — ta instalacja nie jest ze Steam.",
+            "unknown": "Nie udało się sprawdzić instalacji Steam.",
+            "installed": "Among Us jest zainstalowany w Steam.",
+            "multiple": "W Steam jest kilka instalacji Among Us ({0}). SUSModder może sprawdzać inną kopię niż ta, w którą grasz.",
+            "files_only": "Pliki gry są na dysku, ale Steam nie widzi tej instalacji. Uruchom grę przez Steam, żeby ją rozpoznał.",
+            "not_found": "Nie znaleziono Among Us w Steam. Zainstaluj grę w Steam, jeśli chcesz z niej korzystać.",
+            "beta_not_applicable": "Nie dotyczy — ta instalacja nie jest ze Steam.",
+            "beta_unknown": "Nie udało się sprawdzić, jaką wersję gry masz w Steam.",
+            "beta_default": "Gra jest na zwykłej wersji — to właściwa wersja do modów.",
+            "beta_nondefault": "Among Us ma w Steam ustawioną wersję testową (beta). Mody działają na zwykłej wersji gry.",
+            "beta_inconsistent": "Ustawienia wersji gry w Steam nie pasują do siebie. Steam może pobrać inną wersję, niż myślisz — ustaw zwykłą wersję (instrukcja poniżej)."
+          }
+        }
+      },
+      "Action": {
+        "OpenWindowsSecurity": "Otwórz Windows Security",
+        "OpenSteam": "Otwórz Steam",
+        "OpenFirewallTool": "Otwórz narzędzie firewalla",
+        "SacInstruction": "Smart App Control to ochrona całego komputera. Jeśli mody nie działają, ta funkcja może je blokować, bo nie są podpisane cyfrowo. 1. Otwórz Windows Security przyciskiem poniżej. 2. Zobacz, czy Smart App Control jest włączony — szczegóły pokaże Windows Security. 3. Decyzja o zmianie należy do Ciebie — my nie zmieniamy tego ustawienia.",
+        "SteamBetaInstruction": "1. Otwórz Steam przyciskiem poniżej. 2. Kliknij Among Us w bibliotece prawym przyciskiem i wybierz „Właściwości”. 3. Wejdź w „Betas” i wybierz „Brak”. 4. Poczekaj, aż Steam pobierze zwykłą wersję gry.",
+        "AvInstruction": "Antywirus może blokować lub usuwać pliki modów. 1. Otwórz swój antywirus. 2. Dodaj folder „{0}” do wyjątków (zaufanych). 3. Jeśli mod został usunięty, zainstaluj go ponownie w SUSModderze. SUSModder nie zmienia ustawień antywirusa automatycznie.",
+        "CfaInstruction": "1. Kliknij „Otwórz Windows Security”. 2. Wejdź w „Ochrona przed wirusami i zagrożeniami” i znajdź „Kontrolowany dostęp do folderów”. 3. Pozwól Among Us zapisywać pliki w chronionych folderach."
+      },
+      "Detail": {
+        "Code": "Kod: {0}",
+        "Path": "Ścieżka: {0}",
+        "RulePath": "Zezwolenie zapory dotyczy: {0}",
+        "TargetPath": "Gra jest tutaj: {0}",
+        "Branch": "Wersja w Steam: {0}"
+      }
     }
   },
   "DllManager": {

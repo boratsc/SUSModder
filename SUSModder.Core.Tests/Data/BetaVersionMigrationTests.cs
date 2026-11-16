@@ -14,7 +14,7 @@ namespace SUSModder.Core.Tests.Data;
 /// </summary>
 public class BetaVersionMigrationTests : IDisposable
 {
-    private const int ExpectedSchemaVersion = 19;
+    private const int ExpectedSchemaVersion = 20;
 
     private readonly string _tempDir;
 

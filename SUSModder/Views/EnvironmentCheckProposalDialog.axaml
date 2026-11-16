@@ -1,0 +1,39 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SUSModder.Services.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:fic="using:FluentIcons.Common"
+        x:Class="SUSModder.Views.EnvironmentCheckProposalDialog"
+        Title="{loc:Localize UI.EnvironmentCheck.Proposal.Title}"
+        Width="480" Height="380"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        AutomationProperties.Name="{loc:Localize UI.EnvironmentCheck.Proposal.Title}">
+
+    <Window.Styles>
+        <FluentTheme />
+    </Window.Styles>
+
+    <Grid Margin="24" RowDefinitions="*,Auto">
+        <StackPanel Grid.Row="0" Spacing="12" VerticalAlignment="Center">
+            <Border Classes="modal-icon">
+                <ic:SymbolIcon Symbol="{x:Static fic:Symbol.ShieldCheckmark}"/>
+            </Border>
+            <TextBlock Text="{loc:Localize UI.EnvironmentCheck.Proposal.Title}" Classes="modal-title"/>
+            <TextBlock Text="{loc:Localize UI.EnvironmentCheck.Proposal.Message}" Classes="modal-message"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Classes="modal-actions" Margin="0,16,0,0">
+            <Button Classes="modal-primary"
+                    Content="{loc:Localize UI.EnvironmentCheck.Proposal.Check}"
+                    AutomationProperties.Name="{loc:Localize UI.EnvironmentCheck.Proposal.Check}"
+                    Click="OnCheckClick"/>
+            <Button Classes="modal-secondary"
+                    Content="{loc:Localize UI.EnvironmentCheck.Proposal.Skip}"
+                    AutomationProperties.Name="{loc:Localize UI.EnvironmentCheck.Proposal.Skip}"
+                    IsCancel="True"
+                    Click="OnSkipClick"/>
+        </StackPanel>
+    </Grid>
+</Window>

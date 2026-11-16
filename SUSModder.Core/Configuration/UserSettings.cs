@@ -182,6 +182,13 @@ namespace SUSModder.Core.Configuration
         [JsonPropertyName("chatRulesAcknowledgedVersion")]
         public int ChatRulesAcknowledgedVersion { get; set; } = 0;
 
+        /// <summary>
+        /// Wersja obsłużonej propozycji diagnostyki środowiska; 0 = nigdy nie pokazano.
+        /// „Pomiń” i ukończenie ustawiają bieżącą wersję; nie potwierdza ostrzeżeń AV.
+        /// </summary>
+        [JsonPropertyName("environmentCheckPromptVersion")]
+        public int EnvironmentCheckPromptVersion { get; set; } = 0;
+
         [JsonPropertyName("chatReadWatermarkUnixMs")]
         public long ChatReadWatermarkUnixMs { get; set; } = 0;
 

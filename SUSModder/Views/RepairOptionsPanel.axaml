@@ -90,7 +90,6 @@
                         BorderBrush="{DynamicResource ModCardBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="10"
-                        IsEnabled="{Binding IsRepairSteamPlatform}"
                         Command="{Binding ExecuteRepairOptionCommand}"
                         CommandParameter="Firewall">
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
@@ -128,6 +127,31 @@
                                        FontSize="15"
                                        FontWeight="SemiBold"/>
                             <TextBlock Text="{loc:Localize UI.Repair.SteamLoginCheck.Description}"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                    </Grid>
+                </Button>
+
+                <Button HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Padding="14"
+                        Background="{DynamicResource ModCardBackgroundBrush}"
+                        BorderBrush="{DynamicResource ModCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Command="{Binding ExecuteRepairOptionCommand}"
+                        CommandParameter="EnvironmentCheck">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <Border Width="44" Height="44" CornerRadius="8" Background="#00897B">
+                            <ic:SymbolIcon Symbol="{x:Static fic:Symbol.ShieldCheckmark}" FontSize="22" Foreground="White"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="3">
+                            <TextBlock Text="{loc:Localize UI.Repair.EnvironmentCheck.Title}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"/>
+                            <TextBlock Text="{loc:Localize UI.Repair.EnvironmentCheck.Description}"
                                        FontSize="12"
                                        TextWrapping="Wrap"
                                        Foreground="{DynamicResource TextSecondaryBrush}"/>

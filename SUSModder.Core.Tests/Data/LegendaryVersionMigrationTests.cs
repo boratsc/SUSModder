@@ -8,7 +8,7 @@ namespace SUSModder.Core.Tests.Data;
 /// </summary>
 public class LegendaryVersionMigrationTests : IDisposable
 {
-    private const int ExpectedSchemaVersion = 19;
+    private const int ExpectedSchemaVersion = 20;
 
     private readonly string _tempDir;
 

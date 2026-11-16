@@ -33,6 +33,10 @@ public enum SteamHeadlessLoginStatus
 
     /// <summary>Steam installation of Among Us is not available locally.</summary>
     GameNotInstalled,
+    /// <summary>The installed Steam copy is configured for a non-default or inconsistent beta branch.</summary>
+    BetaBranchMismatch,
+    /// <summary>The installed Steam branch could not be determined.</summary>
+    BranchUnknown,
 
     /// <summary>Pozostałe błędy uruchomienia.</summary>
     Failed,
@@ -87,6 +91,7 @@ public sealed partial class SteamHeadlessLoginVerifier
     private readonly Func<string> _logPathFactory;
     private readonly TimeSpan _timeout;
     private readonly TimeSpan _pollInterval;
+    private readonly Func<SteamBranchResult> _branchProbe;
 
     /// <param name="isGameRunning">Probe czy jakikolwiek "Among Us" działa (domyślnie: lista procesów).</param>
     /// <param name="launchUri">Start steam:// URI (rzuca <see cref="Win32Exception"/> przy braku obsługi).</param>
@@ -105,7 +110,8 @@ public sealed partial class SteamHeadlessLoginVerifier
         Func<string>? logPathFactory = null,
         TimeSpan timeout = default,
         TimeSpan pollInterval = default,
-        Func<bool>? isGameInstalled = null)
+        Func<bool>? isGameInstalled = null,
+        Func<SteamBranchResult>? branchProbe = null)
     {
         _isGameRunning = isGameRunning ?? DefaultIsGameRunning;
         _isGameInstalled = isGameInstalled ?? (() => GameLocator.IsValidAmongUsInstallDirectory(GameLocator.TryFindSteamPath()));
@@ -117,6 +123,7 @@ public sealed partial class SteamHeadlessLoginVerifier
         _logPathFactory = logPathFactory ?? DefaultLogPath;
         _timeout = timeout == default ? DefaultTimeout : timeout;
         _pollInterval = pollInterval == default ? DefaultPollInterval : pollInterval;
+        _branchProbe = branchProbe ?? DefaultBranchProbe;
     }
 
     /// <summary>
@@ -165,7 +172,7 @@ public sealed partial class SteamHeadlessLoginVerifier
     /// Uruchamia test: start steam:// → monitor logu → warunkowe zatrzymanie potwierdzonej instancji.
     /// Nie blokuje innych operacji; wyjątki są klasyfikowane w wyniku, nie propagowane (poza cancel).
     /// </summary>
-    public async Task<SteamHeadlessLoginResult> RunAsync(CancellationToken cancellationToken = default)
+    public async Task<SteamHeadlessLoginResult> RunAsync(CancellationToken cancellationToken = default, bool allowUnknownBranch = false)
     {
         if (cancellationToken.IsCancellationRequested)
             return new SteamHeadlessLoginResult(SteamHeadlessLoginStatus.Cancelled);
@@ -175,6 +182,14 @@ public sealed partial class SteamHeadlessLoginVerifier
 
         if (!_isGameInstalled())
             return new SteamHeadlessLoginResult(SteamHeadlessLoginStatus.GameNotInstalled);
+
+        SteamBranchResult branch;
+        try { branch = _branchProbe(); }
+        catch { branch = new(SteamBranchStatus.Unknown, null); }
+        if (branch.Status is SteamBranchStatus.NonDefault or SteamBranchStatus.Inconsistent)
+            return new SteamHeadlessLoginResult(SteamHeadlessLoginStatus.BetaBranchMismatch);
+        if (branch.Status == SteamBranchStatus.Unknown && !allowUnknownBranch)
+            return new SteamHeadlessLoginResult(SteamHeadlessLoginStatus.BranchUnknown);
 
         string logPath;
         try
@@ -219,6 +234,14 @@ public sealed partial class SteamHeadlessLoginVerifier
         }
 
         return new SteamHeadlessLoginResult(status, LogPath: logPath, OwnInstanceStopped: stopped, OwnInstanceUnconfirmed: unconfirmed);
+    }
+
+    private static SteamBranchResult DefaultBranchProbe()
+    {
+        var installs = AmongUsPathDiscovery.TryFindSteamInstallsWithManifest();
+        return installs.Count == 1
+            ? SteamBranchEvaluator.Evaluate(SteamAppManifest.TryRead(installs[0].ManifestPath))
+            : new SteamBranchResult(SteamBranchStatus.Unknown, null);
     }
 
     private async Task<SteamHeadlessLoginStatus> MonitorLogAsync(string logPath, CancellationToken cancellationToken)
