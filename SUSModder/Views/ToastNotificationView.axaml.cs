@@ -34,48 +34,58 @@ namespace SUSModder.Views
             _ = AnimateSlideInAsync();
         }
 
+        // E11c: offset slide-in nie może przekraczać prawego marginesu hosta (ToastHost Border
+        // Margin="0,66,12,0"), inaczej toast podczas wjazdu renderuje się poza oknem po prawej.
+        private const double SlideInOffsetX = 12;
+
         private async Task AnimateSlideInAsync()
         {
             // Używamy TYLKO TranslateTransform do slide – nie ruszamy Opacity,
             // żeby nie nadpisać bindingu Opacity="{Binding Opacity}" z modelu.
             // W Avalonii local value (code-behind) ma wyższy priorytet niż binding,
             // więc ustawienie Opacity=0 w kodzie anulowałoby binding i toast by zniknął po animacji.
-            var transform = new TranslateTransform { X = 60 };
+            var transform = new TranslateTransform { X = SlideInOffsetX };
             RenderTransform = transform;
 
-            // Krótkie opóźnienie aby element zdążył się wyrenderować
-            await Task.Delay(10);
-
-            // Animacja slide-in: tylko przesunięcie X, bez zmiany Opacity
-            var animation = new Animation
+            try
             {
-                Duration = TimeSpan.FromMilliseconds(350),
-                Easing = new CubicEaseOut(),
-                Children =
+                // Krótkie opóźnienie aby element zdążył się wyrenderować
+                await Task.Delay(10);
+
+                // Animacja slide-in: tylko przesunięcie X, bez zmiany Opacity
+                var animation = new Animation
                 {
-                    new KeyFrame
+                    Duration = TimeSpan.FromMilliseconds(350),
+                    Easing = new CubicEaseOut(),
+                    Children =
                     {
-                        Cue = new Cue(0.0),
-                        Setters =
+                        new KeyFrame
                         {
-                            new Setter(TranslateTransform.XProperty, 60.0)
-                        }
-                    },
-                    new KeyFrame
-                    {
-                        Cue = new Cue(1.0),
-                        Setters =
+                            Cue = new Cue(0.0),
+                            Setters =
+                            {
+                                new Setter(TranslateTransform.XProperty, SlideInOffsetX)
+                            }
+                        },
+                        new KeyFrame
                         {
-                            new Setter(TranslateTransform.XProperty, 0.0)
+                            Cue = new Cue(1.0),
+                            Setters =
+                            {
+                                new Setter(TranslateTransform.XProperty, 0.0)
+                            }
                         }
                     }
-                }
-            };
+                };
 
-            await animation.RunAsync(this);
-
-            // Po zakończeniu animacji usuń transform (optymalizacja)
-            RenderTransform = null;
+                await animation.RunAsync(this);
+            }
+            finally
+            {
+                // Zawsze usuń transform – nawet gdy animacja się nie powiedzie,
+                // żeby toast nie został trwale przesunięty poza kotwicę.
+                RenderTransform = null;
+            }
         }
 
         /// <summary>
