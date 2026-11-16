@@ -340,10 +340,10 @@
 					BorderThickness="0,0,1,0"
 					KeyDown="SidebarNav_KeyDown">
 				<Panel>
-					<!-- E12: złoty akcent łukowy na dole — warstwa tła za nawigacją, nie przechwytuje kliknięć -->
+					<!-- E12b: złoty akcent łukowy (grafika użytkownika, alpha) od lewej krawędzi na dole — warstwa tła za nawigacją, nie przechwytuje kliknięć -->
 					<Image Source="avares://SUSModder/Assets/sidebar-accent.png"
-					       VerticalAlignment="Bottom" HorizontalAlignment="Stretch"
-					       Height="340" Stretch="Fill" Opacity="1"
+					       VerticalAlignment="Bottom" HorizontalAlignment="Left"
+					       Width="230" Stretch="Uniform" Opacity="1"
 					       IsHitTestVisible="False"/>
 					<StackPanel Margin="12,16,12,0" Spacing="4">
 						<Button Classes="sidebar-item"
