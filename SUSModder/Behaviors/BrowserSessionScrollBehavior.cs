@@ -64,6 +64,8 @@ public sealed class BrowserSessionScrollBehavior : Behavior<Window>
         {
             MainWindowViewModel.ModBrowserTab.Catalog => "ModsListBox",
             MainWindowViewModel.ModBrowserTab.DllAddons => "DllModsListBox",
+            // E16 (D1): Role ma dwie listy — poziom A (mody) i B (role); capture/restore celuje w aktywną.
+            MainWindowViewModel.ModBrowserTab.Roles => _viewModel?.SelectedRoleModId == null ? "RoleModsListBox" : "ModRolesListBox",
             _ => "PackInstancesListBox"
         };
         var list = AssociatedObject?.FindControl<ListBox>(name);
