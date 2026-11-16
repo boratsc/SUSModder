@@ -1382,35 +1382,6 @@
     "NoButton": "🗑️ Delete and launch",
     "CancelButton": "❌ Cancel"
   },
-  "RolesWindow": {
-    "WindowTitle": "Roles and Modifiers",
-    "Header": "Roles and Modifiers",
-    "LoadingSubtitle": "Loading...",
-    "ModSubtitle": "Mod: {0}",
-    "SearchPlaceholder": "Search roles...",
-    "AllCategories": "All categories",
-    "CategoryCrewmate": "Crewmate",
-    "CategoryImpostor": "Impostor",
-    "CategoryNeutral": "Neutral",
-    "CategoryModifier": "Modifier",
-    "AllTypes": "All types",
-    "TypeRole": "Role",
-    "TypeModifier": "Modifier",
-    "LoadingMessage": "Loading roles...",
-    "ErrorMessage": "Error while loading roles",
-    "RetryButton": "Try again",
-    "NoResultsMessage": "No results",
-    "NoResultsHint": "Try changing search criteria",
-    "RoleCountSingle": "Mod: {0} • {1} roles/modifiers",
-    "RoleCountFiltered": "Mod: {0} • {1} of {2} roles/modifiers"
-  },
-  "RoleDetail": {
-    "WindowTitle": "Role details",
-    "DescriptionHeader": "📝 Description",
-    "AbilitiesHeader": "⚡ Abilities",
-    "ModHeader": "Mod:",
-    "CloseButton": "Close"
-  },
   "Splash": {
     "Loading": "Loading..."
   },

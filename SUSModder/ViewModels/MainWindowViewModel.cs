@@ -592,7 +592,6 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> ShowInfoCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowAppSettingsCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowSUStatsConfigCommand { get; }
-        public ICommand ShowRolesCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowAdditionalActionsCommand { get; }
         public ReactiveCommand<Unit, Unit> FixBlackScreenCommand { get; }
         public ReactiveCommand<Unit, Unit> LaunchCommand { get; }
@@ -710,7 +709,6 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
                 IsPaneOpen = false;
                 await CheckForModUpdatesAsync();
             });
-ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             ShowInfoCommand = ReactiveCommand.Create(ShowInfo);
             ShowAdditionalActionsCommand = ReactiveCommand.Create(ShowAdditionalActions);
             OpenFolderCommand = ReactiveCommand.Create(OpenFolder);

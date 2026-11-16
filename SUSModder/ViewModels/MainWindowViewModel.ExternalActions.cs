@@ -668,17 +668,6 @@ namespace SUSModder.ViewModels
             }
         }
 
-        private void ShowRoles()
-        {
-            if (SelectedMod != null)
-            {
-                // SelectedMod.Id to ID moda z config.json
-                // Przekazujemy to samo ID jako configId i modId
-                var rolesWindow = new RolesWindow(SelectedMod.Id, SelectedMod.Id, SelectedMod.Name);
-                rolesWindow.Show();
-            }
-        }
-
         #endregion
 
         #region File & Folder Operations
