@@ -547,9 +547,6 @@
       },
       "Cancelled": "Operacja anulowana przez użytkownika.",
       "Error": "Wystąpił błąd podczas naprawy: {0}"
-    },
-    "Fab": {
-      "UpdatesBadgeTooltip": "{0} dostępnych aktualizacji"
     }
   },
   "DllManager": {

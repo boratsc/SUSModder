@@ -5,28 +5,6 @@ namespace SUSModder.ViewModels
 {
     public partial class MainWindowViewModel
     {
-        public enum StatusBarMode
-        {
-            DiscordPromo,
-            SystemStatus
-        }
-
-        private StatusBarMode _currentStatusBarMode = StatusBarMode.DiscordPromo;
-
-        public StatusBarMode CurrentStatusBarMode
-        {
-            get => _currentStatusBarMode;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _currentStatusBarMode, value);
-                this.RaisePropertyChanged(nameof(IsDiscordPromoStatusBarMode));
-                this.RaisePropertyChanged(nameof(IsSystemStatusBarMode));
-            }
-        }
-
-        public bool IsDiscordPromoStatusBarMode => CurrentStatusBarMode == StatusBarMode.DiscordPromo;
-        public bool IsSystemStatusBarMode => CurrentStatusBarMode == StatusBarMode.SystemStatus;
-
         public bool IsDllModalVisible => IsDllModificationsVisible || IsDllInstallDialogVisible;
 
         private bool _isChatOpen;
@@ -174,15 +152,11 @@ namespace SUSModder.ViewModels
                 ? 560
                 : 760;
 
-        public ReactiveCommand<Unit, Unit> ToggleStatusBarModeCommand { get; private set; } =
-            ReactiveCommand.Create(() => { });
-
         public ReactiveCommand<Unit, Unit> CloseToolModalCommand { get; private set; } =
             ReactiveCommand.Create(() => { });
 
         private void InitializeFrontendLayout()
         {
-            ToggleStatusBarModeCommand = ReactiveCommand.Create(ToggleStatusBarMode);
             CloseToolModalCommand = ReactiveCommand.Create(CloseToolModal);
             ToggleChatCommand = ReactiveCommand.Create(() => { IsChatOpen = !IsChatOpen; });
         }
@@ -207,13 +181,6 @@ namespace SUSModder.ViewModels
                     message.AuthorDisplay,
                     message.DisplayContent,
                     () => IsChatOpen = true);
-        }
-
-        private void ToggleStatusBarMode()
-        {
-            CurrentStatusBarMode = CurrentStatusBarMode == StatusBarMode.DiscordPromo
-                ? StatusBarMode.SystemStatus
-                : StatusBarMode.DiscordPromo;
         }
 
         private void CloseToolModal()

@@ -606,6 +606,9 @@ namespace SUSModder.ViewModels
     public ReactiveCommand<ModItem, Unit> UninstallDllFromModCommand { get; }
     public ReactiveCommand<Unit, Unit> CloseDllDialogCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
+        // E9a: jedyna żywa komenda po usunięciu rotacji promo (AdditionalActionsPanel).
+        public ReactiveCommand<Unit, Unit> OpenOfficialDiscordHubCommand { get; } =
+            ReactiveCommand.Create(OfficialDiscordHub.Open);
         public ReactiveCommand<Unit, Unit> ShareExistingPackCommand { get; }
         public ReactiveCommand<Unit, Unit> CreateAndSharePackCommand { get; }
 public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
@@ -746,7 +749,6 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
                     this.RaisePropertyChanged(nameof(ActiveViewTitle));
                     this.RaisePropertyChanged(nameof(ActiveViewSubtitle));
                     this.RaisePropertyChanged(nameof(ChatOnlineText));
-                    RaisePromotedDiscordDerivedProperties();
                     RefreshLaunchDiagnosticsPanelStrings();
                 };
             }
@@ -763,7 +765,6 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
                 await DiscordIconPreloader.PreloadDiscordIconsAsync();
                 System.Diagnostics.Debug.WriteLine("[MainWindowViewModel] Preloader task completed");
             });
-            InitializeDiscordPromo();
 
             // ClearEpicLogsOnStartup przeniesione do InitializeServicesAsync (tworzy ciężki EpicVersionManager)
             // LoadAppVersion() jest teraz wywoływane wewnątrz InitializeApplicationAsync() (KROK 0)
@@ -842,10 +843,8 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
 
             _disposed = true;
 
-            DisposeDiscordPromoTimer();
             CancelStatusBarBackgroundTask();
             DisposeVelopackService();
-            DisposeDiscordBitmaps();
             _dllTargetItemSubscriptions.Dispose();
             CommunityChat.Dispose();
             DisposeIconAssets();

@@ -547,9 +547,6 @@
       },
       "Cancelled": "Operation cancelled by user.",
       "Error": "Error during repair: {0}"
-    },
-    "Fab": {
-      "UpdatesBadgeTooltip": "{0} available updates"
     }
   },
   "DllManager": {
