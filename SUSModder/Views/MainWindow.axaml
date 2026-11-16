@@ -132,7 +132,13 @@
 			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
 			<Setter Property="BorderBrush" Value="{DynamicResource AccentSoftBorderBrush}"/>
 		</Style>
-		<Style Selector="Button.sidebar-item.active:pointerover">
+		<!-- E16 (W2): Fluent nadpisuje Background/Foreground na PART_ContentPresenter przy :pointerover/:pressed —
+		     setter na Buttonie nie wystarcza, trzeba celować w część szablonu (jak mod-detail-btn poniżej). -->
+		<Style Selector="Button.sidebar-item.active:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+			<Setter Property="Background" Value="{DynamicResource AccentSoftFillBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+		<Style Selector="Button.sidebar-item.active:pressed /template/ ContentPresenter#PART_ContentPresenter">
 			<Setter Property="Background" Value="{DynamicResource AccentSoftFillBrush}"/>
 			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
 		</Style>
@@ -152,6 +158,14 @@
 			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
 		</Style>
 		<Style Selector="Button.sidebar-pack-subitem[Tag=True]">
+			<Setter Property="Background" Value="{DynamicResource AccentSoftFillBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+		<Style Selector="Button.sidebar-pack-subitem[Tag=True]:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+			<Setter Property="Background" Value="{DynamicResource AccentSoftFillBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+		</Style>
+		<Style Selector="Button.sidebar-pack-subitem[Tag=True]:pressed /template/ ContentPresenter#PART_ContentPresenter">
 			<Setter Property="Background" Value="{DynamicResource AccentSoftFillBrush}"/>
 			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
 		</Style>
