@@ -339,8 +339,13 @@
 					BorderBrush="{DynamicResource BorderBrush}"
 					BorderThickness="0,0,1,0"
 					KeyDown="SidebarNav_KeyDown">
-				<Grid RowDefinitions="*,Auto">
-					<StackPanel Grid.Row="0" Margin="12,16,12,0" Spacing="4">
+				<Panel>
+					<!-- E12: złoty akcent łukowy na dole — warstwa tła za nawigacją, nie przechwytuje kliknięć -->
+					<Image Source="avares://SUSModder/Assets/sidebar-accent.png"
+					       VerticalAlignment="Bottom" HorizontalAlignment="Stretch"
+					       Height="340" Stretch="Fill" Opacity="1"
+					       IsHitTestVisible="False"/>
+					<StackPanel Margin="12,16,12,0" Spacing="4">
 						<Button Classes="sidebar-item"
 								Classes.active="{Binding IsCatalogTab}"
 								Command="{Binding SelectBrowserTabCommand}"
@@ -373,10 +378,7 @@
 								<TextBlock Grid.Column="2" Classes="sidebar-count" Text="{Binding DllMods.Count}"/>
 							</Grid>
 						</Button>
-					</StackPanel>
-
-					<StackPanel Grid.Row="1" Margin="12,0,12,16">
-						<Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,0,0,12"/>
+						<Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,8,0,8"/>
 						<Button Classes="sidebar-item"
 								Classes.active="{Binding IsAppSettingsVisible}"
 								Command="{Binding ShowAppSettingsCommand}"
@@ -387,7 +389,7 @@
 							</Grid>
 						</Button>
 					</StackPanel>
-				</Grid>
+				</Panel>
 			</Border>
 
 			<!-- LISTA: nagłówek widoku + wyszukiwarka + filtr, poniżej browser -->
