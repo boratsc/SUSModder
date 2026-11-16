@@ -73,6 +73,9 @@ namespace SUSModder.ViewModels
             ApplyCurrentIconKeys();
             _ = ReconcileLegacyIconReferencesAsync();
             ApplyBrowserSearchFilter();
+            // E14: ikony/nazwy modów z rolami pochodzą z katalogu — odśwież po jego załadowaniu.
+            if (_rolesLoaded)
+                RebuildRoleMods();
         }
 
         internal void CapturePackInstancesSnapshot()
@@ -103,6 +106,8 @@ namespace SUSModder.ViewModels
             else if (IsDllAddonsTab)
                 ApplyFilterToCollection(DllMods, _dllModsSnapshot, query,
                     (mod, text) => (!BrowserFavoritesOnly || mod.IsFavorite) && MatchesDllMod(mod, text), BrowserFavoritesOnly);
+            else if (IsRolesTab)
+                ApplyRolesFilter();
 
             ClearFilteredBrowserSelection();
 

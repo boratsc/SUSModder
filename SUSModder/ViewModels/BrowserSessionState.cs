@@ -10,6 +10,10 @@ public sealed class BrowserTabState
     public bool FavoritesOnly { get; set; }
     public int? ModId { get; set; }
     public string? InstanceId { get; set; }
+    // E14: stan zakładki Role — wybrana rola i filtry poziomu B (wartości danych API).
+    public int? RoleId { get; set; }
+    public string? RoleCategory { get; set; }
+    public string? RoleType { get; set; }
     private double _scrollOffset;
     public double ScrollOffset
     {

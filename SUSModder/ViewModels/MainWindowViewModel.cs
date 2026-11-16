@@ -129,7 +129,7 @@ namespace SUSModder.ViewModels
             IsModSelected && !IsPackInstanceSelected && !IsDllPanelVisible && !IsAnyToolModalOpen;
 
         public bool IsBrowserDetailPanelVisible =>
-            IsModPanelVisible || IsPackInstancePanelVisible || IsDllPanelVisible;
+            IsModPanelVisible || IsPackInstancePanelVisible || IsDllPanelVisible || IsRolePanelVisible;
         public bool IsDeveloperMode => DeveloperModeSettings.IsEnabled;
 
         /// <summary>
@@ -737,6 +737,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             InitializeModInstances();
             InitializeDllBrowser();
             InitializeBrowserFilter();
+            InitializeRoles();
             InitializeCatalogInspector();
             InitializeInspectorCompatExpand();
             InitializeBulkOperations();
@@ -752,6 +753,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
                     this.RaisePropertyChanged(nameof(ActiveViewSubtitle));
                     this.RaisePropertyChanged(nameof(ChatOnlineText));
                     RefreshLaunchDiagnosticsPanelStrings();
+                    RefreshRolesLocalization();
                 };
             }
 

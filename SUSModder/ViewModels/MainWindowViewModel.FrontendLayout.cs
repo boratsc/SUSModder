@@ -242,6 +242,7 @@ namespace SUSModder.ViewModels
             this.RaisePropertyChanged(nameof(IsModPanelVisible));
             this.RaisePropertyChanged(nameof(IsBrowserDetailPanelVisible));
             this.RaisePropertyChanged(nameof(IsDllPanelVisible));
+            this.RaisePropertyChanged(nameof(IsRolePanelVisible));
         }
 
         private void NotifyToolModalStateChanged()

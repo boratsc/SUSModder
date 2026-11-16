@@ -19,6 +19,8 @@ public class RedesignE8LocalizationTests
         "UI.Sidebar.",
         "UI.Window.",
         "UI.Browser.",
+        "UI.Tabs.",
+        "UI.Roles.",
         "UI.Inspector.",
         "UI.Packs.",
         "UI.DllManager.",

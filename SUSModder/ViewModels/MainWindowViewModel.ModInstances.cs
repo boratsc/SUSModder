@@ -27,7 +27,8 @@ namespace SUSModder.ViewModels
         {
             MyPacks,
             Catalog,
-            DllAddons
+            DllAddons,
+            Roles
         }
 
         private ModBrowserTab _activeBrowserTab = ModBrowserTab.Catalog;
@@ -54,12 +55,14 @@ namespace SUSModder.ViewModels
                 SelectedMod = null;
                 SelectedPackInstance = null;
                 CloseDllDetail();
+                SelectedRoleItem = null;
                 this.RaiseAndSetIfChanged(ref _activeBrowserTab, value);
                 RestoreBrowserTabFilters();
                 RaiseBulkUiProperties();
                 this.RaisePropertyChanged(nameof(IsMyPacksTab));
                 this.RaisePropertyChanged(nameof(IsCatalogTab));
                 this.RaisePropertyChanged(nameof(IsDllAddonsTab));
+                this.RaisePropertyChanged(nameof(IsRolesTab));
                 this.RaisePropertyChanged(nameof(ActiveViewTitle));
                 this.RaisePropertyChanged(nameof(ActiveViewSubtitle));
                 this.RaisePropertyChanged(nameof(IsBrowserGridVisible));
@@ -90,6 +93,9 @@ namespace SUSModder.ViewModels
                 if (value == ModBrowserTab.DllAddons)
                     ActivateDllAddonsTab();
 
+                if (value == ModBrowserTab.Roles)
+                    ActivateRolesTab();
+
                 RestoreBrowserTabSelection();
             }
         }
@@ -103,6 +109,7 @@ namespace SUSModder.ViewModels
         {
             ModBrowserTab.MyPacks => _localizationService.Get("UI.Tabs.MyPacks"),
             ModBrowserTab.DllAddons => _localizationService.Get("UI.Tabs.DllAddons"),
+            ModBrowserTab.Roles => _localizationService.Get("UI.Tabs.Roles"),
             _ => _localizationService.Get("UI.Tabs.Catalog")
         };
 
@@ -111,6 +118,7 @@ namespace SUSModder.ViewModels
         {
             ModBrowserTab.MyPacks => _localizationService.Get("UI.Browser.MyPacksSubtitle"),
             ModBrowserTab.DllAddons => _localizationService.Get("UI.Browser.DllAddonsSubtitle"),
+            ModBrowserTab.Roles => _localizationService.Get("UI.Roles.Subtitle"),
             _ => _localizationService.Get("UI.Browser.CatalogSubtitle")
         };
         public bool IsPackInstancesGridVisible =>
