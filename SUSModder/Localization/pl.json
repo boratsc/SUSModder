@@ -839,15 +839,33 @@
     "AppUpdated": "🆕 Zaktualizowano do {0}! Kliknij, aby zobaczyć co nowego."
   },
   "Settings": {
-    "WindowTitle": "Ustawienia aplikacji",
-    "WindowSubtitle": "Konfiguracja aplikacji SUSModder",
+    "Main": {
+      "Title": "Ustawienia",
+      "Subtitle": "Najważniejsze opcje, bez zbędnych szczegółów.",
+      "Game": {
+        "Title": "Gra",
+        "Description": "Wybierz folder, w którym jest zainstalowane Among Us.",
+        "Browse": "Wybierz folder"
+      },
+      "Updates": {
+        "Title": "Aktualizacje",
+        "Description": "Pobieraj nowe wersje automatycznie.",
+        "State": "Przy starcie"
+      },
+      "Appearance": {
+        "Title": "Wygląd",
+        "Description": "Motyw ciemny, grafitowo-pomarańczowy.",
+        "State": "Minimalistyczny"
+      },
+      "Chat": {
+        "Description": "Czat jako nakładka; powiadomienia, gdy jest zamknięty."
+      },
+      "Advanced": "Zaawansowane"
+    },
     "General": {
-      "Title": "Ogólne",
       "Language": {
         "Label": "Język",
-        "Description": "Zmiana języka nastąpi natychmiast",
-        "Polish": "Polski",
-        "English": "English"
+        "Description": "Zmiana języka nastąpi natychmiast"
       },
       "GameMode": {
         "Label": "Tryb gry",
@@ -869,12 +887,6 @@
         "NotWritable": "Brak uprawnień zapisu w wybranym katalogu. Wybierz folder w profilu użytkownika (np. %APPDATA%\\Among Us - Mody).",
         "Empty": "Ścieżka instalacji modów nie może być pusta",
         "Placeholder": "Wybierz katalog instalacji modów..."
-      },
-      "GamePath": {
-        "Label": "Ścieżka do gry Among Us",
-        "Description": "Lokalizacja gry Among Us",
-        "AutoDetect": "Wykryj automatycznie",
-        "NotFound": "Nie znaleziono gry Among Us"
       }
     },
     "Privacy": {
@@ -954,15 +966,6 @@
         "Description": "Pokazuje okno konsoli z logami (tylko dla tej sesji)",
         "OnContent": "Włączony",
         "OffContent": "Wyłączony"
-      },
-      "AutoUpdate": {
-        "Label": "Automatyczne aktualizacje",
-        "Description": "Sprawdzaj automatycznie dostępność aktualizacji przy starcie"
-      },
-      "ClearCache": {
-        "Label": "Wyczyść cache",
-        "Button": "Wyczyść teraz",
-        "Success": "Cache został wyczyszczony"
       }
     },
     "SystemTray": {

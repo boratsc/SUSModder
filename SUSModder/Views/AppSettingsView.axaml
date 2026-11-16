@@ -2,6 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SUSModder.ViewModels"
              xmlns:local="using:SUSModder.Services.Localization"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:fic="using:FluentIcons.Common"
              x:Class="SUSModder.Views.AppSettingsView"
              x:DataType="vm:AppSettingsViewModel">
 
@@ -9,545 +11,530 @@
 		<vm:AppSettingsViewModel/>
 	</Design.DataContext>
 
+	<UserControl.Styles>
+		<!-- E7: wzorzec wiersza ustawień (makieta 07): surface #1A1C1F r10 + hairline #35373C,
+		     ikona neutralna po lewej, tytuł 15 SemiBold + opis muted, kontrolka po prawej. -->
+		<Style Selector="TextBlock.settings-header">
+			<Setter Property="FontSize" Value="22"/>
+			<Setter Property="FontWeight" Value="Bold"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		</Style>
+		<Style Selector="TextBlock.settings-subtitle">
+			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+		</Style>
+		<Style Selector="Border.settings-row">
+			<Setter Property="Background" Value="{DynamicResource ModCardBackgroundBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource ModCardBorderBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="10"/>
+			<Setter Property="Padding" Value="16,14"/>
+		</Style>
+		<Style Selector="Border.settings-subrow">
+			<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="Padding" Value="12"/>
+		</Style>
+		<Style Selector="TextBlock.settings-title">
+			<Setter Property="FontSize" Value="15"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		</Style>
+		<Style Selector="TextBlock.settings-desc">
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+			<Setter Property="TextWrapping" Value="Wrap"/>
+		</Style>
+		<Style Selector="TextBlock.settings-path">
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+			<Setter Property="TextWrapping" Value="Wrap"/>
+		</Style>
+		<Style Selector="ic|SymbolIcon.settings-icon">
+			<Setter Property="FontSize" Value="20"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+		</Style>
+		<Style Selector="Border.settings-chip">
+			<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="Padding" Value="12,6"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+		</Style>
+		<Style Selector="Border.settings-chip > TextBlock">
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+		</Style>
+	</UserControl.Styles>
+
 	<Grid RowDefinitions="*,Auto">
 
 		<!-- Główna zawartość - scrollowalna -->
 		<ScrollViewer Grid.Row="0" Padding="0,0,10,0">
-			<StackPanel Spacing="15">
+			<StackPanel Spacing="12">
 
-				<!-- Bieżący kanał aktualizacji -->
-				<Border Background="{DynamicResource ModCardBackgroundBrush}"
-						BorderBrush="{DynamicResource AccentBrush}"
-						BorderThickness="1"
-						CornerRadius="8"
-						Padding="15">
-					<StackPanel Spacing="6">
-						<TextBlock Text="{local:Localize Settings.UpdateChannel.CurrentTitle}"
-								   FontSize="15" FontWeight="SemiBold"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-						<TextBlock Text="{Binding CurrentUpdateChannelSummary}"
-								   FontSize="13"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-						<TextBlock Text="{local:Localize Settings.UpdateChannel.CurrentDescription}"
-								   FontSize="12"
-								   TextWrapping="Wrap"
-								   Foreground="{DynamicResource TextSecondaryBrush}"/>
-					</StackPanel>
-				</Border>
+				<!-- Nagłówek ekranu -->
+				<StackPanel Spacing="4" Margin="0,0,0,4">
+					<TextBlock Classes="settings-header" Text="{local:Localize Settings.Main.Title}"/>
+					<TextBlock Classes="settings-subtitle" Text="{local:Localize Settings.Main.Subtitle}"/>
+				</StackPanel>
 
-				<!-- Sekcja wyboru trybu gry -->
-				<Border Background="{DynamicResource ModCardBackgroundBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="1"
-						CornerRadius="8"
-						Padding="15">
-					<StackPanel Spacing="12">
-						<TextBlock Text="{local:Localize Settings.General.GameMode.Label}"
-								   FontSize="15" FontWeight="SemiBold"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-
-						<TextBlock Text="{local:Localize Settings.General.GameMode.Description}"
-								   FontSize="12"
-								   Foreground="{DynamicResource TextSecondaryBrush}"/>
-						<TextBlock Text="{local:Localize Settings.General.GameMode.RestartRequired}"
-								   FontSize="11"
-								   Foreground="{DynamicResource TextSecondaryBrush}"
-								   FontStyle="Italic"/>
-
-						<StackPanel Spacing="6">
-							<RadioButton x:Name="SteamRadioButton"
-										 Content="{local:Localize Settings.General.GameMode.Steam}"
-										 IsChecked="{Binding IsSteamMode}"
-										 Foreground="{DynamicResource TextPrimaryBrush}"/>
-							<RadioButton x:Name="EpicRadioButton"
-										 Content="{local:Localize Settings.General.GameMode.Epic}"
-										 IsChecked="{Binding IsEpicMode}"
-										 Foreground="{DynamicResource TextPrimaryBrush}"/>
+				<!-- Gra: wybór folderu instalacji (istniejące BrowseFolderCommand → ModsInstallPath) -->
+				<Border Classes="settings-row">
+					<Grid ColumnDefinitions="Auto,*,Auto">
+						<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
+									   Symbol="{x:Static fic:Symbol.Folder}" Margin="0,0,14,0"/>
+						<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.Main.Game.Title}"/>
+							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Main.Game.Description}"/>
+							<TextBlock Classes="settings-path" Text="{Binding ModsInstallPath}"/>
 						</StackPanel>
-					</StackPanel>
+						<Button Grid.Column="2" Classes="modal-secondary"
+								Content="{local:Localize Settings.Main.Game.Browse}"
+								Command="{Binding BrowseFolderCommand}"
+								MinWidth="0" Padding="14,7" FontSize="13"
+								VerticalAlignment="Center" Margin="14,0,0,0"/>
+					</Grid>
 				</Border>
 
-				<!-- Steam: pobieranie vanilla (eksperymentalne) -->
-				<Border Background="{DynamicResource ModCardBackgroundBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="1"
-						CornerRadius="8"
-						Padding="15"
-						IsVisible="{Binding IsSteamDepotDownloaderSectionVisible}">
-					<StackPanel Spacing="12">
-						<TextBlock Text="{local:Localize Settings.SteamVanilla.Title}"
-								   FontSize="15" FontWeight="SemiBold"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-						<TextBlock Text="{local:Localize Settings.SteamVanilla.Description}"
-								   FontSize="12"
-								   TextWrapping="Wrap"
-								   Foreground="{DynamicResource TextSecondaryBrush}"/>
-						<TextBlock Text="{local:Localize Settings.SteamVanilla.ExperimentalWarning}"
-								   FontSize="11"
-								   TextWrapping="Wrap"
-								   Foreground="{DynamicResource TextSecondaryBrush}"
-								   FontStyle="Italic"/>
-						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
-								BorderBrush="{DynamicResource BorderBrush}"
-								BorderThickness="1"
-								CornerRadius="6"
-								Padding="12">
-							<Grid ColumnDefinitions="*,Auto">
-								<StackPanel Grid.Column="0" VerticalAlignment="Center">
-									<TextBlock Text="{local:Localize Settings.SteamVanilla.DepotDownloader.Label}"
-											   FontSize="13" FontWeight="Medium"
-											   Foreground="{DynamicResource TextPrimaryBrush}"
-											   TextWrapping="Wrap"/>
-									<TextBlock Text="{local:Localize Settings.SteamVanilla.DepotDownloader.Description}"
-											   FontSize="11"
-											   TextWrapping="Wrap"
-											   Foreground="{DynamicResource TextSecondaryBrush}"/>
-								</StackPanel>
-								<ToggleSwitch Grid.Column="1"
-											  IsChecked="{Binding PreferDepotDownloader}"
-											  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
-											  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
-											  VerticalAlignment="Center"
-											  Margin="10,0,0,0"/>
-							</Grid>
+				<!-- Aktualizacje: brak istniejącego ustawienia auto-update aplikacji → statyczna informacja -->
+				<Border Classes="settings-row">
+					<Grid ColumnDefinitions="Auto,*,Auto">
+						<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
+									   Symbol="{x:Static fic:Symbol.ArrowSync}" Margin="0,0,14,0"/>
+						<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.Main.Updates.Title}"/>
+							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Main.Updates.Description}"/>
+						</StackPanel>
+						<Border Grid.Column="2" Classes="settings-chip" Margin="14,0,0,0">
+							<TextBlock Text="{local:Localize Settings.Main.Updates.State}"/>
 						</Border>
-					</StackPanel>
+					</Grid>
 				</Border>
 
-				<!-- Epic: wersja narzędzia legendary.exe -->
-				<Border Background="{DynamicResource ModCardBackgroundBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="1"
-						CornerRadius="8"
-						Padding="15"
-						IsVisible="{Binding IsEpicLegendarySectionVisible}">
-					<StackPanel Spacing="12">
-						<TextBlock Text="{local:Localize Settings.LegendaryVersion.Label}"
-								   FontSize="15" FontWeight="SemiBold"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-						<TextBlock Text="{local:Localize Settings.LegendaryVersion.Description}"
-								   FontSize="12"
-								   TextWrapping="Wrap"
-								   Foreground="{DynamicResource TextSecondaryBrush}"/>
-						<TextBlock Text="{Binding LegendaryCurrentSummary}"
-								   FontSize="12"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
+				<!-- Wygląd: jedyny motyw po D1 → statyczna informacja, bez przełącznika -->
+				<Border Classes="settings-row">
+					<Grid ColumnDefinitions="Auto,*,Auto">
+						<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
+									   Symbol="{x:Static fic:Symbol.Settings}" Margin="0,0,14,0"/>
+						<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.Main.Appearance.Title}"/>
+							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Main.Appearance.Description}"/>
+						</StackPanel>
+						<Border Grid.Column="2" Classes="settings-chip" Margin="14,0,0,0">
+							<TextBlock Text="{local:Localize Settings.Main.Appearance.State}"/>
+						</Border>
+					</Grid>
+				</Border>
 
-						<TextBlock Text="{local:Localize Settings.LegendaryVersion.CheckingState}"
-								   FontSize="11"
-								   TextWrapping="Wrap"
-								   Foreground="{DynamicResource TextSecondaryBrush}"
-								   IsVisible="{Binding IsLegendaryChecking}"/>
-						<Grid ColumnDefinitions="*,Auto"
-							  IsVisible="{Binding HasLegendaryStateError}">
-							<TextBlock Grid.Column="0"
-									   Text="{Binding LegendaryStateError}"
+				<!-- Czat społeczności: istniejący przełącznik nakładki czatu (bez nowego ustawienia w Core) -->
+				<Border Classes="settings-row">
+					<Grid ColumnDefinitions="Auto,*,Auto">
+						<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
+									   Symbol="{x:Static fic:Symbol.Chat}" Margin="0,0,14,0"/>
+						<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+							<TextBlock Classes="settings-title" Text="{local:Localize UI.TopBar.ChatToggle}"/>
+							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Main.Chat.Description}"/>
+						</StackPanel>
+						<ToggleSwitch Grid.Column="2"
+									  IsChecked="{Binding ChatOverlayOpen}"
+									  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+									  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+									  VerticalAlignment="Center" Margin="14,0,0,0"/>
+					</Grid>
+				</Border>
+
+				<!-- Zaawansowane: wszystkie pozostałe istniejące opcje (reorganizacja, bez utraty) -->
+				<Expander Classes="modal-details" Margin="0,4,0,0">
+					<Expander.Header>
+						<TextBlock Text="{local:Localize Settings.Main.Advanced}"
+								   FontSize="14" FontWeight="SemiBold"
+								   Foreground="{DynamicResource TextSecondaryBrush}"/>
+					</Expander.Header>
+					<StackPanel Spacing="12" Margin="0,12,0,0">
+
+					<!-- Bieżący kanał aktualizacji (informacja) -->
+					<Border Classes="settings-row">
+						<StackPanel Spacing="4">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.UpdateChannel.CurrentTitle}"/>
+							<TextBlock Text="{Binding CurrentUpdateChannelSummary}"
+									   FontSize="13"
+									   Foreground="{DynamicResource TextPrimaryBrush}"/>
+							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.UpdateChannel.CurrentDescription}"/>
+						</StackPanel>
+					</Border>
+
+					<!-- Sekcja wyboru trybu gry -->
+					<Border Classes="settings-row">
+						<StackPanel Spacing="8">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.General.GameMode.Label}"/>
+							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.General.GameMode.Description}"/>
+							<TextBlock Text="{local:Localize Settings.General.GameMode.RestartRequired}"
+									   FontSize="11"
+									   Foreground="{DynamicResource TextMutedBrush}"
+									   FontStyle="Italic"/>
+							<StackPanel Spacing="6">
+								<RadioButton Content="{local:Localize Settings.General.GameMode.Steam}"
+											 IsChecked="{Binding IsSteamMode}"
+											 Foreground="{DynamicResource TextPrimaryBrush}"/>
+								<RadioButton Content="{local:Localize Settings.General.GameMode.Epic}"
+											 IsChecked="{Binding IsEpicMode}"
+											 Foreground="{DynamicResource TextPrimaryBrush}"/>
+							</StackPanel>
+						</StackPanel>
+					</Border>
+
+					<!-- Steam: pobieranie vanilla (eksperymentalne) -->
+					<Border Classes="settings-row" IsVisible="{Binding IsSteamDepotDownloaderSectionVisible}">
+						<StackPanel Spacing="8">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.SteamVanilla.Title}"/>
+							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.SteamVanilla.Description}"/>
+							<TextBlock Text="{local:Localize Settings.SteamVanilla.ExperimentalWarning}"
 									   FontSize="11"
 									   TextWrapping="Wrap"
-									   VerticalAlignment="Center"
-									   Foreground="{DynamicResource DangerBrush}"/>
-							<Button Grid.Column="1"
-									Content="{local:Localize Settings.LegendaryVersion.Retry}"
-									Command="{Binding RetryLegendaryStateCommand}"
-									FontSize="11"
-									Padding="10,4"
-									Margin="8,0,0,0"/>
-						</Grid>
-
-						<StackPanel Spacing="12" IsEnabled="{Binding IsLegendarySectionReady}">
-
-						<StackPanel Spacing="6" IsEnabled="{Binding !IsLegendarySwitching}">
-							<RadioButton x:Name="LegendaryPinnedRadioButton"
-										 Content="{local:Localize Settings.LegendaryVersion.Pinned}"
-										 IsChecked="{Binding LegendaryModePinned}"
-										 Foreground="{DynamicResource TextPrimaryBrush}"/>
-							<RadioButton x:Name="LegendaryManualRadioButton"
-										 Content="{local:Localize Settings.LegendaryVersion.Manual}"
-										 IsChecked="{Binding LegendaryModeManual}"
-										 Foreground="{DynamicResource TextPrimaryBrush}"/>
+									   Foreground="{DynamicResource TextMutedBrush}"
+									   FontStyle="Italic"/>
+							<Border Classes="settings-subrow">
+								<Grid ColumnDefinitions="*,Auto">
+									<StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+										<TextBlock Text="{local:Localize Settings.SteamVanilla.DepotDownloader.Label}"
+												   FontSize="13" FontWeight="Medium"
+												   Foreground="{DynamicResource TextPrimaryBrush}"
+												   TextWrapping="Wrap"/>
+										<TextBlock Classes="settings-desc" Text="{local:Localize Settings.SteamVanilla.DepotDownloader.Description}"/>
+									</StackPanel>
+									<ToggleSwitch Grid.Column="1"
+												  IsChecked="{Binding PreferDepotDownloader}"
+												  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+												  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+												  VerticalAlignment="Center"
+												  Margin="12,0,0,0"/>
+								</Grid>
+							</Border>
 						</StackPanel>
+					</Border>
 
-						<StackPanel Spacing="8" IsVisible="{Binding IsLegendaryManualVisible}">
-							<ComboBox ItemsSource="{Binding LegendaryReleases}"
-									  SelectedItem="{Binding SelectedLegendaryRelease, Mode=TwoWay}"
-									  PlaceholderText="{local:Localize Settings.LegendaryVersion.SelectRelease}"
-									  Width="240"
+					<!-- Epic: wersja narzędzia legendary.exe -->
+					<Border Classes="settings-row" IsVisible="{Binding IsEpicLegendarySectionVisible}">
+						<StackPanel Spacing="8">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.LegendaryVersion.Label}"/>
+							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.LegendaryVersion.Description}"/>
+							<TextBlock Text="{Binding LegendaryCurrentSummary}"
+									   FontSize="12"
+									   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+							<TextBlock Text="{local:Localize Settings.LegendaryVersion.CheckingState}"
+									   FontSize="11"
+									   TextWrapping="Wrap"
+									   Foreground="{DynamicResource TextMutedBrush}"
+									   IsVisible="{Binding IsLegendaryChecking}"/>
+							<Grid ColumnDefinitions="*,Auto"
+								  IsVisible="{Binding HasLegendaryStateError}">
+								<TextBlock Grid.Column="0"
+										   Text="{Binding LegendaryStateError}"
+										   FontSize="11"
+										   TextWrapping="Wrap"
+										   VerticalAlignment="Center"
+										   Foreground="{DynamicResource DangerBrush}"/>
+								<Button Grid.Column="1" Classes="modal-secondary"
+										Content="{local:Localize Settings.LegendaryVersion.Retry}"
+										Command="{Binding RetryLegendaryStateCommand}"
+										MinWidth="0" FontSize="11"
+										Padding="10,4"
+										Margin="8,0,0,0"/>
+							</Grid>
+
+							<StackPanel Spacing="12" IsEnabled="{Binding IsLegendarySectionReady}">
+
+								<StackPanel Spacing="6" IsEnabled="{Binding !IsLegendarySwitching}">
+									<RadioButton Content="{local:Localize Settings.LegendaryVersion.Pinned}"
+												 IsChecked="{Binding LegendaryModePinned}"
+												 Foreground="{DynamicResource TextPrimaryBrush}"/>
+									<RadioButton Content="{local:Localize Settings.LegendaryVersion.Manual}"
+												 IsChecked="{Binding LegendaryModeManual}"
+												 Foreground="{DynamicResource TextPrimaryBrush}"/>
+								</StackPanel>
+
+								<StackPanel Spacing="8" IsVisible="{Binding IsLegendaryManualVisible}">
+									<ComboBox ItemsSource="{Binding LegendaryReleases}"
+											  SelectedItem="{Binding SelectedLegendaryRelease, Mode=TwoWay}"
+											  PlaceholderText="{local:Localize Settings.LegendaryVersion.SelectRelease}"
+											  Width="240"
+											  HorizontalAlignment="Left"
+											  FontSize="12"
+											  Padding="10,8"
+											  Background="{DynamicResource SecondaryBackgroundBrush}"
+											  BorderBrush="{DynamicResource BorderBrush}"
+											  BorderThickness="1"
+											  CornerRadius="4"
+											  IsEnabled="{Binding !IsLegendarySwitching}">
+										<ComboBox.ItemTemplate>
+											<DataTemplate>
+												<TextBlock Text="{Binding DisplayName}"/>
+											</DataTemplate>
+										</ComboBox.ItemTemplate>
+									</ComboBox>
+
+									<TextBlock Text="{local:Localize Settings.LegendaryVersion.Loading}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextMutedBrush}"
+											   IsVisible="{Binding IsLegendaryReleasesLoading}"/>
+
+									<Grid ColumnDefinitions="*,Auto"
+										  IsVisible="{Binding HasLegendaryReleasesError}">
+										<TextBlock Grid.Column="0"
+												   Text="{Binding LegendaryReleasesError}"
+												   FontSize="11"
+												   TextWrapping="Wrap"
+												   VerticalAlignment="Center"
+												   Foreground="{DynamicResource DangerBrush}"/>
+										<Button Grid.Column="1" Classes="modal-secondary"
+												Content="{local:Localize Settings.LegendaryVersion.Retry}"
+												Command="{Binding ReloadLegendaryReleasesCommand}"
+												MinWidth="0" FontSize="11"
+												Padding="10,4"
+												Margin="8,0,0,0"/>
+									</Grid>
+
+									<Button Classes="modal-secondary"
+											Content="{local:Localize Settings.LegendaryVersion.Apply}"
+											Command="{Binding ApplyLegendaryVersionCommand}"
+											HorizontalAlignment="Left"
+											MinWidth="0" Padding="12,6" FontSize="12"
+											IsEnabled="{Binding !IsLegendarySwitching}"/>
+								</StackPanel>
+
+								<StackPanel Spacing="4" IsVisible="{Binding IsLegendarySwitching}">
+									<ProgressBar IsIndeterminate="True" Height="4"/>
+									<TextBlock Text="{Binding LegendarySwitchStatus}"
+											   FontSize="11"
+											   Foreground="{DynamicResource TextMutedBrush}"/>
+								</StackPanel>
+
+							</StackPanel>
+						</StackPanel>
+					</Border>
+
+					<!-- Sekcja wyboru języka -->
+					<Border Classes="settings-row">
+						<StackPanel Spacing="8">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.General.Language.Label}"/>
+							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.General.Language.Description}"/>
+							<ComboBox ItemsSource="{Binding AvailableLanguages}"
+									  SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
+									  Width="200"
 									  HorizontalAlignment="Left"
 									  FontSize="12"
 									  Padding="10,8"
 									  Background="{DynamicResource SecondaryBackgroundBrush}"
 									  BorderBrush="{DynamicResource BorderBrush}"
 									  BorderThickness="1"
-									  CornerRadius="4"
-									  IsEnabled="{Binding !IsLegendarySwitching}">
+									  CornerRadius="4">
 								<ComboBox.ItemTemplate>
 									<DataTemplate>
 										<TextBlock Text="{Binding DisplayName}"/>
 									</DataTemplate>
 								</ComboBox.ItemTemplate>
 							</ComboBox>
-
-							<TextBlock Text="{local:Localize Settings.LegendaryVersion.Loading}"
-									   FontSize="11"
-									   Foreground="{DynamicResource TextSecondaryBrush}"
-									   IsVisible="{Binding IsLegendaryReleasesLoading}"/>
-
-							<Grid ColumnDefinitions="*,Auto"
-								  IsVisible="{Binding HasLegendaryReleasesError}">
-								<TextBlock Grid.Column="0"
-										   Text="{Binding LegendaryReleasesError}"
-										   FontSize="11"
-										   TextWrapping="Wrap"
-										   VerticalAlignment="Center"
-										   Foreground="{DynamicResource DangerBrush}"/>
-								<Button Grid.Column="1"
-										Content="{local:Localize Settings.LegendaryVersion.Retry}"
-										Command="{Binding ReloadLegendaryReleasesCommand}"
-										FontSize="11"
-										Padding="10,4"
-										Margin="8,0,0,0"/>
-							</Grid>
-
-							<Button Content="{local:Localize Settings.LegendaryVersion.Apply}"
-									Command="{Binding ApplyLegendaryVersionCommand}"
-									HorizontalAlignment="Left"
-									IsEnabled="{Binding !IsLegendarySwitching}"/>
 						</StackPanel>
+					</Border>
 
-						<StackPanel Spacing="4" IsVisible="{Binding IsLegendarySwitching}">
-							<ProgressBar IsIndeterminate="True" Height="4"/>
-							<TextBlock Text="{Binding LegendarySwitchStatus}"
-									   FontSize="11"
-									   Foreground="{DynamicResource TextSecondaryBrush}"/>
-						</StackPanel>
-
-						</StackPanel>
-					</StackPanel>
-				</Border>
-
-				<!-- Sekcja wyboru języka -->
-				<Border Background="{DynamicResource ModCardBackgroundBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="1"
-						CornerRadius="8"
-						Padding="15">
-					<StackPanel Spacing="12">
-						<TextBlock Text="{local:Localize Settings.General.Language.Label}"
-								   FontSize="15" FontWeight="SemiBold"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-
-						<TextBlock Text="{local:Localize Settings.General.Language.Description}"
-								   FontSize="12"
-								   Foreground="{DynamicResource TextSecondaryBrush}"/>
-
-						<ComboBox ItemsSource="{Binding AvailableLanguages}"
-								  SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
-								  Width="200"
-								  HorizontalAlignment="Left"
-								  FontSize="12"
-								  Padding="10,8"
-								  Background="{DynamicResource SecondaryBackgroundBrush}"
-								  BorderBrush="{DynamicResource BorderBrush}"
-								  BorderThickness="1"
-								  CornerRadius="4">
-							<ComboBox.ItemTemplate>
-								<DataTemplate>
-									<TextBlock Text="{Binding DisplayName}"/>
-								</DataTemplate>
-							</ComboBox.ItemTemplate>
-						</ComboBox>
-					</StackPanel>
-				</Border>
-
-				<!-- Sekcja ścieżek -->
-				<Border Background="{DynamicResource ModCardBackgroundBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="1"
-						CornerRadius="8"
-						Padding="15">
-					<StackPanel Spacing="12">
-						<TextBlock Text="{local:Localize Settings.Paths.Title}"
-								   FontSize="15" FontWeight="SemiBold"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-
-						<TextBlock Text="{local:Localize Settings.Paths.ModsInstallPath.Label}"
-								   FontSize="12" FontWeight="Medium"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-						<TextBlock Text="{local:Localize Settings.Paths.ModsInstallPath.Description}"
-								   FontSize="11"
-								   Foreground="{DynamicResource TextSecondaryBrush}"/>
-
-						<TextBox Text="{Binding ModsInstallPath}"
-								 PlaceholderText="{local:Localize Settings.Paths.ModsInstallPath.Placeholder}"
-								 FontSize="12"
-								 Padding="8"
-								 Background="{DynamicResource SecondaryBackgroundBrush}"
-								 BorderBrush="{DynamicResource BorderBrush}"
-								 BorderThickness="1"
-								 CornerRadius="4"/>
-
-						<StackPanel Orientation="Horizontal" Spacing="8">
-							<Button Content="{local:Localize Settings.Paths.ModsInstallPath.Browse}"
-									Command="{Binding BrowseFolderCommand}"
-									Background="{DynamicResource SecondaryBackgroundBrush}"
-									Foreground="{DynamicResource TextPrimaryBrush}"
-									BorderBrush="{DynamicResource BorderBrush}"
-									BorderThickness="1"
-									CornerRadius="4"
-									Padding="10,6"
-									FontSize="12"/>
-							<Button Content="{local:Localize Settings.Paths.ModsInstallPath.Reset}"
-									Command="{Binding ResetToDefaultCommand}"
-									Background="Transparent"
-									Foreground="{DynamicResource AccentBrush}"
-									BorderThickness="0"
-									Padding="10,6"
-									FontSize="11"/>
-						</StackPanel>
-					</StackPanel>
-				</Border>
-
-				<!-- Sekcja prywatności -->
-				<Border Background="{DynamicResource ModCardBackgroundBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="1"
-						CornerRadius="8"
-						Padding="15">
-					<StackPanel Spacing="12">
-						<TextBlock Text="{local:Localize Settings.Privacy.Title}"
-								   FontSize="15" FontWeight="SemiBold"
-								   Foreground="{DynamicResource TextPrimaryBrush}"
-								   TextWrapping="Wrap"/>
-
-						<!-- Telemetry Toggle -->
-						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
-								BorderBrush="{DynamicResource BorderBrush}"
-								BorderThickness="1"
-								CornerRadius="6"
-								Padding="12">
-							<StackPanel Spacing="10">
-								<TextBlock Text="{local:Localize Settings.Privacy.Telemetry.Label}"
-										   FontSize="13" FontWeight="Medium"
-										   Foreground="{DynamicResource TextPrimaryBrush}"
-										   TextWrapping="Wrap"/>
-								<TextBlock Text="{local:Localize Settings.Privacy.Telemetry.Description}"
-										   FontSize="11"
-										   Foreground="{DynamicResource TextSecondaryBrush}"
-										   TextWrapping="Wrap"/>
-								<TextBlock Text="{local:Localize Settings.Privacy.Telemetry.Details}"
-										   FontSize="10"
-										   Foreground="{DynamicResource TextSecondaryBrush}"
-										   TextWrapping="Wrap"/>
-								<ToggleSwitch IsChecked="{Binding TelemetryEnabled}"
-											  OnContent="{local:Localize Settings.Privacy.Telemetry.OnContent}"
-											  OffContent="{local:Localize Settings.Privacy.Telemetry.OffContent}"
-											  HorizontalAlignment="Left"
-											  Margin="0,5,0,0"/>
+					<!-- Sekcja ścieżek -->
+					<Border Classes="settings-row">
+						<StackPanel Spacing="8">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.Paths.Title}"/>
+							<TextBlock Text="{local:Localize Settings.Paths.ModsInstallPath.Label}"
+									   FontSize="13" FontWeight="Medium"
+									   Foreground="{DynamicResource TextPrimaryBrush}"/>
+							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Paths.ModsInstallPath.Description}"/>
+							<TextBox Text="{Binding ModsInstallPath}"
+									 PlaceholderText="{local:Localize Settings.Paths.ModsInstallPath.Placeholder}"
+									 FontSize="12"
+									 Padding="8"
+									 Background="{DynamicResource SecondaryBackgroundBrush}"
+									 BorderBrush="{DynamicResource BorderBrush}"
+									 BorderThickness="1"
+									 CornerRadius="4"/>
+							<StackPanel Orientation="Horizontal" Spacing="8">
+								<Button Classes="modal-secondary"
+										Content="{local:Localize Settings.Paths.ModsInstallPath.Browse}"
+										Command="{Binding BrowseFolderCommand}"
+										MinWidth="0" Padding="12,6" FontSize="12"/>
+								<Button Content="{local:Localize Settings.Paths.ModsInstallPath.Reset}"
+										Command="{Binding ResetToDefaultCommand}"
+										Background="Transparent"
+										Foreground="{DynamicResource AccentBrush}"
+										BorderThickness="0"
+										Padding="10,6"
+										FontSize="11"/>
 							</StackPanel>
-						</Border>
+						</StackPanel>
+					</Border>
+
+					<!-- Sekcja prywatności -->
+					<Border Classes="settings-row">
+						<StackPanel Spacing="8">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.Privacy.Title}"/>
+							<Border Classes="settings-subrow">
+								<Grid ColumnDefinitions="*,Auto">
+									<StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+										<TextBlock Text="{local:Localize Settings.Privacy.Telemetry.Label}"
+												   FontSize="13" FontWeight="Medium"
+												   Foreground="{DynamicResource TextPrimaryBrush}"
+												   TextWrapping="Wrap"/>
+										<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Privacy.Telemetry.Description}"/>
+										<TextBlock Text="{local:Localize Settings.Privacy.Telemetry.Details}"
+												   FontSize="10"
+												   Foreground="{DynamicResource TextMutedBrush}"
+												   TextWrapping="Wrap"/>
+									</StackPanel>
+									<ToggleSwitch Grid.Column="1"
+												  IsChecked="{Binding TelemetryEnabled}"
+												  OnContent="{local:Localize Settings.Privacy.Telemetry.OnContent}"
+												  OffContent="{local:Localize Settings.Privacy.Telemetry.OffContent}"
+												  VerticalAlignment="Center"
+												  Margin="12,0,0,0"/>
+								</Grid>
+							</Border>
+						</StackPanel>
+					</Border>
+
+					<!-- Sekcja wyboru kanału aktualizacji -->
+					<Border Classes="settings-row">
+						<StackPanel Spacing="8">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.UpdateChannel.Title}"/>
+							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.UpdateChannel.Description}"/>
+							<ComboBox ItemsSource="{Binding AvailableUpdateChannels}"
+									  SelectedItem="{Binding SelectedUpdateChannel, Mode=TwoWay}"
+									  Width="200"
+									  HorizontalAlignment="Left"
+									  FontSize="12"
+									  Padding="10,8"
+									  Background="{DynamicResource SecondaryBackgroundBrush}"
+									  BorderBrush="{DynamicResource BorderBrush}"
+									  BorderThickness="1"
+									  CornerRadius="4">
+								<ComboBox.ItemTemplate>
+									<DataTemplate>
+										<TextBlock Text="{Binding DisplayName}"/>
+									</DataTemplate>
+								</ComboBox.ItemTemplate>
+							</ComboBox>
+							<Button Classes="modal-secondary"
+									Content="{local:Localize UI.Menu.CheckAppUpdates}"
+									Click="CheckForUpdatesButton_Click"
+									HorizontalAlignment="Left"
+									MinWidth="0" Padding="12,6" FontSize="12"/>
+						</StackPanel>
+					</Border>
+
+					<!-- Sekcja ustawień deweloperskich -->
+					<Border Classes="settings-row">
+						<StackPanel Spacing="8">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.Advanced.Title}"/>
+
+							<!-- DeveloperMode -->
+							<Border Classes="settings-subrow">
+								<Grid ColumnDefinitions="*,Auto">
+									<StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+										<TextBlock Text="{local:Localize Settings.Advanced.DeveloperMode.Label}"
+												   FontSize="13" FontWeight="Medium"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+										<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Advanced.DeveloperMode.Description}"/>
+									</StackPanel>
+									<ToggleSwitch Grid.Column="1"
+												  IsChecked="{Binding DeveloperMode}"
+												  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+												  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+												  VerticalAlignment="Center"
+												  Margin="12,0,0,0"/>
+								</Grid>
+							</Border>
+
+							<!-- ShowConsole -->
+							<Border Classes="settings-subrow">
+								<Grid ColumnDefinitions="*,Auto">
+									<StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+										<TextBlock Text="{local:Localize Settings.Advanced.ShowConsole.Label}"
+												   FontSize="13" FontWeight="Medium"
+												   Foreground="{DynamicResource TextPrimaryBrush}"/>
+										<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Advanced.ShowConsole.Description}"/>
+									</StackPanel>
+									<ToggleSwitch Grid.Column="1"
+												  OnContent="{local:Localize Settings.Advanced.ShowConsole.OnContent}"
+												  OffContent="{local:Localize Settings.Advanced.ShowConsole.OffContent}"
+												  VerticalAlignment="Center"
+												  Margin="12,0,0,0"
+												  Click="OnShowConsoleToggled"/>
+								</Grid>
+							</Border>
+						</StackPanel>
+					</Border>
+
+					<!-- Sekcja zachowania okna / system tray -->
+					<Border Classes="settings-row">
+						<StackPanel Spacing="8">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.SystemTray.Title}"/>
+
+							<!-- Minimalizuj do tray -->
+							<Border Classes="settings-subrow">
+								<Grid ColumnDefinitions="*,Auto">
+									<StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+										<TextBlock Text="{local:Localize Settings.SystemTray.MinimizeToTray.Label}"
+												   FontSize="13" FontWeight="Medium"
+												   Foreground="{DynamicResource TextPrimaryBrush}"
+												   TextWrapping="Wrap"/>
+										<TextBlock Classes="settings-desc" Text="{local:Localize Settings.SystemTray.MinimizeToTray.Description}"/>
+									</StackPanel>
+									<ToggleSwitch Grid.Column="1"
+												  IsChecked="{Binding MinimizeToTray}"
+												  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+												  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+												  VerticalAlignment="Center"
+												  Margin="12,0,0,0"/>
+								</Grid>
+							</Border>
+
+							<!-- Szybkie uruchamianie w tray -->
+							<Border Classes="settings-subrow">
+								<Grid ColumnDefinitions="*,Auto">
+									<StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+										<TextBlock Text="{local:Localize Settings.SystemTray.QuickLaunch.Label}"
+												   FontSize="13" FontWeight="Medium"
+												   Foreground="{DynamicResource TextPrimaryBrush}"
+												   TextWrapping="Wrap"/>
+										<TextBlock Classes="settings-desc" Text="{local:Localize Settings.SystemTray.QuickLaunch.Description}"/>
+									</StackPanel>
+									<ToggleSwitch Grid.Column="1"
+												  IsChecked="{Binding ShowQuickLaunchInTray}"
+												  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+												  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+												  VerticalAlignment="Center"
+												  Margin="12,0,0,0"/>
+								</Grid>
+							</Border>
+						</StackPanel>
+					</Border>
+
+					<!-- Sekcja resetowania aplikacji -->
+					<Border Classes="settings-row">
+						<StackPanel Spacing="8">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.FactoryReset.Title}"/>
+							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.FactoryReset.Description}"/>
+							<Button Classes="modal-danger"
+									Content="{local:Localize Settings.FactoryReset.Button}"
+									Command="{Binding FactoryResetCommand}"
+									MinWidth="0" Padding="14,7" FontSize="12"
+									HorizontalAlignment="Left"/>
+						</StackPanel>
+					</Border>
+
 					</StackPanel>
-				</Border>
-
-				<!-- Sekcja wyboru kanału aktualizacji -->
-				<Border Background="{DynamicResource ModCardBackgroundBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="1"
-						CornerRadius="8"
-						Padding="15">
-					<StackPanel Spacing="12">
-						<TextBlock Text="{local:Localize Settings.UpdateChannel.Title}"
-								   FontSize="15" FontWeight="SemiBold"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-
-						<TextBlock Text="{local:Localize Settings.UpdateChannel.Description}"
-								   FontSize="12"
-								   Foreground="{DynamicResource TextSecondaryBrush}"
-								   TextWrapping="Wrap"/>
-
-						<ComboBox ItemsSource="{Binding AvailableUpdateChannels}"
-								  SelectedItem="{Binding SelectedUpdateChannel, Mode=TwoWay}"
-								  Width="200"
-								  HorizontalAlignment="Left"
-								  FontSize="12"
-								  Padding="10,8"
-								  Background="{DynamicResource SecondaryBackgroundBrush}"
-								  BorderBrush="{DynamicResource BorderBrush}"
-								  BorderThickness="1"
-								  CornerRadius="4">
-							<ComboBox.ItemTemplate>
-								<DataTemplate>
-									<TextBlock Text="{Binding DisplayName}"/>
-								</DataTemplate>
-							</ComboBox.ItemTemplate>
-						</ComboBox>
-
-						<Button Content="{local:Localize UI.Menu.CheckAppUpdates}"
-								Click="CheckForUpdatesButton_Click"
-								HorizontalAlignment="Left"
-								Background="{DynamicResource SecondaryBackgroundBrush}"
-								Foreground="{DynamicResource TextPrimaryBrush}"
-								BorderBrush="{DynamicResource BorderBrush}"
-								BorderThickness="1"
-								CornerRadius="4"
-								Padding="10,6"
-								FontSize="12"/>
-					</StackPanel>
-				</Border>
-
-				<!-- Sekcja ustawień deweloperskich -->
-				<Border Background="{DynamicResource ModCardBackgroundBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="1"
-						CornerRadius="8"
-						Padding="15">
-					<StackPanel Spacing="12">
-						<TextBlock Text="{local:Localize Settings.Advanced.Title}"
-								   FontSize="15" FontWeight="SemiBold"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-
-						<!-- DeveloperMode -->
-						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
-								BorderBrush="{DynamicResource BorderBrush}"
-								BorderThickness="1"
-								CornerRadius="6"
-								Padding="12">
-							<Grid ColumnDefinitions="*,Auto">
-								<StackPanel Grid.Column="0" VerticalAlignment="Center">
-									<TextBlock Text="{local:Localize Settings.Advanced.DeveloperMode.Label}"
-											   FontSize="13" FontWeight="Medium"
-											   Foreground="{DynamicResource TextPrimaryBrush}"/>
-									<TextBlock Text="{local:Localize Settings.Advanced.DeveloperMode.Description}"
-											   FontSize="11"
-											   Foreground="{DynamicResource TextSecondaryBrush}"/>
-								</StackPanel>
-								<ToggleSwitch Grid.Column="1"
-											  IsChecked="{Binding DeveloperMode}"
-											  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
-											  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
-											  VerticalAlignment="Center"
-											  Margin="10,0,0,0"/>
-							</Grid>
-						</Border>
-
-						<!-- ShowConsole -->
-						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
-								BorderBrush="{DynamicResource BorderBrush}"
-								BorderThickness="1"
-								CornerRadius="6"
-								Padding="12">
-							<Grid ColumnDefinitions="*,Auto">
-								<StackPanel Grid.Column="0" VerticalAlignment="Center">
-									<TextBlock Text="{local:Localize Settings.Advanced.ShowConsole.Label}"
-											   FontSize="13" FontWeight="Medium"
-											   Foreground="{DynamicResource TextPrimaryBrush}"/>
-									<TextBlock Text="{local:Localize Settings.Advanced.ShowConsole.Description}"
-											   FontSize="11"
-											   Foreground="{DynamicResource TextSecondaryBrush}"/>
-								</StackPanel>
-								<ToggleSwitch Grid.Column="1"
-											  x:Name="ShowConsoleToggle"
-											  OnContent="{local:Localize Settings.Advanced.ShowConsole.OnContent}"
-											  OffContent="{local:Localize Settings.Advanced.ShowConsole.OffContent}"
-											  VerticalAlignment="Center"
-											  Margin="10,0,0,0"
-											  Click="OnShowConsoleToggled"/>
-							</Grid>
-						</Border>
-					</StackPanel>
-				</Border>
-
-				<!-- Sekcja zachowania okna / system tray -->
-				<Border Background="{DynamicResource ModCardBackgroundBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="1"
-						CornerRadius="8"
-						Padding="15">
-					<StackPanel Spacing="12">
-						<TextBlock Text="{local:Localize Settings.SystemTray.Title}"
-								   FontSize="15" FontWeight="SemiBold"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-
-						<!-- Minimalizuj do tray -->
-						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
-								BorderBrush="{DynamicResource BorderBrush}"
-								BorderThickness="1"
-								CornerRadius="6"
-								Padding="12">
-							<Grid ColumnDefinitions="*,Auto">
-								<StackPanel Grid.Column="0" VerticalAlignment="Center">
-									<TextBlock Text="{local:Localize Settings.SystemTray.MinimizeToTray.Label}"
-											   FontSize="13" FontWeight="Medium"
-											   Foreground="{DynamicResource TextPrimaryBrush}"
-											   TextWrapping="Wrap"/>
-									<TextBlock Text="{local:Localize Settings.SystemTray.MinimizeToTray.Description}"
-											   FontSize="11"
-											   Foreground="{DynamicResource TextSecondaryBrush}"
-											   TextWrapping="Wrap"/>
-								</StackPanel>
-								<ToggleSwitch Grid.Column="1"
-											  IsChecked="{Binding MinimizeToTray}"
-											  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
-											  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
-											  VerticalAlignment="Center"
-											  Margin="10,0,0,0"/>
-							</Grid>
-						</Border>
-
-						<!-- Szybkie uruchamianie w tray -->
-						<Border Background="{DynamicResource TertiaryBackgroundBrush}"
-								BorderBrush="{DynamicResource BorderBrush}"
-								BorderThickness="1"
-								CornerRadius="6"
-								Padding="12">
-							<Grid ColumnDefinitions="*,Auto">
-								<StackPanel Grid.Column="0" VerticalAlignment="Center">
-									<TextBlock Text="{local:Localize Settings.SystemTray.QuickLaunch.Label}"
-											   FontSize="13" FontWeight="Medium"
-											   Foreground="{DynamicResource TextPrimaryBrush}"
-											   TextWrapping="Wrap"/>
-									<TextBlock Text="{local:Localize Settings.SystemTray.QuickLaunch.Description}"
-											   FontSize="11"
-											   Foreground="{DynamicResource TextSecondaryBrush}"
-											   TextWrapping="Wrap"/>
-								</StackPanel>
-								<ToggleSwitch Grid.Column="1"
-											  IsChecked="{Binding ShowQuickLaunchInTray}"
-											  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
-											  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
-											  VerticalAlignment="Center"
-											  Margin="10,0,0,0"/>
-							</Grid>
-						</Border>
-					</StackPanel>
-				</Border>
-
-				<!-- Sekcja resetowania aplikacji -->
-				<Border Background="{DynamicResource ModCardBackgroundBrush}"
-						BorderBrush="{DynamicResource ModCardBorderBrush}"
-						BorderThickness="1"
-						CornerRadius="8"
-						Padding="15">
-					<StackPanel Spacing="10">
-						<TextBlock Text="{local:Localize Settings.FactoryReset.Title}"
-								   FontSize="15" FontWeight="SemiBold"
-								   Foreground="{DynamicResource TextPrimaryBrush}"/>
-						<TextBlock Text="{local:Localize Settings.FactoryReset.Description}"
-								   FontSize="11"
-								   Foreground="{DynamicResource TextSecondaryBrush}"
-								   TextWrapping="Wrap"/>
-						<Button Content="{local:Localize Settings.FactoryReset.Button}"
-								Command="{Binding FactoryResetCommand}"
-								Background="#D32F2F"
-								Foreground="White"
-								BorderBrush="#B71C1C"
-								BorderThickness="1"
-								CornerRadius="4"
-								Padding="12,6"
-								FontSize="12"
-								FontWeight="SemiBold"
-								HorizontalAlignment="Left"/>
-					</StackPanel>
-				</Border>
+				</Expander>
 
 			</StackPanel>
 		</ScrollViewer>

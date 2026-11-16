@@ -839,15 +839,33 @@
     "AppUpdated": "🆕 Updated to {0}! Click to see what's new."
   },
   "Settings": {
-    "WindowTitle": "Application Settings",
-    "WindowSubtitle": "Configure SUSModder application",
+    "Main": {
+      "Title": "Settings",
+      "Subtitle": "The essentials, without unnecessary detail.",
+      "Game": {
+        "Title": "Game",
+        "Description": "Choose the folder where Among Us is installed.",
+        "Browse": "Choose folder"
+      },
+      "Updates": {
+        "Title": "Updates",
+        "Description": "Download new versions automatically.",
+        "State": "On startup"
+      },
+      "Appearance": {
+        "Title": "Appearance",
+        "Description": "Dark theme, graphite and orange.",
+        "State": "Minimalistic"
+      },
+      "Chat": {
+        "Description": "Chat as an overlay; notifications when it is closed."
+      },
+      "Advanced": "Advanced"
+    },
     "General": {
-      "Title": "General",
       "Language": {
         "Label": "Language",
-        "Description": "Language change will take effect immediately",
-        "Polish": "Polski",
-        "English": "English"
+        "Description": "Language change will take effect immediately"
       },
       "GameMode": {
         "Label": "Game mode",
@@ -869,12 +887,6 @@
         "NotWritable": "The selected folder is not writable. Choose a folder in your user profile (e.g. %APPDATA%\\Among Us - Mody).",
         "Empty": "Mods installation path cannot be empty",
         "Placeholder": "Select mods installation directory..."
-      },
-      "GamePath": {
-        "Label": "Among Us game path",
-        "Description": "Among Us game location",
-        "AutoDetect": "Auto-detect",
-        "NotFound": "Among Us game not found"
       }
     },
     "Privacy": {
@@ -954,15 +966,6 @@
         "Description": "Shows console window with logs (current session only)",
         "OnContent": "Enabled",
         "OffContent": "Disabled"
-      },
-      "AutoUpdate": {
-        "Label": "Automatic updates",
-        "Description": "Automatically check for updates on startup"
-      },
-      "ClearCache": {
-        "Label": "Clear cache",
-        "Button": "Clear now",
-        "Success": "Cache has been cleared"
       }
     },
     "SystemTray": {

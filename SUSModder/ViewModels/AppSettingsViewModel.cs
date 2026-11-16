@@ -1,5 +1,6 @@
 using ReactiveUI;
 using System.Reactive;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using System;
 using System.IO;
@@ -281,6 +282,35 @@ namespace SUSModder.ViewModels
                 this.RaiseAndSetIfChanged(ref _showQuickLaunchInTray, value);
                 CheckForChanges();
             }
+        }
+
+        /// <summary>
+        /// E7: wiersz „Czat społeczności" na ekranie głównym ustawień.
+        /// Brak osobnego ustawienia powiadomień — spinamy istniejący przełącznik nakładki czatu
+        /// (MainWindowViewModel.IsChatOpen). Efekt natychmiastowy, poza mechaniką Save/dirty-state.
+        /// </summary>
+        public bool ChatOverlayOpen
+        {
+            get => TryGetMainWindowViewModel(out var mainVM) && mainVM.IsChatOpen;
+            set
+            {
+                if (TryGetMainWindowViewModel(out var mainVM))
+                    mainVM.IsChatOpen = value;
+                this.RaisePropertyChanged(nameof(ChatOverlayOpen));
+            }
+        }
+
+        private IDisposable? _chatOpenSync;
+
+        /// <summary>E7: woła widok przy attach — MainWindow.DataContext istnieje dopiero po konstruktorze okna.</summary>
+        public void SyncChatOverlayState()
+        {
+            _chatOpenSync?.Dispose();
+            _chatOpenSync = null;
+            if (TryGetMainWindowViewModel(out var mainVM))
+                _chatOpenSync = mainVM.WhenAnyValue(x => x.IsChatOpen)
+                    .Subscribe(_ => this.RaisePropertyChanged(nameof(ChatOverlayOpen)));
+            this.RaisePropertyChanged(nameof(ChatOverlayOpen));
         }
         public bool PreferDepotDownloader
         {

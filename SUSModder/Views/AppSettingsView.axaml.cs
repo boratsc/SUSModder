@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
@@ -18,6 +19,13 @@ namespace SUSModder.Views
             // Subskrybuj event zapisania ustawień
             _viewModel.SettingsSaved += OnSettingsSaved;
             _viewModel.UpdateChannelChanged += OnUpdateChannelChanged;
+        }
+
+        protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            base.OnAttachedToVisualTree(e);
+            // E7: przełącznik czatu w ustawieniach odzwierciedla stan nakładki z MainWindowViewModel.
+            _viewModel?.SyncChatOverlayState();
         }
 
         private void OnSettingsSaved()
