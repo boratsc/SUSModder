@@ -74,6 +74,7 @@ namespace SUSModder.ViewModels
         public const string AllValue = "All";
 
         // shortcut: hardcoded wyjątek danych API (2026-11-16): [MEGA] pod Mira należy do MegaExtension; usunąć gdy backend naprawi przypisania.
+        // Check HasRoles w katalogu (RolesService.CheckIfHasRolesAsync) celowo działa na surowym cache i nie zna tego wyjątku — mod z jedynymi rolami [MEGA] 13+21 miałby HasRoles=true mimo projekcji tylko pod 21.
         public const string MegaRolePrefix = "[MEGA]";
         public const int MiraModId = 13;
         public const int MegaExtensionModId = 21;
@@ -82,16 +83,17 @@ namespace SUSModder.ViewModels
         /// E17: role z prefiksem [MEGA] przypisane jednocześnie do Miry (13) i MegaExtension (21)
         /// należą tylko do MegaExtension — zwraca NOWĄ listę: takie role jako kopie bez referencji 13,
         /// pozostałe te same instancje. Wejście niemutowane (statyczny cache RolesService współdzielony
-        /// z checkiem HasRoles). Guard: MEGA bez 21 oraz role legacy (Mods puste) nietknięte.
+        /// z checkiem HasRoles). Guard: MEGA bez 21, role legacy (Mods puste) oraz null Mods/Name nietknięte.
         /// </summary>
         public static List<Role> WithoutMiraMegaDuplicates(IReadOnlyList<Role> roles)
         {
             var result = new List<Role>(roles.Count);
             foreach (var role in roles)
             {
-                if (role.Mods.Any(m => m.Id == MiraModId) &&
+                // E18: JSON może nadpisać inicjalizatory nullami ("mods": null / "name": null) — jedna zła rola nie może położyć katalogu.
+                if (role.Mods?.Any(m => m.Id == MiraModId) == true &&
                     role.Mods.Any(m => m.Id == MegaExtensionModId) &&
-                    role.Name.TrimStart().StartsWith(MegaRolePrefix, StringComparison.OrdinalIgnoreCase))
+                    role.Name?.TrimStart().StartsWith(MegaRolePrefix, StringComparison.OrdinalIgnoreCase) == true)
                 {
                     result.Add(new Role
                     {

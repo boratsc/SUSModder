@@ -43,14 +43,16 @@ public class RolesLocalizationTests
         Assert.Equal("3 of 12 roles", loc.GetFormatted("UI.Roles.ModRoleCount", 3, 12));
     }
 
-    /// <summary>E16 (W1): hint stanu pustego nie twierdzi faktu o katalogu (online+fail = pustka); retry w obu językach.</summary>
+    /// <summary>E16 (W1) + E18 (M1): nagłówek i hint stanu pustego nie twierdzą faktu o katalogu (online+fail = pustka); retry w obu językach.</summary>
     [Fact]
-    public void EmptyModsHintIsNeutralAndRetryExistsInBothLocales()
+    public void EmptyModsHeaderAndHintAreNeutralWithRetryInBothLocales()
     {
         var loc = new LocalizationService();
+        Assert.Equal("Nie widzimy tu modów z rolami", loc.Get("UI.Roles.EmptyMods"));
         Assert.Equal("Nie udało się potwierdzić, czy katalog ma mody z rolami.", loc.Get("UI.Roles.EmptyModsHint"));
         Assert.Equal("Spróbuj ponownie", loc.Get("UI.Roles.Retry"));
         loc.ChangeCulture("en");
+        Assert.Equal("We don't see any mods with roles here", loc.Get("UI.Roles.EmptyMods"));
         Assert.Equal("We couldn't confirm whether the catalog has mods with roles.", loc.Get("UI.Roles.EmptyModsHint"));
         Assert.Equal("Try again", loc.Get("UI.Roles.Retry"));
     }

@@ -71,6 +71,8 @@ public partial class MainWindowViewModel
             _pendingRoleModPreselect is int, _rolesLoaded, state.ModId, _roleModsSnapshot))
         {
             case RolesBrowserProjection.RolesRestoreAction.PendingPreselect:
+                // E18: świeżo otwarta lista poziomu B nie może dostać scrolla z poprzedniej wizyty (np. poziomu A).
+                state.ScrollOffset = 0;
                 ApplyPendingRoleModPreselect();
                 return;
             case RolesBrowserProjection.RolesRestoreAction.Wait:

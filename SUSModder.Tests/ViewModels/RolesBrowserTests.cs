@@ -447,6 +447,21 @@ public class RolesBrowserTests
         Assert.Same(role, Assert.Single(RolesBrowserProjection.WithoutMiraMegaDuplicates(new[] { role })));
     }
 
+    // E18 (M2): System.Text.Json nadpisuje inicjalizatory nullami ("mods": null / "name": null).
+    [Fact]
+    public void NullModsAndNullNamePassThroughUntouched()
+    {
+        var nullMods = new Role { Id = 1, Name = "[MEGA] X", Mods = null!, ModId = 13, ModName = "Town of Us Mira" };
+        var nullName = V2Role(2, null!, (13, "Town of Us Mira"), (21, "Mega"));
+        var input = new List<Role> { nullMods, nullName };
+
+        var result = RolesBrowserProjection.WithoutMiraMegaDuplicates(input);
+
+        Assert.Equal(2, result.Count);
+        Assert.Same(nullMods, result[0]);
+        Assert.Same(nullName, result[1]);
+    }
+
     [Fact]
     public void ProjectionReturnsNewListWithSameInstancesForUnaffectedRoles()
     {

@@ -146,7 +146,7 @@
       "CategoryModifier": "Modifier",
       "TypeRole": "Rola",
       "TypeModifier": "Modyfikator",
-      "EmptyMods": "Brak modów z rolami",
+      "EmptyMods": "Nie widzimy tu modów z rolami",
       "EmptyModsHint": "Nie udało się potwierdzić, czy katalog ma mody z rolami.",
       "EmptyRoles": "Ten mod nie ma ról",
       "EmptyRolesHint": "Wybierz inny mod z listy.",
