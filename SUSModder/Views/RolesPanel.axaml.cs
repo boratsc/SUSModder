@@ -36,6 +36,9 @@ public partial class RolesPanel : UserControl
             return;
 
         vm.SelectRoleModCommand.Execute(group).Subscribe();
+        // E16 (W3): bez tego po powrocie z poziomu B zostaje złota ramka zaznaczenia;
+        // strzałki odtwarzają zaznaczenie przy nawigacji klawiszowej.
+        RoleModsListBox.SelectedItem = null;
         e.Handled = true;
     }
 
@@ -45,6 +48,7 @@ public partial class RolesPanel : UserControl
             return;
         if (DataContext is MainWindowViewModel vm)
             vm.SelectRoleModCommand.Execute(group).Subscribe();
+        listBox.SelectedItem = null;
         e.Handled = true;
     }
 }
