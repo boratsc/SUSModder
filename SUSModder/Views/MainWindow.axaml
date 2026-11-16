@@ -410,7 +410,7 @@
 										 PlaceholderText="{loc:Localize UI.Browser.SearchPlaceholder}"
 										 AutomationProperties.Name="{loc:Localize UI.Browser.SearchPlaceholder}"
 										 Background="Transparent" BorderThickness="0"
-										 VerticalAlignment="Center" Padding="8,0"/>
+										 VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="8,0"/>
 							</Grid>
 						</Border>
 						<Button Grid.Column="1"
