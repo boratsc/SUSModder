@@ -490,7 +490,8 @@
 								 BorderThickness="0">
 							<ListBox.ItemTemplate>
 								<DataTemplate x:DataType="vm:ModInstanceItem">
-									<Panel>
+									<!-- E10: separator pod wierszem (nie nakładka) — pełna złota ramka zaznaczenia. -->
+									<StackPanel Spacing="6">
 										<i:Interaction.Behaviors>
 											<behaviors:DoubleClickBehavior
 												DoubleClickCommand="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).PackInstanceDoubleClickCommand}"
@@ -539,7 +540,7 @@
 											</Panel>
 										</Border>
 										<Border Classes="catalog-row-separator"/>
-									</Panel>
+									</StackPanel>
 								</DataTemplate>
 							</ListBox.ItemTemplate>
 						</ListBox>
@@ -563,7 +564,7 @@
 							 BorderThickness="0">
 						<ListBox.ItemTemplate>
 							<DataTemplate x:DataType="vm:ModItem">
-								<Panel>
+								<StackPanel Spacing="6">
 									<i:Interaction.Behaviors>
 										<behaviors:DoubleClickBehavior
 											DoubleClickCommand="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).SelectDllModCommand}"
@@ -636,7 +637,7 @@
 										</Grid>
 									</Border>
 									<Border Classes="catalog-row-separator"/>
-								</Panel>
+								</StackPanel>
 							</DataTemplate>
 						</ListBox.ItemTemplate>
 					</ListBox>
@@ -674,7 +675,7 @@
 							 BorderThickness="0">
 						<ListBox.ItemTemplate>
 							<DataTemplate x:DataType="vm:ModItem">
-								<Panel ToolTip.ShowDelay="300">
+								<StackPanel Spacing="6" ToolTip.ShowDelay="300">
 									<i:Interaction.Behaviors>
 										<behaviors:DoubleClickBehavior
 											DoubleClickCommand="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ModDoubleClickCommand}"
@@ -794,7 +795,7 @@
 										</Panel>
 									</Border>
 									<Border Classes="catalog-row-separator"/>
-								</Panel>
+								</StackPanel>
 							</DataTemplate>
 						</ListBox.ItemTemplate>
 					</ListBox>
