@@ -374,10 +374,7 @@ namespace SUSModder.ViewModels
                     (item, q) => RolesBrowserProjection.MatchesRole(item.Role, q, category, type),
                     forcePredicate: category != RolesBrowserProjection.AllValue || type != RolesBrowserProjection.AllValue);
                 // Zachowaj zaznaczenie, jeśli rola nadal pasuje do filtra; w przeciwnym razie zamknij szczegóły.
-                if (keep != null && ModRoles.Contains(keep) && SelectedRoleItem == null)
-                    SelectedRoleItem = keep;
-                else if (SelectedRoleItem != null && !ModRoles.Contains(SelectedRoleItem))
-                    SelectedRoleItem = null;
+                SelectedRoleItem = RolesBrowserProjection.ResolveRoleSelectionAfterFilter(keep, SelectedRoleItem, ModRoles);
             }
 
             RaiseRolesStateProperties();

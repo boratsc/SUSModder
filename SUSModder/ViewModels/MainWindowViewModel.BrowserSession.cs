@@ -67,28 +67,25 @@ public partial class MainWindowViewModel
     /// <summary>E14: przywrócenie poziomu A/B, roli i filtrów; deep-link (pending) wygrywa z przywracaniem.</summary>
     private void RestoreRolesTabSelection(BrowserTabState state)
     {
-        if (_pendingRoleModPreselect is int)
+        switch (RolesBrowserProjection.ResolveRolesRestoreAction(
+            _pendingRoleModPreselect is int, _rolesLoaded, state.ModId, _roleModsSnapshot))
         {
-            if (_rolesLoaded)
+            case RolesBrowserProjection.RolesRestoreAction.PendingPreselect:
                 ApplyPendingRoleModPreselect();
-            return;
+                return;
+            case RolesBrowserProjection.RolesRestoreAction.Wait:
+                return;
+            case RolesBrowserProjection.RolesRestoreAction.OpenSessionMod:
+                OpenRoleMod(state.ModId!.Value, clearSearch: false);
+                break;
+            default: // LevelA
+                SelectedRoleModId = null;
+                // Load mógł skończyć się poza zakładką — odbuduj listę poziomu A.
+                ApplyRolesFilter();
+                break;
         }
 
-        if (!_rolesLoaded)
-            return;
-
-        if (RolesBrowserProjection.ResolveModId(state.ModId, _roleModsSnapshot) is int modId)
-            OpenRoleMod(modId, clearSearch: false);
-        else
-        {
-            SelectedRoleModId = null;
-            // Load mógł skończyć się poza zakładką — odbuduj listę poziomu A.
-            ApplyRolesFilter();
-        }
-
-        SelectedRoleItem = state.RoleId is int roleId
-            ? ModRoles.FirstOrDefault(i => i.Role.Id == roleId)
-            : null;
+        SelectedRoleItem = RolesBrowserProjection.ResolveRestoredRoleItem(state.RoleId, ModRoles);
     }
 
     private void ClearFilteredBrowserSelection()

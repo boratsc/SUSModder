@@ -186,6 +186,47 @@ namespace SUSModder.ViewModels
         public static int? ResolveModId(int? modId, IReadOnlyList<RoleModGroup> groups) =>
             modId is int id && groups.Any(g => g.ModId == id) ? id : null;
 
+        /// <summary>
+        /// E16 (D3): zaznaczenie roli po przebudowie listy filtrem. ListBox czyści zaznaczenie
+        /// przy Clear() kolekcji — zachowaj poprzednie, gdy rola nadal pasuje; zamknij, gdy wypadła.
+        /// </summary>
+        public static RoleListItem? ResolveRoleSelectionAfterFilter(
+            RoleListItem? beforeFilter, RoleListItem? afterRebuild, IReadOnlyList<RoleListItem> visible)
+        {
+            if (beforeFilter != null && afterRebuild == null && visible.Contains(beforeFilter))
+                return beforeFilter;
+            if (afterRebuild != null && !visible.Contains(afterRebuild))
+                return null;
+            return afterRebuild;
+        }
+
+        /// <summary>E16 (D3): rozstrzygnięcie przywracania zakładki Role (kolejność: pending deep-link → sesja).</summary>
+        public enum RolesRestoreAction
+        {
+            /// <summary>Nic nie przywracamy — load jeszcze trwa (sam konsumuje pending).</summary>
+            Wait,
+            /// <summary>Pending deep-link wygrywa z zapisaną sesją.</summary>
+            PendingPreselect,
+            /// <summary>Sesja wskazuje mod obecny w danych — otwórz poziom B.</summary>
+            OpenSessionMod,
+            /// <summary>Brak moda w sesji/danych — poziom A.</summary>
+            LevelA
+        }
+
+        public static RolesRestoreAction ResolveRolesRestoreAction(
+            bool hasPendingPreselect, bool rolesLoaded, int? sessionModId, IReadOnlyList<RoleModGroup> groups)
+        {
+            if (hasPendingPreselect)
+                return rolesLoaded ? RolesRestoreAction.PendingPreselect : RolesRestoreAction.Wait;
+            if (!rolesLoaded)
+                return RolesRestoreAction.Wait;
+            return ResolveModId(sessionModId, groups) is int ? RolesRestoreAction.OpenSessionMod : RolesRestoreAction.LevelA;
+        }
+
+        /// <summary>E16 (D3): rola z sesji wraca tylko, gdy istnieje na aktualnej (przefiltrowanej) liście.</summary>
+        public static RoleListItem? ResolveRestoredRoleItem(int? roleId, IReadOnlyList<RoleListItem> items) =>
+            roleId is int id ? items.FirstOrDefault(i => i.Role.Id == id) : null;
+
         private static bool MatchesValue(string value, string? filter) =>
             filter is null ||
             filter == AllValue ||

@@ -257,4 +257,131 @@ public class RolesBrowserTests
         Assert.True(item.HasAbilities);
         Assert.Same(role, item.Role);
     }
+
+    // ── E16 (D3): zaznaczenie roli po filtrze, kolejność przywracania, round-trip stanu ──
+
+    private static RoleListItem Item(int id, string name) =>
+        new(new Role { Id = id, Name = name, Category = "Crewmate", Type = "Role" });
+
+    [Fact]
+    public void FilterRebuildKeepsSelectionWhenRoleStillMatches()
+    {
+        var role = Item(1, "Sheriff");
+        var visible = new List<RoleListItem> { role, Item(2, "Medic") };
+        // ListBox czyści zaznaczenie przy Clear() kolekcji, ale rola nadal pasuje do filtra.
+        Assert.Same(role, RolesBrowserProjection.ResolveRoleSelectionAfterFilter(role, null, visible));
+    }
+
+    [Fact]
+    public void FilterRebuildClosesSelectionWhenRoleFallsOut()
+    {
+        var role = Item(1, "Sheriff");
+        Assert.Null(RolesBrowserProjection.ResolveRoleSelectionAfterFilter(role, null, new List<RoleListItem>()));
+        Assert.Null(RolesBrowserProjection.ResolveRoleSelectionAfterFilter(role, null, new List<RoleListItem> { Item(2, "Medic") }));
+    }
+
+    [Fact]
+    public void FilterWithoutRebuildKeepsCurrentSelection()
+    {
+        var role = Item(1, "Sheriff");
+        var visible = new List<RoleListItem> { role };
+        Assert.Same(role, RolesBrowserProjection.ResolveRoleSelectionAfterFilter(role, role, visible));
+        Assert.Null(RolesBrowserProjection.ResolveRoleSelectionAfterFilter(null, null, visible));
+    }
+
+    [Fact]
+    public void StaleCurrentSelectionOutsideListIsCleared()
+    {
+        var stale = Item(9, "Ghost");
+        Assert.Null(RolesBrowserProjection.ResolveRoleSelectionAfterFilter(null, stale, new List<RoleListItem> { Item(1, "Sheriff") }));
+    }
+
+    [Fact]
+    public void PendingDeepLinkWinsOverSessionRestore()
+    {
+        var groups = Build(new[] { V2Role(1, "Sheriff", (10, "Mod A"), (20, "Mod B")) });
+        Assert.Equal(RolesBrowserProjection.RolesRestoreAction.PendingPreselect,
+            RolesBrowserProjection.ResolveRolesRestoreAction(true, true, 20, groups));
+    }
+
+    [Fact]
+    public void PendingDeepLinkBeforeLoadWaitsForLoad()
+    {
+        var groups = Build(new[] { V2Role(1, "Sheriff", (10, "Mod A")) });
+        Assert.Equal(RolesBrowserProjection.RolesRestoreAction.Wait,
+            RolesBrowserProjection.ResolveRolesRestoreAction(true, false, 10, groups));
+    }
+
+    [Fact]
+    public void RestoreBeforeLoadWithoutPendingWaits()
+    {
+        Assert.Equal(RolesBrowserProjection.RolesRestoreAction.Wait,
+            RolesBrowserProjection.ResolveRolesRestoreAction(false, false, 10, new List<RoleModGroup>()));
+    }
+
+    [Fact]
+    public void SessionModPresentInDataOpensLevelB()
+    {
+        var groups = Build(new[] { V2Role(1, "Sheriff", (10, "Mod A")) });
+        Assert.Equal(RolesBrowserProjection.RolesRestoreAction.OpenSessionMod,
+            RolesBrowserProjection.ResolveRolesRestoreAction(false, true, 10, groups));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(999)]
+    public void SessionModMissingFromDataFallsBackToLevelA(int? sessionModId)
+    {
+        var groups = Build(new[] { V2Role(1, "Sheriff", (10, "Mod A")) });
+        Assert.Equal(RolesBrowserProjection.RolesRestoreAction.LevelA,
+            RolesBrowserProjection.ResolveRolesRestoreAction(false, true, sessionModId, groups));
+    }
+
+    [Fact]
+    public void RolesTabStateRoundTripRestoresLevelBRoleAndFilters()
+    {
+        // Capture jak CaptureBrowserTabState: poziom B z zaznaczoną rolą, filtrami i scrollem.
+        var roles = new[] { V2Role(5, "Sheriff", (10, "Mod A")), V2Role(6, "Medic", (10, "Mod A")) };
+        var groups = Build(roles);
+        var items = roles.Select(r => new RoleListItem(r)).ToList();
+        var session = new BrowserSessionState();
+        var state = session.For(MainWindowViewModel.ModBrowserTab.Roles);
+        state.ModId = 10;
+        state.RoleId = 5;
+        state.RoleCategory = "Crewmate";
+        state.RoleType = "Role";
+        state.Query = "sher";
+        state.ScrollOffset = 120;
+
+        // Restore: te same czyste funkcje, których używa VM.
+        var read = session.For(MainWindowViewModel.ModBrowserTab.Roles);
+        Assert.Equal(RolesBrowserProjection.RolesRestoreAction.OpenSessionMod,
+            RolesBrowserProjection.ResolveRolesRestoreAction(false, true, read.ModId, groups));
+        var restored = RolesBrowserProjection.ResolveRestoredRoleItem(read.RoleId, items);
+        Assert.NotNull(restored);
+        Assert.Equal(5, restored!.Role.Id);
+        Assert.Equal("Crewmate", read.RoleCategory);
+        Assert.Equal("Role", read.RoleType);
+        Assert.Equal("sher", read.Query);
+        Assert.Equal(120, read.ScrollOffset);
+    }
+
+    [Fact]
+    public void LevelARoundTripRestoresNoModAndNoRole()
+    {
+        var groups = Build(new[] { V2Role(5, "Sheriff", (10, "Mod A")) });
+        var state = new BrowserSessionState().For(MainWindowViewModel.ModBrowserTab.Roles);
+        Assert.Equal(RolesBrowserProjection.RolesRestoreAction.LevelA,
+            RolesBrowserProjection.ResolveRolesRestoreAction(false, true, state.ModId, groups));
+        Assert.Null(RolesBrowserProjection.ResolveRestoredRoleItem(state.RoleId, new List<RoleListItem>()));
+    }
+
+    [Fact]
+    public void StaleRoleIdDoesNotRestoreSelection()
+    {
+        var items = new List<RoleListItem> { Item(5, "Sheriff") };
+        Assert.Null(RolesBrowserProjection.ResolveRestoredRoleItem(999, items));
+        Assert.Null(RolesBrowserProjection.ResolveRestoredRoleItem(null, items));
+        Assert.Same(items[0], RolesBrowserProjection.ResolveRestoredRoleItem(5, items));
+    }
 }
