@@ -419,6 +419,22 @@
 								<TextBlock Grid.Column="2" Classes="sidebar-count" Text="{Binding DllMods.Count}"/>
 							</Grid>
 						</Button>
+						<!-- E14: Role — panel w głównym oknie (poziomy: mody z rolami → role moda).
+						     Licznik = liczba modów z rolami, widoczny po załadowaniu danych. -->
+						<Button Classes="sidebar-item"
+								Classes.active="{Binding IsRolesTab}"
+								Command="{Binding SelectBrowserTabCommand}"
+								CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.Roles}"
+								AutomationProperties.Name="{loc:Localize UI.Tabs.Roles}">
+							<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.People}" FontSize="18" VerticalAlignment="Center"/>
+								<TextBlock Grid.Column="1" Text="{loc:Localize UI.Tabs.Roles}" VerticalAlignment="Center"/>
+								<TextBlock Grid.Column="2" Classes="sidebar-count"
+										   Text="{Binding RoleModsCount}"
+										   IsVisible="{Binding HasRoleMods}"
+										   AutomationProperties.Name="{Binding RoleModsCountLabel}"/>
+							</Grid>
+						</Button>
 						<Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,8,0,8"/>
 						<Button Classes="sidebar-item"
 								Classes.active="{Binding IsAppSettingsVisible}"
@@ -433,9 +449,11 @@
 				</Panel>
 			</Border>
 
-			<!-- LISTA: nagłówek widoku + wyszukiwarka + filtr, poniżej browser -->
+			<!-- LISTA: nagłówek widoku + wyszukiwarka + filtr, poniżej browser.
+			     E14: zakładka Role ma własny nagłówek w RolesPanel (poziomy A/B). -->
 			<Grid Grid.Column="1" RowDefinitions="Auto,*">
-				<StackPanel Grid.Row="0" Margin="20,20,16,12" Spacing="4">
+				<StackPanel Grid.Row="0" Margin="20,20,16,12" Spacing="4"
+				            IsVisible="{Binding IsRolesTab, Converter={x:Static BoolConverters.Not}}">
 					<TextBlock Text="{Binding ActiveViewTitle}"
 							   FontSize="22" FontWeight="SemiBold"
 							   Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -473,10 +491,16 @@
 					   Classes="glass-browser-panel"
 					   PointerPressed="ModGridBackground_PointerPressed">
 
-					<!-- Skeleton loading placeholders (widoczne podczas inicjalizacji) — E4: wiersze 68 px jak listy -->
+					<!-- Skeleton loading placeholders (widoczne podczas inicjalizacji) — E4: wiersze 68 px jak listy.
+					     E14: nie dla zakładki Role (własny skeleton w RolesPanel). -->
 					<ScrollViewer Margin="10"
-								  IsVisible="{Binding IsModsLoading}"
 								  Background="Transparent">
+						<ScrollViewer.IsVisible>
+							<MultiBinding Converter="{x:Static BoolConverters.And}">
+								<Binding Path="IsModsLoading"/>
+								<Binding Path="IsRolesTab" Converter="{x:Static BoolConverters.Not}"/>
+							</MultiBinding>
+						</ScrollViewer.IsVisible>
 						<StackPanel Spacing="8" Margin="0,4">
 							<Border Classes="skeleton-card"/>
 							<Border Classes="skeleton-card"/>
@@ -842,6 +866,10 @@
 							</DataTemplate>
 						</ListBox.ItemTemplate>
 					</ListBox>
+
+					<!-- E14: zakładka Role — poziomy A/B we własnym panelu (nagłówek + search + filtry). -->
+					<local:RolesPanel DataContext="{Binding}"
+					                  IsVisible="{Binding IsRolesTab}"/>
 				</Panel>
 			</Grid>
 
@@ -891,6 +919,13 @@
 						        Classes="mod-detail-host"
 						        IsVisible="{Binding IsDllPanelVisible}">
 							<local:DllAddonInspector DataContext="{Binding}"/>
+						</Border>
+
+						<!-- E14: szczegóły roli (read-only) -->
+						<Border x:Name="RoleDetailDrawerHost"
+						        Classes="mod-detail-host"
+						        IsVisible="{Binding IsRolePanelVisible}">
+							<local:RoleDetailDrawer DataContext="{Binding}"/>
 						</Border>
 					</Panel>
 
@@ -1471,16 +1506,7 @@
 					</StackPanel>
 				</Button>
 
-				<Button Classes="fab-menu-item"
-						Command="{Binding ShowRolesCommand}">
-					<i:Interaction.Behaviors>
-						<behaviors:RippleBehavior/>
-					</i:Interaction.Behaviors>
-					<StackPanel Orientation="Horizontal" Spacing="12">
-						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Person}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
-						<TextBlock Text="{loc:Localize UI.Buttons.Roles}" VerticalAlignment="Center"/>
-					</StackPanel>
-				</Button>
+				<!-- E14: pozycja „Role" usunięta — dostęp przez sidebar (jedyne wejście). -->
 
 				<Button Classes="fab-menu-item"
 						Click="OnShowConsoleClicked"

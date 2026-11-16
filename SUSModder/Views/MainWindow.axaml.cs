@@ -359,6 +359,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             vm.ClosePackInstanceDetailCommand.Execute().Subscribe();
         else if (vm.IsModPanelVisible)
             vm.CloseModDetailCommand.Execute().Subscribe();
+        else if (vm.IsRolePanelVisible)
+            vm.CloseRoleDetailCommand.Execute().Subscribe();
     }
 
     /// <summary>Konsola deweloperska z menu „Więcej" (ta sama ścieżka co przełącznik w Ustawieniach).</summary>
@@ -519,7 +521,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     private void ModGridBackground_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel vm ||
-            (!vm.IsModPanelVisible && !vm.IsPackInstancePanelVisible && !vm.IsDllPanelVisible))
+            (!vm.IsModPanelVisible && !vm.IsPackInstancePanelVisible && !vm.IsDllPanelVisible && !vm.IsRolePanelVisible))
             return;
 
         for (Control? c = e.Source as Control; c != null; c = c.Parent as Control)
@@ -534,6 +536,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             vm.CloseDllDetailCommand.Execute().Subscribe();
         else if (vm.IsPackInstancePanelVisible)
             vm.ClosePackInstanceDetailCommand.Execute().Subscribe();
+        else if (vm.IsRolePanelVisible)
+            vm.CloseRoleDetailCommand.Execute().Subscribe();
         else
             vm.CloseModDetailCommand.Execute().Subscribe();
         e.Handled = true;
@@ -582,6 +586,13 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         if (vm.IsModPanelVisible)
         {
             vm.CloseModDetailCommand.Execute().Subscribe();
+            e.Handled = true;
+            return;
+        }
+
+        if (vm.IsRolePanelVisible)
+        {
+            vm.CloseRoleDetailCommand.Execute().Subscribe();
             e.Handled = true;
         }
     }

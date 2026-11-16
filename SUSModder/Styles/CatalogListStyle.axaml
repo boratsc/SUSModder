@@ -150,6 +150,27 @@
 		<Setter Property="Padding" Value="24,20"/>
 	</Style>
 
+	<!-- ── E14: kropka kategorii roli (D6) — semantyczne brushe, nie biały tekst na kolorze ──
+	     Tag = znormalizowana wartość danych API (RoleListItem.CategoryKey); nieznane = muted. -->
+	<Style Selector="Ellipse.role-category-dot">
+		<Setter Property="Width" Value="10"/>
+		<Setter Property="Height" Value="10"/>
+		<Setter Property="VerticalAlignment" Value="Center"/>
+		<Setter Property="Fill" Value="{DynamicResource TextMutedBrush}"/>
+	</Style>
+	<Style Selector="Ellipse.role-category-dot[Tag=Crewmate]">
+		<Setter Property="Fill" Value="{DynamicResource SuccessBrush}"/>
+	</Style>
+	<Style Selector="Ellipse.role-category-dot[Tag=Impostor]">
+		<Setter Property="Fill" Value="{DynamicResource DangerBrush}"/>
+	</Style>
+	<Style Selector="Ellipse.role-category-dot[Tag=Neutral]">
+		<Setter Property="Fill" Value="{DynamicResource InfoBrush}"/>
+	</Style>
+	<Style Selector="Ellipse.role-category-dot[Tag=Modifier]">
+		<Setter Property="Fill" Value="{DynamicResource TextMutedBrush}"/>
+	</Style>
+
 	<!-- ── Szczegóły moda ── -->
 	<Style Selector="Border.catalog-detail-icon">
 		<Setter Property="Width" Value="88"/>

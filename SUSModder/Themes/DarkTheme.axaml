@@ -85,6 +85,8 @@
 	<SolidColorBrush x:Key="AccentBrushHover" Color="{StaticResource PrimaryActionHoverColor}"/>
 	<SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
 	<SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+	<!-- E14: semantyczny info (kropka kategorii Neutral) — alias istniejącego koloru info #8FC9EE -->
+	<SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoChipBorderColor}"/>
 	<SolidColorBrush x:Key="WindowBackgroundBrush" Color="{StaticResource WindowBackgroundColor}"/>
 	<SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
 	<SolidColorBrush x:Key="PaneBackgroundBrush" Color="{StaticResource PaneBackgroundColor}"/>

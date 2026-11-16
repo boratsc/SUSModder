@@ -1,0 +1,317 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             xmlns:converters="using:SUSModder.Converters"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:fic="using:FluentIcons.Common"
+             x:Class="SUSModder.Views.RolesPanel"
+             x:DataType="vm:MainWindowViewModel">
+	<UserControl.Resources>
+		<converters:StringToBitmapConverter x:Key="StringToBitmapConverter"/>
+	</UserControl.Resources>
+
+	<!-- E14: zakładka Role w kolumnie listy. Poziom A = mody z rolami, poziom B = role wybranego moda.
+	     Własny nagłówek (wspólny nagłówek kolumny jest ukryty dla Role); search współdzielony
+	     przez BrowserSearchText (stan sesji zakładki). Filtry działają tylko na poziomie B. -->
+	<Grid RowDefinitions="Auto,*">
+
+		<!-- Nagłówek poziomu A -->
+		<StackPanel Grid.Row="0" Margin="20,20,16,12" Spacing="4"
+		            IsVisible="{Binding IsRoleModsLevelVisible}">
+			<TextBlock Text="{loc:Localize UI.Tabs.Roles}"
+			           FontSize="22" FontWeight="SemiBold"
+			           Foreground="{DynamicResource TextPrimaryBrush}"/>
+			<TextBlock Text="{loc:Localize UI.Roles.ModsSubtitle}"
+			           FontSize="12"
+			           Foreground="{DynamicResource TextMutedBrush}"/>
+			<Border Classes="browser-search-box" Height="40" Margin="0,12,0,0">
+				<Grid ColumnDefinitions="Auto,*">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Search}" FontSize="16"
+					               Margin="12,0,0,0" VerticalAlignment="Center"
+					               Foreground="{DynamicResource TextMutedBrush}"/>
+					<TextBox Grid.Column="1"
+					         Text="{Binding BrowserSearchText, Mode=TwoWay}"
+					         PlaceholderText="{loc:Localize UI.Roles.SearchModsPlaceholder}"
+					         AutomationProperties.Name="{loc:Localize UI.Roles.SearchModsPlaceholder}"
+					         Background="Transparent" BorderThickness="0"
+					         VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="8,0"/>
+				</Grid>
+			</Border>
+		</StackPanel>
+
+		<!-- Nagłówek poziomu B: powrót + nazwa moda + licznik + search + filtry -->
+		<StackPanel Grid.Row="0" Margin="20,20,16,12" Spacing="4"
+		            IsVisible="{Binding IsRoleRolesLevelVisible}">
+			<Button Classes="back-btn"
+			        Command="{Binding BackToRoleModsCommand}"
+			        HorizontalAlignment="Left"
+			        AutomationProperties.Name="{loc:Localize UI.Roles.BackToMods}">
+				<StackPanel Orientation="Horizontal" Spacing="8">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowLeft}" FontSize="16" VerticalAlignment="Center"/>
+					<TextBlock Text="{loc:Localize UI.Roles.BackToMods}" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Button>
+			<TextBlock Text="{Binding SelectedRoleModName}"
+			           FontSize="22" FontWeight="SemiBold"
+			           Foreground="{DynamicResource TextPrimaryBrush}"
+			           TextTrimming="CharacterEllipsis"/>
+			<TextBlock Text="{Binding RolesLevelBSubtitle}"
+			           FontSize="12"
+			           Foreground="{DynamicResource TextMutedBrush}"/>
+			<Border Classes="browser-search-box" Height="40" Margin="0,12,0,0">
+				<Grid ColumnDefinitions="Auto,*">
+					<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Search}" FontSize="16"
+					               Margin="12,0,0,0" VerticalAlignment="Center"
+					               Foreground="{DynamicResource TextMutedBrush}"/>
+					<TextBox Grid.Column="1"
+					         Text="{Binding BrowserSearchText, Mode=TwoWay}"
+					         PlaceholderText="{loc:Localize UI.Roles.SearchRolesPlaceholder}"
+					         AutomationProperties.Name="{loc:Localize UI.Roles.SearchRolesPlaceholder}"
+					         Background="Transparent" BorderThickness="0"
+					         VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="8,0"/>
+				</Grid>
+			</Border>
+			<Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,8,0,0">
+				<ComboBox Grid.Column="0"
+				          ItemsSource="{Binding RoleCategoryOptions}"
+				          SelectedItem="{Binding SelectedRoleCategoryOption, Mode=TwoWay}"
+				          HorizontalAlignment="Stretch"
+				          Height="40" FontSize="12" Padding="10,8"
+				          Background="{DynamicResource SecondaryBackgroundBrush}"
+				          BorderBrush="{DynamicResource BorderBrush}"
+				          BorderThickness="1" CornerRadius="4"
+				          AutomationProperties.Name="{loc:Localize UI.Roles.FilterCategory}">
+					<ComboBox.ItemTemplate>
+						<DataTemplate x:DataType="vm:RoleFilterOption">
+							<TextBlock Text="{Binding Label}"/>
+						</DataTemplate>
+					</ComboBox.ItemTemplate>
+				</ComboBox>
+				<ComboBox Grid.Column="1"
+				          ItemsSource="{Binding RoleTypeOptions}"
+				          SelectedItem="{Binding SelectedRoleTypeOption, Mode=TwoWay}"
+				          HorizontalAlignment="Stretch"
+				          Height="40" FontSize="12" Padding="10,8"
+				          Background="{DynamicResource SecondaryBackgroundBrush}"
+				          BorderBrush="{DynamicResource BorderBrush}"
+				          BorderThickness="1" CornerRadius="4"
+				          AutomationProperties.Name="{loc:Localize UI.Roles.FilterType}">
+					<ComboBox.ItemTemplate>
+						<DataTemplate x:DataType="vm:RoleFilterOption">
+							<TextBlock Text="{Binding Label}"/>
+						</DataTemplate>
+					</ComboBox.ItemTemplate>
+				</ComboBox>
+			</Grid>
+		</StackPanel>
+
+		<Panel Grid.Row="1">
+
+			<!-- Loading: skeletony 68 px jak pozostałe listy -->
+			<ScrollViewer Margin="10"
+			              IsVisible="{Binding IsRolesLoading}"
+			              Background="Transparent">
+				<StackPanel Spacing="8" Margin="0,4">
+					<Border Classes="skeleton-card"/>
+					<Border Classes="skeleton-card"/>
+					<Border Classes="skeleton-card"/>
+					<Border Classes="skeleton-card"/>
+					<Border Classes="skeleton-card"/>
+					<Border Classes="skeleton-card"/>
+				</StackPanel>
+			</ScrollViewer>
+
+			<!-- Błąd pobierania: neutralny komunikat + jedna akcja (ponów) -->
+			<Border Margin="10"
+			        Classes="catalog-empty-state"
+			        IsVisible="{Binding IsRolesLoadError}"
+			        VerticalAlignment="Center"
+			        HorizontalAlignment="Stretch"
+			        MaxWidth="420">
+				<StackPanel Spacing="8" HorizontalAlignment="Center">
+					<TextBlock Text="{loc:Localize UI.Roles.LoadError}"
+					           FontSize="16" FontWeight="SemiBold"
+					           TextAlignment="Center"
+					           Foreground="{DynamicResource TextPrimaryBrush}"/>
+					<TextBlock Text="{loc:Localize UI.Roles.LoadErrorHint}"
+					           FontSize="12"
+					           TextAlignment="Center"
+					           TextWrapping="Wrap"
+					           Foreground="{DynamicResource TextMutedBrush}"/>
+					<Button Classes="catalog-detail-secondary"
+					        HorizontalAlignment="Center"
+					        Margin="0,4,0,0"
+					        Content="{loc:Localize UI.Roles.Retry}"
+					        Command="{Binding RetryRolesLoadCommand}"
+					        AutomationProperties.Name="{loc:Localize UI.Roles.Retry}"/>
+				</StackPanel>
+			</Border>
+
+			<!-- Poziom A: mody z rolami. Klik = przejście do ról moda; strzałki + Enter jak w Katalogu. -->
+			<ListBox x:Name="RoleModsListBox"
+			         Classes="catalog-list"
+			         Margin="10,0,10,10"
+			         IsVisible="{Binding IsRoleModsListVisible}"
+			         ItemsSource="{Binding RoleMods}"
+			         PointerPressed="RoleModsListBox_PointerPressed"
+			         KeyDown="RoleModsListBox_KeyDown"
+			         Background="Transparent"
+			         BorderThickness="0">
+				<ListBox.ItemTemplate>
+					<DataTemplate x:DataType="vm:RoleModGroup">
+						<StackPanel Spacing="6">
+							<Border Classes="catalog-row">
+								<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+									<Border Grid.Column="0" Classes="catalog-row-icon">
+										<Panel>
+											<Image Source="{Binding IconSourceKey, Converter={StaticResource StringToBitmapConverter}}"
+											       Width="44" Height="44" Stretch="UniformToFill"
+											       IsVisible="{Binding HasIcon}"/>
+											<ic:SymbolIcon Symbol="{x:Static fic:Symbol.People}" FontSize="22"
+											               HorizontalAlignment="Center" VerticalAlignment="Center"
+											               Foreground="{DynamicResource TextMutedBrush}"
+											               IsVisible="{Binding HasIcon, Converter={x:Static BoolConverters.Not}}"/>
+										</Panel>
+									</Border>
+									<TextBlock Grid.Column="1" Classes="catalog-row-title"
+									           Text="{Binding Name}" VerticalAlignment="Center"/>
+									<Border Grid.Column="2" Classes="catalog-row-badge"
+									        AutomationProperties.Name="{Binding RoleCountLabel}">
+										<TextBlock Classes="catalog-row-badge-text" Text="{Binding RoleCountText}"/>
+									</Border>
+								</Grid>
+							</Border>
+							<Border Classes="catalog-row-separator"/>
+						</StackPanel>
+					</DataTemplate>
+				</ListBox.ItemTemplate>
+			</ListBox>
+
+			<!-- Poziom A: brak modów z rolami w danych -->
+			<Border Margin="10"
+			        Classes="catalog-empty-state"
+			        IsVisible="{Binding ShowRoleModsEmptyState}"
+			        VerticalAlignment="Center"
+			        HorizontalAlignment="Stretch"
+			        MaxWidth="420">
+				<StackPanel Spacing="8" HorizontalAlignment="Center">
+					<TextBlock Text="{loc:Localize UI.Roles.EmptyMods}"
+					           FontSize="16" FontWeight="SemiBold"
+					           TextAlignment="Center"
+					           Foreground="{DynamicResource TextPrimaryBrush}"/>
+					<TextBlock Text="{loc:Localize UI.Roles.EmptyModsHint}"
+					           FontSize="12"
+					           TextAlignment="Center"
+					           TextWrapping="Wrap"
+					           Foreground="{DynamicResource TextMutedBrush}"/>
+				</StackPanel>
+			</Border>
+
+			<!-- Poziom A: brak wyników wyszukiwania -->
+			<Border Margin="10"
+			        Classes="catalog-empty-state"
+			        IsVisible="{Binding ShowRoleModsNoResults}"
+			        VerticalAlignment="Center"
+			        HorizontalAlignment="Stretch"
+			        MaxWidth="420">
+				<StackPanel Spacing="8" HorizontalAlignment="Center">
+					<TextBlock Text="{loc:Localize UI.Roles.NoResults}"
+					           FontSize="16" FontWeight="SemiBold"
+					           TextAlignment="Center"
+					           Foreground="{DynamicResource TextPrimaryBrush}"/>
+					<TextBlock Text="{loc:Localize UI.Roles.NoResultsHint}"
+					           FontSize="12"
+					           TextAlignment="Center"
+					           TextWrapping="Wrap"
+					           Foreground="{DynamicResource TextMutedBrush}"/>
+					<Button Classes="catalog-detail-secondary"
+					        HorizontalAlignment="Center"
+					        Margin="0,4,0,0"
+					        Content="{loc:Localize UI.Roles.ClearFilters}"
+					        Command="{Binding ClearRoleFiltersCommand}"
+					        AutomationProperties.Name="{loc:Localize UI.Roles.ClearFilters}"/>
+				</StackPanel>
+			</Border>
+
+			<!-- Poziom B: role wybranego moda. Zaznaczenie = szczegóły w prawej kolumnie. -->
+			<ListBox x:Name="ModRolesListBox"
+			         Classes="catalog-list"
+			         Margin="10,0,10,10"
+			         IsVisible="{Binding IsModRolesListVisible}"
+			         ItemsSource="{Binding ModRoles}"
+			         SelectedItem="{Binding SelectedRoleItem, Mode=TwoWay}"
+			         Background="Transparent"
+			         BorderThickness="0">
+				<ListBox.ItemTemplate>
+					<DataTemplate x:DataType="vm:RoleListItem">
+						<StackPanel Spacing="6">
+							<Border Classes="catalog-row">
+								<Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+									<Panel Grid.Column="0" Width="44">
+										<Ellipse Classes="role-category-dot"
+										         Tag="{Binding CategoryKey}"
+										         HorizontalAlignment="Center"/>
+									</Panel>
+									<TextBlock Grid.Column="1" Classes="catalog-row-title"
+									           Text="{Binding Name}" VerticalAlignment="Center"/>
+									<Border Grid.Column="2" Classes="catalog-row-badge"
+									        IsVisible="{Binding HasType}">
+										<TextBlock Classes="catalog-row-badge-text" Text="{Binding TypeText}"/>
+									</Border>
+								</Grid>
+							</Border>
+							<Border Classes="catalog-row-separator"/>
+						</StackPanel>
+					</DataTemplate>
+				</ListBox.ItemTemplate>
+			</ListBox>
+
+			<!-- Poziom B: mod bez ról -->
+			<Border Margin="10"
+			        Classes="catalog-empty-state"
+			        IsVisible="{Binding ShowModRolesEmptyState}"
+			        VerticalAlignment="Center"
+			        HorizontalAlignment="Stretch"
+			        MaxWidth="420">
+				<StackPanel Spacing="8" HorizontalAlignment="Center">
+					<TextBlock Text="{loc:Localize UI.Roles.EmptyRoles}"
+					           FontSize="16" FontWeight="SemiBold"
+					           TextAlignment="Center"
+					           Foreground="{DynamicResource TextPrimaryBrush}"/>
+					<TextBlock Text="{loc:Localize UI.Roles.EmptyRolesHint}"
+					           FontSize="12"
+					           TextAlignment="Center"
+					           TextWrapping="Wrap"
+					           Foreground="{DynamicResource TextMutedBrush}"/>
+				</StackPanel>
+			</Border>
+
+			<!-- Poziom B: brak wyników filtra/search -->
+			<Border Margin="10"
+			        Classes="catalog-empty-state"
+			        IsVisible="{Binding ShowModRolesNoResults}"
+			        VerticalAlignment="Center"
+			        HorizontalAlignment="Stretch"
+			        MaxWidth="420">
+				<StackPanel Spacing="8" HorizontalAlignment="Center">
+					<TextBlock Text="{loc:Localize UI.Roles.NoResults}"
+					           FontSize="16" FontWeight="SemiBold"
+					           TextAlignment="Center"
+					           Foreground="{DynamicResource TextPrimaryBrush}"/>
+					<TextBlock Text="{loc:Localize UI.Roles.NoResultsHint}"
+					           FontSize="12"
+					           TextAlignment="Center"
+					           TextWrapping="Wrap"
+					           Foreground="{DynamicResource TextMutedBrush}"/>
+					<Button Classes="catalog-detail-secondary"
+					        HorizontalAlignment="Center"
+					        Margin="0,4,0,0"
+					        Content="{loc:Localize UI.Roles.ClearFilters}"
+					        Command="{Binding ClearRoleFiltersCommand}"
+					        AutomationProperties.Name="{loc:Localize UI.Roles.ClearFilters}"/>
+				</StackPanel>
+			</Border>
+		</Panel>
+	</Grid>
+</UserControl>

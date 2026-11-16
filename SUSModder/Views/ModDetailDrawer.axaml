@@ -354,8 +354,8 @@
 									</MenuItem.Icon>
 								</MenuItem>
 								<MenuItem Header="{loc:Localize UI.Buttons.Roles}"
-										  IsVisible="{Binding IsInstalled}"
-										  Command="{Binding $parent[local:ModDetailDrawer].DataContext.ShowRolesCommand}">
+										  Command="{Binding $parent[local:ModDetailDrawer].DataContext.ShowModRolesCommand}"
+										  CommandParameter="{Binding}">
 									<MenuItem.IsEnabled>
 										<MultiBinding Converter="{x:Static BoolConverters.And}">
 											<Binding Path="IsInstalling" Converter="{x:Static BoolConverters.Not}"/>

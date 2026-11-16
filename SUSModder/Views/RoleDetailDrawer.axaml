@@ -1,0 +1,147 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:models="using:SUSModder.Models"
+             xmlns:loc="using:SUSModder.Services.Localization"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:fic="using:FluentIcons.Common"
+             x:Class="SUSModder.Views.RoleDetailDrawer"
+             x:DataType="vm:MainWindowViewModel">
+	<UserControl.Styles>
+		<!-- close-button z PanelStyles ma ciemny foreground (pod jasne nagłówki);
+		     tutaj czytelny na ciemnej powierzchni + widoczny focus klawiatury. -->
+		<Style Selector="Button.close-button">
+			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+		</Style>
+		<Style Selector="Button.close-button:pointerover">
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		</Style>
+		<Style Selector="Button.close-button:focus">
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}"/>
+		</Style>
+	</UserControl.Styles>
+
+	<!-- E14: szczegóły roli w prawej kolumnie (read-only, bez głównego CTA).
+	     Kropka/badge kategorii na surface (D6), technikalia nie są potrzebne — to dane o grze. -->
+	<Border Classes="mod-detail-panel">
+		<Grid RowDefinitions="Auto,*,Auto">
+
+			<!-- Nagłówek: nazwa + chipy kategorii i typu + zamknij -->
+			<Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+				<StackPanel Grid.Column="0" Spacing="6" MinWidth="0">
+					<TextBlock Text="{Binding SelectedRoleItem.Name}"
+					           FontSize="26" FontWeight="Bold"
+					           Foreground="{DynamicResource TextPrimaryBrush}"
+					           TextWrapping="Wrap"/>
+					<StackPanel Orientation="Horizontal" Spacing="6">
+						<Border Classes="catalog-detail-chip">
+							<StackPanel Orientation="Horizontal" Spacing="6">
+								<Ellipse Classes="role-category-dot"
+								         Tag="{Binding SelectedRoleItem.CategoryKey}"
+								         Width="8" Height="8"/>
+								<TextBlock Classes="catalog-detail-chip-text"
+								           Text="{Binding SelectedRoleItem.CategoryText}"/>
+							</StackPanel>
+						</Border>
+						<Border Classes="catalog-detail-chip"
+						        IsVisible="{Binding SelectedRoleItem.HasType}">
+							<TextBlock Classes="catalog-detail-chip-text"
+							           Text="{Binding SelectedRoleItem.TypeText}"/>
+						</Border>
+					</StackPanel>
+				</StackPanel>
+				<Button Grid.Column="1"
+				        Content="✕"
+				        Classes="close-button"
+				        VerticalAlignment="Top"
+				        Command="{Binding CloseRoleDetailCommand}"
+				        AutomationProperties.Name="{loc:Localize UI.Buttons.Close}"/>
+			</Grid>
+
+			<!-- Treść: opis + zdolności; gdy brak obu — dyskretny komunikat -->
+			<ScrollViewer Grid.Row="1" Margin="0,16,0,0"
+			              VerticalScrollBarVisibility="Auto"
+			              HorizontalScrollBarVisibility="Disabled">
+				<StackPanel Spacing="10">
+					<Border Classes="mod-detail-section"
+					        IsVisible="{Binding SelectedRoleItem.HasDescription}">
+						<StackPanel Spacing="8">
+							<TextBlock Classes="inspector-section-title"
+							           Text="{loc:Localize UI.Roles.DescriptionHeader}"/>
+							<TextBlock Text="{Binding SelectedRoleItem.Description}"
+							           TextWrapping="Wrap"
+							           FontSize="13" LineHeight="20"
+							           Foreground="{DynamicResource TextSecondaryBrush}"/>
+						</StackPanel>
+					</Border>
+
+					<Border Classes="mod-detail-section"
+					        IsVisible="{Binding SelectedRoleItem.HasAbilities}">
+						<StackPanel Spacing="8">
+							<TextBlock Classes="inspector-section-title"
+							           Text="{loc:Localize UI.Roles.AbilitiesHeader}"/>
+							<ItemsControl ItemsSource="{Binding SelectedRoleItem.Abilities}">
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="models:Ability">
+										<Border Background="{DynamicResource SurfaceRaisedBrush}"
+										        CornerRadius="8" Padding="12" Margin="0,0,0,6">
+											<Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+												<ic:SymbolIcon Grid.Column="0"
+												               Symbol="{x:Static fic:Symbol.Flash}" FontSize="18"
+												               Foreground="{DynamicResource AccentBrush}"
+												               VerticalAlignment="Top"/>
+												<StackPanel Grid.Column="1" Spacing="2" MinWidth="0">
+													<TextBlock Text="{Binding Name}"
+													           FontSize="13" FontWeight="SemiBold"
+													           Foreground="{DynamicResource TextPrimaryBrush}"
+													           TextWrapping="Wrap"/>
+													<TextBlock Text="{Binding Description}"
+													           FontSize="12"
+													           Foreground="{DynamicResource TextSecondaryBrush}"
+													           TextWrapping="Wrap"
+													           IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+												</StackPanel>
+											</Grid>
+										</Border>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</StackPanel>
+					</Border>
+
+					<TextBlock Text="{loc:Localize UI.Roles.DetailsEmpty}"
+					           FontSize="13"
+					           TextWrapping="Wrap"
+					           Foreground="{DynamicResource TextMutedBrush}">
+						<TextBlock.IsVisible>
+							<MultiBinding Converter="{x:Static BoolConverters.And}">
+								<Binding Path="SelectedRoleItem.HasDescription" Converter="{x:Static BoolConverters.Not}"/>
+								<Binding Path="SelectedRoleItem.HasAbilities" Converter="{x:Static BoolConverters.Not}"/>
+							</MultiBinding>
+						</TextBlock.IsVisible>
+					</TextBlock>
+				</StackPanel>
+			</ScrollViewer>
+
+			<!-- Stopka: mod, do którego należy rola + drugorzędna akcja przejścia do Katalogu -->
+			<StackPanel Grid.Row="2" Spacing="6" Margin="0,12,0,0">
+				<Border Classes="catalog-detail-hairline" Margin="0,0,0,6"/>
+				<TextBlock Text="{loc:Localize UI.Roles.ModHeader}"
+				           FontSize="12"
+				           Foreground="{DynamicResource TextMutedBrush}"/>
+				<TextBlock Text="{Binding SelectedRoleModName}"
+				           FontSize="13" FontWeight="SemiBold"
+				           Foreground="{DynamicResource TextPrimaryBrush}"
+				           TextWrapping="Wrap"/>
+				<Button Classes="catalog-detail-secondary"
+				        Margin="0,6,0,0"
+				        HorizontalAlignment="Left"
+				        Content="{loc:Localize UI.Roles.ShowInCatalog}"
+				        Command="{Binding ShowRoleModInCatalogCommand}"
+				        IsVisible="{Binding CanShowRoleModInCatalog}"
+				        AutomationProperties.Name="{loc:Localize UI.Roles.ShowInCatalog}"/>
+			</StackPanel>
+		</Grid>
+	</Border>
+</UserControl>
