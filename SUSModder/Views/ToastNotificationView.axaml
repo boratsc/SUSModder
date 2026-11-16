@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SUSModder.ViewModels"
+             xmlns:loc="using:SUSModder.Services.Localization"
              x:Class="SUSModder.Views.ToastNotificationView"
              x:DataType="vm:ToastNotification"
              Opacity="{Binding Opacity}">
@@ -83,6 +84,7 @@
                 <!-- Przycisk zamknięcia -->
                 <Button Grid.Column="2"
                         Content="✕"
+                        AutomationProperties.Name="{loc:Localize UI.Buttons.Close}"
                         FontSize="12"
                         Width="20"
                         Height="20"

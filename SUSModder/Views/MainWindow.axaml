@@ -895,7 +895,9 @@
 								   VerticalAlignment="Center"/>
 						<Button Grid.Column="1"
 								Classes="statusbar-toggle-button"
-								Command="{Binding CloseToolModalCommand}">
+								Command="{Binding CloseToolModalCommand}"
+								AutomationProperties.Name="{loc:Localize UI.Buttons.Close}"
+								ToolTip.Tip="{loc:Localize UI.Buttons.Close}">
 							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Dismiss}" FontSize="20"/>
 						</Button>
 					</Grid>
@@ -1126,7 +1128,9 @@
 						<Button Grid.Column="1"
 								Classes="statusbar-toggle-button"
 								IsVisible="{Binding IsInlineDialogDismissible}"
-								Click="OnInlineDialogSecondaryClick">
+								Click="OnInlineDialogSecondaryClick"
+								AutomationProperties.Name="{loc:Localize UI.Buttons.Close}"
+								ToolTip.Tip="{loc:Localize UI.Buttons.Close}">
 							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Dismiss}" FontSize="20"/>
 						</Button>
 					</Grid>
@@ -1259,7 +1263,7 @@
 								  IsChecked="{Binding IsAntivirusWarningAcknowledged, Mode=TwoWay}"
 								  Foreground="{DynamicResource TextPrimaryBrush}"/>
 						<Button Grid.Row="1"
-								Content="OK"
+								Content="{loc:Localize UI.Buttons.OK}"
 								HorizontalAlignment="Right"
 								MinWidth="110"
 								Padding="10,8"

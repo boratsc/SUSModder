@@ -449,7 +449,7 @@
       "ViewSubtitle": "Wybierz modyfikacje DLL (zaznaczone = zainstalowane)",
       "StatusInstalled": "[ZAINSTALOWANY]",
       "VersionLabel": "Wersja: {0}",
-      "NotInstalledAnywhere": "Nie zainstalowany w żadnym zestawie",
+      "NotInstalledAnywhere": "Niezainstalowany w żadnym zestawie",
       "InstalledInCount": "Zainstalowany w {0} zestawach",
       "InstallTitle": "Instalacja DLL",
       "InstallFailed": "Nie udało się zainstalować modyfikacji DLL.",
@@ -844,7 +844,7 @@
       "Subtitle": "Najważniejsze opcje, bez zbędnych szczegółów.",
       "Game": {
         "Title": "Gra",
-        "Description": "Wybierz folder, w którym jest zainstalowane Among Us.",
+        "Description": "Katalog biblioteki modów — kopie gry z zainstalowanymi modami.",
         "Browse": "Wybierz folder"
       },
       "Updates": {
@@ -854,7 +854,7 @@
       },
       "Appearance": {
         "Title": "Wygląd",
-        "Description": "Motyw ciemny, grafitowo-pomarańczowy.",
+        "Description": "Motyw ciemny, grafitowo-złoty.",
         "State": "Minimalistyczny"
       },
       "Chat": {

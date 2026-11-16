@@ -1,5 +1,6 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Interactivity;
+using SUSModder.Core.Services.Localization;
 
 namespace SUSModder.Views
 {
@@ -15,7 +16,7 @@ namespace SUSModder.Views
         public SUStatsConfirmDialog(string serverName)
         {
             InitializeComponent();
-            Title = "Statystyki SUStats";
+            Title = App.GetService<ILocalizationService>().Get("SUStatsConfirm.WindowTitle");
 
             // Ustaw tekst z nazwą serwera
             if (this.FindControl<TextBlock>("ServerNameText") is TextBlock serverNameText)

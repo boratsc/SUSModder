@@ -81,6 +81,7 @@
 					<StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
 						<Button x:Name="ModDeveloperMenuButton"
 								Content="⋯"
+								AutomationProperties.Name="{loc:Localize UI.Inspector.MoreActions}"
 								FontSize="18"
 								FontWeight="Bold"
 								Width="32" Height="32"

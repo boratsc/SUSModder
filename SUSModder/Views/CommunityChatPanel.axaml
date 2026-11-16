@@ -245,6 +245,7 @@
 						 MaxHeight="84"
 						 FontSize="13"
 						 PlaceholderText="{loc:Localize UI.CommunityChat.Placeholder}"
+						 AutomationProperties.Name="{loc:Localize UI.CommunityChat.Placeholder}"
 						 KeyDown="OnInputKeyDown"/>
 				<Button Grid.Row="0" Grid.Column="1"
 						Content="{loc:Localize UI.CommunityChat.Send}"

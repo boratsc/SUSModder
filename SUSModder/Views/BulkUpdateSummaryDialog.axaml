@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SUSModder.Services.Localization"
         x:Class="SUSModder.Views.BulkUpdateSummaryDialog"
         Width="620" Height="560"
         WindowStartupLocation="CenterOwner"
@@ -62,12 +63,12 @@
 						Spacing="12"
 						Margin="0,16,0,0">
 				<Button x:Name="ConfirmButton"
-						Content="Update"
+						Content="{loc:Localize Dialogs.UpdateMod.UpdateButton}"
 						Classes="modal-primary"
 						IsDefault="True"
 						Click="ConfirmButton_Click"/>
 				<Button x:Name="CancelButton"
-						Content="Cancel"
+						Content="{loc:Localize Dialogs.UpdateMod.CancelButton}"
 						Classes="modal-secondary"
 						IsCancel="True"
 						Click="CancelButton_Click"/>

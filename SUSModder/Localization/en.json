@@ -121,8 +121,8 @@
       "Back": "Back to list",
       "NoResultsHint": "No mods found. Change your search or clear the filters.",
       "ClearFilters": "Clear filters",
-      "NoDllsTitle": "No DLL addons",
-      "NoDllsHint": "The catalog currently has no DLL addons."
+      "NoDllsTitle": "No DLL add-ons",
+      "NoDllsHint": "The catalog currently has no DLL add-ons."
     },
     "TopBar": {
       "More": "More",
@@ -844,7 +844,7 @@
       "Subtitle": "The essentials, without unnecessary detail.",
       "Game": {
         "Title": "Game",
-        "Description": "Choose the folder where Among Us is installed.",
+        "Description": "Mods library folder — game copies with installed mods.",
         "Browse": "Choose folder"
       },
       "Updates": {
@@ -854,7 +854,7 @@
       },
       "Appearance": {
         "Title": "Appearance",
-        "Description": "Dark theme, graphite and orange.",
+        "Description": "Dark theme, graphite and gold.",
         "State": "Minimalistic"
       },
       "Chat": {
