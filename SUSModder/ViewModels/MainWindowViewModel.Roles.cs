@@ -247,7 +247,7 @@ namespace SUSModder.ViewModels
                 if (generation != _rolesLoadGeneration)
                     return;
 
-                _allRoles = roles;
+                _allRoles = RolesBrowserProjection.WithoutMiraMegaDuplicates(roles);
                 if (RolesBrowserProjection.IsLoadError(roles.Count, ApiStatus == ApiConnectionStatus.Offline))
                 {
                     IsRolesLoadError = true;

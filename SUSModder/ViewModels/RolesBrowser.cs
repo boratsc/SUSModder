@@ -73,6 +73,47 @@ namespace SUSModder.ViewModels
         /// <summary>Wartość filtra „Wszystkie” (nie pochodzi z API).</summary>
         public const string AllValue = "All";
 
+        // shortcut: hardcoded wyjątek danych API (2026-11-16): [MEGA] pod Mira należy do MegaExtension; usunąć gdy backend naprawi przypisania.
+        public const string MegaRolePrefix = "[MEGA]";
+        public const int MiraModId = 13;
+        public const int MegaExtensionModId = 21;
+
+        /// <summary>
+        /// E17: role z prefiksem [MEGA] przypisane jednocześnie do Miry (13) i MegaExtension (21)
+        /// należą tylko do MegaExtension — zwraca NOWĄ listę: takie role jako kopie bez referencji 13,
+        /// pozostałe te same instancje. Wejście niemutowane (statyczny cache RolesService współdzielony
+        /// z checkiem HasRoles). Guard: MEGA bez 21 oraz role legacy (Mods puste) nietknięte.
+        /// </summary>
+        public static List<Role> WithoutMiraMegaDuplicates(IReadOnlyList<Role> roles)
+        {
+            var result = new List<Role>(roles.Count);
+            foreach (var role in roles)
+            {
+                if (role.Mods.Any(m => m.Id == MiraModId) &&
+                    role.Mods.Any(m => m.Id == MegaExtensionModId) &&
+                    role.Name.TrimStart().StartsWith(MegaRolePrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    result.Add(new Role
+                    {
+                        Id = role.Id,
+                        ModId = role.ModId,
+                        Name = role.Name,
+                        Description = role.Description,
+                        Category = role.Category,
+                        Type = role.Type,
+                        ModName = role.ModName,
+                        Mods = role.Mods.Where(m => m.Id != MiraModId).ToList(),
+                        Abilities = role.Abilities
+                    });
+                }
+                else
+                {
+                    result.Add(role);
+                }
+            }
+            return result;
+        }
+
         public static IReadOnlyList<RoleModGroup> BuildModGroups(
             IEnumerable<Role> roles,
             IReadOnlyList<ModItem> catalogMods,

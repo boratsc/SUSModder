@@ -384,4 +384,112 @@ public class RolesBrowserTests
         Assert.Null(RolesBrowserProjection.ResolveRestoredRoleItem(null, items));
         Assert.Same(items[0], RolesBrowserProjection.ResolveRestoredRoleItem(5, items));
     }
+
+    // ── E17: wyjątek danych [MEGA] — Mira (13) vs MegaExtension (21), matching po ID ──
+
+    [Fact]
+    public void MegaRoleWithMiraAndMegaExtensionGetsCopyWithoutMira()
+    {
+        var role = V2Role(7, "[MEGA] Jester", (13, "Town of Us Mira"), (21, "TownOfUsMegaChujoweExtension"));
+        role.Description = "Get voted out";
+        role.Category = "Neutral";
+        role.Type = "Role";
+        role.ModId = 99;
+        role.ModName = "Legacy Name";
+        role.Abilities = new List<Ability> { new() { Name = "Haunt" } };
+
+        var copy = Assert.Single(RolesBrowserProjection.WithoutMiraMegaDuplicates(new[] { role }));
+
+        Assert.NotSame(role, copy);
+        Assert.Equal(role.Id, copy.Id);
+        Assert.Equal(role.Name, copy.Name);
+        Assert.Equal(role.Description, copy.Description);
+        Assert.Equal(role.Category, copy.Category);
+        Assert.Equal(role.Type, copy.Type);
+        Assert.Equal(role.ModId, copy.ModId);
+        Assert.Equal(role.ModName, copy.ModName);
+        Assert.Same(role.Abilities, copy.Abilities);
+        Assert.Equal(new[] { 21 }, copy.Mods.Select(m => m.Id));
+        Assert.False(copy.IsAssociatedWithMod(13));
+        Assert.True(copy.IsAssociatedWithMod(21));
+        // Wejście niemutowane (cache RolesService współdzielony z HasRoles).
+        Assert.Equal(new[] { 13, 21 }, role.Mods.Select(m => m.Id));
+    }
+
+    [Theory]
+    [InlineData("[MEGA] Both", new[] { 13, 21 }, true)]
+    [InlineData("  [mega] Both", new[] { 13, 21 }, true)] // TrimStart + OrdinalIgnoreCase
+    [InlineData("[MEGA] Solo Mira", new[] { 13 }, false)] // guard: bez 21 nietknięta
+    [InlineData("[MEGA] Solo Mega", new[] { 21 }, false)]
+    [InlineData("Sheriff", new[] { 13, 21 }, false)] // bez prefiksu nietknięta
+    [InlineData("X [MEGA] Both", new[] { 13, 21 }, false)] // prefiks nie na początku
+    public void MegaMiraExceptionAppliesOnlyToPrefixedRolesWithBothIds(string name, int[] modIds, bool expectCopy)
+    {
+        var role = V2Role(1, name, modIds.Select(id => (id, $"Mod {id}")).ToArray());
+        var output = Assert.Single(RolesBrowserProjection.WithoutMiraMegaDuplicates(new[] { role }));
+        if (expectCopy)
+        {
+            Assert.NotSame(role, output);
+            Assert.DoesNotContain(output.Mods, m => m.Id == 13);
+            Assert.Contains(output.Mods, m => m.Id == 21);
+        }
+        else
+        {
+            Assert.Same(role, output);
+        }
+        Assert.Equal(modIds, role.Mods.Select(m => m.Id));
+    }
+
+    [Fact]
+    public void LegacyMegaRoleWithEmptyModsIsUntouched()
+    {
+        var role = new Role { Id = 1, Name = "[MEGA] Legacy", ModId = 13, ModName = "Town of Us Mira" };
+        Assert.Same(role, Assert.Single(RolesBrowserProjection.WithoutMiraMegaDuplicates(new[] { role })));
+    }
+
+    [Fact]
+    public void ProjectionReturnsNewListWithSameInstancesForUnaffectedRoles()
+    {
+        var plain = V2Role(1, "Sheriff", (13, "Town of Us Mira"));
+        var mega = V2Role(2, "[MEGA] Jester", (13, "Town of Us Mira"), (21, "Mega"));
+        var input = new List<Role> { plain, mega };
+
+        var result = RolesBrowserProjection.WithoutMiraMegaDuplicates(input);
+
+        Assert.NotSame(input, result);
+        Assert.Equal(2, result.Count);
+        Assert.Same(plain, result[0]);
+        Assert.NotSame(mega, result[1]);
+        Assert.Equal(2, input.Count);
+        Assert.Same(mega, input[1]);
+        Assert.Equal(new[] { 13, 21 }, mega.Mods.Select(m => m.Id));
+    }
+
+    [Fact]
+    public void ApiShapeCountersAfterProjectionMira115Mega40NoDuplicates()
+    {
+        // Kształt live API (2026-11-16): Mira 155 ról w tym 40 [MEGA] z podwójnym przypisaniem 13+21.
+        var roles = new List<Role>();
+        for (var i = 0; i < 115; i++)
+            roles.Add(V2Role(i + 1, $"Mira Role {i}", (13, "Town of Us Mira")));
+        for (var i = 0; i < 40; i++)
+            roles.Add(V2Role(1000 + i, $"[MEGA] Role {i}", (13, "Town of Us Mira"), (21, "TownOfUsMegaChujoweExtension")));
+        roles.Add(new Role { Id = 9999, Name = "Legacy", ModId = 30, ModName = "Legacy Mod" });
+
+        var before = Build(roles);
+        Assert.Equal(155, before.Single(g => g.ModId == 13).RoleCount);
+        Assert.Equal(196, before.Sum(g => g.RoleCount)); // MEGA liczone podwójnie
+
+        var projected = RolesBrowserProjection.WithoutMiraMegaDuplicates(roles);
+        var groups = Build(projected);
+
+        Assert.Equal(156, projected.Count); // liczba ról bez zmian
+        Assert.Equal(115, groups.Single(g => g.ModId == 13).RoleCount);
+        Assert.Equal(40, groups.Single(g => g.ModId == 21).RoleCount);
+        Assert.Equal(1, groups.Single(g => g.ModId == 30).RoleCount);
+        Assert.Equal(156, groups.Sum(g => g.RoleCount)); // suma bez duplikatów
+        // Search „[MEGA]” pod Mirą nie znajduje nic; pod MegaExtension wszystkie 40.
+        Assert.DoesNotContain(projected, r => r.IsAssociatedWithMod(13) && r.Name.StartsWith("[MEGA]"));
+        Assert.Equal(40, projected.Count(r => r.IsAssociatedWithMod(21) && r.Name.StartsWith("[MEGA]")));
+    }
 }
