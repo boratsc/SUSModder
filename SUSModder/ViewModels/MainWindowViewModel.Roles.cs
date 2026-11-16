@@ -398,6 +398,7 @@ namespace SUSModder.ViewModels
             this.RaisePropertyChanged(nameof(RoleModsCountLabel));
             this.RaisePropertyChanged(nameof(RolesLevelBSubtitle));
             this.RaisePropertyChanged(nameof(SelectedRoleModName));
+            this.RaisePropertyChanged(nameof(BreadcrumbSelection));
             this.RaisePropertyChanged(nameof(CanShowRoleModInCatalog));
         }
     }

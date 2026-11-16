@@ -361,6 +361,7 @@ namespace SUSModder.ViewModels
 
                 this.RaiseAndSetIfChanged(ref _selectedDllMod, value);
                 this.RaisePropertyChanged(nameof(SelectedDllModIconSourceKey));
+                this.RaisePropertyChanged(nameof(BreadcrumbSelection));
                 if (value != null)
                     LoadDllInstallTargets();
                 else
@@ -469,6 +470,7 @@ namespace SUSModder.ViewModels
                     this.RaisePropertyChanged(nameof(IsModSelected));
                     this.RaisePropertyChanged(nameof(IsModPanelVisible));
                     this.RaisePropertyChanged(nameof(IsBrowserDetailPanelVisible));
+                    this.RaisePropertyChanged(nameof(BreadcrumbSelection));
                     OnCatalogModInspectorChanged();
 
                     // Odświeżenie listy nie resetuje animacji — treść musi zostać widoczna.
@@ -507,6 +509,7 @@ namespace SUSModder.ViewModels
                     this.RaisePropertyChanged(nameof(IsModSelected));
                     this.RaisePropertyChanged(nameof(IsModPanelVisible));
                     this.RaisePropertyChanged(nameof(IsBrowserDetailPanelVisible));
+                    this.RaisePropertyChanged(nameof(BreadcrumbSelection));
                     OnCatalogModInspectorChanged();
 
                     Task.Delay(225).ContinueWith(_ =>
@@ -538,6 +541,7 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(IsModSelected));
                 this.RaisePropertyChanged(nameof(IsModPanelVisible));
                 this.RaisePropertyChanged(nameof(IsBrowserDetailPanelVisible));
+                this.RaisePropertyChanged(nameof(BreadcrumbSelection));
 
                 if (value != null && previousMod == null)
                 {

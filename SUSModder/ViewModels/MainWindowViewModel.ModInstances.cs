@@ -64,6 +64,7 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(IsDllAddonsTab));
                 this.RaisePropertyChanged(nameof(IsRolesTab));
                 this.RaisePropertyChanged(nameof(ActiveViewTitle));
+                this.RaisePropertyChanged(nameof(BreadcrumbSelection));
                 this.RaisePropertyChanged(nameof(ActiveViewSubtitle));
                 this.RaisePropertyChanged(nameof(IsBrowserGridVisible));
                 this.RaisePropertyChanged(nameof(IsPackInstancesGridVisible));
@@ -113,6 +114,25 @@ namespace SUSModder.ViewModels
             _ => _localizationService.Get("UI.Tabs.Catalog")
         };
 
+        /// <summary>E15: segment breadcrumb na górnej belce — nazwa zaznaczenia (pusty = brak zaznaczenia).</summary>
+        public string BreadcrumbSelection => ResolveBreadcrumbSelection(
+            ActiveBrowserTab, SelectedMod, SelectedPackInstance, SelectedDllMod, SelectedRoleModName);
+
+        /// <summary>Czyste mapowanie zaznaczenie → nazwa segmentu (testowalne bez DI; wzorzec: ResolveIconKey).</summary>
+        public static string ResolveBreadcrumbSelection(
+            ModBrowserTab tab,
+            ModItem? selectedMod,
+            ModInstanceItem? selectedPackInstance,
+            ModItem? selectedDllMod,
+            string selectedRoleModName) => tab switch
+        {
+            ModBrowserTab.Catalog => selectedMod?.Name ?? string.Empty,
+            ModBrowserTab.MyPacks => selectedPackInstance?.DisplayName ?? string.Empty,
+            ModBrowserTab.DllAddons => selectedDllMod?.Name ?? string.Empty,
+            ModBrowserTab.Roles => selectedRoleModName,
+            _ => string.Empty
+        };
+
         /// <summary>Podtytuł aktywnego widoku (muted, pod nagłówkiem listy).</summary>
         public string ActiveViewSubtitle => ActiveBrowserTab switch
         {
@@ -154,6 +174,7 @@ namespace SUSModder.ViewModels
                 this.RaiseAndSetIfChanged(ref _selectedPackInstance, value);
                 IsPackContentsSectionExpanded = false;
                 this.RaisePropertyChanged(nameof(IsPackInstanceSelected));
+                this.RaisePropertyChanged(nameof(BreadcrumbSelection));
                 this.RaisePropertyChanged(nameof(IsModPanelVisible));
                 this.RaisePropertyChanged(nameof(IsPackInstancePanelVisible));
                 this.RaisePropertyChanged(nameof(IsBrowserDetailPanelVisible));

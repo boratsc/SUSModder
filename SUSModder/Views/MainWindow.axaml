@@ -273,6 +273,20 @@
 							   FontSize="14"
 							   Foreground="{DynamicResource TextSecondaryBrush}"
 							   VerticalAlignment="Center"/>
+					<!-- E15: segment zaznaczenia (nazwa moda/zestawu); znika bez zaznaczenia. -->
+					<StackPanel Orientation="Horizontal" Spacing="12"
+								IsVisible="{Binding BreadcrumbSelection, Converter={StaticResource StringNotNullOrEmptyToBoolConverter}}">
+						<TextBlock Text="/"
+								   FontSize="15"
+								   Foreground="{DynamicResource TextMutedBrush}"
+								   VerticalAlignment="Center"/>
+						<TextBlock Text="{Binding BreadcrumbSelection}"
+								   FontSize="14"
+								   Foreground="{DynamicResource TextSecondaryBrush}"
+								   TextTrimming="CharacterEllipsis"
+								   MaxWidth="320"
+								   VerticalAlignment="Center"/>
+					</StackPanel>
 				</StackPanel>
 
 				<StackPanel Grid.Column="1"
