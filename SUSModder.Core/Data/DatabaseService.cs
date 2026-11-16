@@ -25,7 +25,8 @@ namespace SUSModder.Core.Data
         // v16 – mods.IsBeta/Latest*Version/AvailableReleases (3.1-11).
         // v17 – user_settings.chat_rules_acknowledged_version.
         // v18 – user_settings: wybór wersji legendary (pinned / ręczny).
-        private const int LatestSchemaVersion = 18;
+        // v19 – user_settings.chat_read_watermark_unix_ms.
+        private const int LatestSchemaVersion = 19;
 
         public DatabaseService()
         {
@@ -226,6 +227,7 @@ namespace SUSModder.Core.Data
                     developer_mode      INTEGER NOT NULL DEFAULT 0,
                     support_banner_dismissed_at TEXT NOT NULL DEFAULT '',
                     chat_rules_acknowledged_version INTEGER NOT NULL DEFAULT 0,
+                    chat_read_watermark_unix_ms INTEGER NOT NULL DEFAULT 0,
                     legendary_use_pinned INTEGER NOT NULL DEFAULT 1,
                     legendary_release_source TEXT NOT NULL DEFAULT '',
                     legendary_release_tag TEXT NOT NULL DEFAULT '',
@@ -859,6 +861,29 @@ namespace SUSModder.Core.Data
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v18: {ex.Message}. Wycofywanie...");
+                    try { tx.Rollback(); } catch { /* ignore */ }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 19)
+            {
+                BackupDatabase();
+                System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v19 – chat_read_watermark_unix_ms...");
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+                    EnsureColumn(cmd, "user_settings", "chat_read_watermark_unix_ms",
+                        "ALTER TABLE user_settings ADD COLUMN chat_read_watermark_unix_ms INTEGER NOT NULL DEFAULT 0;");
+                    tx.Commit();
+                    SetUserVersion(conn, 19);
+                    System.Diagnostics.Debug.WriteLine("[DatabaseService] Migracja do v19 zakończona pomyślnie.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DatabaseService] BŁĄD migracji do v19: {ex.Message}. Wycofywanie...");
                     try { tx.Rollback(); } catch { /* ignore */ }
                     throw;
                 }

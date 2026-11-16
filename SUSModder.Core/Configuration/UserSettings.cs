@@ -182,6 +182,9 @@ namespace SUSModder.Core.Configuration
         [JsonPropertyName("chatRulesAcknowledgedVersion")]
         public int ChatRulesAcknowledgedVersion { get; set; } = 0;
 
+        [JsonPropertyName("chatReadWatermarkUnixMs")]
+        public long ChatReadWatermarkUnixMs { get; set; } = 0;
+
         /// <summary>
         /// Czy legendary.exe ma używać przypiętej, przetestowanej wersji (true),
         /// czy wydania wybranego ręcznie (false). Wybór ręczny przeżywa aktualizację aplikacji.

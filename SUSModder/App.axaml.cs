@@ -198,6 +198,9 @@ public partial class App : Application
             var api = sp.GetRequiredService<ISUSModderApiClient>();
             return new CommunityChatService(config, diag, hwid, api);
         });
+        services.AddSingleton<IChatReadStateStore>(sp =>
+            new UserSettingsChatReadStateStore(new UserSettingsService(
+                sp.GetRequiredService<IUserSettingsRepository>())));
 
         // Mod Pack Sharing
         services.AddSingleton<IModPackService>(sp =>

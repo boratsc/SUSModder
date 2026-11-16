@@ -76,6 +76,7 @@ namespace SUSModder.Core.Data
                     prefer_depot_downloader, developer_mode,
                     support_banner_dismissed_at,
                     chat_rules_acknowledged_version,
+                    chat_read_watermark_unix_ms,
                     legendary_use_pinned, legendary_release_source, legendary_release_tag,
                     legendary_release_asset, legendary_release_sha256
                 ) VALUES (
@@ -90,6 +91,7 @@ namespace SUSModder.Core.Data
                     @prefer_depot_downloader, @developer_mode,
                     @support_banner_dismissed_at,
                     @chat_rules_acknowledged_version,
+                    @chat_read_watermark_unix_ms,
                     @legendary_use_pinned, @legendary_release_source, @legendary_release_tag,
                     @legendary_release_asset, @legendary_release_sha256
                 )
@@ -120,6 +122,7 @@ namespace SUSModder.Core.Data
                     developer_mode = excluded.developer_mode,
                     support_banner_dismissed_at = excluded.support_banner_dismissed_at,
                     chat_rules_acknowledged_version = excluded.chat_rules_acknowledged_version,
+                    chat_read_watermark_unix_ms = excluded.chat_read_watermark_unix_ms,
                     legendary_use_pinned = CASE WHEN @legendary_changed THEN excluded.legendary_use_pinned ELSE legendary_use_pinned END,
                     legendary_release_source = CASE WHEN @legendary_changed THEN excluded.legendary_release_source ELSE legendary_release_source END,
                     legendary_release_tag = CASE WHEN @legendary_changed THEN excluded.legendary_release_tag ELSE legendary_release_tag END,
@@ -153,6 +156,7 @@ namespace SUSModder.Core.Data
             cmd.Parameters.AddWithValue("@developer_mode", settings.DeveloperMode ? 1 : 0);
             cmd.Parameters.AddWithValue("@support_banner_dismissed_at", settings.SupportBannerDismissedAt ?? string.Empty);
             cmd.Parameters.AddWithValue("@chat_rules_acknowledged_version", settings.ChatRulesAcknowledgedVersion);
+            cmd.Parameters.AddWithValue("@chat_read_watermark_unix_ms", settings.ChatReadWatermarkUnixMs);
             cmd.Parameters.AddWithValue("@legendary_use_pinned", settings.LegendaryUsePinned ? 1 : 0);
             cmd.Parameters.AddWithValue("@legendary_release_source", settings.LegendaryReleaseSource ?? string.Empty);
             cmd.Parameters.AddWithValue("@legendary_release_tag", settings.LegendaryReleaseTag ?? string.Empty);
@@ -189,6 +193,7 @@ namespace SUSModder.Core.Data
                 "prefer_depot_downloader", "mod_pack_share_creator_name", "mod_pack_share_discord_invite",
                 "developer_mode", "support_banner_dismissed_at",
                 "chat_rules_acknowledged_version",
+                "chat_read_watermark_unix_ms",
                 "legendary_use_pinned", "legendary_release_source", "legendary_release_tag",
                 "legendary_release_asset", "legendary_release_sha256"
             };
@@ -263,6 +268,7 @@ namespace SUSModder.Core.Data
                 DeveloperMode = TryGetBool(reader, "developer_mode", false),
                 SupportBannerDismissedAt = TryGetString(reader, "support_banner_dismissed_at", string.Empty),
                 ChatRulesAcknowledgedVersion = TryGetInt(reader, "chat_rules_acknowledged_version", 0),
+                ChatReadWatermarkUnixMs = TryGetLong(reader, "chat_read_watermark_unix_ms", 0),
                 LegendaryUsePinned = TryGetBool(reader, "legendary_use_pinned", true),
                 LegendaryReleaseSource = TryGetString(reader, "legendary_release_source", string.Empty),
                 LegendaryReleaseTag = TryGetString(reader, "legendary_release_tag", string.Empty),
@@ -277,6 +283,19 @@ namespace SUSModder.Core.Data
             {
                 var ordinal = reader.GetOrdinal(column);
                 return reader.IsDBNull(ordinal) ? defaultValue : reader.GetInt32(ordinal);
+            }
+            catch
+            {
+                return defaultValue;
+            }
+        }
+
+        private static long TryGetLong(SqliteDataReader reader, string column, long defaultValue)
+        {
+            try
+            {
+                var ordinal = reader.GetOrdinal(column);
+                return reader.IsDBNull(ordinal) ? defaultValue : reader.GetInt64(ordinal);
             }
             catch
             {
