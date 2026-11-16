@@ -112,7 +112,7 @@
 						<Border Width="260" MinHeight="140"
 								Padding="14"
 								CornerRadius="8"
-								Background="{DynamicResource SlightlyLighterBrush}">
+								Background="{DynamicResource TertiaryBackgroundBrush}">
 							<Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="6">
 								<TextBlock Grid.Row="0"
 										   Text="{Binding ModName}"

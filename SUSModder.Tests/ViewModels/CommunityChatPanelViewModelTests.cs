@@ -380,7 +380,7 @@ public sealed class CommunityChatPanelViewModelTests
         vm.NotifyUserAtBottom(false);
         await WaitUntilAsync(() => vm.NewMessageCount == 1, "licznik nowych wiadomości");
         Assert.True(vm.HasNewMessages);
-        Assert.Equal("UI.CommunityChat.NewMessages|1", vm.NewMessagesText);
+        Assert.Equal("UI.CommunityChat.NewMessagesOne|1", vm.NewMessagesText);
 
         var scrollFired = false;
         vm.ScrollToBottomRequested += () => scrollFired = true;

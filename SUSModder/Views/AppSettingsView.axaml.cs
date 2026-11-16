@@ -28,6 +28,13 @@ namespace SUSModder.Views
             _viewModel?.SyncChatOverlayState();
         }
 
+        protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            // E9c: zerwij subskrypcję stanu nakładki przy odłączeniu widoku.
+            _viewModel?.StopChatOverlaySync();
+            base.OnDetachedFromVisualTree(e);
+        }
+
         private void OnSettingsSaved()
         {
             // Powiadom MainWindowViewModel o zapisaniu ustawień

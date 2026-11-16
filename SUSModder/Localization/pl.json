@@ -127,7 +127,8 @@
     "TopBar": {
       "More": "Więcej",
       "ChatToggle": "Czat społeczności",
-      "ChatToggleUnread": "Czat społeczności — {0} nowych wiadomości"
+      "ChatToggleUnread": "Czat społeczności — {0} nowych wiadomości",
+      "ChatToggleUnreadOne": "Czat społeczności — {0} nowa wiadomość"
     },
     "Window": {
       "Minimize": "Minimalizuj",
@@ -312,6 +313,7 @@
       "Empty": "Brak aktywnych wiadomości. Napisz pierwszą!",
       "OfflineHint": "Brak połączenia. Spróbuj odświeżyć.",
       "NewMessages": "{0} nowych wiadomości",
+      "NewMessagesOne": "{0} nowa wiadomość",
       "Time": {
         "JustNow": "Przed chwilą",
         "MinutesAgo": "{0} min temu",
@@ -426,8 +428,7 @@
       "ApiUnknown": "Nieznany",
       "OnlineUsers": "Użytkownicy: {0}",
       "AndMoreMods": "...i {0} więcej",
-      "SwitchToSystemStatus": "Pokaż status systemu",
-      "SwitchToDiscordPromo": "Pokaż polecane Discordy"
+      "SwitchToSystemStatus": "Pokaż status systemu"
     },
     "DeveloperMenu": {
       "RemoveSingleInstance": "Usuń SingleInstance",
@@ -811,7 +812,8 @@
     },
     "UpdateSuccess": {
       "ChangelogExpander": "Co się zmieniło?"
-    }
+    },
+    "ModUpdatesAutoUpdated": "Auto-zaktualizowano {0} modów"
   },
   "Toast": {
     "ModUpdateTargetChanged": "{0}: docelowa wersja zmieniła się — aktualizacja wstrzymana",
@@ -1456,6 +1458,8 @@
   "Updates": {
     "TargetDrift": "Docelowa wersja zmieniła się — aktualizacja wstrzymana.",
     "CheckError": "Błąd podczas sprawdzania aktualizacji: {0}",
+    "CheckFailed": "Błąd podczas sprawdzania aktualizacji: {0}",
+    "CheckFailedWithoutDetails": "Nie udało się sprawdzić aktualizacji.",
     "UpdateSummaryTitle": "📊 Podsumowanie aktualizacji\n",
     "SuccessfulUpdates": "✅ Pomyślnie zaktualizowano ({0}):",
     "FailedUpdates": "❌ Nie udało się zaktualizować ({0}):",
@@ -1890,6 +1894,13 @@
     "GameStarted": "Gra uruchomiona",
     "AmongUsExeNotFound": "Nie znaleziono pliku Among Us.exe w folderze moda.",
     "LaunchErrorTitle": "Błąd uruchamiania"
+  },
+  "Security": {
+    "DownloadHashMismatch": "Suma kontrolna SHA256 pobranego pliku moda nie zgadza się z oczekiwaną. Instalacja została przerwana, a podejrzany plik usunięty.",
+    "DownloadHashMissing": "Backend nie dostarczył sumy SHA256 dla tego pliku. Instalacja kontynuowana z obniżoną pewnością integralności.",
+    "ToolHashMismatch": "Suma kontrolna pobranego narzędzia (np. legendary) nie zgadza się z zapisaną wartością. Plik został odrzucony.",
+    "ToolDownloadFailed": "Nie udało się pobrać wymaganego narzędzia zewnętrznego.",
+    "ArtifactVerificationFailed": "Weryfikacja integralności artefaktu nie powiodła się."
   },
   "SecurityScan": {
     "ScannedByVirusTotal": "Bezpieczeństwo – VirusTotal",

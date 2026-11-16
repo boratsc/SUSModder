@@ -127,7 +127,7 @@
 		<Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
 	</Style>
 
-	<!-- DANGER: #FF7373 z ciemnym tekstem (AA); pressed ciemniejszy z jasnym tekstem -->
+	<!-- DANGER: #FF7373 z ciemnym tekstem (AA); hover/pressed jaśniejsze (#FF8F8F), tekst zawsze ciemny (~9.6:1) -->
 	<Style Selector="Button.modal-danger">
 		<Setter Property="Background" Value="{DynamicResource DangerActionBrush}"/>
 		<Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
@@ -143,8 +143,8 @@
 		<Setter Property="Background" Value="{DynamicResource DangerActionHoverBgBrush}"/>
 	</Style>
 	<Style Selector="Button.modal-danger:pressed">
-		<Setter Property="Background" Value="{DynamicResource DangerActionPressedBrush}"/>
-		<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		<Setter Property="Background" Value="{DynamicResource DangerActionHoverBgBrush}"/>
+		<Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
 	</Style>
 
 	<Style Selector="StackPanel.modal-actions">

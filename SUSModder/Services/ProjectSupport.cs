@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using SUSModder.Core.Utilities;
 
 namespace SUSModder.Services;
 
@@ -26,7 +25,4 @@ public static class ProjectSupport
             Debug.WriteLine($"[ProjectSupport] Nie udało się otworzyć linku: {ex.Message}");
         }
     }
-
-    public static bool ShouldShowBanner(string? dismissedAtUtcIso, DateTimeOffset? nowUtc = null)
-        => SupportBannerPolicy.ShouldShow(dismissedAtUtcIso, nowUtc);
 }

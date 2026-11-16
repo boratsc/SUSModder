@@ -1083,7 +1083,7 @@
 										<StackPanel Spacing="6">
 											<TextBlock Text="{Binding AiSupportResultSummary}" TextWrapping="Wrap"/>
 											<TextBlock Text="{Binding AiSupportResultWarnings}" TextWrapping="Wrap"
-													   Foreground="#FFB900" IsVisible="{Binding AiSupportResultWarnings, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+													   Foreground="{DynamicResource WarningTextBrush}" IsVisible="{Binding AiSupportResultWarnings, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
 											<StackPanel Orientation="Vertical" Margin="0,6,0,0" Spacing="6">
 												<Button Content="{Binding AiSupportHelpedBtn}" Click="OnAiSupportHelpedClicked"
 														Classes="accent" Padding="12,6" HorizontalAlignment="Left"/>

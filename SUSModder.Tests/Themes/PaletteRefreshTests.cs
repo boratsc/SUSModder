@@ -47,7 +47,9 @@ public class PaletteRefreshTests
     {
         var theme = LoadTheme();
         var root = RepoRoot();
-        foreach (var file in Directory.GetFiles(Path.Combine(root, "SUSModder", "Styles"), "*.axaml"))
+        // E9c: skan także Views/Controls — łapie braki typu SlightlyLighterBrush/TextTertiaryBrush.
+        foreach (var dir in new[] { "Styles", "Views", "Controls" })
+        foreach (var file in Directory.GetFiles(Path.Combine(root, "SUSModder", dir), "*.axaml", SearchOption.AllDirectories))
         foreach (Match match in DynamicResourceRegex.Matches(File.ReadAllText(file)))
             Assert.True(theme.ContainsKey(match.Groups[1].Value), $"{Path.GetFileName(file)} missing {match.Groups[1].Value}");
         var window = XDocument.Load(Path.Combine(root, "SUSModder", "Views", "MainWindow.axaml"));

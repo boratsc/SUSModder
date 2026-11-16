@@ -134,7 +134,7 @@
                                                 <TextBlock Grid.Row="2"
                                                            Text="{Binding FormattedDate}"
                                                            FontSize="11"
-                                                           Foreground="{DynamicResource TextTertiaryBrush}"/>
+                                                           Foreground="{DynamicResource TextMutedBrush}"/>
                                                 <TextBlock Grid.Row="3"
                                                            Text="{Binding Notes}"
                                                            FontSize="11"
@@ -177,7 +177,7 @@
                             Margin="0,0,0,2">
                     <TextBlock Text="{loc:Localize Tools.VersionSelection.SelectedLabel}"
                                FontSize="11"
-                               Foreground="{DynamicResource TextTertiaryBrush}"/>
+                               Foreground="{DynamicResource TextMutedBrush}"/>
                     <TextBlock Text="{Binding SelectedVersionDisplayText}"
                                FontSize="12"
                                FontWeight="SemiBold"

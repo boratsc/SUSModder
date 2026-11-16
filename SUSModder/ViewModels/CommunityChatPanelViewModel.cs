@@ -276,11 +276,13 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
 
     public bool HasNewMessages => NewMessageCount > 0;
 
-    public string NewMessagesText => _loc.GetFormatted("UI.CommunityChat.NewMessages", NewMessageCount);
+    public string NewMessagesText => _loc.GetFormatted(
+        NewMessageCount == 1 ? "UI.CommunityChat.NewMessagesOne" : "UI.CommunityChat.NewMessages",
+        NewMessageCount);
 
     /// <summary>E5: etykieta dymka na belce dla czytnika ekranu — z liczbą nieprzeczytanych, nie sama cyfra.</summary>
     public string ChatToggleLabel => HasNewMessages
-        ? _loc.GetFormatted("UI.TopBar.ChatToggleUnread", NewMessageCount)
+        ? _loc.GetFormatted(NewMessageCount == 1 ? "UI.TopBar.ChatToggleUnreadOne" : "UI.TopBar.ChatToggleUnread", NewMessageCount)
         : _loc.Get("UI.TopBar.ChatToggle");
 
     private bool _isChatOpen;

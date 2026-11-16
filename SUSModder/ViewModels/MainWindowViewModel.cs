@@ -658,7 +658,8 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
             // E5: czat jako nakładka — stan współdzielony z VM czatu, toasty wg polityki ChatToastPolicy.
             CommunityChat.RequestChatOpen = open => IsChatOpen = open;
             CommunityChat.ChatToastsRequested += OnChatToastsRequested;
-            this.WhenAnyValue(x => x.IsChatOpen).Subscribe(open => CommunityChat.IsChatOpen = open);
+            this.WhenAnyValue(x => x.IsChatOpen).Subscribe(open => CommunityChat.IsChatOpen = open)
+                .DisposeWith(_chatSubscriptions);
 
             // Inicjalizuj VM do zarządzania paczkami udostępnionymi przez użytkownika
             SharedPacks = new SharedModPacksViewModel(
@@ -737,7 +738,6 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
             InitializeCatalogInspector();
             InitializeInspectorCompatExpand();
             InitializeBulkOperations();
-            InitializeSupportBanner();
             RefreshLaunchDiagnosticsPanelStrings();
             
             // Subscribe to language changes to update theme button text
@@ -831,6 +831,9 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
 
         private bool _disposed;
 
+        /// <summary>E9c: subskrypcje stanu nakładki czatu sprzątane przy Dispose okna.</summary>
+        private readonly CompositeDisposable _chatSubscriptions = new();
+
         /// <summary>
         /// Zwalnia zasoby: timery, background taski, bitmapy, serwisy IDisposable.
         /// Wywoływane przy zamykaniu aplikacji przez MainWindow.OnClosing.
@@ -845,6 +848,7 @@ ShowRolesCommand = ReactiveCommand.Create(ShowRoles);
 
             CancelStatusBarBackgroundTask();
             DisposeVelopackService();
+            _chatSubscriptions.Dispose();
             _dllTargetItemSubscriptions.Dispose();
             CommunityChat.Dispose();
             DisposeIconAssets();

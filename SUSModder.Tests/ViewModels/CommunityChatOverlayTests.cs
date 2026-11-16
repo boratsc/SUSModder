@@ -85,7 +85,7 @@ public sealed class CommunityChatOverlayTests
         Assert.NotNull(plan);
         Assert.Null(plan!.GroupCount);
         Assert.Equal(new[] { "b" }, plan.Previews.Select(m => m.Id));
-        Assert.Equal("UI.TopBar.ChatToggleUnread|1", vm.ChatToggleLabel);
+        Assert.Equal("UI.TopBar.ChatToggleUnreadOne|1", vm.ChatToggleLabel);
         vm.Dispose();
     }
 

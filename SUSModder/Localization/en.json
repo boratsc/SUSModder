@@ -127,7 +127,8 @@
     "TopBar": {
       "More": "More",
       "ChatToggle": "Community chat",
-      "ChatToggleUnread": "Community chat — {0} new messages"
+      "ChatToggleUnread": "Community chat — {0} new messages",
+      "ChatToggleUnreadOne": "Community chat — {0} new message"
     },
     "Window": {
       "Minimize": "Minimize",
@@ -312,6 +313,7 @@
       "Empty": "No active messages. Be the first!",
       "OfflineHint": "No connection. Try refreshing.",
       "NewMessages": "{0} new messages",
+      "NewMessagesOne": "{0} new message",
       "Time": {
         "JustNow": "Just now",
         "MinutesAgo": "{0} min ago",
@@ -426,8 +428,7 @@
       "ApiUnknown": "Unknown",
       "OnlineUsers": "Users: {0}",
       "AndMoreMods": "...and {0} more",
-      "SwitchToSystemStatus": "Show system status",
-      "SwitchToDiscordPromo": "Show Discord promotions"
+      "SwitchToSystemStatus": "Show system status"
     },
     "DeveloperMenu": {
       "RemoveSingleInstance": "Remove SingleInstance",
@@ -811,7 +812,8 @@
     },
     "UpdateSuccess": {
       "ChangelogExpander": "What changed?"
-    }
+    },
+    "ModUpdatesAutoUpdated": "Auto-updated {0} mod(s)"
   },
   "Toast": {
     "ModUpdateTargetChanged": "{0}: target version changed — update skipped",
@@ -1456,6 +1458,8 @@
   "Updates": {
     "TargetDrift": "Target version changed — update stopped.",
     "CheckError": "Error checking for updates: {0}",
+    "CheckFailed": "Failed to check for updates: {0}",
+    "CheckFailedWithoutDetails": "Failed to check for updates.",
     "UpdateSummaryTitle": "📊 Update Summary\n",
     "SuccessfulUpdates": "✅ Successfully updated ({0}):",
     "FailedUpdates": "❌ Failed to update ({0}):",
@@ -1889,6 +1893,13 @@
     "GameStarted": "Game started",
     "AmongUsExeNotFound": "Among Us.exe not found in mod folder.",
     "LaunchErrorTitle": "Launch error"
+  },
+  "Security": {
+    "DownloadHashMismatch": "The downloaded mod file SHA256 checksum does not match the expected value. Installation was blocked and the suspect file was deleted.",
+    "DownloadHashMissing": "The backend did not provide a SHA256 checksum for this file. Installation continues with reduced integrity assurance.",
+    "ToolHashMismatch": "The downloaded tool checksum (e.g. legendary) does not match the pinned value. The file was rejected.",
+    "ToolDownloadFailed": "Failed to download a required external tool.",
+    "ArtifactVerificationFailed": "Artifact integrity verification failed."
   },
   "SecurityScan": {
     "ScannedByVirusTotal": "Security – VirusTotal",

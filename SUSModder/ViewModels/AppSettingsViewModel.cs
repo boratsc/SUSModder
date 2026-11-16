@@ -305,12 +305,18 @@ namespace SUSModder.ViewModels
         /// <summary>E7: woła widok przy attach — MainWindow.DataContext istnieje dopiero po konstruktorze okna.</summary>
         public void SyncChatOverlayState()
         {
-            _chatOpenSync?.Dispose();
-            _chatOpenSync = null;
+            StopChatOverlaySync();
             if (TryGetMainWindowViewModel(out var mainVM))
                 _chatOpenSync = mainVM.WhenAnyValue(x => x.IsChatOpen)
                     .Subscribe(_ => this.RaisePropertyChanged(nameof(ChatOverlayOpen)));
             this.RaisePropertyChanged(nameof(ChatOverlayOpen));
+        }
+
+        /// <summary>E9c: woła widok przy detach — zrywa subskrypcję stanu nakładki, by nie wyciekała.</summary>
+        public void StopChatOverlaySync()
+        {
+            _chatOpenSync?.Dispose();
+            _chatOpenSync = null;
         }
         public bool PreferDepotDownloader
         {
