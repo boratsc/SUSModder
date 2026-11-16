@@ -203,6 +203,13 @@
 					           TextAlignment="Center"
 					           TextWrapping="Wrap"
 					           Foreground="{DynamicResource TextMutedBrush}"/>
+					<!-- E16 (W1): pusta lista może oznaczać błąd API przy online — daj tę samą akcję co stan błędu. -->
+					<Button Classes="catalog-detail-secondary"
+					        HorizontalAlignment="Center"
+					        Margin="0,4,0,0"
+					        Content="{loc:Localize UI.Roles.Retry}"
+					        Command="{Binding RetryRolesLoadCommand}"
+					        AutomationProperties.Name="{loc:Localize UI.Roles.Retry}"/>
 				</StackPanel>
 			</Border>
 

@@ -147,7 +147,7 @@
       "TypeRole": "Role",
       "TypeModifier": "Modifier",
       "EmptyMods": "No mods with roles",
-      "EmptyModsHint": "The catalog currently has no mods with roles.",
+      "EmptyModsHint": "We couldn't confirm whether the catalog has mods with roles.",
       "EmptyRoles": "This mod has no roles",
       "EmptyRolesHint": "Pick another mod from the list.",
       "NoResults": "No results",
