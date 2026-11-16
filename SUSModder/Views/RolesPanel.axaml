@@ -154,8 +154,6 @@
 			         Margin="10,0,10,10"
 			         IsVisible="{Binding IsRoleModsListVisible}"
 			         ItemsSource="{Binding RoleMods}"
-			         PointerPressed="RoleModsListBox_PointerPressed"
-			         KeyDown="RoleModsListBox_KeyDown"
 			         Background="Transparent"
 			         BorderThickness="0">
 				<ListBox.ItemTemplate>

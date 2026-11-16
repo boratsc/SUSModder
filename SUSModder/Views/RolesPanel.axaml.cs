@@ -18,6 +18,12 @@ public partial class RolesPanel : UserControl
     public RolesPanel()
     {
         InitializeComponent();
+        // ListBoxItem zaznacza wiersz i oznacza PointerPressed jako obsłużony,
+        // więc nawigację podpinamy z handledEventsToo (klik = od razu role moda).
+        RoleModsListBox.AddHandler(PointerPressedEvent, RoleModsListBox_PointerPressed,
+            RoutingStrategies.Bubble, handledEventsToo: true);
+        RoleModsListBox.AddHandler(KeyDownEvent, RoleModsListBox_KeyDown,
+            RoutingStrategies.Bubble, handledEventsToo: true);
     }
 
     private void RoleModsListBox_PointerPressed(object? sender, PointerPressedEventArgs e)
