@@ -30,6 +30,7 @@
 		<converters:UpdatesColorConverter x:Key="UpdatesColorConverter"/>
 		<converters:StringTruncateConverter x:Key="StringTruncateConverter"/>
 		<converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
+		<converters:ReferenceEqualsMultiConverter x:Key="ReferenceEqualsMultiConverter"/>
 	</Window.Resources>
 
 	<Design.DataContext>
@@ -139,6 +140,20 @@
 			<Setter Property="FontSize" Value="11"/>
 			<Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
 			<Setter Property="VerticalAlignment" Value="Center"/>
+		</Style>
+		<!-- E13: sub-item „#zestaw" pod „Moje zestawy" — wcięcie, mniejszy tekst, muted → primary na hover/active -->
+		<Style Selector="Button.sidebar-pack-subitem">
+			<Setter Property="Padding" Value="28,6,12,6"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="FontWeight" Value="Normal"/>
+			<Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+		</Style>
+		<Style Selector="Button.sidebar-pack-subitem:pointerover">
+			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+		</Style>
+		<Style Selector="Button.sidebar-pack-subitem[Tag=True]">
+			<Setter Property="Background" Value="{DynamicResource AccentSoftFillBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
 		</Style>
 
 		<!-- Przycisk filtra (ulubione) przy wyszukiwarce -->
@@ -367,6 +382,32 @@
 								<TextBlock Grid.Column="1" Text="{loc:Localize UI.Tabs.MyPacks}" VerticalAlignment="Center"/>
 							</Grid>
 						</Button>
+						<!-- E13: szybki dostęp do własnych zestawów („#nazwa"). Lista w górnej grupie,
+						     MaxHeight + scroll przy dużej liczbie, żeby nie przykryć akcentu na dole.
+						     Pusta lista = zero sub-items (ItemsControl nic nie renderuje). -->
+						<ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto">
+							<ItemsControl ItemsSource="{Binding SidebarPackInstances}">
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="vm:ModInstanceItem">
+										<Button Classes="sidebar-item sidebar-pack-subitem"
+												Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).SelectPackQuickAccessCommand}"
+												CommandParameter="{Binding}"
+												AutomationProperties.Name="{Binding DisplayName}">
+											<!-- Tag = czy ten zestaw jest zaznaczony (Tag=True aktywuje styl sub-itemu) -->
+											<Button.Tag>
+												<MultiBinding Converter="{StaticResource ReferenceEqualsMultiConverter}">
+													<Binding/>
+													<Binding Path="$parent[ItemsControl].((vm:MainWindowViewModel)DataContext).SelectedPackInstance"/>
+												</MultiBinding>
+											</Button.Tag>
+											<TextBlock TextTrimming="CharacterEllipsis">
+												<Run Text="#"/><Run Text="{Binding DisplayName}"/>
+											</TextBlock>
+										</Button>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</ScrollViewer>
 						<Button Classes="sidebar-item"
 								Classes.active="{Binding IsDllAddonsTab}"
 								Command="{Binding SelectBrowserTabCommand}"

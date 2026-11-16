@@ -28,6 +28,12 @@ namespace SUSModder.ViewModels
         private List<ModInstanceItem> _packInstancesSnapshot = new();
         private List<ModItem> _dllModsSnapshot = new();
 
+        /// <summary>
+        /// E13: szybki dostęp w sidebarze — pełna lista własnych zestawów, niezależna
+        /// od filtra wyszukiwania (PackInstances bywa przefiltrowane i zależy od zakładki).
+        /// </summary>
+        public IReadOnlyList<ModInstanceItem> SidebarPackInstances => _packInstancesSnapshot;
+
         public string BrowserSearchText
         {
             get => _browserSearchText;
@@ -72,6 +78,7 @@ namespace SUSModder.ViewModels
         internal void CapturePackInstancesSnapshot()
         {
             _packInstancesSnapshot = PackInstances.ToList();
+            this.RaisePropertyChanged(nameof(SidebarPackInstances));
             ApplyCurrentIconKeys();
             ApplyBrowserSearchFilter();
         }

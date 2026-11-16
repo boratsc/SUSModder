@@ -79,8 +79,6 @@ public class CatalogRedesignLocalizationTests
         "UI.Browser.ClearFilters",
         "UI.Inspector.CompatCheck",
         "UI.Inspector.CompatReady",
-        "UI.Inspector.CompatWarning",
-        "UI.Inspector.CompatError",
         "UI.Labels.Type",
         "UI.Labels.GameCompatibility",
         "UI.Labels.LastUpdated",

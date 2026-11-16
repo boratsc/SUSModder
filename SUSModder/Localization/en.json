@@ -155,8 +155,6 @@
       "MoreActions": "More actions",
       "CompatCheck": "Compatibility check",
       "CompatReady": "Ready to use",
-      "CompatWarning": "Some DLLs untested",
-      "CompatError": "Incompatible DLLs",
       "CompatErrorTargets": "Incompatible packs",
       "CompatWarningTargets": "Some packs not tested",
       "Compat": {

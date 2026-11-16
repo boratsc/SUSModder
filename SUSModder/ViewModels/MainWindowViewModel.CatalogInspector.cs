@@ -19,25 +19,12 @@ namespace SUSModder.ViewModels
         private readonly ObservableCollection<DllCompatibilityLineItem> _catalogCompatibleDllLines = new();
         private CompatibilityService? _catalogCompatibilityService;
         private CancellationTokenSource? _catalogCompatLoadCts;
-        private int _catalogCompatNotWorkCount;
-        private int _catalogCompatNotTestedCount;
-        private bool _catalogCompatSummaryKnown;
 
         public ObservableCollection<DllCompatibilityLineItem> CatalogCompatibleDllLines => _catalogCompatibleDllLines;
 
         public bool HasCatalogCompatibleDllLines => CatalogCompatibleDllLines.Count > 0;
 
         public bool IsCatalogCompatibleDllLoading { get; private set; }
-
-        // ── Podsumowanie „Sprawdzenie zgodności" (E3) — presentation-only, z tej samej macierzy co lista DLL ──
-        public bool ShowCatalogCompatSummary => SelectedMod != null && !SelectedMod.IsDllMod;
-        public bool CatalogCompatSummaryKnown => _catalogCompatSummaryKnown;
-        public bool CatalogCompatHasError => _catalogCompatSummaryKnown && _catalogCompatNotWorkCount > 0;
-        public bool CatalogCompatHasWarning =>
-            _catalogCompatSummaryKnown && _catalogCompatNotWorkCount == 0 && _catalogCompatNotTestedCount > 0;
-        public bool CatalogCompatIsReady =>
-            !IsCatalogCompatibleDllLoading && _catalogCompatSummaryKnown &&
-            _catalogCompatNotWorkCount == 0 && _catalogCompatNotTestedCount == 0;
 
         public bool ShowCatalogInspectorCompatibleDlls =>
             SelectedMod != null && SelectedMod.IsFullMod && !SelectedMod.IsVanilla;
@@ -66,7 +53,6 @@ namespace SUSModder.ViewModels
             ResetInspectorSections();
             ClearInstallVersionFlyout();
             this.RaisePropertyChanged(nameof(ShowCatalogInspectorCompatibleDlls));
-            this.RaisePropertyChanged(nameof(ShowCatalogCompatSummary));
             _ = LoadCatalogCompatibleDllsAsync();
         }
 
@@ -78,9 +64,6 @@ namespace SUSModder.ViewModels
             IsCatalogCompatibleDllExpanded = false;
             IsCatalogCompatibleDllSectionExpanded = false;
             IsCatalogCompatibleDllLoading = false;
-            _catalogCompatNotWorkCount = 0;
-            _catalogCompatNotTestedCount = 0;
-            _catalogCompatSummaryKnown = false;
             NotifyCatalogInspectorProperties();
         }
 
@@ -90,12 +73,6 @@ namespace SUSModder.ViewModels
             if (mod == null || !mod.IsFullMod || mod.IsVanilla || _catalogCompatibilityService == null)
             {
                 ClearCatalogCompatibleDlls();
-                if (mod != null && mod.IsVanilla)
-                {
-                    // Vanilla = czysta gra, brak zależności DLL — zawsze gotowa.
-                    _catalogCompatSummaryKnown = true;
-                    NotifyCatalogInspectorProperties();
-                }
                 return;
             }
 
@@ -106,9 +83,6 @@ namespace SUSModder.ViewModels
             IsCatalogCompatibleDllExpanded = false;
             IsCatalogCompatibleDllSectionExpanded = false;
             IsCatalogCompatibleDllLoading = true;
-            _catalogCompatNotWorkCount = 0;
-            _catalogCompatNotTestedCount = 0;
-            _catalogCompatSummaryKnown = false;
             NotifyCatalogInspectorProperties();
 
             try
@@ -129,12 +103,6 @@ namespace SUSModder.ViewModels
 
                     matrix.TryGetValue(dll.Id, out var compat);
 
-                    var status = compat?.Status ?? CompatibilityStatus.NotTested;
-                    if (status == CompatibilityStatus.NotWork)
-                        _catalogCompatNotWorkCount++;
-                    else if (status == CompatibilityStatus.NotTested)
-                        _catalogCompatNotTestedCount++;
-
                     var line = CreateCompatLine(dll.ModName, compat, dll.Id);
                     if (line == null)
                         continue;
@@ -146,7 +114,6 @@ namespace SUSModder.ViewModels
                 foreach (var entry in lines.OrderBy(x => x.Priority).ThenBy(x => x.Line.TargetName))
                     CatalogCompatibleDllLines.Add(entry.Line);
 
-                _catalogCompatSummaryKnown = true;
                 RefreshCatalogCompatibleDllDisplay();
             }
             catch (OperationCanceledException)
@@ -157,7 +124,6 @@ namespace SUSModder.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"[CatalogInspector] Compatible DLLs: {ex.Message}");
                 CatalogCompatibleDllLines.Clear();
-                _catalogCompatSummaryKnown = false;
             }
             finally
             {
@@ -184,10 +150,6 @@ namespace SUSModder.ViewModels
             this.RaisePropertyChanged(nameof(ShowCatalogInspectorCompatibleDlls));
             this.RaisePropertyChanged(nameof(ShowCatalogCompatibleDllToggle));
             this.RaisePropertyChanged(nameof(CatalogCompatibleDllToggleLabel));
-            this.RaisePropertyChanged(nameof(CatalogCompatSummaryKnown));
-            this.RaisePropertyChanged(nameof(CatalogCompatHasError));
-            this.RaisePropertyChanged(nameof(CatalogCompatHasWarning));
-            this.RaisePropertyChanged(nameof(CatalogCompatIsReady));
         }
     }
 }

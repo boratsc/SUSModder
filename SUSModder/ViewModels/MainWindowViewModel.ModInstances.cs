@@ -179,6 +179,8 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> TogglePackContentsSectionCommand { get; private set; } = null!;
 
         public ReactiveCommand<ModBrowserTab, Unit> SelectBrowserTabCommand { get; private set; } = null!;
+        /// <summary>E13: klik „#zestaw" w sidebarze — przechodzi do Moich zestawów i zaznacza ten zestaw.</summary>
+        public ReactiveCommand<ModInstanceItem, Unit> SelectPackQuickAccessCommand { get; private set; } = null!;
         public ReactiveCommand<Unit, Unit> LaunchPackInstanceCommand { get; private set; } = null!;
         public ReactiveCommand<Unit, Unit> UpdatePackInstanceCommand { get; private set; } = null!;
         public ReactiveCommand<Unit, Unit> RenamePackInstanceCommand { get; private set; } = null!;
@@ -194,6 +196,14 @@ namespace SUSModder.ViewModels
         private void InitializeModInstances()
         {
             SelectBrowserTabCommand = ReactiveCommand.Create<ModBrowserTab>(tab => ActiveBrowserTab = tab);
+            SelectPackQuickAccessCommand = ReactiveCommand.Create<ModInstanceItem>(item =>
+            {
+                ActiveBrowserTab = ModBrowserTab.MyPacks;
+                // Filtr wyszukiwania mógł ukryć zestaw na liście — wtedy czyścimy wyszukiwanie.
+                if (!PackInstances.Contains(item))
+                    BrowserSearchText = string.Empty;
+                SelectedPackInstance = PackInstances.FirstOrDefault(p => p.InstanceId == item.InstanceId) ?? item;
+            });
             LaunchPackInstanceCommand = ReactiveCommand.CreateFromTask(LaunchSelectedPackInstanceAsync);
             UpdatePackInstanceCommand = ReactiveCommand.CreateFromTask(
                 UpdateSelectedPackInstanceAsync,

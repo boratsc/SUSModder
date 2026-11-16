@@ -155,8 +155,6 @@
       "MoreActions": "Dodatkowe akcje",
       "CompatCheck": "Sprawdzenie zgodności",
       "CompatReady": "Gotowy do użycia",
-      "CompatWarning": "Niektóre DLL nieprzetestowane",
-      "CompatError": "Niekompatybilne DLL",
       "CompatErrorTargets": "Niekompatybilne zestawy",
       "CompatWarningTargets": "Niektóre zestawy nieprzetestowane",
       "Compat": {

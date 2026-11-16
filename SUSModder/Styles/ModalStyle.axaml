@@ -175,7 +175,7 @@
 		<Setter Property="Background" Value="Transparent"/>
 		<Setter Property="BorderThickness" Value="0"/>
 		<Setter Property="Padding" Value="0"/>
-		<Setter Property="CornerRadius" Value="8"/>
+		<Setter Property="CornerRadius" Value="10"/>
 		<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
 		<Setter Property="FontSize" Value="13"/>
 	</Style>
@@ -188,8 +188,30 @@
 		<Setter Property="Padding" Value="0"/>
 		<Setter Property="HorizontalAlignment" Value="Left"/>
 	</Style>
-	<Style Selector="Expander.modal-details /template/ ToggleButton#ExpanderHeader:pointerover">
-		<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+	<!-- E13: hover headera = subtelne surfaceHover, tekst bez skoku (jak w spoczynku),
+	     chevron w tym samym tle bez osobnego boxa. Nadpisujemy części szablonu Fluent
+	     (ExpanderHeaderBackgroundPointerOver itd.), bo style :pointerover motywu celują
+	     wprost w Border#ToggleButtonBackground / ContentPresenter / Border chevrona
+	     i wygrywają z samymi właściwościami ToggleButtona. -->
+	<Style Selector="Expander.modal-details /template/ ToggleButton#ExpanderHeader:pointerover /template/ Border#ToggleButtonBackground,
+	                 Expander.modal-details /template/ ToggleButton#ExpanderHeader:pressed /template/ Border#ToggleButtonBackground">
+		<Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}"/>
+		<Setter Property="BorderBrush" Value="Transparent"/>
+	</Style>
+	<Style Selector="Expander.modal-details /template/ ToggleButton#ExpanderHeader:pointerover /template/ ContentPresenter#PART_ContentPresenter,
+	                 Expander.modal-details /template/ ToggleButton#ExpanderHeader:pressed /template/ ContentPresenter#PART_ContentPresenter">
+		<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+	</Style>
+	<Style Selector="Expander.modal-details /template/ ToggleButton#ExpanderHeader /template/ Border#ExpandCollapseChevronBorder,
+	                 Expander.modal-details /template/ ToggleButton#ExpanderHeader:pointerover /template/ Border#ExpandCollapseChevronBorder,
+	                 Expander.modal-details /template/ ToggleButton#ExpanderHeader:pressed /template/ Border#ExpandCollapseChevronBorder">
+		<Setter Property="Background" Value="Transparent"/>
+		<Setter Property="BorderThickness" Value="0"/>
+	</Style>
+	<Style Selector="Expander.modal-details /template/ ToggleButton#ExpanderHeader /template/ Path#ExpandCollapseChevron,
+	                 Expander.modal-details /template/ ToggleButton#ExpanderHeader:pointerover /template/ Path#ExpandCollapseChevron,
+	                 Expander.modal-details /template/ ToggleButton#ExpanderHeader:pressed /template/ Path#ExpandCollapseChevron">
+		<Setter Property="Stroke" Value="{DynamicResource TextSecondaryBrush}"/>
 	</Style>
 
 	<!-- Wiersze drugorzędne (wersje/rozmiar) i kroki numerowane -->

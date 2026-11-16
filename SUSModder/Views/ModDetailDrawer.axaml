@@ -407,7 +407,7 @@
 					</Button>
 				</StackPanel>
 
-				<!-- 3. Przewijalne sekcje: opis, zgodność, DLL, auto-aktualizacja, informacje techniczne -->
+				<!-- 3. Przewijalne sekcje: opis, DLL, auto-aktualizacja, informacje techniczne -->
 				<ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
 					<StackPanel Spacing="16">
 
@@ -419,56 +419,6 @@
 									   Text="{loc:Localize UI.Labels.Description}"/>
 							<StackPanel x:Name="DescriptionPanel" Orientation="Vertical"/>
 						</StackPanel>
-
-						<!-- Sprawdzenie zgodności (podsumowanie macierzy DLL; Vanilla = gotowa) -->
-						<Grid ColumnDefinitions="*,Auto"
-							  IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.ShowCatalogCompatSummary}">
-							<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.CheckmarkCircle}" FontSize="16"
-											   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-								<TextBlock Text="{loc:Localize UI.Inspector.CompatCheck}"
-										   FontSize="13"
-										   Foreground="{DynamicResource TextSecondaryBrush}"
-										   VerticalAlignment="Center"/>
-							</StackPanel>
-							<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-								<TextBlock Text="{loc:Localize UI.Inspector.Compat.Loading}"
-										   FontSize="12"
-										   Foreground="{DynamicResource TextMutedBrush}"
-										   IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.IsCatalogCompatibleDllLoading}"/>
-								<Ellipse Width="6" Height="6"
-										 Fill="{DynamicResource DangerBrush}" VerticalAlignment="Center"
-										 IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.CatalogCompatHasError}"/>
-								<TextBlock Text="{loc:Localize UI.Inspector.CompatError}"
-										   FontSize="12" FontWeight="SemiBold"
-										   Foreground="{DynamicResource DangerBrush}"
-										   IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.CatalogCompatHasError}"/>
-								<Ellipse Width="6" Height="6"
-										 Fill="{DynamicResource WarningTextBrush}" VerticalAlignment="Center"
-										 IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.CatalogCompatHasWarning}"/>
-								<TextBlock Text="{loc:Localize UI.Inspector.CompatWarning}"
-										   FontSize="12" FontWeight="SemiBold"
-										   Foreground="{DynamicResource WarningTextBrush}"
-										   IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.CatalogCompatHasWarning}"/>
-								<Ellipse Width="6" Height="6"
-										 Fill="{DynamicResource StatusInstalledTextBrush}" VerticalAlignment="Center"
-										 IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.CatalogCompatIsReady}"/>
-								<TextBlock Text="{loc:Localize UI.Inspector.CompatReady}"
-										   FontSize="12" FontWeight="SemiBold"
-										   Foreground="{DynamicResource StatusInstalledTextBrush}"
-										   IsVisible="{Binding $parent[local:ModDetailDrawer].DataContext.CatalogCompatIsReady}"/>
-								<TextBlock Text="—"
-										   FontSize="12"
-										   Foreground="{DynamicResource TextMutedBrush}">
-									<TextBlock.IsVisible>
-										<MultiBinding Converter="{x:Static BoolConverters.And}">
-											<Binding Path="$parent[local:ModDetailDrawer].DataContext.IsCatalogCompatibleDllLoading" Converter="{x:Static BoolConverters.Not}"/>
-											<Binding Path="$parent[local:ModDetailDrawer].DataContext.CatalogCompatSummaryKnown" Converter="{x:Static BoolConverters.Not}"/>
-										</MultiBinding>
-									</TextBlock.IsVisible>
-								</TextBlock>
-							</StackPanel>
-						</Grid>
 
 						<!-- Kompatybilne DLL: rozwijany wiersz z licznikiem -->
 						<StackPanel Spacing="8"
