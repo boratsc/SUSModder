@@ -51,6 +51,12 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
     // (świeża instalacja) → pierwszy udany odczyt robi cichy baseline.
     private long _readWatermark;
 
+    // E11b: snapshot watermarka z momentu otwarcia czatu (null = czat zamknięty).
+    // Divider kotwiczy się do snapshotu, nie do bieżącego watermarka — mark-read
+    // w trakcie sesji nie kasuje podziału; zamknięcie resetuje snapshot.
+    private long? _unreadSnapshot;
+    private CommunityChatMessageViewModel? _unreadAnchorItem;
+
     // Wspólny token całego cyklu życia panelu: aktywny od konstrukcji (bez Start),
     // kasowany przy Pause i przy Dispose; Resume tworzy nowy. Dzięki temu opóźniony
     // zapis (POST/DELETE) kończący się po pauzie/zamknięciu nie wywołuje odczytów
@@ -284,6 +290,21 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
 
     public bool HasNewMessages => NewMessageCount > 0;
 
+    private string? _unreadAnchorMessageId;
+
+    /// <summary>E11b: Id wiadomości, NAD którą renderowany jest divider nieprzeczytanych (null = brak dividera).</summary>
+    public string? UnreadAnchorMessageId
+    {
+        get => _unreadAnchorMessageId;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _unreadAnchorMessageId, value);
+            this.RaisePropertyChanged(nameof(HasUnreadAnchor));
+        }
+    }
+
+    public bool HasUnreadAnchor => UnreadAnchorMessageId is not null;
+
     public string NewMessagesText => _loc.GetFormatted(
         NewMessageCount == 1 ? "UI.CommunityChat.NewMessagesOne" : "UI.CommunityChat.NewMessages",
         NewMessageCount);
@@ -310,7 +331,16 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
             _isChatOpen = value;
             this.RaisePropertyChanged(nameof(IsChatOpen));
             if (!value)
+            {
+                // E11b: zamknięcie kończy sesję podglądu — snapshot i divider znikają.
+                _unreadSnapshot = null;
+                UpdateUnreadAnchor();
                 return;
+            }
+
+            // E11b: snapshot watermarka PRZED mark-read — kotwica dividera na czas sesji.
+            _unreadSnapshot = _readWatermark;
+            UpdateUnreadAnchor();
 
             // E11: otwarcie = przeczytanie historii (watermark do najnowszego ts).
             UserAtBottom = true;
@@ -709,6 +739,7 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
             ScrollToBottomRequested?.Invoke();
 
         RecomputeUnread(freshItems);
+        UpdateUnreadAnchor();
     }
 
     /// <summary>
@@ -771,6 +802,29 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
             return;
         _readWatermark = unixMs;
         _readState?.SetReadWatermark(unixMs);
+    }
+
+    /// <summary>
+    /// E11b: anchor = pierwsza wiadomość !own z ts &gt; snapshot z momentu otwarcia.
+    /// Przeliczane przy każdym merge — divider znika, gdy anchor opuści historię
+    /// (lub nie ma nowych !own). Snapshot 0 (cichy baseline) nie tworzy dividera.
+    /// Mark-read nie czyści snapshotu sesji — divider zostaje do zamknięcia.
+    /// </summary>
+    private void UpdateUnreadAnchor()
+    {
+        CommunityChatMessageViewModel? anchor = null;
+        if (_unreadSnapshot is long snapshot && snapshot > 0)
+            anchor = Messages.FirstOrDefault(m => !m.IsOwn && UnixMs(m) > snapshot);
+
+        if (ReferenceEquals(anchor, _unreadAnchorItem))
+            return;
+
+        if (_unreadAnchorItem is not null)
+            _unreadAnchorItem.IsUnreadAnchor = false;
+        _unreadAnchorItem = anchor;
+        if (anchor is not null)
+            anchor.IsUnreadAnchor = true;
+        UnreadAnchorMessageId = anchor?.Id;
     }
 
     /// <summary>Raw ts wiadomości (unix ms) z DTO PublishedAt — bez zmian kontraktu Core.</summary>

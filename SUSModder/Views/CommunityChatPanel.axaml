@@ -153,6 +153,21 @@
 							<!-- E11: autor + czas NAD miękkim dymkiem treści; wyrównanie lewe dla ciągłości.
 							     Zgłoś/Usuń zostają w wierszu nagłówka (istniejące funkcje). -->
 							<StackPanel Spacing="2" Margin="0,0,0,10">
+								<!-- E11b: czerwony divider nad pierwszą nieprzeczytaną wiadomością
+								     (snapshot z otwarcia czatu; znika, gdy anchor opuszcza historię).
+								     Hairline 1 px + etykieta 11 px w DangerBrush; nieklikalne. -->
+								<Grid IsVisible="{Binding IsUnreadAnchor}"
+									  ColumnDefinitions="*,Auto,*" ColumnSpacing="8"
+									  Margin="0,8,0,8">
+									<Border Grid.Column="0" Height="1" VerticalAlignment="Center"
+											Background="{DynamicResource DangerBrush}"/>
+									<TextBlock Grid.Column="1"
+											   Text="{loc:Localize UI.CommunityChat.UnreadDivider}"
+											   FontSize="11" VerticalAlignment="Center"
+											   Foreground="{DynamicResource DangerBrush}"/>
+									<Border Grid.Column="2" Height="1" VerticalAlignment="Center"
+											Background="{DynamicResource DangerBrush}"/>
+								</Grid>
 								<Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
 									<TextBlock Grid.Column="0" Text="{Binding AuthorDisplay}"
 											   FontSize="12" FontWeight="SemiBold"

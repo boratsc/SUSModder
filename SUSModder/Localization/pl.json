@@ -314,6 +314,7 @@
       "OfflineHint": "Brak połączenia. Spróbuj odświeżyć.",
       "NewMessages": "{0} nowych wiadomości",
       "NewMessagesOne": "{0} nowa wiadomość",
+      "UnreadDivider": "— nieprzeczytane —",
       "Time": {
         "JustNow": "Przed chwilą",
         "MinutesAgo": "{0} min temu",

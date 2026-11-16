@@ -82,6 +82,14 @@ public sealed class CommunityChatMessageViewModel : ReactiveObject
         private set => this.RaiseAndSetIfChanged(ref _canDelete, value);
     }
 
+    private bool _isUnreadAnchor;
+    /// <summary>E11b: presentation-only — nad tą wiadomością renderowany jest divider nieprzeczytanych (ustawia panel).</summary>
+    public bool IsUnreadAnchor
+    {
+        get => _isUnreadAnchor;
+        internal set => this.RaiseAndSetIfChanged(ref _isUnreadAnchor, value);
+    }
+
     /// <summary>Względny czas publikacji — aktualizowany przy każdym udanym odświeżeniu.</summary>
     public string TimeAgoDisplay => FormatTimeAgo(PublishedAt);
 

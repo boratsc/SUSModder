@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using SUSModder.Core.Models;
 using SUSModder.Core.Services;
@@ -219,6 +220,143 @@ public sealed class CommunityChatReadStateTests
         Assert.Equal(0, toasts);
         Assert.Equal(0, store.Writes); // czat zamknięty — watermark nietknięty
         Assert.Equal(Ms(0), store.Watermark);
+        vm.Dispose();
+    }
+
+    // ══════════ E11b: divider nieprzeczytanych (snapshot z momentu otwarcia) ══════════
+
+    [Fact]
+    public async Task Open_WithUnread_AnchorFirstNewNotOwn_OwnNewerIgnored()
+    {
+        var store = new FakeReadStateStore { Watermark = Ms(0) };
+        var fake = new FakeCommunityChatService
+        {
+            GetFactory = _ => Snapshot(At("old", -10), At("own", 1, own: true), At("b", 2), At("c", 3))
+        };
+        using var vm = NewVm(fake, store);
+
+        vm.Start();
+        await WaitUntilAsync(() => vm.NewMessageCount == 2, "unread przed otwarciem");
+
+        vm.IsChatOpen = true;
+
+        Assert.Equal(0, vm.NewMessageCount); // mark-read przy otwarciu zeruje badge
+        Assert.True(vm.HasUnreadAnchor);
+        Assert.Equal("b", vm.UnreadAnchorMessageId); // pierwsza nowa !own; własna nowsza nie kotwiczy
+        Assert.True(vm.Messages.Single(m => m.Id == "b").IsUnreadAnchor);
+        Assert.Equal(1, vm.Messages.Count(m => m.IsUnreadAnchor));
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Open_WithoutUnread_NoAnchor()
+    {
+        var store = new FakeReadStateStore { Watermark = Ms(5) };
+        var fake = new FakeCommunityChatService { GetFactory = _ => Snapshot(At("a", 1), At("b", 2)) };
+        using var vm = NewVm(fake, store);
+
+        vm.Start();
+        await WaitUntilAsync(() => vm.Messages.Count == 2 && vm.HasLoadedSuccessfully, "historia załadowana");
+        Assert.Equal(0, vm.NewMessageCount);
+
+        vm.IsChatOpen = true;
+
+        Assert.False(vm.HasUnreadAnchor);
+        Assert.Null(vm.UnreadAnchorMessageId);
+        Assert.DoesNotContain(vm.Messages, m => m.IsUnreadAnchor);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task MarkRead_LiveReadDuringSession_AnchorStays()
+    {
+        var store = new FakeReadStateStore { Watermark = Ms(0) };
+        var fake = new FakeCommunityChatService { GetFactory = _ => Snapshot(At("old", -10), At("b", 2)) };
+        using var vm = NewVm(fake, store);
+
+        vm.Start();
+        await WaitUntilAsync(() => vm.NewMessageCount == 1, "unread przed otwarciem");
+
+        vm.IsChatOpen = true;
+        Assert.Equal("b", vm.UnreadAnchorMessageId);
+        Assert.Equal(0, vm.NewMessageCount);
+
+        // Live-read przesuwa watermark przy każdym pollingu — snapshot sesji zostaje.
+        await WaitUntilAsync(() => fake.GetCalls >= 4, "kilka merge'y po otwarciu");
+        Assert.True(vm.HasUnreadAnchor);
+        Assert.Equal("b", vm.UnreadAnchorMessageId);
+        Assert.Equal(0, vm.NewMessageCount);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task Close_ResetsSnapshot_ReopenWithoutNew_NoAnchor()
+    {
+        var store = new FakeReadStateStore { Watermark = Ms(0) };
+        var fake = new FakeCommunityChatService { GetFactory = _ => Snapshot(At("old", -10), At("b", 2)) };
+        using var vm = NewVm(fake, store);
+
+        vm.Start();
+        await WaitUntilAsync(() => vm.NewMessageCount == 1, "unread przed otwarciem");
+
+        vm.IsChatOpen = true;
+        Assert.Equal("b", vm.UnreadAnchorMessageId);
+
+        vm.IsChatOpen = false;
+        Assert.False(vm.HasUnreadAnchor); // zamknięcie resetuje snapshot sesji
+        Assert.DoesNotContain(vm.Messages, m => m.IsUnreadAnchor);
+
+        vm.IsChatOpen = true; // watermark = najnowszy ts → brak nowych !own
+        Assert.False(vm.HasUnreadAnchor);
+        Assert.Null(vm.UnreadAnchorMessageId);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task AnchorRemovedFromServer_DividerGone()
+    {
+        var store = new FakeReadStateStore { Watermark = Ms(0) };
+        var shrink = false;
+        var fake = new FakeCommunityChatService
+        {
+            GetFactory = _ => Volatile.Read(ref shrink)
+                ? Snapshot(At("old", -10))
+                : Snapshot(At("old", -10), At("b", 2))
+        };
+        using var vm = NewVm(fake, store);
+
+        vm.Start();
+        await WaitUntilAsync(() => vm.NewMessageCount == 1, "unread przed otwarciem");
+
+        vm.IsChatOpen = true;
+        Assert.Equal("b", vm.UnreadAnchorMessageId);
+
+        Volatile.Write(ref shrink, true);
+        await WaitUntilAsync(() => !vm.HasUnreadAnchor, "b zniknęła z serwera → divider znika");
+        Assert.Null(vm.UnreadAnchorMessageId);
+        Assert.DoesNotContain(vm.Messages, m => m.IsUnreadAnchor);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task OwnOnlyNewMessages_NoAnchor()
+    {
+        var store = new FakeReadStateStore { Watermark = Ms(0) };
+        var fake = new FakeCommunityChatService
+        {
+            GetFactory = _ => Snapshot(At("old", -10), At("o1", 1, own: true), At("o2", 2, own: true))
+        };
+        using var vm = NewVm(fake, store);
+
+        vm.Start();
+        await WaitUntilAsync(() => vm.Messages.Count == 3 && vm.HasLoadedSuccessfully, "własne załadowane");
+        Assert.Equal(0, vm.NewMessageCount);
+
+        vm.IsChatOpen = true;
+
+        Assert.False(vm.HasUnreadAnchor);
+        Assert.Null(vm.UnreadAnchorMessageId);
+        Assert.DoesNotContain(vm.Messages, m => m.IsUnreadAnchor);
         vm.Dispose();
     }
 

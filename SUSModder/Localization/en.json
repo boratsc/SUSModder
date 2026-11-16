@@ -314,6 +314,7 @@
       "OfflineHint": "No connection. Try refreshing.",
       "NewMessages": "{0} new messages",
       "NewMessagesOne": "{0} new message",
+      "UnreadDivider": "— unread —",
       "Time": {
         "JustNow": "Just now",
         "MinutesAgo": "{0} min ago",
