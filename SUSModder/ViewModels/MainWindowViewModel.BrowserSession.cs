@@ -80,7 +80,11 @@ public partial class MainWindowViewModel
         if (RolesBrowserProjection.ResolveModId(state.ModId, _roleModsSnapshot) is int modId)
             OpenRoleMod(modId, clearSearch: false);
         else
+        {
             SelectedRoleModId = null;
+            // Load mógł skończyć się poza zakładką — odbuduj listę poziomu A.
+            ApplyRolesFilter();
+        }
 
         SelectedRoleItem = state.RoleId is int roleId
             ? ModRoles.FirstOrDefault(i => i.Role.Id == roleId)

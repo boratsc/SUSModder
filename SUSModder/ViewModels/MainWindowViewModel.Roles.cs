@@ -291,6 +291,8 @@ namespace SUSModder.ViewModels
                 return;
             if (RolesBrowserProjection.ResolveModId(id, _roleModsSnapshot) is int modId)
                 OpenRoleMod(modId);
+            else
+                ApplyRolesFilter();
         }
 
         private void ShowModRoles(ModItem? mod)
