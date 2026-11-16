@@ -43,8 +43,13 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
     private readonly ICommunityChatService _service;
     private readonly ILocalizationService _loc;
     private readonly IChatRulesStateStore? _rulesState;
+    private readonly IChatReadStateStore? _readState;
     private readonly TimeSpan _pollInterval;
     private readonly TimeSpan _maxBackoff;
+
+    // E11: trwały znacznik przeczytania (unix ms). 0 = nigdy nie przeczytano
+    // (świeża instalacja) → pierwszy udany odczyt robi cichy baseline.
+    private long _readWatermark;
 
     // Wspólny token całego cyklu życia panelu: aktywny od konstrukcji (bez Start),
     // kasowany przy Pause i przy Dispose; Resume tworzy nowy. Dzięki temu opóźniony
@@ -107,11 +112,14 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
         TimeSpan? pollInterval = null,
         TimeSpan? maxBackoff = null,
         TimeSpan? bannerDisplayDuration = null,
-        IChatRulesStateStore? rulesState = null)
+        IChatRulesStateStore? rulesState = null,
+        IChatReadStateStore? readState = null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         _loc = loc ?? throw new ArgumentNullException(nameof(loc));
         _rulesState = rulesState;
+        _readState = readState;
+        _readWatermark = readState?.GetReadWatermark() ?? 0;
         _pollInterval = pollInterval ?? TimeSpan.FromSeconds(30);
         _maxBackoff = maxBackoff ?? TimeSpan.FromMinutes(5);
         _bannerDisplayDuration = bannerDisplayDuration ?? TimeSpan.FromSeconds(5);
@@ -304,8 +312,9 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
             if (!value)
                 return;
 
-            NewMessageCount = 0;
+            // E11: otwarcie = przeczytanie historii (watermark do najnowszego ts).
             UserAtBottom = true;
+            MarkHistoryRead();
             ScrollToBottomRequested?.Invoke();
             if (!IsRulesVisible)
                 FocusInputRequested?.Invoke();
@@ -326,6 +335,9 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
 
     /// <summary>E5: plan toastów dla nowych wiadomości (null = brak). MainWindowViewModel mapuje na ToastService.</summary>
     public event Action<ChatToastPlan>? ChatToastsRequested;
+
+    /// <summary>E11: żądanie zdjęcia toastów czatu (unread spadło do 0 / przeczytano). Host: ToastService.DismissChatToasts.</summary>
+    public event Action? ChatToastsDismissRequested;
 
     /// <summary>
     /// Użytkownik jest przy końcu listy. Widok zgłasza to przez <see cref="NotifyUserAtBottom"/>.
@@ -403,11 +415,11 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
     public ReactiveCommand<Unit, Unit> DismissHeuristicCommand { get; }
     public ReactiveCommand<Unit, Unit> SendAnywayCommand { get; }
 
-    /// <summary>Przycisk „Nowe wiadomości” — kasuje licznik i zleca przewinięcie.</summary>
+    /// <summary>Przycisk „Nowe wiadomości” — skok do najnowszych = przeczytanie (E11: watermark + dismiss).</summary>
     public void OnNewMessagesButton()
     {
-        NewMessageCount = 0;
         UserAtBottom = true;
+        MarkHistoryRead();
         ScrollToBottomRequested?.Invoke();
     }
 
@@ -692,24 +704,78 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
         foreach (var item in Messages)
             _itemsById[item.Id] = item;
 
-        if (newCount > 0)
+        // E5: auto-scroll tylko gdy nakładka otwarta i użytkownik przy końcu.
+        if (newCount > 0 && IsChatOpen && UserAtBottom)
+            ScrollToBottomRequested?.Invoke();
+
+        RecomputeUnread(freshItems);
+    }
+
+    /// <summary>
+    /// E11: unread = count(ts &gt; watermark &amp;&amp; !own) przeliczany z AKTUALNEJ historii
+    /// przy każdym merge (badge maleje, gdy wiadomości znikają z serwera).
+    /// Watermark == 0 (nigdy nie przeczytano) → cichy baseline do najnowszego ts.
+    /// Toasty emitowane tylko dla świeżo przybyłych nieprzeczytanych (bez spamu co polling);
+    /// przejście unread do 0 zdejmuje aktywne toasty czatu.
+    /// </summary>
+    private void RecomputeUnread(List<CommunityChatMessageViewModel> freshItems)
+    {
+        var latestTs = Messages.Count > 0 ? Messages.Max(UnixMs) : 0;
+
+        if (_readWatermark == 0)
         {
-            // E5: auto-scroll tylko gdy nakładka otwarta; przy zamkniętym czacie
-            // nowe wiadomości budują licznik nieprzeczytanych (badge dymka).
-            if (IsChatOpen && UserAtBottom)
-                ScrollToBottomRequested?.Invoke();
-            else if (HasLoadedSuccessfully)
-                NewMessageCount += newCount;
+            // Świeża instalacja / pierwszy odczyt bez zapisanego watermarka — bez badge i toastów.
+            if (latestTs > 0)
+                AdvanceWatermark(latestTs);
+            NewMessageCount = 0;
+            return;
         }
 
-        // Pierwszy udany odczyt to baseline przeczytanej historii — bez badge i toastów.
-        if (HasLoadedSuccessfully && freshItems.Count > 0)
+        // Czat otwarty + okno focused + użytkownik przy końcu = czytanie na żywo.
+        if (IsChatOpen && WindowFocused && UserAtBottom)
+            AdvanceWatermark(latestTs);
+
+        var unread = Messages.Count(m => !m.IsOwn && UnixMs(m) > _readWatermark);
+        var previous = NewMessageCount;
+        NewMessageCount = unread;
+
+        if (unread == 0)
         {
-            var plan = ChatToastPolicy.Plan(freshItems, IsChatOpen, WindowFocused);
+            if (previous > 0)
+                ChatToastsDismissRequested?.Invoke();
+            return;
+        }
+
+        if (freshItems.Count > 0)
+        {
+            var freshUnread = freshItems.Where(m => !m.IsOwn && UnixMs(m) > _readWatermark).ToList();
+            var plan = ChatToastPolicy.Plan(freshUnread, IsChatOpen, WindowFocused);
             if (plan is not null)
                 ChatToastsRequested?.Invoke(plan);
         }
     }
+
+    /// <summary>E11: przeczytanie = watermark do najnowszego ts historii + badge 0 + zdjęcie toastów.</summary>
+    private void MarkHistoryRead()
+    {
+        if (Messages.Count > 0)
+            AdvanceWatermark(Messages.Max(UnixMs));
+        NewMessageCount = 0;
+        ChatToastsDismissRequested?.Invoke();
+    }
+
+    /// <summary>Watermark tylko w górę; zapis do store wyłącznie przy zmianie (Core i tak jest best-effort).</summary>
+    private void AdvanceWatermark(long unixMs)
+    {
+        if (unixMs <= _readWatermark)
+            return;
+        _readWatermark = unixMs;
+        _readState?.SetReadWatermark(unixMs);
+    }
+
+    /// <summary>Raw ts wiadomości (unix ms) z DTO PublishedAt — bez zmian kontraktu Core.</summary>
+    private static long UnixMs(CommunityChatMessageViewModel message) =>
+        message.PublishedAt?.ToUnixTimeMilliseconds() ?? 0;
 
     private void OnMessagesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {

@@ -12,6 +12,7 @@
 	<Color x:Key="SurfaceBaseColor">#101113</Color>
 	<Color x:Key="SurfaceElevatedColor">#1A1C1F</Color>
 	<Color x:Key="SurfaceCardColor">#1A1C1F</Color>
+	<Color x:Key="SurfaceRaisedColor">#202226</Color>
 	<Color x:Key="SurfaceOverlayColor">#80101113</Color>
 	<Color x:Key="AccentPrimaryColor">#F7AE27</Color>
 	<Color x:Key="AccentMutedColor">#DC8D12</Color>
@@ -53,6 +54,7 @@
 	<SolidColorBrush x:Key="SurfaceBaseBrush" Color="{StaticResource SurfaceBaseColor}"/>
 	<SolidColorBrush x:Key="SurfaceElevatedBrush" Color="{StaticResource SurfaceElevatedColor}"/>
 	<SolidColorBrush x:Key="SurfaceCardBrush" Color="{StaticResource SurfaceCardColor}"/>
+	<SolidColorBrush x:Key="SurfaceRaisedBrush" Color="{StaticResource SurfaceRaisedColor}"/>
 	<SolidColorBrush x:Key="SurfaceOverlayBrush" Color="{StaticResource SurfaceOverlayColor}"/>
 	<SolidColorBrush x:Key="AccentPrimaryBrush" Color="{StaticResource AccentPrimaryColor}"/>
 	<SolidColorBrush x:Key="AccentMutedBrush" Color="{StaticResource AccentMutedColor}"/>

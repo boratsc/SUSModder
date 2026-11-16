@@ -32,18 +32,26 @@ public sealed class CommunityChatOverlayTests
         }
     }
 
+    // E11: stabilne ts per ID — watermark liczy unread po czasie publikacji, a serwer
+    // nie zmienia publishedAt istniejącej wiadomości (fake wcześniej odnawiał UtcNow co call).
+    private static readonly DateTimeOffset BaseTime = DateTimeOffset.UtcNow;
+
     private static FakeCommunityChatService TwoStageFake() => new()
     {
         GetFactory = call => call == 1
             ? new CommunityChatMessagesResult
             {
                 Status = CommunityChatStatus.Success,
-                Messages = new[] { FakeCommunityChatService.Msg("a") }
+                Messages = new[] { FakeCommunityChatService.Msg("a", publishedAt: BaseTime) }
             }
             : new CommunityChatMessagesResult
             {
                 Status = CommunityChatStatus.Success,
-                Messages = new[] { FakeCommunityChatService.Msg("a"), FakeCommunityChatService.Msg("b") }
+                Messages = new[]
+                {
+                    FakeCommunityChatService.Msg("a", publishedAt: BaseTime),
+                    FakeCommunityChatService.Msg("b", publishedAt: BaseTime.AddSeconds(1))
+                }
             }
     };
 

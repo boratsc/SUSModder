@@ -183,6 +183,9 @@ namespace SUSModder.ViewModels
                     () => IsChatOpen = true);
         }
 
+        /// <summary>E11: unread spadło do 0 / przeczytano — zdejmij aktywne toasty czatu.</summary>
+        private void OnChatToastsDismissRequested() => ToastService.DismissChatToasts();
+
         private void CloseToolModal()
         {
             CloseToolModalCore();

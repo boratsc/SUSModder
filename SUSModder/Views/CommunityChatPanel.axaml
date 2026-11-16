@@ -8,7 +8,16 @@
              x:DataType="vm:CommunityChatPanelViewModel"
              MinHeight="200">
 	<UserControl.Styles>
-		<!-- E5: ciągła lista wiadomości bez kart per wiadomość (makieta 02). -->
+		<!-- E11: miękkie dymki treści (bez obramowań/cieni); własne = złote soft fill.
+		     Kolejność: chat-bubble-own po chat-bubble — ta sama specyficzność, późniejsza wygrywa. -->
+		<Style Selector="Border.chat-bubble">
+			<Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}"/>
+			<Setter Property="CornerRadius" Value="10"/>
+			<Setter Property="Padding" Value="10,8"/>
+		</Style>
+		<Style Selector="Border.chat-bubble-own">
+			<Setter Property="Background" Value="{DynamicResource AccentSoftFillBrush}"/>
+		</Style>
 		<Style Selector="Border.chat-banner">
 			<Setter Property="CornerRadius" Value="6"/>
 			<Setter Property="Padding" Value="10,6"/>
@@ -141,9 +150,9 @@
 							  Margin="0,0,4,0">
 					<ItemsControl.ItemTemplate>
 						<DataTemplate x:DataType="vm:CommunityChatMessageViewModel">
-							<!-- E5: ciągły wiersz (autor + czas + treść), bez karty/boxa per wiadomość.
+							<!-- E11: autor + czas NAD miękkim dymkiem treści; wyrównanie lewe dla ciągłości.
 							     Zgłoś/Usuń zostają w wierszu nagłówka (istniejące funkcje). -->
-							<StackPanel Spacing="2" Margin="0,0,0,12">
+							<StackPanel Spacing="2" Margin="0,0,0,10">
 								<Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
 									<TextBlock Grid.Column="0" Text="{Binding AuthorDisplay}"
 											   FontSize="12" FontWeight="SemiBold"
@@ -151,7 +160,7 @@
 											   MaxWidth="240" TextTrimming="CharacterEllipsis"
 											   Foreground="{DynamicResource TextPrimaryBrush}"/>
 									<TextBlock Grid.Column="1" Text="{Binding TimeAgoDisplay}"
-											   FontSize="10"
+											   FontSize="11"
 											   VerticalAlignment="Center"
 											   Foreground="{DynamicResource TextMutedBrush}"/>
 									<TextBlock Grid.Column="2" Text="{loc:Localize UI.CommunityChat.OwnBadge}"
@@ -186,12 +195,15 @@
 											Command="{Binding $parent[ItemsControl].DataContext.DeleteCommand}"
 											CommandParameter="{Binding}"/>
 								</Grid>
-								<!-- Treść jako zwykły, selektorowalny tekst (bez HTML/Markdown);
-								     emotikony ASCII są prezentacyjnie zamieniane na emoji. -->
-								<SelectableTextBlock Text="{Binding DisplayContent}"
-													 TextWrapping="Wrap"
-													 FontSize="13"
-													 Foreground="{DynamicResource TextPrimaryBrush}"/>
+								<!-- Treść w miękkim dymku (własne = AccentSoftFill); tekst selektorowalny,
+								     emotikony ASCII prezentacyjnie zamieniane na emoji. Bez obramowań/cieni. -->
+								<Border Classes="chat-bubble" Classes.chat-bubble-own="{Binding IsOwn}"
+									HorizontalAlignment="Left">
+									<SelectableTextBlock Text="{Binding DisplayContent}"
+										TextWrapping="Wrap"
+										FontSize="13"
+										Foreground="{DynamicResource TextPrimaryBrush}"/>
+								</Border>
 							</StackPanel>
 						</DataTemplate>
 					</ItemsControl.ItemTemplate>

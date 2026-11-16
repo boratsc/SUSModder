@@ -360,17 +360,23 @@ public sealed class CommunityChatPanelViewModelTests
     [Fact]
     public async Task NewMessage_WhileScrolledUp_IncrementsCounter_AndButtonResetsWithScroll()
     {
+        // E11: stabilne ts per ID — unread liczony z watermarka po publishedAt (jak na serwerze).
+        var baseTime = DateTimeOffset.UtcNow;
         var fake = new FakeCommunityChatService();
         fake.GetFactory = call => call == 1
             ? new CommunityChatMessagesResult
             {
                 Status = CommunityChatStatus.Success,
-                Messages = new[] { FakeCommunityChatService.Msg("a") }
+                Messages = new[] { FakeCommunityChatService.Msg("a", publishedAt: baseTime) }
             }
             : new CommunityChatMessagesResult
             {
                 Status = CommunityChatStatus.Success,
-                Messages = new[] { FakeCommunityChatService.Msg("a"), FakeCommunityChatService.Msg("b") }
+                Messages = new[]
+                {
+                    FakeCommunityChatService.Msg("a", publishedAt: baseTime),
+                    FakeCommunityChatService.Msg("b", publishedAt: baseTime.AddSeconds(1))
+                }
             };
 
         var vm = NewVm(fake, new FakeLocalizationService(), TimeSpan.FromMilliseconds(50));

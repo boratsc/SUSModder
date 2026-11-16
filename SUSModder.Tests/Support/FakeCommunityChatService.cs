@@ -86,12 +86,14 @@ internal sealed class FakeCommunityChatService : ICommunityChatService
             Messages = messages
         };
 
-    public static CommunityChatMessage Msg(string id, string content = "tresc testowa 1234567890", bool own = false) =>
+    public static CommunityChatMessage Msg(string id, string content = "tresc testowa 1234567890", bool own = false,
+        DateTimeOffset? publishedAt = null) =>
         new()
         {
             Id = id,
             Content = content,
-            PublishedAt = DateTimeOffset.UtcNow,
+            // E11: testy watermarka wymagają stabilnych ts (serwer nie zmienia publishedAt istniejącej wiadomości).
+            PublishedAt = publishedAt ?? DateTimeOffset.UtcNow,
             IsOwn = own,
             CanDelete = own,
             Author = new CommunityChatAuthor("test-author",

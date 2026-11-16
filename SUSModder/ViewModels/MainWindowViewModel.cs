@@ -648,7 +648,8 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
             CommunityChat = new CommunityChatPanelViewModel(
                 App.GetService<ICommunityChatService>(),
                 _localizationService,
-                rulesState: new UserSettingsChatRulesStateStore(_userSettingsService));
+                rulesState: new UserSettingsChatRulesStateStore(_userSettingsService),
+                readState: App.GetService<IChatReadStateStore>());
             CommunityChat.DeleteConfirmation = async message =>
                 await ShowConfirmDialogAsync(
                     message,
@@ -658,6 +659,7 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
             // E5: czat jako nakładka — stan współdzielony z VM czatu, toasty wg polityki ChatToastPolicy.
             CommunityChat.RequestChatOpen = open => IsChatOpen = open;
             CommunityChat.ChatToastsRequested += OnChatToastsRequested;
+            CommunityChat.ChatToastsDismissRequested += OnChatToastsDismissRequested;
             this.WhenAnyValue(x => x.IsChatOpen).Subscribe(open => CommunityChat.IsChatOpen = open)
                 .DisposeWith(_chatSubscriptions);
 

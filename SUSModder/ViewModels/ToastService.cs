@@ -105,6 +105,22 @@ namespace SUSModder.ViewModels
         }
 
         /// <summary>
+        /// E11: usuwa aktywne i oczekujące toasty czatu (unread spadło do 0 / przeczytano).
+        /// Najpierw kolejka, żeby zwolnione miejsce nie promowało oczekujących toastów czatu.
+        /// </summary>
+        public void DismissChatToasts()
+        {
+            lock (_lock)
+            {
+                foreach (var pending in _pendingQueue.Where(t => t.Type == ToastType.Chat).ToList())
+                    _pendingQueue.Remove(pending);
+            }
+
+            foreach (var toast in _activeToasts.Where(t => t.Type == ToastType.Chat).ToList())
+                RemoveToast(toast);
+        }
+
+        /// <summary>
         /// Wyświetla toast i uruchamia auto-close timer.
         /// Musi być wywołane z UI thread (modyfikuje ObservableCollection).
         /// </summary>
