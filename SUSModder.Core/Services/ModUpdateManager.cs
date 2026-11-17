@@ -109,6 +109,11 @@ namespace SUSModder.Core.Services
                     {
                         // POPRAWKA: Użyj await zamiast GetAwaiter().GetResult() aby uniknąć deadlocka
                         var installMap = await InstallationMapManager.LoadInstallationMapAsync(config.InstallPath);
+                        if (IsPackOriginInstallation(installMap))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[ModUpdateManager] Pomijam zwykłe sprawdzanie aktualizacji dla moda z paczki: {config.ModName}");
+                            continue;
+                        }
                         if (installMap?.FullMod != null && !string.IsNullOrEmpty(installMap.FullMod.ModVersion))
                         {
                             if (!InstallationMapMatchesMod(installMap.FullMod, config))
@@ -182,6 +187,9 @@ namespace SUSModder.Core.Services
         internal static bool IsUpdateCandidate(string installedVersion, ModConfiguration remoteMod) =>
             !remoteMod.IsBeta &&
             ModInstanceUpdateChecker.HasNewerCatalogVersion(installedVersion, remoteMod.ModVersion);
+
+        internal static bool IsPackOriginInstallation(InstallationMap? map) =>
+            !string.IsNullOrWhiteSpace(map?.SourcePackCode);
 
         private static bool InstallationMapMatchesMod(FullModInstallation fullMod, ModConfiguration config)
         {

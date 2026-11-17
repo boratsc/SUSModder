@@ -170,6 +170,11 @@ namespace SUSModder.Core.GameIntegration
                 try
                 {
                     var installMap = InstallationMapManager.LoadInstallationMapAsync(localMod.InstallPath).GetAwaiter().GetResult();
+                    if (ModUpdateManager.IsPackOriginInstallation(installMap))
+                    {
+                        Debug.WriteLine($"[ModUpdateChecker] Pomijam zwykłe sprawdzanie aktualizacji dla moda z paczki: {localMod.ModName}");
+                        continue;
+                    }
                     if (installMap?.FullMod != null && !string.IsNullOrEmpty(installMap.FullMod.ModVersion))
                     {
                         if (!InstallationMapMatchesMod(installMap.FullMod, localMod))

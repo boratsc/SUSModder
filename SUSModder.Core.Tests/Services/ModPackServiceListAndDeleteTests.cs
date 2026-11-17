@@ -16,6 +16,44 @@ public class ModPackServiceListAndDeleteTests
     private const string PackCode = "ABCD-EFGH-JKLM";
     private static readonly string CreatorHash = new('c', 64);
 
+    [Theory]
+    [InlineData("""{"expiresAt":null}""", null)]
+    [InlineData("""{}""", null)]
+    [InlineData("""{"expiresAt":123}""", null)]
+    [InlineData("""{"expiresAt":"2026-07-22T12:00:00Z"}""", "2026-07-22T12:00:00Z")]
+    public async Task GetPackAsync_ParsesExpiresAtOnlyWhenString(string fields, string? expected)
+    {
+        var api = CreateApi(new List<SusModderApiRequest>(), _ =>
+            JsonResponse(HttpStatusCode.OK, "{\"success\":true,\"pack\":{\"packCode\":\"" + PackCode +
+                "\",\"modName\":\"Test\"" + (fields == "{}" ? "" : "," + fields.Trim('{', '}')) + "}}"));
+        var result = await CreateService(api.Object).GetPackAsync(PackCode);
+
+        Assert.NotNull(result);
+        if (expected is null)
+            Assert.Null(result.ExpiresAt);
+        else
+            Assert.Equal(DateTimeOffset.Parse(expected), result.ExpiresAt);
+    }
+
+    [Theory]
+    [InlineData("""{"expiresAt":null}""", null)]
+    [InlineData("""{}""", null)]
+    [InlineData("""{"expiresAt":123}""", null)]
+    [InlineData("""{"expiresAt":"2026-07-22T12:00:00Z"}""", "2026-07-22T12:00:00Z")]
+    public async Task ListOwnPacksDetailedAsync_ParsesExpiresAtOnlyWhenString(string fields, string? expected)
+    {
+        var properties = fields == "{}" ? "" : "," + fields.Trim('{', '}');
+        var api = CreateApi(new List<SusModderApiRequest>(), _ => JsonResponse(HttpStatusCode.OK,
+            "{\"success\":true,\"packs\":[{\"packCode\":\"" + PackCode + "\"" + properties + "}]}"));
+        var result = await CreateService(api.Object).ListOwnPacksDetailedAsync();
+
+        var entry = Assert.Single(result.Packs);
+        if (expected is null)
+            Assert.Null(entry.ExpiresAt);
+        else
+            Assert.Equal(DateTimeOffset.Parse(expected), entry.ExpiresAt);
+    }
+
     [Fact]
     public async Task ListOwnPacksDetailedAsync_ParsesListAndLimitEnvelope()
     {

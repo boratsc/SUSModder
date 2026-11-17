@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using SUSModder.Core.Configuration;
@@ -12,7 +14,7 @@ namespace SUSModder.Core.Services
 {
     /// <summary>
     /// Sprawdza dostępność aktualizacji paczek modów dla lokalnych instancji
-    /// utworzonych z udostępnionych paczek (Origin = shared_pack, SourcePackCode != null).
+    /// utworzonych z udostępnionych paczek (Origin = shared_pack/clone, SourcePackCode != null).
     /// Read-only — nie instaluje automatycznie.
     /// </summary>
     public sealed class ModPackUpdateChecker
@@ -42,11 +44,12 @@ namespace SUSModder.Core.Services
             var results = new List<ModPackUpdateInfo>();
 
             var instances = _instanceRepository.GetPackInstances()
+                // Klony dziedziczą pin paczki, więc podlegają checkerowi tak jak oryginały.
                 .Where(i => !string.IsNullOrEmpty(i.SourcePackCode) &&
-                            i.Origin == ModInstanceOrigins.SharedPack)
+                            (i.Origin == ModInstanceOrigins.SharedPack || i.Origin == ModInstanceOrigins.Clone))
                 .ToList();
 
-            _log.Write($"[ModPackUpdateChecker] Sprawdzam aktualizacje dla {instances.Count} instancji shared_pack...");
+            _log.Write($"[ModPackUpdateChecker] Sprawdzam aktualizacje dla {instances.Count} instancji paczek...");
 
             foreach (var instance in instances)
             {
@@ -114,8 +117,7 @@ namespace SUSModder.Core.Services
 
                 // 2b. DLL katalogowe — porównaj wersje
                 var localDlls = _instanceRepository.GetDlls(instance.InstanceId);
-                // Pobierz katalog aby znaleźć nazwy DLL po ID
-                var catalogConfigs = _configService.LoadConfig();
+                var catalogConfigs = remotePack.DllMods.Count > 0 ? _configService.LoadConfig() : null;
 
                 foreach (var remoteDll in remotePack.DllMods)
                 {
@@ -125,7 +127,7 @@ namespace SUSModder.Core.Services
 
                     if (!string.Equals(localVersion, remoteVersion, StringComparison.OrdinalIgnoreCase))
                     {
-                        var dllName = catalogConfigs.FirstOrDefault(c => c.Id == remoteDll.DllModId)?.ModName
+                        var dllName = catalogConfigs?.FirstOrDefault(c => c.Id == remoteDll.DllModId)?.ModName
                             ?? $"DLL #{remoteDll.DllModId}";
 
                         changes.Add(new ModPackChangeItem
@@ -161,14 +163,15 @@ namespace SUSModder.Core.Services
                     }
                 }
 
-                // 2d. Konfiguracja ToU — informacja o możliwej zmianie (bez dokładnego porównania)
+                // Pin paczki jest źródłem prawdy dla konfiguracji ToU tej instancji.
                 if (remotePack.TouConfig.HasValue && remotePack.TouConfig.Value.ValueKind != System.Text.Json.JsonValueKind.Null)
                 {
-                    changes.Add(new ModPackChangeItem
+                    var snapshot = _instanceRepository.GetConfigs(instance.InstanceId)
+                        .FirstOrDefault(c => string.Equals(c.ConfigType, ModInstanceTouConfigService.ConfigType, StringComparison.OrdinalIgnoreCase));
+                    if (snapshot == null || !ConfigsAreSemanticallyEqual(remotePack.TouConfig.Value, snapshot.ConfigJson))
                     {
-                        ChangeType = "config",
-                        Name = "Town of Us"
-                    });
+                        changes.Add(new ModPackChangeItem { ChangeType = "config", Name = "Town of Us" });
+                    }
                 }
 
                 result.HasUpdate = changes.Any();
@@ -186,6 +189,21 @@ namespace SUSModder.Core.Services
             }
 
             return result;
+        }
+
+        private static bool ConfigsAreSemanticallyEqual(JsonElement remoteConfig, string? snapshotJson)
+        {
+            if (string.IsNullOrWhiteSpace(snapshotJson))
+                return false;
+
+            try
+            {
+                return JsonNode.DeepEquals(JsonNode.Parse(remoteConfig.GetRawText()), JsonNode.Parse(snapshotJson));
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
         }
     }
 }

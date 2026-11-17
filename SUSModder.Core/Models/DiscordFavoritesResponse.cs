@@ -33,5 +33,20 @@ namespace SUSModder.Core.Models
 
         [JsonPropertyName("is_active")]
         public bool IsActive { get; set; } = true;
+
+        [JsonPropertyName("packCode")]
+        public string? PackCode { get; set; }
+
+        [JsonPropertyName("packModName")]
+        public string? PackModName { get; set; }
+
+        [JsonPropertyName("fullModVersion")]
+        public string? FullModVersion { get; set; }
+
+        [JsonPropertyName("installable")]
+        public bool? Installable { get; set; }
+
+        [JsonPropertyName("vtStatus")]
+        public string? VtStatus { get; set; }
     }
 }

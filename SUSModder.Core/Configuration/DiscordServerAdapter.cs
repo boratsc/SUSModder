@@ -12,7 +12,12 @@ namespace SUSModder.Core.Configuration
                 Name = serverData.Name,
                 InviteLink = serverData.Link,
                 Description = serverData.Description,
-                IconPath = !string.IsNullOrEmpty(serverData.Icon) ? serverData.Icon : null
+                IconPath = !string.IsNullOrEmpty(serverData.Icon) ? serverData.Icon : null,
+                PackCode = serverData.PackCode,
+                PackModName = serverData.PackModName,
+                FullModVersion = serverData.FullModVersion,
+                Installable = serverData.Installable ?? false,
+                VtStatus = serverData.VtStatus
             };
         }
 
