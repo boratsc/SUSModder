@@ -61,6 +61,8 @@ namespace SUSModder.Core.Data
         /// Zwraca true, jeśli dane w bazie uległy zmianie.
         /// </summary>
         Task<bool> ApplyRemoteCatalogAsync(List<ModConfiguration> apiMods);
+        /// <summary>Updates stored popularity values for the supplied mod IDs.</summary>
+        bool UpdatePopularity(IReadOnlyDictionary<int, int> popularityById);
 
         /// <summary>
         /// Zapisuje dane VirusTotal dla konkretnego moda (UPDATE tylko kolumn Vt*).

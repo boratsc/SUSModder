@@ -117,6 +117,9 @@ namespace SUSModder.Core.Configuration
         [JsonPropertyName("ModName")]
         public string ModName { get; set; } = string.Empty;
 
+        [JsonPropertyName("Popularity30d")]
+        public int Popularity30d { get; set; }
+
         [JsonPropertyName("PngFileName")]
         public string PngFileName { get; set; } = string.Empty;
 
@@ -942,6 +945,9 @@ namespace SUSModder.Core.Configuration
 
                 if (string.IsNullOrWhiteSpace(targetMod.InstallPath) && !string.IsNullOrWhiteSpace(prev.InstallPath))
                     targetMod.InstallPath = prev.InstallPath;
+
+                if (targetMod.Popularity30d == 0 && prev.Popularity30d > 0)
+                    targetMod.Popularity30d = prev.Popularity30d;
 
                 if (string.IsNullOrWhiteSpace(targetMod.ModVersion) && !string.IsNullOrWhiteSpace(prev.ModVersion))
                     targetMod.ModVersion = prev.ModVersion;

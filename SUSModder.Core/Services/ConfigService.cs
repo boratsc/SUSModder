@@ -187,6 +187,7 @@ namespace SUSModder.Core.Services
                     if (existingMod != null)
                     {
                         var index = configs.IndexOf(existingMod);
+                        updatedMod.Popularity30d = existingMod.Popularity30d;
                         configs[index] = updatedMod;
                     }
                     else

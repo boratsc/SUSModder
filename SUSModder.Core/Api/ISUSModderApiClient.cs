@@ -23,6 +23,10 @@ public interface ISUSModderApiClient : IDisposable
         string? ifNoneMatch = null,
         CancellationToken cancellationToken = default);
 
+    Task<SusModderApiResult<List<CatalogPopularityItemDto>>> GetCatalogPopularityAsync(
+        int days = 30,
+        CancellationToken cancellationToken = default);
+
     Task<List<ModConfiguration>> GetCatalogAsModConfigurationsAsync(
         CancellationToken cancellationToken = default);
 

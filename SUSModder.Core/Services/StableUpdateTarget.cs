@@ -30,7 +30,7 @@ public static class StableUpdateTarget
             LastUpdated = mod.LastUpdated, HasRoles = mod.HasRoles,
             LobbyRegionBaseUrl = mod.LobbyRegionBaseUrl, SupportsLobbySharing = mod.SupportsLobbySharing,
             LatestStableVersion = mod.LatestStableVersion, LatestBetaVersion = mod.LatestBetaVersion,
-            AvailableReleases = mod.AvailableReleases
+            AvailableReleases = mod.AvailableReleases, Popularity30d = mod.Popularity30d
         };
         target.GitHubRepoOrLink = ModDownloadUrlBuilder.Build(target, "steam");
         target.EpicGitHubRepoOrLink = ModDownloadUrlBuilder.Build(target, "epic");

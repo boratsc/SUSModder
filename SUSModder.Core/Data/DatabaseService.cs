@@ -27,7 +27,7 @@ namespace SUSModder.Core.Data
         // v18 – user_settings: wybór wersji legendary (pinned / ręczny).
         // v19 – user_settings.chat_read_watermark_unix_ms.
         // v20 – user_settings.environment_check_prompt_version.
-        private const int LatestSchemaVersion = 20;
+        private const int LatestSchemaVersion = 22;
 
         public DatabaseService()
         {
@@ -180,6 +180,7 @@ namespace SUSModder.Core.Data
                     LatestStableVersion TEXT,
                     LatestBetaVersion TEXT,
                     AvailableReleases TEXT NOT NULL DEFAULT '[]',
+                    popularity_30d INTEGER NOT NULL DEFAULT 0,
                     VtScanStatus    TEXT,
                     VtPermalink     TEXT,
                     VtLastCheckedAt TEXT,
@@ -234,7 +235,8 @@ namespace SUSModder.Core.Data
                     legendary_release_source TEXT NOT NULL DEFAULT '',
                     legendary_release_tag TEXT NOT NULL DEFAULT '',
                     legendary_release_asset TEXT NOT NULL DEFAULT '',
-                    legendary_release_sha256 TEXT NOT NULL DEFAULT ''
+                    legendary_release_sha256 TEXT NOT NULL DEFAULT '',
+                    mod_list_sort TEXT NOT NULL DEFAULT 'PopularityDesc'
                 );";
             cmd.ExecuteNonQuery();
 
@@ -903,6 +905,46 @@ namespace SUSModder.Core.Data
                         "ALTER TABLE user_settings ADD COLUMN environment_check_prompt_version INTEGER NOT NULL DEFAULT 0;");
                     tx.Commit();
                     SetUserVersion(conn, 20);
+                }
+                catch
+                {
+                    try { tx.Rollback(); } catch { }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 21)
+            {
+                BackupDatabase();
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+                    EnsureColumn(cmd, "mods", "popularity_30d",
+                        "ALTER TABLE mods ADD COLUMN popularity_30d INTEGER NOT NULL DEFAULT 0;");
+                    tx.Commit();
+                    SetUserVersion(conn, 21);
+                }
+                catch
+                {
+                    try { tx.Rollback(); } catch { }
+                    throw;
+                }
+            }
+
+            if (currentVersion < 22)
+            {
+                BackupDatabase();
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+                    EnsureColumn(cmd, "user_settings", "mod_list_sort",
+                        "ALTER TABLE user_settings ADD COLUMN mod_list_sort TEXT NOT NULL DEFAULT 'PopularityDesc';");
+                    tx.Commit();
+                    SetUserVersion(conn, 22);
                 }
                 catch
                 {

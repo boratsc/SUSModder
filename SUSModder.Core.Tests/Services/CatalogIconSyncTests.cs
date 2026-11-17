@@ -565,6 +565,7 @@ public class CatalogIconSyncTests : IDisposable
             LocalMods = apiMods;
             return Task.FromResult(true);
         }
+        public bool UpdatePopularity(IReadOnlyDictionary<int, int> popularityById) => false;
 
         public void SaveAllMods(List<ModConfiguration> mods) => LocalMods = mods;
         public void UpdateMod(ModConfiguration mod) { }
@@ -590,6 +591,8 @@ public class CatalogIconSyncTests : IDisposable
             string? ifNoneMatch = null,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(CatalogHandler(query, ifNoneMatch));
+        public Task<SusModderApiResult<List<CatalogPopularityItemDto>>> GetCatalogPopularityAsync(int days = 30, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new SusModderApiResult<List<CatalogPopularityItemDto>> { StatusCode = 404 });
 
         public Task<SusModderApiResult<CatalogMetaDto>> GetCatalogMetaAsync(
             string? ifNoneMatch = null,

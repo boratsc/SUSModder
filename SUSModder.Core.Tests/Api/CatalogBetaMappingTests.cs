@@ -104,6 +104,18 @@ public class CatalogBetaMappingTests
     }
 
     [Fact]
+    public void StableUpdateTarget_PreservesPopularity()
+    {
+        var config = new SUSModder.Core.Configuration.ModConfiguration
+        {
+            Id = 13, IsBeta = true, LatestStableVersion = "1.7.5", Popularity30d = 42,
+            AvailableReleases = [new ModRelease { Version = "1.7.5", IsBeta = false }]
+        };
+
+        Assert.Equal(42, StableUpdateTarget.Resolve(config)!.Popularity30d);
+    }
+
+    [Fact]
     public async Task CatalogList_ReadsBetaFieldsAndReleases()
     {
         var api = CreateApi("""

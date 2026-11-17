@@ -122,6 +122,7 @@ namespace SUSModder.Core.Data
                     LatestStableVersion = @LatestStableVersion,
                     LatestBetaVersion = @LatestBetaVersion,
                     AvailableReleases = @AvailableReleases,
+                    popularity_30d = @Popularity30d,
                     UpdatedAt = datetime('now')
                 WHERE Id = @Id;";
 
@@ -152,11 +153,11 @@ namespace SUSModder.Core.Data
                 INSERT INTO mods (Id, ModName, PngFileName, InstallPath, GitHubRepoOrLink,
                     EpicGitHubRepoOrLink, ModType, DllInstallPath, ModVersion, AmongVersion,
                     LastUpdated, Description, HasRoles, LobbyRegionBaseUrl, SupportsLobbySharing,
-                    IsBeta, LatestStableVersion, LatestBetaVersion, AvailableReleases)
+                    IsBeta, LatestStableVersion, LatestBetaVersion, AvailableReleases, popularity_30d)
                 VALUES (@Id, @ModName, @PngFileName, @InstallPath, @GitHubRepoOrLink,
                     @EpicGitHubRepoOrLink, @ModType, @DllInstallPath, @ModVersion, @AmongVersion,
                     @LastUpdated, @Description, @HasRoles, @LobbyRegionBaseUrl, @SupportsLobbySharing,
-                    @IsBeta, @LatestStableVersion, @LatestBetaVersion, @AvailableReleases);";
+                    @IsBeta, @LatestStableVersion, @LatestBetaVersion, @AvailableReleases, @Popularity30d);";
 
             BindModParameters(cmd, mod);
             cmd.ExecuteNonQuery();
@@ -190,10 +191,10 @@ namespace SUSModder.Core.Data
             cmd.CommandText = @"
                 INSERT INTO mods (Id, ModName, PngFileName, InstallPath, GitHubRepoOrLink,
                     EpicGitHubRepoOrLink, ModType, DllInstallPath, ModVersion, AmongVersion,
-                    LastUpdated, Description, HasRoles, LobbyRegionBaseUrl, SupportsLobbySharing)
+                    LastUpdated, Description, HasRoles, LobbyRegionBaseUrl, SupportsLobbySharing, popularity_30d)
                 VALUES (@Id, @ModName, @PngFileName, @InstallPath, @GitHubRepoOrLink,
                     @EpicGitHubRepoOrLink, @ModType, @DllInstallPath, @ModVersion, @AmongVersion,
-                    @LastUpdated, @Description, @HasRoles, @LobbyRegionBaseUrl, @SupportsLobbySharing)
+                    @LastUpdated, @Description, @HasRoles, @LobbyRegionBaseUrl, @SupportsLobbySharing, @Popularity30d)
                 ON CONFLICT(Id) DO UPDATE SET
                     ModName = excluded.ModName,
                     PngFileName = excluded.PngFileName,
@@ -209,6 +210,7 @@ namespace SUSModder.Core.Data
                     HasRoles = excluded.HasRoles,
                     LobbyRegionBaseUrl = excluded.LobbyRegionBaseUrl,
                     SupportsLobbySharing = excluded.SupportsLobbySharing,
+                    popularity_30d = excluded.popularity_30d,
                     UpdatedAt = datetime('now');";
 
             BindModParameters(cmd, mod);
@@ -354,6 +356,33 @@ namespace SUSModder.Core.Data
             }
         }
 
+        public bool UpdatePopularity(IReadOnlyDictionary<int, int> popularityById)
+        {
+            var changed = false;
+            var conn = _db.GetConnection();
+            lock (_catalogLock)
+            {
+                using var transaction = conn.BeginTransaction();
+                foreach (var pair in popularityById)
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = transaction;
+                    cmd.CommandText = "UPDATE mods SET popularity_30d = @Popularity WHERE Id = @Id AND popularity_30d <> @Popularity;";
+                    cmd.Parameters.AddWithValue("@Popularity", pair.Value);
+                    cmd.Parameters.AddWithValue("@Id", pair.Key);
+                    changed |= cmd.ExecuteNonQuery() > 0;
+                }
+                transaction.Commit();
+            }
+            if (changed)
+                lock (_cacheLock)
+                    if (_cachedMods != null)
+                        foreach (var mod in _cachedMods)
+                            if (popularityById.TryGetValue(mod.Id, out var value))
+                                mod.Popularity30d = value;
+            return changed;
+        }
+
         #region Private Helpers
 
         private void SaveAllModsInternal(List<ModConfiguration> mods)
@@ -372,11 +401,11 @@ namespace SUSModder.Core.Data
                         INSERT INTO mods (Id, ModName, PngFileName, InstallPath, GitHubRepoOrLink,
                             EpicGitHubRepoOrLink, ModType, DllInstallPath, ModVersion, AmongVersion,
                             LastUpdated, Description, HasRoles, LobbyRegionBaseUrl, SupportsLobbySharing,
-                            IsBeta, LatestStableVersion, LatestBetaVersion, AvailableReleases)
+                            IsBeta, LatestStableVersion, LatestBetaVersion, AvailableReleases, popularity_30d)
                         VALUES (@Id, @ModName, @PngFileName, @InstallPath, @GitHubRepoOrLink,
                             @EpicGitHubRepoOrLink, @ModType, @DllInstallPath, @ModVersion, @AmongVersion,
                             @LastUpdated, @Description, @HasRoles, @LobbyRegionBaseUrl, @SupportsLobbySharing,
-                            @IsBeta, @LatestStableVersion, @LatestBetaVersion, @AvailableReleases)
+                            @IsBeta, @LatestStableVersion, @LatestBetaVersion, @AvailableReleases, @Popularity30d)
                         ON CONFLICT(Id) DO UPDATE SET
                             ModName = excluded.ModName,
                             PngFileName = excluded.PngFileName,
@@ -396,6 +425,7 @@ namespace SUSModder.Core.Data
                             LatestStableVersion = excluded.LatestStableVersion,
                             LatestBetaVersion = excluded.LatestBetaVersion,
                             AvailableReleases = excluded.AvailableReleases,
+                            popularity_30d = excluded.popularity_30d,
                             UpdatedAt = datetime('now');";
                     BindModParameters(upsertCmd, mod);
                     upsertCmd.Parameters.AddWithValue("@Id", mod.Id);
@@ -463,6 +493,7 @@ namespace SUSModder.Core.Data
             cmd.Parameters.AddWithValue("@LatestStableVersion", (object?)mod.LatestStableVersion ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@LatestBetaVersion", (object?)mod.LatestBetaVersion ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@AvailableReleases", SerializeReleases(mod.AvailableReleases));
+            cmd.Parameters.AddWithValue("@Popularity30d", mod.Popularity30d);
             cmd.Parameters.AddWithValue("@VtScanStatus", (object?)mod.VtScanStatus ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@VtPermalink", (object?)mod.VtPermalink ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@VtLastCheckedAt", (object?)mod.VtLastCheckedAt ?? DBNull.Value);
@@ -494,6 +525,7 @@ namespace SUSModder.Core.Data
                 LatestStableVersion = SafeGetString(reader, "LatestStableVersion"),
                 LatestBetaVersion = SafeGetString(reader, "LatestBetaVersion"),
                 AvailableReleases = DeserializeReleases(SafeGetString(reader, "AvailableReleases")),
+                Popularity30d = reader.GetInt32(reader.GetOrdinal("popularity_30d")),
                 VtScanStatus = SafeGetString(reader, "VtScanStatus"),
                 VtPermalink = SafeGetString(reader, "VtPermalink"),
                 VtLastCheckedAt = SafeGetString(reader, "VtLastCheckedAt"),
@@ -792,6 +824,7 @@ namespace SUSModder.Core.Data
                     mod.IsBeta != other.IsBeta ||
                     mod.LatestStableVersion != other.LatestStableVersion ||
                     mod.LatestBetaVersion != other.LatestBetaVersion ||
+                    mod.Popularity30d != other.Popularity30d ||
                     !ReleasesEquivalent(mod.AvailableReleases, other.AvailableReleases))
                     return false;
             }

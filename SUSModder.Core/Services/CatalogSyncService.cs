@@ -135,7 +135,6 @@ public sealed class CatalogSyncService
         {
             var state = _syncState.Get(CatalogStateKey);
             var fetch = await FetchCatalogAsync(state?.ETag, cancellationToken);
-
             if (fetch.NotModified)
             {
                 // Katalog bez zmian: mogą zmienić się tylko role globalne.
@@ -157,6 +156,21 @@ public sealed class CatalogSyncService
         finally
         {
             _catalogFlight.Release();
+        }
+    }
+
+    private async Task<SusModderApiResult<List<CatalogPopularityItemDto>>?> FetchPopularitySafelyAsync(
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _apiClient.GetCatalogPopularityAsync(30, cancellationToken);
+        }
+        catch (OperationCanceledException) { return null; }
+        catch (Exception ex)
+        {
+            _log.Write($"[CatalogSync] popularity fetch unavailable: {ex.Message}");
+            return null;
         }
     }
 
@@ -254,13 +268,56 @@ public sealed class CatalogSyncService
         var nowUtc = DateTime.UtcNow;
         var state = _syncState.Get(CatalogStateKey);
         var localCount = _modRepository.GetAllMods().Count;
+        var popularityChanged = false;
 
         try
         {
+            var popularityTask = FetchPopularitySafelyAsync(cancellationToken);
             var fetch = await FetchCatalogAsync(state?.ETag, cancellationToken);
+            var popularity = await popularityTask;
+            var storedMods = _modRepository.GetAllMods();
+            var storedById = storedMods.GroupBy(x => x.Id).ToDictionary(x => x.Key, x => x.First().Popularity30d);
+            try
+            {
+                if (popularity is { IsSuccess: true, IsDegraded: false, Data: not null })
+                {
+                    var popularityById = popularity.Data.Where(x => x is not null).GroupBy(x => x.Id).ToDictionary(x => x.Key, x => Math.Max(0, x.First().Popularity));
+                    foreach (var mod in fetch.Mods)
+                    {
+                        if (popularityById.TryGetValue(mod.Id, out var value))
+                            mod.Popularity30d = value;
+                        else if (storedById.TryGetValue(mod.Id, out var stored))
+                            mod.Popularity30d = stored;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Write($"[CatalogSync] popularity feed invalid; keeping stored values: {ex.Message}");
+                foreach (var mod in fetch.Mods)
+                    if (storedById.TryGetValue(mod.Id, out var stored))
+                        mod.Popularity30d = stored;
+                popularity = null;
+            }
 
             if (fetch.NotModified)
             {
+                if (popularity is { IsSuccess: true, IsDegraded: false, Data: not null })
+                {
+                    try
+                    {
+                        var popularityById = popularity.Data.Where(x => x is not null)
+                            .GroupBy(x => x.Id).ToDictionary(x => x.Key, x => x.First().Popularity);
+                        popularityChanged = _modRepository.UpdatePopularity(popularityById);
+                        if (popularityChanged)
+                            InvalidateRemoteConfigCache();
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Write($"[CatalogSync] popularity feed invalid; keeping stored values: {ex.Message}");
+                    }
+                }
+
                 _syncState.SaveSuccess(CatalogStateKey, fetch.ETag ?? state?.ETag, null, nowUtc);
 
                 // Katalog bez zmian nie oznacza braku zmian ikon — metadane globalne
@@ -269,7 +326,7 @@ public sealed class CatalogSyncService
 
                 return new CatalogSyncResult
                 {
-                    Status = CatalogSyncStatus.NotModified,
+                    Status = popularityChanged ? CatalogSyncStatus.Updated : CatalogSyncStatus.NotModified,
                     ETag = fetch.ETag ?? state?.ETag,
                     ModCount = localCount,
                     LastSuccessUtc = nowUtc
@@ -309,6 +366,10 @@ public sealed class CatalogSyncService
                 };
             }
 
+            if (popularity is not { IsSuccess: true, IsDegraded: false, Data: not null })
+                foreach (var mod in fetch.Mods)
+                    if (storedById.TryGetValue(mod.Id, out var stored))
+                        mod.Popularity30d = stored;
             var changed = await _modRepository.ApplyRemoteCatalogAsync(fetch.Mods);
             _syncState.SaveSuccess(CatalogStateKey, fetch.ETag, null, nowUtc);
             InvalidateRemoteConfigCache();

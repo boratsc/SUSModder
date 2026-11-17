@@ -143,6 +143,18 @@ public sealed class CatalogMetaDto
     public string? ServerTimeUtc { get; init; }
 }
 
+public sealed class CatalogPopularityItemDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; init; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; init; } = string.Empty;
+
+    [JsonPropertyName("popularity")]
+    public int Popularity { get; init; }
+}
+
 public sealed class CatalogIconDto
 {
     [JsonPropertyName("assetId")]

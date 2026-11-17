@@ -84,6 +84,50 @@ public sealed class SUSModderApiClient : ISUSModderApiClient
         return await GetEnvelopeAsync<List<CatalogItemDto>>("catalog", queryParams, ifNoneMatch, cancellationToken);
     }
 
+    public async Task<SusModderApiResult<List<CatalogPopularityItemDto>>> GetCatalogPopularityAsync(
+        int days = 30,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var response = await SendAsync(new SusModderApiRequest
+            {
+                Method = HttpMethod.Get,
+                RelativePath = "catalog/popularity",
+                Query = new Dictionary<string, string?> { ["days"] = days.ToString() }
+            }, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+                return new SusModderApiResult<List<CatalogPopularityItemDto>> { StatusCode = (int)response.StatusCode };
+
+            using var envelope = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+            var root = envelope.RootElement;
+            var data = root.TryGetProperty("data", out var dataElement)
+                ? JsonSerializer.Deserialize<List<CatalogPopularityItemDto>>(dataElement.GetRawText(), JsonOptions)
+                : null;
+            var degraded = root.TryGetProperty("meta", out var metaElement) &&
+                metaElement.TryGetProperty("degraded", out var degradedElement) &&
+                degradedElement.ValueKind == JsonValueKind.True;
+            return new SusModderApiResult<List<CatalogPopularityItemDto>>
+            {
+                StatusCode = (int)response.StatusCode,
+                Data = data,
+                IsDegraded = degraded,
+            };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (HttpRequestException)
+        {
+            return new SusModderApiResult<List<CatalogPopularityItemDto>> { StatusCode = 0 };
+        }
+        catch (TaskCanceledException)
+        {
+            return new SusModderApiResult<List<CatalogPopularityItemDto>> { StatusCode = 0 };
+        }
+    }
+
     public async Task<List<ModConfiguration>> GetCatalogAsModConfigurationsAsync(
         CancellationToken cancellationToken = default)
     {

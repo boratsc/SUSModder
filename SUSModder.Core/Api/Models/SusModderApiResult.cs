@@ -11,6 +11,7 @@ public sealed class SusModderApiResult<T>
     public T? Data { get; init; }
     public SusModderApiMeta? Meta { get; init; }
     public SusModderApiError? Error { get; init; }
+    public bool IsDegraded { get; init; }
 }
 
 public sealed class SusModderApiMeta

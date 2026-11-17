@@ -110,6 +110,258 @@ public class CatalogSyncServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RefreshCatalog_MergesPopularityById_AndKeepsStoredValueWhenDegraded()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var modRepo = new RecordingModRepository(db)
+        {
+            LocalMods = [new ModConfiguration { Id = 2, ModName = "Old", Popularity30d = 88 }]
+        };
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (_, _) => new SusModderApiResult<List<CatalogItemDto>>
+            {
+                StatusCode = 200,
+                Data = [new CatalogItemDto { Id = 1, Name = "One", Type = "full", CurrentVersion = "1", GitHubProjectUrl = "https://example.com" },
+                        new CatalogItemDto { Id = 2, Name = "Two", Type = "full", CurrentVersion = "1", GitHubProjectUrl = "https://example.com" }]
+            },
+            PopularityHandler = () => new SusModderApiResult<List<CatalogPopularityItemDto>>
+            {
+                StatusCode = 200, IsDegraded = true, Data = [new CatalogPopularityItemDto { Id = 1, Popularity = 0 }]
+            }
+        };
+        var service = CreateService(api, modRepo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db));
+        await service.RefreshCatalogIfDueAsync(force: true);
+        Assert.Equal(0, modRepo.LocalMods.Single(x => x.Id == 1).Popularity30d);
+        Assert.Equal(88, modRepo.LocalMods.Single(x => x.Id == 2).Popularity30d);
+    }
+
+    [Fact]
+    public async Task RefreshCatalog_NotModified_StillAppliesPopularityFeed()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var modRepo = new RecordingModRepository(db)
+        {
+            LocalMods = [new ModConfiguration { Id = 1, ModName = "One", Popularity30d = 4 }]
+        };
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (_, _) => new SusModderApiResult<List<CatalogItemDto>> { StatusCode = 304 },
+            PopularityHandler = () => new SusModderApiResult<List<CatalogPopularityItemDto>>
+            {
+                StatusCode = 200, Data = [new CatalogPopularityItemDto { Id = 1, Popularity = 12 }]
+            }
+        };
+        var service = CreateService(api, modRepo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db));
+
+        await service.RefreshCatalogIfDueAsync(force: true);
+
+        Assert.Equal(12, modRepo.LocalMods.Single().Popularity30d);
+    }
+
+    [Fact]
+    public async Task RefreshCatalogWithSqlite_PreservesAndPersistsPopularity()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var modRepo = new ModRepository(db, new FakeApiClient
+        {
+            CatalogHandler = (_, _) => new SusModderApiResult<List<CatalogItemDto>> { StatusCode = 404 }
+        });
+        var seed = new ModConfiguration
+        {
+            Id = 1, ModName = "One", ModType = "full", ModVersion = "1",
+            GitHubRepoOrLink = "https://example.com", Popularity30d = 88
+        };
+        modRepo.SaveAllMods([seed]);
+        var sync = new CatalogSyncStateRepository(db);
+        var cache = new CompatibilityCacheRepository(db);
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (_, _) => new SusModderApiResult<List<CatalogItemDto>>
+            {
+                StatusCode = 200, Data = [new CatalogItemDto { Id = 1, Name = "One", Type = "full", CurrentVersion = "2", GitHubProjectUrl = "https://example.com" }]
+            },
+            PopularityHandler = () => new SusModderApiResult<List<CatalogPopularityItemDto>>
+                { StatusCode = 200, IsDegraded = true, Data = [new CatalogPopularityItemDto { Id = 1, Popularity = 0 }] }
+        };
+        await CreateService(api, modRepo, sync, cache).RefreshCatalogIfDueAsync(force: true);
+        Assert.Equal(88, new ModRepository(db, api).GetAllMods().Single().Popularity30d);
+
+        sync.SaveSuccess(CatalogSyncService.CatalogStateKey, "etag", null, DateTime.UtcNow.AddMinutes(-10));
+        api.CatalogHandler = (_, _) => new SusModderApiResult<List<CatalogItemDto>> { StatusCode = 304 };
+        api.PopularityHandler = () => new SusModderApiResult<List<CatalogPopularityItemDto>>
+            { StatusCode = 200, Data = [new CatalogPopularityItemDto { Id = 1, Popularity = 12 }] };
+        await CreateService(api, modRepo, sync, cache).RefreshCatalogIfDueAsync(force: true);
+        Assert.Equal(12, new ModRepository(db, api).GetAllMods().Single().Popularity30d);
+    }
+
+    [Fact]
+    public async Task RefreshCatalogWithSqlite_304PopularityUpdatesOnlyPopularityAndPreservesCachedObjects()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var api = new FakeApiClient { CatalogHandler = (_, _) => new() { StatusCode = 304 } };
+        var repo = new ModRepository(db, api);
+        repo.SaveAllMods([new ModConfiguration { Id = 1, ModName = "Before", ModType = "full", Popularity30d = 4 }]);
+        var list = repo.GetAllMods();
+        var instance = list.Single();
+        instance.Description = "keep me";
+        api.PopularityHandler = () => new() { StatusCode = 200, Data = [new CatalogPopularityItemDto { Id = 1, Popularity = 12 }] };
+        var result = await CreateService(api, repo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(true);
+        Assert.Equal(CatalogSyncStatus.Updated, result.Status);
+        Assert.Same(list, repo.GetAllMods());
+        Assert.Same(instance, repo.GetAllMods().Single());
+        Assert.Equal("keep me", instance.Description);
+        Assert.Equal(12, new ModRepository(db, api).GetAllMods().Single().Popularity30d);
+    }
+
+    [Fact]
+    public async Task RefreshCatalogWithSqlite_304MalformedPopularityKeepsStoredValuesWithoutBackoff()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var api = new FakeApiClient { CatalogHandler = (_, _) => new() { StatusCode = 304 } };
+        var repo = new ModRepository(db, api);
+        repo.SaveAllMods([new ModConfiguration { Id = 1, ModName = "One", ModType = "full", Popularity30d = 4 }]);
+        api.PopularityHandler = () => new() { StatusCode = 200, Data = [null!] };
+        var sync = new CatalogSyncStateRepository(db);
+        var result = await CreateService(api, repo, sync, new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(true);
+        Assert.Equal(CatalogSyncStatus.NotModified, result.Status);
+        Assert.Equal(4, repo.GetAllMods().Single().Popularity30d);
+        Assert.Equal(0, sync.Get(CatalogSyncService.CatalogStateKey)?.FailureCount ?? 0);
+    }
+
+    [Fact]
+    public async Task RefreshCatalogWithSqlite_200MalformedPopularityKeepsStoredValuesWithoutBackoff()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (_, _) => new() { StatusCode = 200, Data = [new CatalogItemDto { Id = 1, Name = "One", Type = "full", CurrentVersion = "2" }] },
+            PopularityHandler = () => new() { StatusCode = 200, Data = [null!] }
+        };
+        var repo = new ModRepository(db, api);
+        repo.SaveAllMods([new ModConfiguration { Id = 1, ModName = "One", ModType = "full", Popularity30d = 4 }]);
+        var sync = new CatalogSyncStateRepository(db);
+
+        var result = await CreateService(api, repo, sync, new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(true);
+
+        Assert.Equal(CatalogSyncStatus.Updated, result.Status);
+        Assert.Equal(4, new ModRepository(db, api).GetAllMods().Single().Popularity30d);
+        Assert.Equal(0, sync.Get(CatalogSyncService.CatalogStateKey)?.FailureCount ?? 0);
+    }
+
+    [Fact]
+    public async Task RefreshCatalogWithSqlite_NegativePopularityIsPersistedAsZero()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (_, _) => new() { StatusCode = 200, Data = [new CatalogItemDto { Id = 1, Name = "One", Type = "full", CurrentVersion = "1" }] },
+            PopularityHandler = () => new() { StatusCode = 200, Data = [new CatalogPopularityItemDto { Id = 1, Popularity = -5 }] }
+        };
+        var repo = new ModRepository(db, api);
+
+        await CreateService(api, repo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(true);
+
+        Assert.Equal(0, new ModRepository(db, api).GetAllMods().Single().Popularity30d);
+    }
+
+    [Fact]
+    public async Task RefreshCatalogWithSqlite_304UnchangedPopularityDoesNotWrite()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var api = new FakeApiClient { CatalogHandler = (_, _) => new() { StatusCode = 304 } };
+        var repo = new ModRepository(db, api);
+        repo.SaveAllMods([new ModConfiguration { Id = 1, ModName = "One", ModType = "full", Popularity30d = 4 }]);
+        using (var trigger = db.GetConnection().CreateCommand())
+        {
+            trigger.CommandText = "CREATE TABLE popularity_writes (n INTEGER); INSERT INTO popularity_writes VALUES (0); CREATE TRIGGER popularity_write AFTER UPDATE OF popularity_30d ON mods BEGIN UPDATE popularity_writes SET n = n + 1; END;";
+            trigger.ExecuteNonQuery();
+        }
+        api.PopularityHandler = () => new() { StatusCode = 200, Data = [new CatalogPopularityItemDto { Id = 1, Popularity = 4 }] };
+        var service = CreateService(api, repo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db));
+        var result = await service.RefreshCatalogIfDueAsync(true);
+        Assert.Equal(CatalogSyncStatus.NotModified, result.Status);
+        using var cmd = db.GetConnection().CreateCommand();
+        cmd.CommandText = "SELECT n FROM popularity_writes";
+        Assert.Equal(0, Convert.ToInt32(cmd.ExecuteScalar()));
+    }
+
+    [Fact]
+    public async Task RefreshCatalogWithSqlite_PopularityNotFound_PreservesStoredValue()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var seed = new ModConfiguration
+        {
+            Id = 1, ModName = "One", ModType = "full", ModVersion = "1",
+            GitHubRepoOrLink = "https://example.com", Popularity30d = 88
+        };
+        var repo = new ModRepository(db, new FakeApiClient { CatalogHandler = (_, _) => new() });
+        repo.SaveAllMods([seed]);
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (_, _) => new SusModderApiResult<List<CatalogItemDto>>
+            {
+                StatusCode = 200, Data = [new CatalogItemDto { Id = 1, Name = "One", Type = "full", CurrentVersion = "2", GitHubProjectUrl = "https://example.com" }]
+            },
+            PopularityHandler = () => new SusModderApiResult<List<CatalogPopularityItemDto>> { StatusCode = 404 }
+        };
+
+        var result = await CreateService(api, repo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db))
+            .RefreshCatalogIfDueAsync(force: true);
+
+        Assert.Equal(CatalogSyncStatus.Updated, result.Status);
+        Assert.Equal(88, new ModRepository(db, api).GetAllMods().Single().Popularity30d);
+    }
+
+    [Fact]
+    public async Task RefreshCatalogWithSqlite_PopularityRequestThrows_PreservesValueAndDoesNotFailCatalog()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var seed = new ModConfiguration
+        {
+            Id = 1, ModName = "One", ModType = "full", ModVersion = "1",
+            GitHubRepoOrLink = "https://example.com", Popularity30d = 88
+        };
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (_, _) => new SusModderApiResult<List<CatalogItemDto>>
+            {
+                StatusCode = 200, Data = [new CatalogItemDto { Id = 1, Name = "One", Type = "full", CurrentVersion = "2", GitHubProjectUrl = "https://example.com" }]
+            },
+            PopularityHandler = () => throw new HttpRequestException("network failure")
+        };
+        var repo = new ModRepository(db, api);
+        repo.SaveAllMods([seed]);
+        var sync = new CatalogSyncStateRepository(db);
+
+        var result = await CreateService(api, repo, sync, new CompatibilityCacheRepository(db))
+            .RefreshCatalogIfDueAsync(force: true);
+
+        Assert.Equal(CatalogSyncStatus.Updated, result.Status);
+        Assert.Equal(88, new ModRepository(db, api).GetAllMods().Single().Popularity30d);
+        Assert.Equal(0, sync.Get(CatalogSyncService.CatalogStateKey)?.FailureCount ?? 0);
+    }
+
+    [Fact]
+    public async Task RefreshCatalogWithSqlite_FreshInstallPersistsPopularityAndToleratesDuplicateFeedIds()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (_, _) => new SusModderApiResult<List<CatalogItemDto>>
+            {
+                StatusCode = 200, Data = [new CatalogItemDto { Id = 1, Name = "One", Type = "full", CurrentVersion = "1", GitHubProjectUrl = "https://example.com" }]
+            },
+            PopularityHandler = () => new SusModderApiResult<List<CatalogPopularityItemDto>>
+                { StatusCode = 200, Data = [new CatalogPopularityItemDto { Id = 1, Popularity = 12 }, new CatalogPopularityItemDto { Id = 1, Popularity = 99 }] }
+        };
+        var repo = new ModRepository(db, api);
+        var result = await CreateService(api, repo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(force: true);
+        Assert.NotEqual(CatalogSyncStatus.OfflineUsingCache, result.Status);
+        Assert.Equal(12, new ModRepository(db, api).GetAllMods().Single(x => x.Id == 1).Popularity30d);
+    }
+
+    [Fact]
     public async Task RefreshIconAssignmentsAsync_UpdateGlobalVanillaRole()
     {
         await using var db = await CreateDatabaseAsync();
@@ -293,6 +545,17 @@ public class CatalogSyncServiceTests : IDisposable
             LocalMods = apiMods;
             return Task.FromResult(true);
         }
+        public bool UpdatePopularity(IReadOnlyDictionary<int, int> popularityById)
+        {
+            var changed = false;
+            foreach (var mod in LocalMods)
+                if (popularityById.TryGetValue(mod.Id, out var value) && mod.Popularity30d != value)
+                {
+                    mod.Popularity30d = value;
+                    changed = true;
+                }
+            return changed;
+        }
 
         public void SaveAllMods(List<ModConfiguration> mods) => LocalMods = mods;
         public void UpdateMod(ModConfiguration mod) { }
@@ -309,6 +572,7 @@ public class CatalogSyncServiceTests : IDisposable
     {
         public required Func<CatalogQuery?, string?, SusModderApiResult<List<CatalogItemDto>>> CatalogHandler;
         public Func<string?, SusModderApiResult<CatalogMetaDto>>? MetaHandler;
+        public Func<SusModderApiResult<List<CatalogPopularityItemDto>>>? PopularityHandler;
 
         public string BaseUrl => "https://example.test/v2";
         public string StaticAssetsBaseUrl => "https://example.test";
@@ -318,6 +582,8 @@ public class CatalogSyncServiceTests : IDisposable
             string? ifNoneMatch = null,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(CatalogHandler(query, ifNoneMatch));
+        public Task<SusModderApiResult<List<CatalogPopularityItemDto>>> GetCatalogPopularityAsync(int days = 30, CancellationToken cancellationToken = default) =>
+            Task.FromResult(PopularityHandler?.Invoke() ?? new SusModderApiResult<List<CatalogPopularityItemDto>> { StatusCode = 404 });
 
         public void Dispose() { }
 

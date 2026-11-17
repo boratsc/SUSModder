@@ -214,5 +214,12 @@ namespace SUSModder.Core.Configuration
         /// <summary>SHA-256 ręcznie wybranego wydania (z digestu assetu w API GitHub).</summary>
         [JsonPropertyName("legendaryReleaseSha256")]
         public string LegendaryReleaseSha256 { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Sortowanie listy modów w katalogu (nazwa opcji ModSortOption z warstwy UI).
+        /// Domyślnie "PopularityDesc"; nieznana/pusta wartość = domyślna.
+        /// </summary>
+        [JsonPropertyName("modListSort")]
+        public string ModListSort { get; set; } = "PopularityDesc";
     }
 }
