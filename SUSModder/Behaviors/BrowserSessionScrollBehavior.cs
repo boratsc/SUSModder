@@ -58,16 +58,25 @@ public sealed class BrowserSessionScrollBehavior : Behavior<Window>
         _viewModel = null;
     }
 
+    /// <summary>
+    /// Czysta projekcja zakładka → nazwa listy-scroll ownera (null = brak przechwytywania scrolla).
+    /// W5: Discordy nie mają zapamiętywanej listy — null, żeby capture/restore nie łapał cudzej
+    /// listy (PackInstancesListBox) i nie zanieczyszczał stanu sesji Discordów.
+    /// </summary>
+    internal static string? ResolveScrollListName(MainWindowViewModel.ModBrowserTab tab, int? selectedRoleModId) => tab switch
+    {
+        MainWindowViewModel.ModBrowserTab.Catalog => "ModsListBox",
+        MainWindowViewModel.ModBrowserTab.DllAddons => "DllModsListBox",
+        // E16 (D1): Role ma dwie listy — poziom A (mody) i B (role); capture/restore celuje w aktywną.
+        MainWindowViewModel.ModBrowserTab.Roles => selectedRoleModId == null ? "RoleModsListBox" : "ModRolesListBox",
+        MainWindowViewModel.ModBrowserTab.Discords => null,
+        _ => "PackInstancesListBox"
+    };
+
     private ScrollViewer? FindScroll(MainWindowViewModel.ModBrowserTab tab)
     {
-        var name = tab switch
-        {
-            MainWindowViewModel.ModBrowserTab.Catalog => "ModsListBox",
-            MainWindowViewModel.ModBrowserTab.DllAddons => "DllModsListBox",
-            // E16 (D1): Role ma dwie listy — poziom A (mody) i B (role); capture/restore celuje w aktywną.
-            MainWindowViewModel.ModBrowserTab.Roles => _viewModel?.SelectedRoleModId == null ? "RoleModsListBox" : "ModRolesListBox",
-            _ => "PackInstancesListBox"
-        };
+        var name = ResolveScrollListName(tab, _viewModel?.SelectedRoleModId);
+        if (name == null) return null;
         var list = AssociatedObject?.FindControl<ListBox>(name);
         if (list == null) return null;
         // Pack instances intentionally have an external scroll owner (hint below the list).

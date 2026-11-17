@@ -28,7 +28,7 @@ public sealed class SharedModPackItem : ViewModelBase
         _statusText = ComputeStatusText(entry, loc);
         _expiresAtText = entry.ExpiresAt.HasValue
             ? entry.ExpiresAt.Value.LocalDateTime.ToString("yyyy-MM-dd HH:mm")
-            : loc.Get("ModPacks.Shared.UnknownExpiry");
+            : loc.Get("ModPacks.NeverExpires");
     }
 
     public ModPackListEntry Entry { get; }
@@ -57,17 +57,17 @@ public sealed class SharedModPackItem : ViewModelBase
     public void RaiseCopyLink() => CopyRequested?.Invoke(this, ShareUrl);
     public void RaiseDelete() => DeleteRequested?.Invoke(this, EventArgs.Empty);
 
-    private static string ComputeStatusText(ModPackListEntry entry, ILocalizationService loc)
+    private static string ComputeStatusText(ModPackListEntry entry, ILocalizationService loc) =>
+        loc.Get(ResolveVtStatusKey(entry.VtStatus));
+
+    /// <summary>I1: wspólne mapowanie statusu VT na klucz lokalizacji (lista paczek + serwery Discord).</summary>
+    internal static string ResolveVtStatusKey(string? vtStatus) => vtStatus?.ToLowerInvariant() switch
     {
-        var vtKey = entry.VtStatus?.ToLowerInvariant() switch
-        {
-            "clean" => "ModPacks.Shared.VtClean",
-            "pending" => "ModPacks.Shared.VtPending",
-            "suspicious" => "ModPacks.Shared.VtSuspicious",
-            _ => "ModPacks.Shared.VtUnknown"
-        };
-        return loc.Get(vtKey);
-    }
+        "clean" => "ModPacks.Shared.VtClean",
+        "pending" => "ModPacks.Shared.VtPending",
+        "suspicious" => "ModPacks.Shared.VtSuspicious",
+        _ => "ModPacks.Shared.VtUnknown"
+    };
 
     private readonly string _packCode;
     private readonly string _shareUrl;

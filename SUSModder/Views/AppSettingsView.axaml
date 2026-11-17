@@ -5,7 +5,9 @@
              xmlns:ic="using:FluentIcons.Avalonia"
              xmlns:fic="using:FluentIcons.Common"
              x:Class="SUSModder.Views.AppSettingsView"
-             x:DataType="vm:AppSettingsViewModel">
+             x:DataType="vm:AppSettingsViewModel"
+             Focusable="True"
+             AutomationProperties.Name="{local:Localize Settings.Main.Title}">
 
 	<Design.DataContext>
 		<vm:AppSettingsViewModel/>
@@ -16,11 +18,11 @@
 		     ikona neutralna po lewej, tytuł 15 SemiBold + opis muted, kontrolka po prawej. -->
 		<Style Selector="TextBlock.settings-header">
 			<Setter Property="FontSize" Value="22"/>
-			<Setter Property="FontWeight" Value="Bold"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
 			<Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
 		</Style>
 		<Style Selector="TextBlock.settings-subtitle">
-			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="FontSize" Value="12"/>
 			<Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
 		</Style>
 		<Style Selector="Border.settings-row">
@@ -73,9 +75,10 @@
 
 	<Grid RowDefinitions="*,Auto">
 
-		<!-- Główna zawartość - scrollowalna -->
+		<!-- Główna zawartość - scrollowalna; szerokość ograniczona jak karta modala (czytelność na szerokim oknie),
+		     marginesy nagłówka jak w panelach treści (lista, Role, Discordy). -->
 		<ScrollViewer Grid.Row="0" Padding="0,0,10,0">
-			<StackPanel Spacing="12">
+			<StackPanel Spacing="12" Margin="20,20,16,12" MaxWidth="760" HorizontalAlignment="Left">
 
 				<!-- Nagłówek ekranu -->
 				<StackPanel Spacing="4" Margin="0,0,0,4">
@@ -93,10 +96,10 @@
 							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Main.Game.Description}"/>
 							<TextBlock Classes="settings-path" Text="{Binding ModsInstallPath}"/>
 						</StackPanel>
-						<Button Grid.Column="2" Classes="modal-secondary"
+						<Button Grid.Column="2" Classes="catalog-detail-secondary"
 								Content="{local:Localize Settings.Main.Game.Browse}"
 								Command="{Binding BrowseFolderCommand}"
-								MinWidth="0" Padding="14,7" FontSize="13"
+								Padding="14,7" FontSize="13"
 								VerticalAlignment="Center" Margin="14,0,0,0"/>
 					</Grid>
 				</Border>
@@ -240,10 +243,10 @@
 										   TextWrapping="Wrap"
 										   VerticalAlignment="Center"
 										   Foreground="{DynamicResource DangerBrush}"/>
-								<Button Grid.Column="1" Classes="modal-secondary"
+								<Button Grid.Column="1" Classes="catalog-detail-secondary"
 										Content="{local:Localize Settings.LegendaryVersion.Retry}"
 										Command="{Binding RetryLegendaryStateCommand}"
-										MinWidth="0" FontSize="11"
+										FontSize="11"
 										Padding="10,4"
 										Margin="8,0,0,0"/>
 							</Grid>
@@ -267,7 +270,7 @@
 											  HorizontalAlignment="Left"
 											  FontSize="12"
 											  Padding="10,8"
-											  Background="{DynamicResource SecondaryBackgroundBrush}"
+											  Background="{DynamicResource TertiaryBackgroundBrush}"
 											  BorderBrush="{DynamicResource BorderBrush}"
 											  BorderThickness="1"
 											  CornerRadius="4"
@@ -292,19 +295,19 @@
 												   TextWrapping="Wrap"
 												   VerticalAlignment="Center"
 												   Foreground="{DynamicResource DangerBrush}"/>
-										<Button Grid.Column="1" Classes="modal-secondary"
+										<Button Grid.Column="1" Classes="catalog-detail-secondary"
 												Content="{local:Localize Settings.LegendaryVersion.Retry}"
 												Command="{Binding ReloadLegendaryReleasesCommand}"
-												MinWidth="0" FontSize="11"
+												FontSize="11"
 												Padding="10,4"
 												Margin="8,0,0,0"/>
 									</Grid>
 
-									<Button Classes="modal-secondary"
+									<Button Classes="catalog-detail-secondary"
 											Content="{local:Localize Settings.LegendaryVersion.Apply}"
 											Command="{Binding ApplyLegendaryVersionCommand}"
 											HorizontalAlignment="Left"
-											MinWidth="0" Padding="12,6" FontSize="12"
+											Padding="12,6" FontSize="12"
 											IsEnabled="{Binding !IsLegendarySwitching}"/>
 								</StackPanel>
 
@@ -330,7 +333,7 @@
 									  HorizontalAlignment="Left"
 									  FontSize="12"
 									  Padding="10,8"
-									  Background="{DynamicResource SecondaryBackgroundBrush}"
+									  Background="{DynamicResource TertiaryBackgroundBrush}"
 									  BorderBrush="{DynamicResource BorderBrush}"
 									  BorderThickness="1"
 									  CornerRadius="4">
@@ -355,15 +358,15 @@
 									 PlaceholderText="{local:Localize Settings.Paths.ModsInstallPath.Placeholder}"
 									 FontSize="12"
 									 Padding="8"
-									 Background="{DynamicResource SecondaryBackgroundBrush}"
+									 Background="{DynamicResource TertiaryBackgroundBrush}"
 									 BorderBrush="{DynamicResource BorderBrush}"
 									 BorderThickness="1"
 									 CornerRadius="4"/>
 							<StackPanel Orientation="Horizontal" Spacing="8">
-								<Button Classes="modal-secondary"
+								<Button Classes="catalog-detail-secondary"
 										Content="{local:Localize Settings.Paths.ModsInstallPath.Browse}"
 										Command="{Binding BrowseFolderCommand}"
-										MinWidth="0" Padding="12,6" FontSize="12"/>
+										Padding="12,6" FontSize="12"/>
 								<Button Content="{local:Localize Settings.Paths.ModsInstallPath.Reset}"
 										Command="{Binding ResetToDefaultCommand}"
 										Background="Transparent"
@@ -414,7 +417,7 @@
 									  HorizontalAlignment="Left"
 									  FontSize="12"
 									  Padding="10,8"
-									  Background="{DynamicResource SecondaryBackgroundBrush}"
+									  Background="{DynamicResource TertiaryBackgroundBrush}"
 									  BorderBrush="{DynamicResource BorderBrush}"
 									  BorderThickness="1"
 									  CornerRadius="4">
@@ -424,11 +427,11 @@
 									</DataTemplate>
 								</ComboBox.ItemTemplate>
 							</ComboBox>
-							<Button Classes="modal-secondary"
+							<Button Classes="catalog-detail-secondary"
 									Content="{local:Localize UI.Menu.CheckAppUpdates}"
 									Click="CheckForUpdatesButton_Click"
 									HorizontalAlignment="Left"
-									MinWidth="0" Padding="12,6" FontSize="12"/>
+									Padding="12,6" FontSize="12"/>
 						</StackPanel>
 					</Border>
 
@@ -539,13 +542,12 @@
 			</StackPanel>
 		</ScrollViewer>
 
-		<!-- Footer z przyciskami - floating, zawsze widoczny -->
+		<!-- Footer z przyciskami - floating, zawsze widoczny; wyrównany do kolumny treści. -->
 		<Border Grid.Row="1"
 				BorderBrush="{DynamicResource BorderBrush}"
 				BorderThickness="0,1,0,0"
-				Padding="0,15,0,0"
-				Margin="0,10,0,0">
-			<Grid ColumnDefinitions="*,Auto">
+				Padding="20,15,16,16">
+			<Grid ColumnDefinitions="*,Auto" MaxWidth="760" HorizontalAlignment="Left">
 				<Button HorizontalAlignment="Left"
 						VerticalAlignment="Center"
 						Content="{local:Localize Support.SettingsFooter}"
@@ -557,25 +559,13 @@
 						FontSize="12"
 						Cursor="Hand"/>
 				<StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
-					<Button Content="{local:Localize UI.Buttons.Close}"
-							Click="CancelButton_Click"
-							Background="{DynamicResource ModCardBackgroundBrush}"
-							Foreground="{DynamicResource TextPrimaryBrush}"
-							BorderBrush="{DynamicResource ModCardBorderBrush}"
-							BorderThickness="1"
-							CornerRadius="6"
-							Padding="15,8"
-							FontSize="13"/>
-					<Button Content="{local:Localize UI.Buttons.Save}"
+					<Button Classes="catalog-detail-secondary"
+							Content="{local:Localize UI.Buttons.Close}"
+							Click="CancelButton_Click"/>
+					<!-- Zapis = złote CTA, Zamknij = outlined secondary: te same klasy co panel szczegółów katalogu. -->
+					<Button Classes="catalog-detail-cta"
+							Content="{local:Localize UI.Buttons.Save}"
 							Command="{Binding SaveCommand}"
-							Background="{DynamicResource AccentBrush}"
-							Foreground="{DynamicResource OnAccentTextBrush}"
-							BorderBrush="{DynamicResource AccentBrush}"
-							BorderThickness="1"
-							CornerRadius="6"
-							Padding="15,8"
-							FontSize="13"
-							FontWeight="SemiBold"
 							IsEnabled="{Binding HasUnsavedChanges}"/>
 				</StackPanel>
 			</Grid>

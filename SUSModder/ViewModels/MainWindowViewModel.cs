@@ -77,7 +77,6 @@ namespace SUSModder.ViewModels
         private bool _isModContentVisible = false;
         private bool _isSUStatsConfigVisible = false;
         private bool _isAppSettingsVisible = false;
-        private bool _isRecommendedDiscordsVisible = false;
         private bool _isRepairOptionsVisible = false;
         private bool _isRepairSteamPlatform = true;
         private bool _isDllSelectionModalVisible = false;
@@ -129,7 +128,7 @@ namespace SUSModder.ViewModels
             IsModSelected && !IsPackInstanceSelected && !IsDllPanelVisible && !IsAnyToolModalOpen;
 
         public bool IsBrowserDetailPanelVisible =>
-            IsModPanelVisible || IsPackInstancePanelVisible || IsDllPanelVisible || IsRolePanelVisible;
+            (IsModPanelVisible || IsPackInstancePanelVisible || IsDllPanelVisible || IsRolePanelVisible) && !IsAppSettingsVisible;
         public bool IsDeveloperMode => DeveloperModeSettings.IsEnabled;
 
         /// <summary>
@@ -218,16 +217,10 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _isAppSettingsVisible, value);
                 NotifyToolModalStateChanged();
-            }
-        }
-
-        public bool IsRecommendedDiscordsVisible
-        {
-            get => _isRecommendedDiscordsVisible;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _isRecommendedDiscordsVisible, value);
-                NotifyToolModalStateChanged();
+                // Ustawienia zajmują treść okna: breadcrumb i podświetlenie sidebara jak dla paneli treści.
+                this.RaisePropertyChanged(nameof(ActiveViewTitle));
+                this.RaisePropertyChanged(nameof(BreadcrumbSelection));
+                NotifySidebarTabActive();
             }
         }
 
@@ -551,7 +544,6 @@ namespace SUSModder.ViewModels
                     IsDllModificationsVisible = false;
                     IsSUStatsConfigVisible = false;
                     IsAppSettingsVisible = false;
-                    IsRecommendedDiscordsVisible = false;
                     IsRepairOptionsVisible = false;
                     IsDllInstallDialogVisible = false;
                     IsVersionSelectionModalVisible = false;
@@ -608,7 +600,6 @@ namespace SUSModder.ViewModels
     public ReactiveCommand<ModItem, Unit> InstallDllToModCommand { get; }
     public ReactiveCommand<ModItem, Unit> UninstallDllFromModCommand { get; }
     public ReactiveCommand<Unit, Unit> CloseDllDialogCommand { get; }
-        public ReactiveCommand<Unit, Unit> ShowRecommendedDiscordsCommand { get; }
         // E9a: jedyna żywa komenda po usunięciu rotacji promo (AdditionalActionsPanel).
         public ReactiveCommand<Unit, Unit> OpenOfficialDiscordHubCommand { get; } =
             ReactiveCommand.Create(OfficialDiscordHub.Open);
@@ -637,6 +628,7 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
             // Podłącz lokalizację dla tooltipów VT w ModItem
             ModItem.InitializeLocalization(_localizationService);
             ModInstanceItem.InitializeLocalization(_localizationService);
+            DiscordServerViewModel.InitializeLocalization(_localizationService);
 
             // Inicjalizuj serwis skanowania bezpieczeństwa (VirusTotal)
             _securityScanService = App.GetService<SUSModder.Core.Services.ModSecurityScanService>();
@@ -726,7 +718,6 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
             OpenModChangelogCommand = ReactiveCommand.CreateFromTask(OpenModChangelogAsync);
             OpenVirusTotalReportCommand = ReactiveCommand.Create(OpenVirusTotalReport);
             this.RaisePropertyChanged(nameof(IsDeveloperMode));
-            ShowRecommendedDiscordsCommand = ReactiveCommand.Create(ShowRecommendedDiscords);
             ToggleFabModPackActionsCommand = ReactiveCommand.Create(ToggleFabModPackActions);
             ShareExistingPackCommand = ReactiveCommand.CreateFromTask(ShowShareExistingPackAsync);
             CreateLocalPackCommand = ReactiveCommand.CreateFromTask(ShowCreateLocalPackAsync);
@@ -756,6 +747,7 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
                     this.RaisePropertyChanged(nameof(ChatOnlineText));
                     RefreshLaunchDiagnosticsPanelStrings();
                     RefreshRolesLocalization();
+                    RefreshBrowserSortLocalization();
                 };
             }
 
@@ -853,6 +845,7 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
             _disposed = true;
 
             CancelStatusBarBackgroundTask();
+            _packUpdateCheckSemaphore.Dispose();
             DisposeVelopackService();
             _chatSubscriptions.Dispose();
             _dllTargetItemSubscriptions.Dispose();

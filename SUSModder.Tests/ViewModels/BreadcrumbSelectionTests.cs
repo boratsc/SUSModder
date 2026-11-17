@@ -56,12 +56,19 @@ public class BreadcrumbSelectionTests
         Assert.Equal(string.Empty, MainWindowViewModel.ResolveBreadcrumbSelection(
             MainWindowViewModel.ModBrowserTab.Roles, null, null, null, ""));
 
+    /// <summary>F3d: zakładka Discordy nie ma zaznaczenia w breadcrumb (lista serwerów, bez prawej kolumny).</summary>
+    [Fact]
+    public void DiscordsTabIsAlwaysEmpty() =>
+        Assert.Equal(string.Empty, MainWindowViewModel.ResolveBreadcrumbSelection(
+            MainWindowViewModel.ModBrowserTab.Discords, Mod("Town of Us"), Pack("#ATR"), Mod("Extra Roles"), "Syzyfowa Beta"));
+
     /// <summary>Przełączenie zakładki: segment pochodzi wyłącznie z zaznaczenia aktywnej zakładki.</summary>
     [Theory]
     [InlineData(MainWindowViewModel.ModBrowserTab.Catalog, "Town of Us")]
     [InlineData(MainWindowViewModel.ModBrowserTab.MyPacks, "#ATR")]
     [InlineData(MainWindowViewModel.ModBrowserTab.DllAddons, "Extra Roles")]
     [InlineData(MainWindowViewModel.ModBrowserTab.Roles, "Syzyfowa Beta")]
+    [InlineData(MainWindowViewModel.ModBrowserTab.Discords, "")]
     public void TabSwitchUsesOnlyActiveTabSelection(MainWindowViewModel.ModBrowserTab tab, string expected) =>
         Assert.Equal(expected, MainWindowViewModel.ResolveBreadcrumbSelection(
             tab, Mod("Town of Us"), Pack("#ATR"), Mod("Extra Roles"), "Syzyfowa Beta"));

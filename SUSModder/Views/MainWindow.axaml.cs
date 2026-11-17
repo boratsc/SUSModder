@@ -72,9 +72,21 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                     UpdateTrayModsList();
                 }
             };
+            vm.CommunityChat.PropertyChanged += OnCommunityChatPropertyChanged;
+            _systemTrayService.SetUnreadCount(vm.CommunityChat.NewMessageCount);
         }
 
         ApplyTrayVisibility();
+    }
+
+    private void OnCommunityChatPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(CommunityChatPanelViewModel.NewMessageCount)) return;
+        if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+            _systemTrayService?.SetUnreadCount(((CommunityChatPanelViewModel)sender!).NewMessageCount);
+        else
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                _systemTrayService?.SetUnreadCount(((CommunityChatPanelViewModel)sender!).NewMessageCount));
     }
 
     /// <summary>
@@ -213,6 +225,19 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                               () => this.FindControl<Button>("ChatToggleButton")?.Focus());
                   })
                   .DisposeWith(disposables);
+
+                // Ustawienia: po otwarciu fokus wchodzi do panelu (Tab przechodzi do pierwszej kontrolki).
+                // Powrót fokusu po zamknięciu obsługują Escape i przycisk „Zamknij" — nie tutaj,
+                // bo zamknięcie bywa skutkiem kliknięcia innej zakładki (fokus zostaje w niej).
+                vm.WhenAnyValue(x => x.IsAppSettingsVisible)
+                  .Skip(1)
+                  .Subscribe(open =>
+                  {
+                      if (open)
+                          Avalonia.Threading.Dispatcher.UIThread.Post(
+                              () => this.FindControl<AppSettingsView>("AppSettingsViewControl")?.Focus());
+                  })
+                  .DisposeWith(disposables);
             }
         });
 
@@ -292,6 +317,11 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         if (back != null)
             back.IsVisible = narrow && details;
 
+        // Środkowy przycisk wsparcia: przy wąskim oknie chowamy, by nie nachodził na breadcrumb-y.
+        var support = this.FindControl<Button>("SupportButton");
+        if (support != null)
+            support.IsVisible = !narrow;
+
         var chat = this.FindControl<Border>("ChatOverlayHost");
         if (chat != null && Bounds.Width > 0 && content.Bounds.Height > 0)
         {
@@ -327,6 +357,9 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
     private void OnCloseClicked(object? sender, RoutedEventArgs e)
         => Close();
+
+    private void OnSupportClicked(object? sender, RoutedEventArgs e)
+        => ProjectSupport.Open();
 
     // ── Sidebar: nawigacja klawiaturą (strzałki góra/dół; Enter aktywuje fokusowany przycisk) ──
 
@@ -557,14 +590,25 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             return;
         }
 
-        // E5: warstwy Escape — Więcej → czat → modale/szczegóły.
-        // Modale zachowują własną obsługę; czat zamykamy tylko gdy brak modala.
+        // E5: warstwy Escape — Więcej → modale → czat → ustawienia → szczegóły.
+        // Modale zachowują własną obsługę; czat i ustawienia zamykamy tylko gdy brak modala.
         if (vm.IsAnyToolModalOpen || vm.IsInlineDialogVisible || vm.IsAntivirusWarningVisible)
             return;
 
         if (vm.IsChatOpen)
         {
             vm.IsChatOpen = false;
+            e.Handled = true;
+            return;
+        }
+
+        // Ustawienia: panel treści — Escape zamyka go i wraca do poprzedniej zakładki
+        // (zakładka i zaznaczenie bez zmian; fokus wraca do przycisku Ustawienia).
+        if (vm.IsAppSettingsVisible)
+        {
+            vm.IsAppSettingsVisible = false;
+            Avalonia.Threading.Dispatcher.UIThread.Post(
+                () => this.FindControl<Button>("SettingsSidebarButton")?.Focus());
             e.Handled = true;
             return;
         }
@@ -1090,6 +1134,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             return;
         }
         // Zwalnianie zasobów ViewModel (timery, bitmapy, background taski)
+        if (DataContext is MainWindowViewModel mainVm)
+            mainVm.CommunityChat.PropertyChanged -= OnCommunityChatPropertyChanged;
         if (DataContext is IDisposable disposableViewModel)
         {
             disposableViewModel.Dispose();

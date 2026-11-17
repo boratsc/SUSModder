@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -49,6 +50,25 @@ namespace SUSModder.ViewModels
                 return;
 
             await InstallModItemAsync(SelectedMod, showPostInstallFlow: true);
+        }
+
+        private ReactiveCommand<ModItem, Unit>? _quickInstallCommand;
+
+        /// <summary>
+        /// Szybka instalacja z wiersza katalogu (bez flyoutu wersji).
+        /// Zaznacza klikniętego moda, żeby instalacja na pewno dotyczyła tego wiersza
+        /// i żeby postęp był widoczny w panelu szczegółów (jak przy dwukliku).
+        /// </summary>
+        public ReactiveCommand<ModItem, Unit> QuickInstallCommand =>
+            _quickInstallCommand ??= ReactiveCommand.CreateFromTask<ModItem>(QuickInstallAsync);
+
+        private async Task QuickInstallAsync(ModItem? mod)
+        {
+            if (_isInitializing || mod is null || mod.IsInstalling || mod.IsVanilla)
+                return;
+
+            SelectedMod = mod;
+            await InstallModItemAsync(mod, showPostInstallFlow: true);
         }
 
         /// <summary>
@@ -601,7 +621,6 @@ namespace SUSModder.ViewModels
                 IsDllModificationsVisible = false;
                 IsSUStatsConfigVisible = false;
                 IsAppSettingsVisible = false;
-                IsRecommendedDiscordsVisible = false;
                 IsRepairOptionsVisible = false;
                 IsDllInstallDialogVisible = false;
                 IsDllSelectionModalVisible = false;
@@ -693,7 +712,6 @@ namespace SUSModder.ViewModels
             IsDllModificationsVisible = false;
             IsSUStatsConfigVisible = false;
             IsAppSettingsVisible = false;
-            IsRecommendedDiscordsVisible = false;
             IsRepairOptionsVisible = false;
             IsDllInstallDialogVisible = false;
             IsDllSelectionModalVisible = true;

@@ -126,7 +126,6 @@ namespace SUSModder.ViewModels
             IsAdditionalActionsVisible = false;
             IsSUStatsConfigVisible = false;
             IsAppSettingsVisible = false;
-            IsRecommendedDiscordsVisible = false;
             IsRepairOptionsVisible = false;
             SelectedMod = null;
             SelectedPackInstance = null;

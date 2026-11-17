@@ -2,41 +2,73 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SUSModder.ViewModels"
              xmlns:loc="using:SUSModder.Services.Localization"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:fic="using:FluentIcons.Common"
              x:Class="SUSModder.Views.RecommendedDiscordsPanel"
              x:CompileBindings="False">
-	<Grid x:Name="Root">
-		<Grid RowDefinitions="Auto,*" RowSpacing="10">
-			<TextBlock Grid.Row="0"
-					   Text="{Binding StatusMessage}"
-					   FontSize="12"
-					   Foreground="{DynamicResource TextSecondaryBrush}"/>
+	<!-- F3d: zakładka Discordy w kolumnie listy (wzorzec RolesPanel): własny nagłówek
+	     (wspólny nagłówek kolumny jest ukryty), skeleton podczas ładowania, treść poniżej.
+	     Szczegóły techniczne wiersza pod „Szczegóły" (Expander) — jedna akcja na problem. -->
+	<Grid x:Name="Root" RowDefinitions="Auto,*">
 
-			<ScrollViewer Grid.Row="1" Padding="0,0,10,0">
-				<StackPanel Spacing="12">
+		<!-- Nagłówek: tytuł + podtytuł (status ładowania, tłumaczony na żywo) -->
+		<StackPanel Grid.Row="0" Margin="20,20,16,12" Spacing="4">
+			<TextBlock Text="{loc:Localize RecommendedDiscords.Header}"
+					   FontSize="22" FontWeight="SemiBold"
+					   Foreground="{DynamicResource TextPrimaryBrush}"/>
+			<TextBlock Text="{Binding StatusMessage}"
+					   FontSize="12"
+					   Foreground="{DynamicResource TextMutedBrush}"/>
+		</StackPanel>
+
+		<Panel Grid.Row="1">
+
+			<!-- Loading: skeletony 68 px jak pozostałe listy -->
+			<ScrollViewer Margin="10"
+						  IsVisible="{Binding IsLoading}"
+						  Background="Transparent">
+				<StackPanel Spacing="8" Margin="0,4">
+					<Border Classes="skeleton-card"/>
+					<Border Classes="skeleton-card"/>
+					<Border Classes="skeleton-card"/>
+					<Border Classes="skeleton-card"/>
+					<Border Classes="skeleton-card"/>
+					<Border Classes="skeleton-card"/>
+				</StackPanel>
+			</ScrollViewer>
+
+			<ScrollViewer IsVisible="{Binding IsLoading, Converter={x:Static BoolConverters.Not}}">
+				<StackPanel Spacing="12" Margin="10,0,10,10">
+					<!-- F3e: banner na pełną szerokość kolumny. Obraz jako ImageBrush w Background
+					     (background Border respektuje CornerRadius — ClipToBounds nie przycina do rogów
+					     w Avalonia 12.1.4), avatar jako Ellipse z Fill=ImageBrush (geometria ucina rogi PNG).
+					     Promień wewnętrzny 13 = 14 zewnętrzny minus 1 px obramowania. -->
 					<Border Background="{DynamicResource ModCardBackgroundBrush}"
 							BorderBrush="{DynamicResource AccentBrush}"
 							BorderThickness="1"
-							CornerRadius="14"
-							ClipToBounds="True"
-							MaxWidth="760"
-							HorizontalAlignment="Left">
+							CornerRadius="14">
 						<Grid RowDefinitions="Auto,Auto">
 							<Grid Grid.Row="0" Height="125">
-								<Image Source="avares://SUSModder/Assets/susmodder-hub-banner.png"
-									   Stretch="UniformToFill"
-									   Opacity="0.85"/>
-								<Border Background="#AA101018"/>
+								<Border CornerRadius="13,13,0,0">
+									<Border.Background>
+										<ImageBrush Source="avares://SUSModder/Assets/susmodder-hub-banner.png"
+													Stretch="UniformToFill"
+													Opacity="0.85"/>
+									</Border.Background>
+									<Border CornerRadius="13,13,0,0"
+											Background="{DynamicResource SurfaceOverlayBrush}"/>
+								</Border>
 
 								<Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" Margin="16">
-									<Border Width="70" Height="70"
-											CornerRadius="35"
-											ClipToBounds="True"
-											BorderBrush="White"
-											BorderThickness="2"
-											VerticalAlignment="Center">
-										<Image Source="avares://SUSModder/Assets/susmodder-hub-logo.png"
-											   Stretch="UniformToFill"/>
-									</Border>
+									<Ellipse Width="70" Height="70"
+											 VerticalAlignment="Center"
+											 Stroke="{DynamicResource TextPrimaryBrush}"
+											 StrokeThickness="2">
+										<Ellipse.Fill>
+											<ImageBrush Source="avares://SUSModder/Assets/susmodder-hub-logo.png"
+														Stretch="UniformToFill"/>
+										</Ellipse.Fill>
+									</Ellipse>
 
 									<StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
 										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Eyebrow}"
@@ -46,12 +78,12 @@
 										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Title}"
 											   FontSize="24"
 											   FontWeight="Bold"
-											   Foreground="White"/>
+											   Foreground="{DynamicResource TextPrimaryBrush}"/>
 										<TextBlock Text="{loc:Localize RecommendedDiscords.OfficialHub.Description}"
 											   FontSize="13"
 											   TextWrapping="Wrap"
 											   MaxLines="2"
-											   Foreground="#E0E0E0"/>
+											   Foreground="{DynamicResource TextSecondaryBrush}"/>
 									</StackPanel>
 								</Grid>
 							</Grid>
@@ -76,7 +108,8 @@
 										Background="{DynamicResource AccentBrush}"
 										Foreground="{DynamicResource OnAccentTextBrush}"
 										FontWeight="SemiBold"
-										Command="{Binding OpenOfficialDiscordHubCommand}"/>
+										Command="{Binding OpenOfficialDiscordHubCommand}"
+										AutomationProperties.Name="{loc:Localize RecommendedDiscords.OfficialHub.JoinButton}"/>
 							</Grid>
 						</Grid>
 					</Border>
@@ -87,99 +120,113 @@
 							   Foreground="{DynamicResource TextPrimaryBrush}"
 							   Margin="0,4,0,0"/>
 
-				<ItemsControl ItemsSource="{Binding DiscordServers}">
-					<ItemsControl.ItemsPanel>
-						<ItemsPanelTemplate>
-							<WrapPanel Orientation="Horizontal"/>
-						</ItemsPanelTemplate>
-					</ItemsControl.ItemsPanel>
-					<ItemsControl.ItemTemplate>
-						<DataTemplate>
-							<Border Background="{DynamicResource ModCardBackgroundBrush}"
-									BorderBrush="{DynamicResource ModCardBorderBrush}"
-									BorderThickness="1"
-									CornerRadius="10"
-									Margin="0,0,12,12"
-									Padding="14"
-									Width="330"
-									Height="240">
-								<Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
-									<Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="12">
-										<Grid Grid.Column="0" Width="56" Height="56">
-											<Border Width="56" Height="56"
-													CornerRadius="28"
-													Background="{DynamicResource AccentBrush}"
-													IsVisible="{Binding HasIcon, Converter={x:Static BoolConverters.Not}}">
-												<TextBlock Text="💬"
-														   FontSize="22"
-														   HorizontalAlignment="Center"
-														   VerticalAlignment="Center"
-														   Foreground="{DynamicResource OnAccentTextBrush}"/>
+					<!-- F3b: lista wierszy + szczegóły (wzorzec RolesPanel / catalog-list 4.0).
+					     Akcje zestawu reuse flow paczek; niedostępność = neutralna informacja, detale pod „Szczegóły". -->
+					<ListBox Classes="catalog-list"
+							 ItemsSource="{Binding DiscordServers}"
+							 Background="Transparent"
+							 BorderThickness="0"
+							 ScrollViewer.VerticalScrollBarVisibility="Disabled">
+						<ListBox.ItemTemplate>
+							<DataTemplate x:DataType="vm:DiscordServerViewModel">
+								<StackPanel Spacing="6">
+									<Border Classes="catalog-row">
+										<Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+											<Border Grid.Column="0" Classes="catalog-row-icon">
+												<Panel>
+													<Image Source="{Binding IconBitmap}"
+														   Width="44" Height="44" Stretch="UniformToFill"
+														   IsVisible="{Binding HasIcon}"/>
+													<ic:SymbolIcon Symbol="{x:Static fic:Symbol.PeopleTeam}" FontSize="22"
+																   HorizontalAlignment="Center" VerticalAlignment="Center"
+																   Foreground="{DynamicResource TextMutedBrush}"
+																   IsVisible="{Binding HasIcon, Converter={x:Static BoolConverters.Not}}"/>
+												</Panel>
 											</Border>
-
-											<Border Width="56" Height="56"
-													CornerRadius="28"
-													ClipToBounds="True"
-													IsVisible="{Binding HasIcon}">
-												<Image Source="{Binding IconBitmap}"
-													   Width="56"
-													   Height="56"
-													   Stretch="UniformToFill"/>
+											<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+												<TextBlock Classes="catalog-row-title" Text="{Binding Name}"/>
+												<StackPanel Orientation="Horizontal" Spacing="6">
+													<ic:SymbolIcon Symbol="{x:Static fic:Symbol.People}" FontSize="12"
+																   Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
+													<TextBlock Classes="catalog-row-subtitle" Text="{Binding MemberCountDisplay}" VerticalAlignment="Center"/>
+													<TextBlock Classes="catalog-row-subtitle" Text="·" IsVisible="{Binding HasPack}" VerticalAlignment="Center"/>
+													<TextBlock Classes="catalog-row-subtitle" Text="{Binding PackSummary}" IsVisible="{Binding HasPack}" VerticalAlignment="Center"/>
+												</StackPanel>
+											</StackPanel>
+											<Border Grid.Column="2" Classes="catalog-row-badge" IsVisible="{Binding ShowPackUnavailable}">
+												<TextBlock Classes="catalog-row-badge-text" Text="{loc:Localize RecommendedDiscords.PackUnavailableShort}"/>
 											</Border>
-
-											<Border Width="56" Height="56"
-													CornerRadius="28"
-													Background="{DynamicResource AccentBrush}"
-													Opacity="0.75"
-													IsVisible="{Binding IsIconLoading}">
-												<TextBlock Text="..."
-														   FontSize="12"
-														   HorizontalAlignment="Center"
-														   VerticalAlignment="Center"
-														   Foreground="{DynamicResource OnAccentTextBrush}"/>
+											<!-- F3g: badge aktualizacji paczki (ten sam pill co inne badge wiersza;
+											     widoczny tylko gdy aktualizacja realna i możliwa — ShowPackUpdateBadge). -->
+											<Border Grid.Column="2" Classes="catalog-row-badge" IsVisible="{Binding ShowPackUpdateBadge}">
+												<TextBlock Classes="catalog-row-badge-text" Text="{loc:Localize UI.ModStatus.UpdateAvailable}"/>
 											</Border>
+											<StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+												<TextBlock Classes="catalog-row-subtitle"
+														   Text="{loc:Localize RecommendedDiscords.PackBusy}"
+														   IsVisible="{Binding IsPackBusy}" VerticalAlignment="Center"/>
+												<!-- F3f: identyczne przyciski jak w wierszach katalogu modów
+																	(catalog-row-action: złoty „blik”, sam tekst). Tooltip akcji
+																	zestawu mówi, czyj zestaw modów zostanie zainstalowany. -->
+												<Button Classes="catalog-row-action"
+														Content="{loc:Localize RecommendedDiscords.JoinButton}"
+														Command="{Binding #Root.DataContext.OpenDiscordLinkCommand}"
+														CommandParameter="{Binding InviteLink}"
+														IsEnabled="{Binding !IsPackBusy}"
+														AutomationProperties.Name="{loc:Localize RecommendedDiscords.JoinButton}"/>
+												<Button Classes="catalog-row-action"
+														Content="{loc:Localize RecommendedDiscords.InstallPack}"
+														IsVisible="{Binding ShowInstallAction}"
+														Command="{Binding #Root.DataContext.PackActionCommand}"
+														CommandParameter="{Binding}"
+														ToolTip.Tip="{Binding PackActionTooltip}"
+														AutomationProperties.Name="{loc:Localize RecommendedDiscords.InstallPack}"/>
+												<Button Classes="catalog-row-action"
+														Content="{loc:Localize RecommendedDiscords.UpdatePack}"
+														IsVisible="{Binding ShowUpdateAction}"
+														Command="{Binding #Root.DataContext.PackActionCommand}"
+														CommandParameter="{Binding}"
+														ToolTip.Tip="{Binding PackActionTooltip}"
+														AutomationProperties.Name="{loc:Localize RecommendedDiscords.UpdatePack}"/>
+											</StackPanel>
 										</Grid>
-
-										<StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-											<TextBlock Text="{Binding Name}"
-													   FontSize="16"
-													   FontWeight="Bold"
-													   TextWrapping="Wrap"
-													   Foreground="{DynamicResource TextPrimaryBrush}"/>
-											<TextBlock FontSize="12"
-													   Foreground="{DynamicResource AccentBrush}">
-												<Run Text="👥 "/>
-												<Run Text="{Binding MemberCountDisplay}"/>
-											</TextBlock>
+									</Border>
+									<Expander Classes="modal-details"
+											  Header="{loc:Localize UI.Inspector.Details}"
+											  IsVisible="{Binding HasDetails}">
+										<StackPanel Spacing="6">
+											<TextBlock Text="{Binding Description}"
+													   TextWrapping="Wrap" FontSize="12"
+													   Foreground="{DynamicResource TextSecondaryBrush}"
+													   IsVisible="{Binding HasDescription}"/>
+											<!-- F3g: lista zmian paczki pod nagłówkiem (reuse klucza „Moje zestawy"). -->
+											<StackPanel Spacing="4" IsVisible="{Binding HasPackUpdateChanges}">
+												<TextBlock Classes="catalog-detail-techlabel" Text="{loc:Localize ModPacks.UpdateChanges}"/>
+												<TextBlock Text="{Binding PackUpdateChangesText}"
+														   TextWrapping="Wrap" FontSize="12"
+														   Foreground="{DynamicResource TextSecondaryBrush}"/>
+											</StackPanel>
+											<TextBlock Text="{loc:Localize RecommendedDiscords.PackUnavailable}"
+													   TextWrapping="Wrap" FontSize="12"
+													   Foreground="{DynamicResource TextSecondaryBrush}"
+													   IsVisible="{Binding ShowPackUnavailable}"/>
+											<Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" IsVisible="{Binding ShowPackUnavailable}">
+												<TextBlock Classes="catalog-detail-techlabel" Text="{loc:Localize RecommendedDiscords.VtStatusLabel}"/>
+												<TextBlock Grid.Column="1" Classes="catalog-detail-techvalue" Text="{Binding VtStatusDisplay}"/>
+											</Grid>
+											<Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" IsVisible="{Binding ShowPackUnavailable}">
+												<TextBlock Classes="catalog-detail-techlabel" Text="{loc:Localize ModPacks.PackCodeLabel}"/>
+												<TextBlock Grid.Column="1" Classes="catalog-detail-techvalue" Text="{Binding PackCode}"/>
+											</Grid>
 										</StackPanel>
-									</Grid>
-
-									<TextBlock Grid.Row="1"
-											   Text="{Binding Description}"
-											   FontSize="12"
-											   TextWrapping="Wrap"
-											   MaxLines="4"
-											   TextTrimming="CharacterEllipsis"
-											   VerticalAlignment="Top"
-											   Foreground="{DynamicResource TextSecondaryBrush}"/>
-
-									<Button Grid.Row="2"
-											Content="{loc:Localize RecommendedDiscords.JoinButton}"
-											HorizontalAlignment="Stretch"
-											Padding="12,8"
-											CornerRadius="6"
-											Background="{DynamicResource AccentBrush}"
-											Foreground="{DynamicResource OnAccentTextBrush}"
-											FontWeight="SemiBold"
-											Command="{Binding #Root.DataContext.OpenDiscordLinkCommand}"
-											CommandParameter="{Binding InviteLink}"/>
-								</Grid>
-							</Border>
-						</DataTemplate>
-					</ItemsControl.ItemTemplate>
-				</ItemsControl>
+									</Expander>
+									<Border Classes="catalog-row-separator"/>
+								</StackPanel>
+							</DataTemplate>
+						</ListBox.ItemTemplate>
+					</ListBox>
 				</StackPanel>
 			</ScrollViewer>
-		</Grid>
+		</Panel>
 	</Grid>
 </UserControl>

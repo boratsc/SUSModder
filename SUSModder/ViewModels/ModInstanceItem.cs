@@ -155,8 +155,16 @@ namespace SUSModder.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _packUpdateInfo, value);
                 this.RaisePropertyChanged(nameof(PackUpdateChangesText));
+                this.RaisePropertyChanged(nameof(HasManifestPackUpdate));
             }
         }
+
+        /// <summary>
+        /// W2: aktualizacja potwierdzona manifestem paczki (PackUpdateInfo) — źródło badge w Discordach
+        /// i gate'a aktualizacji. Sticky HasUpdateAvailable (katalog) nie wystarcza: katalog często
+        /// wyprzedza pin instancji (normalny stan) i dawałby aktualizację-widmo z pustą listą zmian.
+        /// </summary>
+        public bool HasManifestPackUpdate => PackUpdateInfo?.HasUpdate == true;
 
         /// <summary>
         /// Sformatowana lista zmian z ostatniego sprawdzenia aktualizacji paczki (do UI).

@@ -73,6 +73,32 @@
 			<Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
 		</Style>
 
+		<!-- Mały złoty przycisk wsparcia (suppi.pl) na środku belki.
+		     Hover/pressed celują w PART_ContentPresenter (Fluent nadpisuje, jak sidebar-item.active);
+		     focus = jasna ramka czytelna na złocie (wzorzec catalog-row-action). -->
+		<Style Selector="Button.topbar-support-btn">
+			<Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="Padding" Value="10,5"/>
+			<Setter Property="CornerRadius" Value="6"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="BorderBrush" Value="Transparent"/>
+			<Setter Property="Cursor" Value="Hand"/>
+		</Style>
+		<Style Selector="Button.topbar-support-btn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+			<Setter Property="Background" Value="{DynamicResource PrimaryActionHoverBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
+		</Style>
+		<Style Selector="Button.topbar-support-btn:pressed /template/ ContentPresenter#PART_ContentPresenter">
+			<Setter Property="Background" Value="{DynamicResource PrimaryActionPressedBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource OnAccentTextBrush}"/>
+		</Style>
+		<Style Selector="Button.topbar-support-btn:focus">
+			<Setter Property="BorderBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+		</Style>
+
 		<!-- Przyciski okna (min / max / close) -->
 		<Style Selector="Button.window-btn">
 			<Setter Property="Width" Value="44"/>
@@ -265,14 +291,14 @@
 			<Rectangle Fill="{DynamicResource WindowBackgroundGradientBrush}"/>
 		</Panel>
 
-		<!-- ══ GÓRNA BELKA: logo + breadcrumb | czat, Więcej, przyciski okna ══ -->
+		<!-- ══ GÓRNA BELKA: logo + breadcrumb | wsparcie (środek) | czat, Więcej, przyciski okna ══ -->
 		<Border Grid.Row="0"
 				Background="{DynamicResource WindowBackgroundBrush}"
 				BorderBrush="{DynamicResource BorderBrush}"
 				BorderThickness="0,0,0,1"
 				PointerPressed="OnTitleBarPointerPressed"
 				DoubleTapped="OnTitleBarDoubleTapped">
-			<Grid ColumnDefinitions="Auto,*" Margin="16,0,8,0">
+			<Grid ColumnDefinitions="Auto,*,Auto" Margin="16,0,8,0">
 				<StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
 					<Image Source="/Assets/logo.png" Width="32" Height="32" VerticalAlignment="Center"/>
 					<TextBlock Text="SUSModder"
@@ -303,7 +329,18 @@
 					</StackPanel>
 				</StackPanel>
 
-				<StackPanel Grid.Column="1"
+			<!-- Wsparcie projektu (suppi.pl) — zawsze widoczne, bez zamykania; przy wąskim oknie
+			     chowane w ApplyRightColumnLayout, by nie nachodziło na długie breadcrumb-y. -->
+			<Button Grid.Column="1"
+					x:Name="SupportButton"
+					Classes="topbar-support-btn"
+					Click="OnSupportClicked"
+					HorizontalAlignment="Center" VerticalAlignment="Center"
+					Content="{loc:Localize Support.CardTitle}"
+					AutomationProperties.Name="{loc:Localize Support.CardTitle}"
+					ToolTip.Tip="{loc:Localize Support.CardLink}"/>
+
+				<StackPanel Grid.Column="2"
 							Orientation="Horizontal"
 							HorizontalAlignment="Right"
 							Spacing="4"
@@ -390,7 +427,7 @@
 					       IsHitTestVisible="False"/>
 					<StackPanel Margin="12,16,12,0" Spacing="4">
 						<Button Classes="sidebar-item"
-								Classes.active="{Binding IsCatalogTab}"
+								Classes.active="{Binding IsCatalogTabActive}"
 								Command="{Binding SelectBrowserTabCommand}"
 								CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.Catalog}"
 								AutomationProperties.Name="{loc:Localize UI.Tabs.Catalog}">
@@ -401,7 +438,7 @@
 							</Grid>
 						</Button>
 						<Button Classes="sidebar-item"
-								Classes.active="{Binding IsMyPacksTab}"
+								Classes.active="{Binding IsMyPacksTabActive}"
 								Command="{Binding SelectBrowserTabCommand}"
 								CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.MyPacks}"
 								AutomationProperties.Name="{loc:Localize UI.Tabs.MyPacks}">
@@ -437,7 +474,7 @@
 							</ItemsControl>
 						</ScrollViewer>
 						<Button Classes="sidebar-item"
-								Classes.active="{Binding IsDllAddonsTab}"
+								Classes.active="{Binding IsDllAddonsTabActive}"
 								Command="{Binding SelectBrowserTabCommand}"
 								CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.DllAddons}"
 								AutomationProperties.Name="{loc:Localize UI.Tabs.DllAddons}">
@@ -450,7 +487,7 @@
 						<!-- E14: Role — panel w głównym oknie (poziomy: mody z rolami → role moda).
 						     Licznik = liczba modów z rolami, widoczny po załadowaniu danych. -->
 						<Button Classes="sidebar-item"
-								Classes.active="{Binding IsRolesTab}"
+								Classes.active="{Binding IsRolesTabActive}"
 								Command="{Binding SelectBrowserTabCommand}"
 								CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.Roles}"
 								AutomationProperties.Name="{loc:Localize UI.Tabs.Roles}">
@@ -464,7 +501,20 @@
 							</Grid>
 						</Button>
 						<Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,8,0,8"/>
+						<!-- F3d: Polecane Discordy — zakładka przeglądarki jak Role (wzorzec SelectBrowserTabCommand).
+						     I5: PeopleTeam zamiast Chat (Chat = przełącznik czatu topbar; People = Role). -->
 						<Button Classes="sidebar-item"
+								Classes.active="{Binding IsDiscordsTabActive}"
+								Command="{Binding SelectBrowserTabCommand}"
+								CommandParameter="{x:Static vm:MainWindowViewModel+ModBrowserTab.Discords}"
+								AutomationProperties.Name="{loc:Localize UI.Menu.RecommendedDiscords}">
+							<Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.PeopleTeam}" FontSize="18" VerticalAlignment="Center"/>
+								<TextBlock Grid.Column="1" Text="{loc:Localize UI.Menu.RecommendedDiscords}" VerticalAlignment="Center"/>
+							</Grid>
+						</Button>
+						<Button Classes="sidebar-item"
+								x:Name="SettingsSidebarButton"
 								Classes.active="{Binding IsAppSettingsVisible}"
 								Command="{Binding ShowAppSettingsCommand}"
 								AutomationProperties.Name="{loc:Localize UI.Sidebar.Settings}">
@@ -478,17 +528,19 @@
 			</Border>
 
 			<!-- LISTA: nagłówek widoku + wyszukiwarka + filtr, poniżej browser.
-			     E14: zakładka Role ma własny nagłówek w RolesPanel (poziomy A/B). -->
-			<Grid Grid.Column="1" RowDefinitions="Auto,*">
+			     E14/F3d: zakładki Role i Discordy mają własny nagłówek w panelu.
+			     Ustawienia: panel treści zastępuje listę (IsAppSettingsVisible). -->
+			<Grid Grid.Column="1" RowDefinitions="Auto,*"
+				  IsVisible="{Binding IsAppSettingsVisible, Converter={x:Static BoolConverters.Not}}">
 				<StackPanel Grid.Row="0" Margin="20,20,16,12" Spacing="4"
-				            IsVisible="{Binding IsRolesTab, Converter={x:Static BoolConverters.Not}}">
+				            IsVisible="{Binding IsCustomHeaderTab, Converter={x:Static BoolConverters.Not}}">
 					<TextBlock Text="{Binding ActiveViewTitle}"
 							   FontSize="22" FontWeight="SemiBold"
 							   Foreground="{DynamicResource TextPrimaryBrush}"/>
 					<TextBlock Text="{Binding ActiveViewSubtitle}"
 							   FontSize="12"
 							   Foreground="{DynamicResource TextMutedBrush}"/>
-					<Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,12,0,0">
+					<Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,12,0,0">
 						<Border Classes="browser-search-box" Height="40">
 							<Grid ColumnDefinitions="Auto,*">
 								<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Search}" FontSize="16"
@@ -502,7 +554,41 @@
 										 VerticalAlignment="Stretch" VerticalContentAlignment="Center" Padding="8,0"/>
 							</Grid>
 						</Border>
+						<!-- K2: sortowanie katalogu — kompaktowy przycisk ikonowy jak gwiazdka (pełna etykieta
+						     rozpychała wyszukiwarkę w wąskim oknie). Menu: 4 opcje, aktywna oznaczona kropką
+						     (ToggleType=Radio), Enter wybiera, Esc zamyka. Tooltip/nazwa = aktywna opcja. -->
 						<Button Grid.Column="1"
+								Classes="browser-filter-btn"
+								IsVisible="{Binding IsCatalogTab}"
+								AutomationProperties.Name="{Binding SortButtonLabel}"
+								ToolTip.Tip="{Binding SortButtonLabel}">
+							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowSort}" FontSize="18"/>
+							<Button.Flyout>
+								<MenuFlyout Placement="Bottom">
+									<MenuItem Header="{Binding ModSortOptions[0].Label}"
+											  ToggleType="Radio" GroupName="ModSort"
+											  IsChecked="{Binding ModSortOptions[0].IsSelected, Mode=OneWay}"
+											  Command="{Binding SelectModSortOptionCommand}"
+											  CommandParameter="{Binding ModSortOptions[0]}"/>
+									<MenuItem Header="{Binding ModSortOptions[1].Label}"
+											  ToggleType="Radio" GroupName="ModSort"
+											  IsChecked="{Binding ModSortOptions[1].IsSelected, Mode=OneWay}"
+											  Command="{Binding SelectModSortOptionCommand}"
+											  CommandParameter="{Binding ModSortOptions[1]}"/>
+									<MenuItem Header="{Binding ModSortOptions[2].Label}"
+											  ToggleType="Radio" GroupName="ModSort"
+											  IsChecked="{Binding ModSortOptions[2].IsSelected, Mode=OneWay}"
+											  Command="{Binding SelectModSortOptionCommand}"
+											  CommandParameter="{Binding ModSortOptions[2]}"/>
+									<MenuItem Header="{Binding ModSortOptions[3].Label}"
+											  ToggleType="Radio" GroupName="ModSort"
+											  IsChecked="{Binding ModSortOptions[3].IsSelected, Mode=OneWay}"
+											  Command="{Binding SelectModSortOptionCommand}"
+											  CommandParameter="{Binding ModSortOptions[3]}"/>
+								</MenuFlyout>
+							</Button.Flyout>
+						</Button>
+						<Button Grid.Column="2"
 								Classes="browser-filter-btn"
 								Classes.active="{Binding BrowserFavoritesOnly}"
 								Command="{Binding ToggleFavoritesFilterCommand}"
@@ -511,7 +597,7 @@
 								ToolTip.Tip="{loc:Localize UI.Favorites.Filter}">
 							<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Star}" FontSize="18"/>
 						</Button>
-						<local:BulkModeChip Grid.Column="2" DataContext="{Binding}"/>
+						<local:BulkModeChip Grid.Column="3" DataContext="{Binding}"/>
 					</Grid>
 				</StackPanel>
 
@@ -520,13 +606,13 @@
 					   PointerPressed="ModGridBackground_PointerPressed">
 
 					<!-- Skeleton loading placeholders (widoczne podczas inicjalizacji) — E4: wiersze 68 px jak listy.
-					     E14: nie dla zakładki Role (własny skeleton w RolesPanel). -->
+					     E14/F3d: nie dla zakładek z własnym nagłówkiem (Role, Discordy — własne skeletony). -->
 					<ScrollViewer Margin="10"
 								  Background="Transparent">
 						<ScrollViewer.IsVisible>
 							<MultiBinding Converter="{x:Static BoolConverters.And}">
 								<Binding Path="IsModsLoading"/>
-								<Binding Path="IsRolesTab" Converter="{x:Static BoolConverters.Not}"/>
+								<Binding Path="IsCustomHeaderTab" Converter="{x:Static BoolConverters.Not}"/>
 							</MultiBinding>
 						</ScrollViewer.IsVisible>
 						<StackPanel Spacing="8" Margin="0,4">
@@ -818,6 +904,16 @@
 											</StackPanel>
 										</StackPanel>
 									</ToolTip.Tip>
+									<!-- K2: nagłówek grupy „Niezainstalowane" — cienka linia z wyśrodkowanym tekstem,
+									     widoczny tylko nad pierwszym wierszem drugiej grupy (znacznik z VM). -->
+									<Grid Classes="catalog-group-header"
+										  IsVisible="{Binding ShowNotInstalledSeparator}"
+										  ColumnDefinitions="*,Auto,*" ColumnSpacing="10">
+										<Border Grid.Column="0" Classes="catalog-group-header-line"/>
+										<TextBlock Grid.Column="1" Classes="catalog-group-header-text"
+												   Text="{loc:Localize UI.Browser.NotInstalledSeparator}"/>
+										<Border Grid.Column="2" Classes="catalog-group-header-line"/>
+									</Grid>
 									<Border Classes="catalog-row"
 											Classes.bulk-checked="{Binding IsCheckedForBulk}">
 										<Panel>
@@ -851,6 +947,69 @@
 													</Border>
 												</StackPanel>
 												<StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+													<!-- Szybkie akcje wiersza: tylko gdy ten mod NIE jest zaznaczony
+													     (panel szczegółów ma już swoje akcje) i poza trybem wyboru wielu modów. -->
+													<StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+														<StackPanel.IsVisible>
+															<MultiBinding Converter="{x:Static BoolConverters.And}">
+																<Binding Path="$parent[Window].((vm:MainWindowViewModel)DataContext).IsBulkSelectionMode" Converter="{x:Static BoolConverters.Not}"/>
+																<MultiBinding Converter="{StaticResource ReferenceEqualsMultiConverter}" ConverterParameter="Invert">
+																	<Binding/>
+																	<Binding Path="$parent[Window].((vm:MainWindowViewModel)DataContext).SelectedMod"/>
+																</MultiBinding>
+															</MultiBinding>
+														</StackPanel.IsVisible>
+														<!-- Zainstalowany (także Gra): Uruchom -->
+														<Button Classes="catalog-row-action"
+															        Content="{loc:Localize UI.Buttons.Launch}"
+															        AutomationProperties.Name="{loc:Localize UI.Buttons.Launch}"
+															        IsVisible="{Binding IsInstalled}"
+															        IsEnabled="{Binding IsInstalling, Converter={x:Static BoolConverters.Not}}"
+															        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).QuickLaunchCommand}"
+															        CommandParameter="{Binding}"/>
+														<!-- Niezainstalowany bez bety: Instaluj -->
+														<Button Classes="catalog-row-action"
+															        Content="{loc:Localize UI.Buttons.Install}"
+															        AutomationProperties.Name="{loc:Localize UI.Buttons.Install}"
+															        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).QuickInstallCommand}"
+															        CommandParameter="{Binding}">
+															<Button.IsVisible>
+																<MultiBinding Converter="{x:Static BoolConverters.And}">
+																	<Binding Path="CanInstall"/>
+																	<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+																	<Binding Path="HasAvailableBeta" Converter="{x:Static BoolConverters.Not}"/>
+																</MultiBinding>
+															</Button.IsVisible>
+														</Button>
+														<!-- Niezainstalowany z dostępną betą: Instaluj stabilną + Instaluj beta -->
+														<Button Classes="catalog-row-action"
+															        Content="{loc:Localize UI.Beta.InstallStable}"
+															        AutomationProperties.Name="{loc:Localize UI.Beta.InstallStable}"
+															        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).QuickInstallCommand}"
+															        CommandParameter="{Binding}">
+															<Button.IsVisible>
+																<MultiBinding Converter="{x:Static BoolConverters.And}">
+																	<Binding Path="CanInstall"/>
+																	<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+																	<Binding Path="HasAvailableBeta"/>
+																</MultiBinding>
+															</Button.IsVisible>
+														</Button>
+														<Button Classes="catalog-row-action"
+															        Content="{loc:Localize UI.Beta.InstallBeta}"
+															        AutomationProperties.Name="{loc:Localize UI.Beta.InstallBeta}"
+															        ToolTip.Tip="{loc:Localize UI.Beta.InstallHint}"
+															        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).InstallAvailableBetaCommand}"
+															        CommandParameter="{Binding}">
+															<Button.IsVisible>
+																<MultiBinding Converter="{x:Static BoolConverters.And}">
+																	<Binding Path="CanInstall"/>
+																	<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+																	<Binding Path="HasAvailableBeta"/>
+																</MultiBinding>
+															</Button.IsVisible>
+														</Button>
+													</StackPanel>
 													<!-- Gwiazdka: hover/focus wiersza lub gdy ulubiony (stały slot 28px). -->
 													<Panel Width="28" Height="28">
 														<ToggleButton Classes="catalog-row-star"
@@ -898,6 +1057,10 @@
 					<!-- E14: zakładka Role — poziomy A/B we własnym panelu (nagłówek + search + filtry). -->
 					<local:RolesPanel DataContext="{Binding}"
 					                  IsVisible="{Binding IsRolesTab}"/>
+
+					<!-- F3d: zakładka Discordy — panel w kolumnie listy jak RolesPanel (własny nagłówek,
+					     DataContext = RecommendedDiscordsViewModel ustawiany w kod-behind). -->
+					<local:RecommendedDiscordsPanel IsVisible="{Binding IsDiscordsTab}"/>
 				</Panel>
 			</Grid>
 
@@ -959,6 +1122,16 @@
 
 				</Grid>
 			</Border>
+
+			<!-- USTAWIENIA: panel treści po prawej stronie sidebara — pełna szerokość treści
+			     (kolumna listy + szczegółów), bez trzeciej kolumny. Lista i szczegóły są wtedy ukryte.
+			     Tło przezroczyste jak glass-browser-panel (gradient okna pod spodem). -->
+			<Grid Grid.Column="1" Grid.ColumnSpan="2"
+				  x:Name="AppSettingsHost"
+				  Background="Transparent"
+				  IsVisible="{Binding IsAppSettingsVisible}">
+				<local:AppSettingsView x:Name="AppSettingsViewControl"/>
+			</Grid>
 		</Grid>
 
 		<!-- Bulk bar: pełna szerokość okna, pod treścią (jak w dawnym układzie) -->
@@ -1022,10 +1195,6 @@
 								<local:SUStatsConfigView/>
 							</Panel>
 
-							<Panel IsVisible="{Binding IsAppSettingsVisible}" Classes="fade-in-panel">
-								<local:AppSettingsView/>
-							</Panel>
-
 							<local:DllManagementPanel IsVisible="{Binding IsDllModalVisible}"/>
 
 						<ContentControl Content="{Binding DllSelectionModalViewModel}"
@@ -1037,10 +1206,6 @@
 								</DataTemplate>
 							</ContentControl.DataTemplates>
 						</ContentControl>
-
-							<Panel IsVisible="{Binding IsRecommendedDiscordsVisible}" Classes="fade-in-panel">
-								<local:RecommendedDiscordsPanel/>
-							</Panel>
 
 					<Panel IsVisible="{Binding IsRepairOptionsVisible}" Classes="fade-in-panel">
 						<local:RepairOptionsPanel/>
@@ -1512,16 +1677,7 @@
 					</StackPanel>
 				</Button>
 
-				<Button Classes="fab-menu-item"
-						Command="{Binding ShowRecommendedDiscordsCommand}">
-					<i:Interaction.Behaviors>
-						<behaviors:RippleBehavior/>
-					</i:Interaction.Behaviors>
-					<StackPanel Orientation="Horizontal" Spacing="12">
-						<ic:SymbolIcon Symbol="{x:Static fic:Symbol.PeopleTeam}" FontSize="20" Foreground="{DynamicResource IconAccentBrush}"/>
-						<TextBlock Text="{loc:Localize UI.Menu.RecommendedDiscords}" VerticalAlignment="Center"/>
-					</StackPanel>
-				</Button>
+				<!-- F3b: pozycja „Polecane Discordy" usunięta — dostęp przez sidebar (jedyne wejście). -->
 
 				<Button Classes="fab-menu-item"
 						Command="{Binding ShowSUStatsConfigCommand}">

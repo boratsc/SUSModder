@@ -190,6 +190,24 @@ public sealed class ModPackPreviewViewModel : ViewModelBase
         return "ModPacks.VirusTotalClean";
     }
 
+    /// <summary>
+    /// F3b: linia wygaśnięcia w szczegółach podglądu. ExpiresAt = null → „bezterminowa"
+    /// (bez daty i bez fallbacku TTL). Czysta funkcja — testowalna bez DI.
+    /// </summary>
+    internal static string FormatExpiryLine(DateTimeOffset? expiresAt, ILocalizationService loc) =>
+        $"{loc.Get("ModPacks.ExpiresAt")}: " + (expiresAt.HasValue
+            ? expiresAt.Value.LocalDateTime.ToString("g")
+            : loc.Get("ModPacks.NeverExpires"));
+
+    /// <summary>
+    /// W2: linia TTL tylko gdy paczka ma datę wygaśnięcia. ExpiresAt = null → brak linii
+    /// (parser fallbackuje TtlDays=30, co przeczyłoby „Wygasa: bezterminowa"). Czysta funkcja.
+    /// </summary>
+    internal static string? FormatTtlLine(DateTimeOffset? expiresAt, int ttlDays, ILocalizationService loc) =>
+        expiresAt.HasValue && ttlDays > 0
+            ? $"{loc.Get("ModPacks.TtlLabel")}: {ttlDays} {loc.Get("ModPacks.TtlDaysSuffix")}"
+            : null;
+
     private string BuildDetailsText(System.Collections.Generic.List<ModConfiguration> catalog, string? fullModName, string platform)
     {
         var sb = new StringBuilder();
@@ -223,10 +241,10 @@ public sealed class ModPackPreviewViewModel : ViewModelBase
             sb.AppendLine($"{_loc.Get("ModPacks.TouConfigLabel")}: ✓");
         if (!string.IsNullOrWhiteSpace(_pack.DiscordInvite))
             sb.AppendLine($"{_loc.Get("ModPacks.DiscordLabel")}: {_pack.DiscordInvite}");
-        if (_pack.ExpiresAt.HasValue)
-            sb.AppendLine($"{_loc.Get("ModPacks.ExpiresAt")}: {_pack.ExpiresAt.Value.LocalDateTime:g}");
-        if (_pack.TtlDays > 0)
-            sb.AppendLine($"{_loc.Get("ModPacks.TtlLabel")}: {_pack.TtlDays} {_loc.Get("ModPacks.TtlDaysSuffix")}");
+        sb.AppendLine(FormatExpiryLine(_pack.ExpiresAt, _loc));
+        var ttlLine = FormatTtlLine(_pack.ExpiresAt, _pack.TtlDays, _loc);
+        if (ttlLine != null)
+            sb.AppendLine(ttlLine);
 
         if (_pack.HasExternalDlls)
         {

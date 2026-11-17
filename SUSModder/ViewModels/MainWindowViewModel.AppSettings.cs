@@ -20,14 +20,11 @@ namespace SUSModder.ViewModels
             try
             {
                 IsPaneOpen = false;
-                // Zamknij inne panele i pokaż panel ustawień
-                IsInfoPanelVisible = false;
-                IsAdditionalActionsVisible = false;
-                IsDllModificationsVisible = false;
-                IsSUStatsConfigVisible = false;
-                IsRecommendedDiscordsVisible = false;
-                IsRepairOptionsVisible = false;
-                CloseDllSelectionModal();
+                // Ustawienia to panel treści obok sidebara (nie modal): zamknij modale narzędziowe i tryb bulk.
+                CloseToolModalCore();
+                if (IsAnyToolModalOpen)
+                    return; // np. kreator paczek z niezapisanymi zmianami odmówił zamknięcia
+                IsBulkSelectionMode = false;
                 IsAppSettingsVisible = true;
                 SelectedMod = null;
             }
@@ -106,7 +103,6 @@ namespace SUSModder.ViewModels
                 IsDllModificationsVisible = false;
                 IsSUStatsConfigVisible = false;
                 IsAppSettingsVisible = false;
-                IsRecommendedDiscordsVisible = false;
                 IsRepairOptionsVisible = false;
                 IsDllInstallDialogVisible = false;
                 CloseDllSelectionModal();
@@ -127,7 +123,6 @@ namespace SUSModder.ViewModels
                 IsDllModificationsVisible = false;
                 IsSUStatsConfigVisible = false;
                 IsAppSettingsVisible = false;
-                IsRecommendedDiscordsVisible = false;
                 IsRepairOptionsVisible = false;
                 IsDllInstallDialogVisible = false;
                 CloseDllSelectionModal();

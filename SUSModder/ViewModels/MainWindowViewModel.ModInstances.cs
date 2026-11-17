@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -28,7 +29,8 @@ namespace SUSModder.ViewModels
             MyPacks,
             Catalog,
             DllAddons,
-            Roles
+            Roles,
+            Discords
         }
 
         private ModBrowserTab _activeBrowserTab = ModBrowserTab.Catalog;
@@ -44,6 +46,10 @@ namespace SUSModder.ViewModels
             get => _activeBrowserTab;
             set
             {
+                // Kliknięcie zakładki sidebara (także aktywnej) zamyka panel ustawień.
+                if (IsAppSettingsVisible)
+                    IsAppSettingsVisible = false;
+
                 if (_activeBrowserTab == value)
                     return;
 
@@ -63,6 +69,9 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(IsCatalogTab));
                 this.RaisePropertyChanged(nameof(IsDllAddonsTab));
                 this.RaisePropertyChanged(nameof(IsRolesTab));
+                this.RaisePropertyChanged(nameof(IsDiscordsTab));
+                NotifySidebarTabActive();
+                this.RaisePropertyChanged(nameof(IsCustomHeaderTab));
                 this.RaisePropertyChanged(nameof(ActiveViewTitle));
                 this.RaisePropertyChanged(nameof(BreadcrumbSelection));
                 this.RaisePropertyChanged(nameof(ActiveViewSubtitle));
@@ -97,6 +106,9 @@ namespace SUSModder.ViewModels
                 if (value == ModBrowserTab.Roles)
                     ActivateRolesTab();
 
+                if (value == ModBrowserTab.Discords)
+                    ActivateDiscordsTab();
+
                 RestoreBrowserTabSelection();
             }
         }
@@ -104,19 +116,50 @@ namespace SUSModder.ViewModels
         public bool IsMyPacksTab => ActiveBrowserTab == ModBrowserTab.MyPacks;
         public bool IsCatalogTab => ActiveBrowserTab == ModBrowserTab.Catalog;
         public bool IsDllAddonsTab => ActiveBrowserTab == ModBrowserTab.DllAddons;
+        public bool IsDiscordsTab => ActiveBrowserTab == ModBrowserTab.Discords;
+
+        /// <summary>Sidebar: podświetlenie zakładki tylko gdy panel ustawień nie zajmuje treści okna.</summary>
+        public bool IsCatalogTabActive => IsCatalogTab && !IsAppSettingsVisible;
+        public bool IsMyPacksTabActive => IsMyPacksTab && !IsAppSettingsVisible;
+        public bool IsDllAddonsTabActive => IsDllAddonsTab && !IsAppSettingsVisible;
+        public bool IsRolesTabActive => IsRolesTab && !IsAppSettingsVisible;
+        public bool IsDiscordsTabActive => IsDiscordsTab && !IsAppSettingsVisible;
+
+        private void NotifySidebarTabActive()
+        {
+            this.RaisePropertyChanged(nameof(IsCatalogTabActive));
+            this.RaisePropertyChanged(nameof(IsMyPacksTabActive));
+            this.RaisePropertyChanged(nameof(IsDllAddonsTabActive));
+            this.RaisePropertyChanged(nameof(IsRolesTabActive));
+            this.RaisePropertyChanged(nameof(IsDiscordsTabActive));
+        }
+
+        /// <summary>F3d: zakładki z własnym nagłówkiem w panelu (Role, Discordy) — generyczny nagłówek i skeleton ukryte.</summary>
+        public bool IsCustomHeaderTab => IsRolesTab || IsDiscordsTab;
+
+        /// <summary>F3d: aktywacja zakładki Discordów — jak Role: zamknij menu „Więcej"; odświeżenie danych po stronie panelu.</summary>
+        private void ActivateDiscordsTab()
+        {
+            IsPaneOpen = false;
+        }
 
         /// <summary>Nazwa aktywnego widoku (breadcrumb na górnej belce + nagłówek listy).</summary>
-        public string ActiveViewTitle => ActiveBrowserTab switch
-        {
-            ModBrowserTab.MyPacks => _localizationService.Get("UI.Tabs.MyPacks"),
-            ModBrowserTab.DllAddons => _localizationService.Get("UI.Tabs.DllAddons"),
-            ModBrowserTab.Roles => _localizationService.Get("UI.Tabs.Roles"),
-            _ => _localizationService.Get("UI.Tabs.Catalog")
-        };
+        public string ActiveViewTitle => IsAppSettingsVisible
+            ? _localizationService.Get("UI.Menu.Settings")
+            : ActiveBrowserTab switch
+            {
+                ModBrowserTab.MyPacks => _localizationService.Get("UI.Tabs.MyPacks"),
+                ModBrowserTab.DllAddons => _localizationService.Get("UI.Tabs.DllAddons"),
+                ModBrowserTab.Roles => _localizationService.Get("UI.Tabs.Roles"),
+                ModBrowserTab.Discords => _localizationService.Get("UI.Menu.RecommendedDiscords"),
+                _ => _localizationService.Get("UI.Tabs.Catalog")
+            };
 
         /// <summary>E15: segment breadcrumb na górnej belce — nazwa zaznaczenia (pusty = brak zaznaczenia).</summary>
-        public string BreadcrumbSelection => ResolveBreadcrumbSelection(
-            ActiveBrowserTab, SelectedMod, SelectedPackInstance, SelectedDllMod, SelectedRoleModName);
+        public string BreadcrumbSelection => IsAppSettingsVisible
+            ? string.Empty
+            : ResolveBreadcrumbSelection(
+                ActiveBrowserTab, SelectedMod, SelectedPackInstance, SelectedDllMod, SelectedRoleModName);
 
         /// <summary>Czyste mapowanie zaznaczenie → nazwa segmentu (testowalne bez DI; wzorzec: ResolveIconKey).</summary>
         public static string ResolveBreadcrumbSelection(
@@ -139,6 +182,7 @@ namespace SUSModder.ViewModels
             ModBrowserTab.MyPacks => _localizationService.Get("UI.Browser.MyPacksSubtitle"),
             ModBrowserTab.DllAddons => _localizationService.Get("UI.Browser.DllAddonsSubtitle"),
             ModBrowserTab.Roles => _localizationService.Get("UI.Roles.Subtitle"),
+            ModBrowserTab.Discords => _localizationService.Get("RecommendedDiscords.Subtitle"),
             _ => _localizationService.Get("UI.Browser.CatalogSubtitle")
         };
         public bool IsPackInstancesGridVisible =>
@@ -532,6 +576,75 @@ namespace SUSModder.ViewModels
             }
         }
 
+        /// <summary>
+        /// F3b: instalacja zestawu z listy polecanych Discordów — reuse flow podglądu i instalacji
+        /// (OpenModPackFlowAsync). Flow po udanej instalacji sam przechodzi do „Moje zestawy";
+        /// przy anulowaniu użytkownik wraca do zakładki Discordów.
+        /// </summary>
+        public Task InstallServerPackAsync(string packCode)
+        {
+            return OpenModPackFlowAsync(packCode, autoInstall: false);
+        }
+
+        /// <summary>
+        /// F3b: aktualizacja zestawu z listy polecanych Discordów — wybiera instancję po SourcePackCode
+        /// (preferując shared_pack, jak checker aktualizacji) i reuse istniejącą ścieżkę aktualizacji
+        /// (UpdateSelectedPackInstanceAsync). Przed startem potwierdzenie (config ToU z paczki nadpisuje
+        /// lokalny). Brak instancji = instalacja.
+        /// </summary>
+        public async Task UpdateServerPackAsync(string packCode, string? packName = null, string? serverName = null)
+        {
+            var repo = App.GetService<IModInstanceRepository>();
+            var instance = DiscordServerViewModel.FindPackInstance(repo.GetPackInstances(), packCode);
+            if (instance == null)
+            {
+                await InstallServerPackAsync(packCode);
+                return;
+            }
+
+            var confirmed = await ShowConfirmDialogAsync(
+                _localizationService.GetFormatted("RecommendedDiscords.UpdateConfirmMessage",
+                    packName ?? instance.DisplayName, serverName ?? packCode),
+                _localizationService.Get("RecommendedDiscords.UpdateConfirmTitle"),
+                _localizationService.Get("RecommendedDiscords.UpdatePack"),
+                _localizationService.Get("UI.Buttons.Cancel"));
+            if (!confirmed)
+                return;
+
+            ActiveBrowserTab = ModBrowserTab.MyPacks;
+            await RefreshPackInstancesAsync();
+
+            var item = PackInstances.FirstOrDefault(p => p.InstanceId == instance.InstanceId);
+            if (item == null)
+            {
+                // W3: filtr wyszukiwania mógł ukryć zestaw na liście — wyczyść go i szukaj ponownie
+                // (wzorzec SelectPackQuickAccessCommand), zamiast cicho kończyć po potwierdzeniu.
+                BrowserSearchText = string.Empty;
+                item = PackInstances.FirstOrDefault(p => p.InstanceId == instance.InstanceId);
+            }
+            if (item == null)
+            {
+                // I11b: instancja zniknęła po potwierdzeniu (równoległe usunięcie) — neutralny toast zamiast ciszy.
+                ToastService.ShowInfo(_localizationService.Get("ModPacks.PackNotFound"));
+                return;
+            }
+            SelectedPackInstance = item;
+
+            // W2: gate z manifestu paczki (PackUpdateInfo), nie ze sticky flagi katalogowej —
+            // katalog wyprzedza pin instancji w normalnym stanie i dawał aktualizację-widmo.
+            // onlyNew:true — bez delta-toasta wszystkich aktualizacji w środku jawnego flow (I11c).
+            if (!item.HasManifestPackUpdate)
+                await CheckModPackUpdatesAsync(onlyNew: true);
+
+            if (!item.HasManifestPackUpdate)
+            {
+                ToastService.ShowInfo(_localizationService.Get("UI.Packs.NoUpdateAvailable"));
+                return;
+            }
+
+            await UpdateSelectedPackInstanceAsync();
+        }
+
         private async Task LaunchSelectedPackInstanceAsync()
         {
             var pack = SelectedPackInstance;
@@ -865,8 +978,27 @@ namespace SUSModder.ViewModels
         // Modpack Update Notification Check
         // ─────────────────────────────────────────────
 
-        private async Task CheckModPackUpdatesAsync()
+        // F3g: live monit aktualizacji paczek — toast tylko przy NOWEJ zmianie od ostatniego checku.
+        private HashSet<string> _notifiedPackUpdateInstanceIds = new();
+
+        // W1: guard współbieżności checku paczek (wzorzec _modUpdateCheckSemaphore monitora FULL) —
+        // startup/timer/otwarcie zakładki nie mogą się nakładać (podwójny toast, stackowanie checków sieciowych).
+        private readonly SemaphoreSlim _packUpdateCheckSemaphore = new(1, 1);
+
+        // Rzadszy niż monitor modów (5 min) — admin paczki zmienia ją rzadko.
+        private static readonly TimeSpan PackUpdatesRefreshInterval = TimeSpan.FromMinutes(30);
+
+        /// <summary>F3g: po odświeżeniu stanu aktualizacji paczek — panel Discordów odświeża badge wierszy.</summary>
+        public event Action? PackUpdateStateRefreshed;
+
+        /// <param name="onlyNew">true = toast tylko dla aktualizacji niepowiadomionych wcześniej (timer, otwarcie zakładki).</param>
+        internal async Task CheckModPackUpdatesAsync(bool onlyNew = false)
         {
+            // W1: gdy check jest w locie (np. startup), pomijamy zamiast stackować kolejny;
+            // event w finally tamtego checku i tak odświeży otwarty panel.
+            if (!await _packUpdateCheckSemaphore.WaitAsync(0))
+                return;
+
             try
             {
                 var modPackService = App.GetService<IModPackService>();
@@ -909,22 +1041,81 @@ namespace SUSModder.ViewModels
                     }
                 }
 
-                var updateCount = results.Count(r => r.HasUpdate);
-                if (updateCount > 0)
+                var (toastCount, next) = ComputePackUpdateDelta(results, _notifiedPackUpdateInstanceIds, onlyNew);
+                _notifiedPackUpdateInstanceIds = next;
+                if (toastCount > 0)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[ModPackUpdates] Znaleziono {updateCount} instancji z dostępną aktualizacją paczki");
+                    System.Diagnostics.Debug.WriteLine($"[ModPackUpdates] Nowe aktualizacje paczek: {toastCount} instancji");
                     ToastService.ShowInfo(
-                        _localizationService.GetFormatted("ModPacks.UpdateAvailableCount", updateCount));
+                        _localizationService.GetFormatted("ModPacks.UpdateAvailableCount", toastCount));
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine("[ModPackUpdates] Wszystkie instancje są aktualne");
+                    System.Diagnostics.Debug.WriteLine("[ModPackUpdates] Brak nowych aktualizacji paczek");
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[ModPackUpdates] Błąd: {ex.Message}");
             }
+            finally
+            {
+                _packUpdateCheckSemaphore.Release();
+                PackUpdateStateRefreshed?.Invoke();
+            }
+        }
+
+        /// <summary>
+        /// F3g: czysta delta powiadomień o aktualizacjach paczek. onlyNew=false liczy wszystkie
+        /// aktualne aktualizacje (jak dotąd); onlyNew=true tylko te, których id nie ma w notified.
+        /// !HasUpdate czyści id — po aktualizacji i KOLEJNEJ zmianie admina monit wraca.
+        /// Nieudany check (CheckSucceeded=false) nie zmienia stanu notified (bez powtórnego toasta po błędzie sieci).
+        /// </summary>
+        internal static (int ToastCount, HashSet<string> Next) ComputePackUpdateDelta(
+            IReadOnlyList<ModPackUpdateInfo> results, HashSet<string> notified, bool onlyNew)
+        {
+            var next = new HashSet<string>(notified);
+            var toastCount = 0;
+            foreach (var result in results)
+            {
+                if (!result.CheckSucceeded)
+                    continue;
+                if (result.HasUpdate)
+                {
+                    if (!onlyNew || !notified.Contains(result.InstanceId))
+                        toastCount++;
+                    next.Add(result.InstanceId);
+                }
+                else
+                {
+                    next.Remove(result.InstanceId);
+                }
+            }
+            return (toastCount, next);
+        }
+
+        /// <summary>
+        /// F3g: timer live monitora paczek (wzorzec StartModUpdatesAutoRefresh). Check na wątku UI
+        /// (jak pozostałe wywołania), więc delta i badge bez wyścigów; event odświeża otwartą zakładkę Discordów.
+        /// </summary>
+        private void StartPackUpdatesAutoRefresh()
+        {
+            Task.Run(async () =>
+            {
+                while (true)
+                {
+                    await Task.Delay(PackUpdatesRefreshInterval);
+
+                    try
+                    {
+                        await Dispatcher.UIThread.InvokeAsync(() => CheckModPackUpdatesAsync(onlyNew: true));
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Auto-refresh pack updates error: {ex.Message}");
+                    }
+                }
+            });
         }
     }
 }

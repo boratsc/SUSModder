@@ -23,21 +23,6 @@ namespace SUSModder.ViewModels
     {
         #region External Links & Windows
 
-        private void ShowRecommendedDiscords()
-        {
-            IsPaneOpen = false;
-            IsInfoPanelVisible = false;
-            IsAdditionalActionsVisible = false;
-            IsDllModificationsVisible = false;
-            IsSUStatsConfigVisible = false;
-            IsAppSettingsVisible = false;
-            IsDllInstallDialogVisible = false;
-            IsRecommendedDiscordsVisible = true;
-            IsRepairOptionsVisible = false;
-            CloseDllSelectionModal();
-            SelectedMod = null;
-        }
-
         private async void ShowSUStatsConfig()
         {
             try
@@ -48,7 +33,6 @@ namespace SUSModder.ViewModels
                 IsAdditionalActionsVisible = false;
                 IsDllModificationsVisible = false;
                 IsAppSettingsVisible = false;
-                IsRecommendedDiscordsVisible = false;
                 IsRepairOptionsVisible = false;
                 CloseDllSelectionModal();
                 IsSUStatsConfigVisible = true;
@@ -79,7 +63,6 @@ namespace SUSModder.ViewModels
                 IsDllModificationsVisible = false;
                 IsSUStatsConfigVisible = false;
                 IsAppSettingsVisible = false;
-                IsRecommendedDiscordsVisible = false;
                 IsDllInstallDialogVisible = false;
                 IsRepairOptionsVisible = true;
                 CloseDllSelectionModal();

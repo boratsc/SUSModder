@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using SUSModder.Core.Models;
 using SUSModder.Core.Configuration;
+using SUSModder.Core.Data;
 using SUSModder.Core.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using System.IO;
@@ -28,7 +29,8 @@ namespace SUSModder.ViewModels
         private static readonly TimeSpan _inviteCacheTtl = TimeSpan.FromMinutes(30);
 
         private bool _isLoading = true;
-        private string _statusMessage = Loc("RecommendedDiscords.LoadingServers");
+        private string _statusKey = "RecommendedDiscords.LoadingServers";
+        private object[] _statusArgs = Array.Empty<object>();
 
         public ObservableCollection<DiscordServerViewModel> DiscordServers { get; } = new();
 
@@ -36,6 +38,13 @@ namespace SUSModder.ViewModels
         public ReactiveCommand<Unit, Unit> OpenOfficialDiscordHubCommand { get; }
         public ReactiveCommand<Unit, Unit> CloseCommand { get; }
         public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
+        public ReactiveCommand<DiscordServerViewModel, Unit> PackActionCommand { get; }
+
+        /// <summary>
+        /// F3b: VM głównego okna (wstrzykiwany przez kod-behind panelu po podłączeniu do drzewa).
+        /// Akcje zestawu reuse istniejące flow instalacji/aktualizacji — bez nowej logiki Core.
+        /// </summary>
+        public MainWindowViewModel? Host { get; set; }
 
         public bool IsLoading
         {
@@ -43,10 +52,14 @@ namespace SUSModder.ViewModels
             set => this.RaiseAndSetIfChanged(ref _isLoading, value);
         }
 
-        public string StatusMessage
+        /// <summary>Status ładowania jako klucz + argumenty — przetłumaczony na żywo przy zmianie języka.</summary>
+        public string StatusMessage => LocFmt(_statusKey, _statusArgs);
+
+        private void SetStatus(string key, params object[] args)
         {
-            get => _statusMessage;
-            set => this.RaiseAndSetIfChanged(ref _statusMessage, value);
+            _statusKey = key;
+            _statusArgs = args;
+            this.RaisePropertyChanged(nameof(StatusMessage));
         }
 
         public RecommendedDiscordsViewModel()
@@ -55,9 +68,22 @@ namespace SUSModder.ViewModels
             OpenOfficialDiscordHubCommand = ReactiveCommand.Create(OfficialDiscordHub.Open);
             CloseCommand = ReactiveCommand.Create(() => { });
             RefreshCommand = ReactiveCommand.CreateFromTask(LoadDiscordServersAsync);
+            PackActionCommand = ReactiveCommand.CreateFromTask<DiscordServerViewModel>(RunPackActionAsync);
+
+            // Język w locie: status + etykiety VT w wierszach (nazwy/opisy serwerów to dane z backendu).
+            App.GetService<ILocalizationService>().PropertyChanged += OnLanguageChanged;
 
             // Załaduj dane przy inicjalizacji
             _ = LoadDiscordServersAsync();
+        }
+
+        private void OnLanguageChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(ILocalizationService.CurrentCulture) && !string.IsNullOrEmpty(e.PropertyName))
+                return;
+            this.RaisePropertyChanged(nameof(StatusMessage));
+            foreach (var server in DiscordServers)
+                server.RefreshLocalization();
         }
 
         private async Task LoadDiscordServersAsync()
@@ -65,7 +91,7 @@ namespace SUSModder.ViewModels
             try
             {
                 IsLoading = true;
-                StatusMessage = Loc("RecommendedDiscords.LoadingServers");
+                SetStatus("RecommendedDiscords.LoadingServers");
 
                 var configuration = App.GetService<IConfiguration>();
 
@@ -93,13 +119,13 @@ namespace SUSModder.ViewModels
                         {
                             DiscordServers.Add(serverVM);
                         }
-                        StatusMessage = LocFmt("RecommendedDiscords.ServersLoaded", sortedPreloadedServers.Count);
+                        SetStatus("RecommendedDiscords.ServersLoaded", sortedPreloadedServers.Count);
                     });
                 }
                 else
                 {
                     // Fallback - stwórz ViewModels bez ikon
-                    StatusMessage = Loc("RecommendedDiscords.FetchingServers");
+                    SetStatus("RecommendedDiscords.FetchingServers");
                     var serverDataList = await discordService.GetDiscordFavoritesAsync();
                     var discordServers = DiscordServerAdapter.FromServerDataList(serverDataList);
                     var filteredDiscordServers = await FilterValidInvitesAsync(discordServers);
@@ -120,18 +146,18 @@ namespace SUSModder.ViewModels
                                 // Załaduj ikony w tle
                                 _ = Task.Run(async () => await serverVM.LoadIconAsync());
                             }
-                            StatusMessage = LocFmt("RecommendedDiscords.ServersLoaded", sortedDiscordServers.Count);
+                            SetStatus("RecommendedDiscords.ServersLoaded", sortedDiscordServers.Count);
                         }
                         else
                         {
                             if (!discordServers.Any())
                             {
                                 LoadPlaceholderData();
-                                StatusMessage = Loc("RecommendedDiscords.UsingSampleData");
+                                SetStatus("RecommendedDiscords.UsingSampleData");
                             }
                             else
                             {
-                                StatusMessage = LocFmt("RecommendedDiscords.ServersLoaded", 0);
+                                SetStatus("RecommendedDiscords.ServersLoaded", 0);
                             }
                         }
                     });
@@ -144,7 +170,7 @@ namespace SUSModder.ViewModels
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     LoadPlaceholderData();
-                    StatusMessage = Loc("RecommendedDiscords.ConnectionError");
+                    SetStatus("RecommendedDiscords.ConnectionError");
                 });
             }
             finally
@@ -152,8 +178,79 @@ namespace SUSModder.ViewModels
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     IsLoading = false;
+                    RefreshPackInstanceDetection();
                 });
             }
+        }
+
+        /// <summary>
+        /// F3b: instalacja/aktualizacja zestawu z wiersza — deleguje do istniejących flow
+        /// MainWindowViewModel (podgląd + instalacja / aktualizacja instancji z potwierdzeniem).
+        /// </summary>
+        private async Task RunPackActionAsync(DiscordServerViewModel? server)
+        {
+            if (server == null || server.IsPackBusy || !server.HasPack || !server.Installable)
+                return;
+
+            if (Host is not { } host)
+            {
+                // I3: neutralny toast zamiast cichego return (ten sam klucz co catch; serwis z DI jak ToastHost).
+                App.GetService<ToastService>().ShowInfo(Loc("RecommendedDiscords.PackActionFailed"));
+                return;
+            }
+
+            server.IsPackBusy = true;
+            try
+            {
+                if (server.HasPackInstance)
+                    await host.UpdateServerPackAsync(server.PackCode!, server.PackModName, server.Name);
+                else
+                    await host.InstallServerPackAsync(server.PackCode!);
+            }
+            catch (Exception ex)
+            {
+                // I4: neutralny komunikat zamiast cichego połknięcia (szczegóły techniczne w logu).
+                System.Diagnostics.Debug.WriteLine($"[DiscordPacks] Błąd akcji zestawu: {ex.Message}");
+                host.ToastService.ShowInfo(Loc("RecommendedDiscords.PackActionFailed"));
+            }
+            finally
+            {
+                server.IsPackBusy = false;
+                RefreshPackInstanceDetection();
+            }
+        }
+
+        /// <summary>Odświeża wykrywanie lokalnych instancji zestawów (przy otwarciu panelu i po zakończeniu flow).</summary>
+        public void RefreshPackInstanceDetection()
+        {
+            try
+            {
+                var repo = App.GetService<IModInstanceRepository>();
+                DiscordServerViewModel.ApplyPackInstances(DiscordServers, repo.GetPackInstances(), Host?.PackInstances);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DiscordPacks] Nie udało się odświeżyć instancji zestawów: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// F3g: otwarcie zakładki — cichy check paczek (toast tylko dla NOWYCH aktualizacji),
+        /// potem odświeżenie badge/listy zmian w wierszach. Check ma własne catch; ten dodatkowy
+        /// chroni przed wyjątkiem spoza checkera, żeby odświeżenie wierszy zawsze się wykonało.
+        /// </summary>
+        public async Task RefreshPackStateOnTabOpenedAsync()
+        {
+            try
+            {
+                if (Host != null)
+                    await Host.CheckModPackUpdatesAsync(onlyNew: true);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DiscordPacks] Cichy check aktualizacji paczek nieudany: {ex.Message}");
+            }
+            RefreshPackInstanceDetection();
         }
 
         private void LoadPlaceholderData()

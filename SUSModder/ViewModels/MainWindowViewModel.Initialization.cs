@@ -423,6 +423,7 @@ namespace SUSModder.ViewModels
 
                 System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji modpacków...");
                 await CheckModPackUpdatesAsync();
+                StartPackUpdatesAutoRefresh(); // F3g: live monit co 30 min po pierwszym checku
 
                 System.Diagnostics.Debug.WriteLine("[Post-Init] Sprawdzanie aktualizacji zakończone");
             }

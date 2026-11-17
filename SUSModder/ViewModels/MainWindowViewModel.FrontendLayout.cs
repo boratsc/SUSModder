@@ -39,8 +39,6 @@ namespace SUSModder.ViewModels
             IsModPackManagerVisible ||
             IsAiSupportVisible ||
             IsSUStatsConfigVisible ||
-            IsAppSettingsVisible ||
-            IsRecommendedDiscordsVisible ||
             IsRepairOptionsVisible;
 
         public string ToolModalTitle
@@ -75,16 +73,6 @@ namespace SUSModder.ViewModels
                 if (IsSUStatsConfigVisible)
                 {
                     return _localizationService.Get("UI.Menu.SUStats");
-                }
-
-                if (IsAppSettingsVisible)
-                {
-                    return _localizationService.Get("UI.Menu.Settings");
-                }
-
-                if (IsRecommendedDiscordsVisible)
-                {
-                    return _localizationService.Get("UI.Menu.RecommendedDiscords");
                 }
 
                 if (IsRepairOptionsVisible)
@@ -203,7 +191,6 @@ namespace SUSModder.ViewModels
             IsDllModificationsVisible = false;
             IsSUStatsConfigVisible = false;
             IsAppSettingsVisible = false;
-            IsRecommendedDiscordsVisible = false;
             IsRepairOptionsVisible = false;
             IsPostInstallSuccessVisible = false;
             PostInstallSuccessViewModel = null;
@@ -253,6 +240,10 @@ namespace SUSModder.ViewModels
                 this.RaisePropertyChanged(nameof(IsAiSupportVisible));
             }
 
+            // Ustawienia to panel treści (nie modal): otwarcie modala narzędziowego zamyka ustawienia.
+            if (_isAppSettingsVisible && IsAnyToolModalOpen)
+                IsAppSettingsVisible = false;
+
             this.RaisePropertyChanged(nameof(IsDllModalVisible));
             this.RaisePropertyChanged(nameof(IsAnyToolModalOpen));
             this.RaisePropertyChanged(nameof(ToolModalTitle));
@@ -276,8 +267,6 @@ namespace SUSModder.ViewModels
             IsModPackPreviewVisible ||
             IsModPackManagerVisible ||
             IsSUStatsConfigVisible ||
-            IsAppSettingsVisible ||
-            IsRecommendedDiscordsVisible ||
             IsRepairOptionsVisible;
     }
 }

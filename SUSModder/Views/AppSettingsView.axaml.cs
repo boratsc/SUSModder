@@ -82,11 +82,13 @@ namespace SUSModder.Views
 
         private void CancelButton_Click(object? sender, RoutedEventArgs e)
         {
-            // Znajdź MainWindow i zamknij panel
+            // Znajdź MainWindow i zamknij panel; fokus wraca do przycisku Ustawienia w sidebarze.
             var mainWindow = this.FindLogicalAncestorOfType<MainWindow>();
             if (mainWindow?.DataContext is MainWindowViewModel vm)
             {
                 vm.IsAppSettingsVisible = false;
+                Avalonia.Threading.Dispatcher.UIThread.Post(
+                    () => mainWindow.FindControl<Button>("SettingsSidebarButton")?.Focus());
             }
         }
 

@@ -1156,6 +1156,20 @@ namespace SUSModder.ViewModels
                     return;
                 }
 
+                // F3g: paczka pinuje wersje modów — lokalizacje DLL w instancjach paczkowych
+                // (SourcePackCode) nie mogą być flagowane do aktualizacji z katalogu.
+                var instanceRepo = App.GetService<SUSModder.Core.Data.IModInstanceRepository>();
+                var (unpinnedUpdates, skippedLocations) = ExcludePinnedPackDllLocations(updates, instanceRepo.GetPackInstances());
+                if (skippedLocations > 0)
+                    _diagnosticsOutput?.Write($"[CheckDllUpdates] Pominięto {skippedLocations} lokalizacji DLL przypiętych do paczek");
+                updates = unpinnedUpdates;
+
+                if (!updates.Any())
+                {
+                    _diagnosticsOutput?.Write("[CheckDllUpdates] Brak dostępnych aktualizacji (po pominięciu paczek)");
+                    return;
+                }
+
                 _diagnosticsOutput?.Write($"[CheckDllUpdates] Znaleziono {updates.Count} aktualizacji");
 
                 // ── Podziel na auto-update i manualne ──
@@ -1288,6 +1302,56 @@ namespace SUSModder.ViewModels
                 await ShowErrorDialogAsync(
                     _localizationService.GetFormatted("Updates.DllCheckError", ex.Message),
                     _localizationService.Get("Updates.DllUpdateFailedTitle"));
+            }
+        }
+
+        /// <summary>
+        /// F3g: czysta reguła origin-paczki — usuwa lokalizacje aktualizacji DLL należące do instancji
+        /// paczkowych (SourcePackCode niepuste), bo paczka pinuje wersje. Aktualizacja jest pomijana
+        /// w całości, gdy wszystkie jej lokalizacje są przypięte. Instancje bez SourcePackCode nie pinują.
+        /// </summary>
+        internal static (List<DllUpdateInfo> Updates, int SkippedLocations) ExcludePinnedPackDllLocations(
+            List<DllUpdateInfo> updates, IEnumerable<ModInstance> instances)
+        {
+            var pinnedPaths = instances
+                .Where(i => !string.IsNullOrWhiteSpace(i.SourcePackCode) && !string.IsNullOrWhiteSpace(i.InstallPath))
+                .Select(i => NormalizeInstallPath(i.InstallPath))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            if (pinnedPaths.Count == 0)
+                return (updates, 0);
+
+            var result = new List<DllUpdateInfo>();
+            var skipped = 0;
+            foreach (var update in updates)
+            {
+                var kept = update.LocationUpdates
+                    .Where(l => !pinnedPaths.Contains(NormalizeInstallPath(l.FullMod.InstallPath)))
+                    .ToList();
+                skipped += update.LocationUpdates.Count - kept.Count;
+                if (kept.Count == 0)
+                    continue;
+                if (kept.Count != update.LocationUpdates.Count)
+                {
+                    update.LocationUpdates = kept;
+                    update.InstallLocations = kept.Select(l => l.FullMod).ToList();
+                    update.SelectedLocations = kept.Select(l => l.FullMod).ToList();
+                }
+                result.Add(update);
+            }
+            return (result, skipped);
+        }
+
+        private static string NormalizeInstallPath(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return string.Empty;
+            try
+            {
+                return Path.GetFullPath(path).TrimEnd('\\', '/');
+            }
+            catch (Exception)
+            {
+                return path.Trim().TrimEnd('\\', '/');
             }
         }
 
