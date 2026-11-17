@@ -11,6 +11,7 @@ namespace SUSModder.Core.Utilities
     [SupportedOSPlatform("windows")]
     public static class HardwareIdProvider
     {
+        private static readonly object HashLock = new();
         private static string? _cachedHash;
 
         /// <summary>
@@ -19,34 +20,29 @@ namespace SUSModder.Core.Utilities
         /// <returns>64-znakowy hex string (SHA256)</returns>
         public static string GetAnonymousUserHash()
         {
-            if (!string.IsNullOrEmpty(_cachedHash))
+            lock (HashLock)
             {
-                // Napraw cache z historycznego fallbacku GUID "N" (32 hex).
-                if (!AnonymousUserHash.IsValid(_cachedHash))
-                    _cachedHash = AnonymousUserHash.EnsureValid(_cachedHash);
-                return _cachedHash;
+                if (!string.IsNullOrEmpty(_cachedHash))
+                {
+                    if (!AnonymousUserHash.IsValid(_cachedHash))
+                        _cachedHash = AnonymousUserHash.EnsureValid(_cachedHash);
+                    return _cachedHash;
+                }
+
+                try
+                {
+                    var hardwareId = GetHardwareIdentifier();
+                    _cachedHash = AnonymousUserHash.EnsureValid(AnonymousUserHash.ComputeSha256Hex(hardwareId));
+                    return _cachedHash;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to generate hardware hash: {ex.Message}");
+                    _cachedHash = AnonymousUserHash.CreateFallback();
+                    return _cachedHash;
+                }
             }
 
-            try
-            {
-                // Zbierz unikalne identyfikatory sprzętowe
-                var hardwareId = GetHardwareIdentifier();
-
-                // Zahashuj SHA256 (jednostronnie - nie da się odtworzyć oryginalnych danych)
-                // API (creatorHash / X-User-Hash) wymaga dokładnie 64 lowercase hex.
-                _cachedHash = AnonymousUserHash.EnsureValid(AnonymousUserHash.ComputeSha256Hex(hardwareId));
-
-                return _cachedHash;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to generate hardware hash: {ex.Message}");
-
-                // Fallback: SHA256 z losowego seeda — NIGDY surowy GUID "N" (32 hex),
-                // bo backend odrzuca to jako "Invalid creatorHash format (64 hex chars)".
-                _cachedHash = AnonymousUserHash.CreateFallback();
-                return _cachedHash;
-            }
         }
 
         /// <summary>
@@ -77,10 +73,9 @@ namespace SUSModder.Core.Utilities
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error getting hardware ID: {ex.Message}");
-                // Jeśli nie można pobrać - użyj timestamp jako salt
+                // Stały materiał diagnostyczny; fallback przy błędzie zapewnia trwały hash.
                 sb.Append(Environment.MachineName);
                 sb.Append(Environment.UserName);
-                sb.Append(DateTime.UtcNow.Ticks.ToString());
             }
 
             return sb.ToString();

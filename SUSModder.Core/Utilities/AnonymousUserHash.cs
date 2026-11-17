@@ -29,8 +29,7 @@ internal static class AnonymousUserHash
     /// <summary>
     /// Fallback gdy nie da się odczytać HWID — zawsze zwraca poprawny 64-hex (nigdy surowego GUID).
     /// </summary>
-    public static string CreateFallback() =>
-        ComputeSha256Hex("hwid-fallback:" + Guid.NewGuid().ToString("N"));
+    public static string CreateFallback() => AnonymousUserHashStore.GetOrCreate();
 
     /// <summary>
     /// Jeśli wartość nie spełnia kontraktu API, przehashuj do 64 lowercase hex.
@@ -41,7 +40,7 @@ internal static class AnonymousUserHash
             return value!;
 
         if (string.IsNullOrEmpty(value))
-            return CreateFallback();
+            return AnonymousUserHashStore.GetOrCreate();
 
         return ComputeSha256Hex("hwid-rehash:" + value);
     }

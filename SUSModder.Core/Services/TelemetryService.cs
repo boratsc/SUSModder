@@ -103,7 +103,7 @@ namespace SUSModder.Core.Services
                     timestamp = DateTime.UtcNow.ToString("O") // ISO 8601
                 };
 
-                System.Diagnostics.Debug.WriteLine($"Sending telemetry heartbeat: {JsonSerializer.Serialize(data)}");
+                System.Diagnostics.Debug.WriteLine($"Sending telemetry heartbeat (userHash redacted): {JsonSerializer.Serialize(new { appVersion = data.appVersion, platform = data.platform, language = data.language, installedModIds = data.installedModIds, sessionTimeSeconds = data.sessionTimeSeconds, timestamp = data.timestamp })}");
 
                 _ = _apiClient.SendHeartbeatAsync(data).ContinueWith(task =>
                 {
