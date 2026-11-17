@@ -16,7 +16,7 @@ public class ModPopularityMigrationTests : IDisposable
         CreateLegacyDatabase(path);
         await using var db = new DatabaseService(path);
         await db.InitializeAsync();
-        Assert.Equal(22, GetUserVersion(db));
+        Assert.Equal(23, GetUserVersion(db));
         Assert.Equal(0, GetPopularity(db));
 
         using var conn = db.GetConnection();

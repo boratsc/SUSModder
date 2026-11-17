@@ -110,6 +110,12 @@ namespace SUSModder.Core.Configuration
         public bool ShowQuickLaunchInTray { get; set; } = true;
 
         /// <summary>
+        /// Czy czat społeczności ma być zakotwiczony jako osobna kolumna.
+        /// </summary>
+        [JsonPropertyName("chatAnchored")]
+        public bool ChatAnchored { get; set; } = false;
+
+        /// <summary>
         /// Czy dymek informacyjny przy pierwszym minimalizowaniu został już pokazany.
         /// </summary>
         [JsonPropertyName("trayFirstMinimizeShown")]

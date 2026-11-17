@@ -18,6 +18,7 @@ using SUSModder.Services;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using FluentIcons.Common;
 using FluentIcons.Avalonia;
@@ -260,6 +261,9 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             var icon = this.FindControl<SymbolIcon>("MaximizeIcon");
             if (icon != null)
                 icon.Symbol = WindowState == WindowState.Maximized ? Symbol.SquareMultiple : Symbol.Maximize;
+
+            // Po maximize/restore ponownie oceń dokowanie czatu (szerokość mogła się zmienić).
+            ApplyRightColumnLayout();
         }
     }
 
@@ -284,8 +288,9 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
     /// <summary>
     /// E5: układ regionów — lista 440 + szczegóły na reszcie (pełna wysokość);
-    /// bez zaznaczenia lista pełnej szerokości. Wąskie okno (&lt; 1100 px): szczegóły
-    /// jako overlay nad listą z przyciskiem powrotu. Czat = nakładka pod dymkiem,
+    /// bez zaznaczenia lista pełnej szerokości. Wąska część aplikacji (&lt; 1100 DIP):
+    /// szczegóły jako overlay nad listą z przyciskiem powrotu.
+    /// Czat: dokowany = stała kolumna 520; inaczej nakładka pod dymkiem,
     /// rozmiar ograniczony dostępną przestrzenią (min(520, szer) × min(690, wys)).
     /// </summary>
     private void ApplyRightColumnLayout()
@@ -298,8 +303,14 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         if (content == null || host == null)
             return;
 
+        // Dokowanie efektywne oceniamy z rzeczywistej szerokości okna (także po resize/maximize).
+        var docked = Bounds.Width > 0 && ChatDockingLayout.IsDocked(vm.ChatAnchored, Bounds.Width);
+        vm.IsChatDocked = docked;
+
         var details = vm.IsBrowserDetailPanelVisible;
-        var narrow = Bounds.Width > 0 && Bounds.Width < 1100;
+        // Wąskość liczona od części aplikacji bez kolumny czatu (dokowanie + side-by-side >= 1620).
+        var appWidth = ChatDockingLayout.AppPartWidth(docked, Bounds.Width);
+        var narrow = appWidth > 0 && ChatDockingLayout.IsDetailsNarrow(docked, Bounds.Width);
         var sideBySide = details && !narrow;
 
         content.ColumnDefinitions[1].Width = sideBySide
@@ -307,6 +318,9 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             : new GridLength(1, GridUnitType.Star);
         content.ColumnDefinitions[2].Width = sideBySide
             ? new GridLength(1, GridUnitType.Star)
+            : new GridLength(0);
+        content.ColumnDefinitions[3].Width = docked
+            ? new GridLength(ChatDockingLayout.ChatColumnWidth)
             : new GridLength(0);
         host.SetValue(Grid.ColumnProperty, narrow ? 1 : 2);
         host.SetValue(Grid.ColumnSpanProperty, narrow ? 2 : 1);
@@ -323,10 +337,111 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             support.IsVisible = !narrow;
 
         var chat = this.FindControl<Border>("ChatOverlayHost");
-        if (chat != null && Bounds.Width > 0 && content.Bounds.Height > 0)
+        if (chat == null)
+            return;
+
+        if (docked)
         {
-            chat.Width = Math.Min(520, Bounds.Width - 24);
-            chat.MaxHeight = Math.Min(690, content.Bounds.Height - 8);
+            // Kolumna: pełna wysokość, bez cienia/zaokrągleń/marginesu; pod szczegółami-overlay nie jest.
+            chat.SetValue(Grid.ColumnProperty, 3);
+            chat.SetValue(Grid.ColumnSpanProperty, 1);
+            chat.HorizontalAlignment = HorizontalAlignment.Stretch;
+            chat.VerticalAlignment = VerticalAlignment.Stretch;
+            chat.Margin = new Thickness(0);
+            chat.Width = double.NaN;
+            chat.MaxHeight = double.PositiveInfinity;
+            chat.CornerRadius = new CornerRadius(0);
+            chat.BoxShadow = default;
+            chat.BorderThickness = new Thickness(1, 0, 0, 0);
+            chat.ZIndex = 0;
+        }
+        else
+        {
+            // Nakładka: prawa/góra krawędź jak dawniej (nad obszarem treści, nie nad sidebarem);
+            // ZIndex 60 > overlay szczegółów (50), ale modale są później w drzewie i zostają nad czatem.
+            chat.SetValue(Grid.ColumnProperty, 1);
+            chat.SetValue(Grid.ColumnSpanProperty, 3);
+            chat.HorizontalAlignment = HorizontalAlignment.Right;
+            chat.VerticalAlignment = VerticalAlignment.Top;
+            chat.Margin = new Thickness(0, 4, 12, 0);
+            chat.CornerRadius = new CornerRadius(14);
+            chat.BoxShadow = BoxShadows.Parse("0 8 24 0 #40000000");
+            chat.BorderThickness = new Thickness(1);
+            chat.ZIndex = 60;
+            // Rozmiar jak dawniej; fallbacki = wartości z XAML, gdy okno jeszcze niezmierzone.
+            chat.Width = Bounds.Width > 0 ? Math.Min(520, Bounds.Width - 24) : 520;
+            chat.MaxHeight = content.Bounds.Height > 0 ? Math.Min(690, content.Bounds.Height - 8) : 690;
+        }
+    }
+
+    // ── Zakotwiczenie czatu: geometria okna po zapisie ustawień ──
+
+    // Szerokość nadana automatycznie przy włączeniu (warunek cofnięcia) i szerokość sprzed poszerzenia.
+    private double? _chatAutoGrantedWidth;
+    private double _chatPreAnchorWidth;
+
+    /// <summary>
+    /// Woła widok ustawień po udanym zapisie (ścieżka SettingsSaved) z zatwierdzoną wartością.
+    /// Poszerzenie/cofnięcie tylko przy rzeczywistej zmianie preferencji i tylko w stanie normalnym.
+    /// </summary>
+    public void ApplyChatAnchoredPreference(bool anchored)
+    {
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        var changed = vm.ChatAnchored != anchored;
+        vm.ChatAnchored = anchored;
+        if (changed)
+            AdjustChatAnchorWidth(anchored);
+        ApplyRightColumnLayout();
+    }
+
+    private void AdjustChatAnchorWidth(bool anchored)
+    {
+        // Zmaksymalizowanego/minimized nie poszerzamy ani nie przywracamy programowo;
+        // po zmianie WindowState układ jest oceniany ponownie (OnPropertyChanged).
+        if (WindowState != WindowState.Normal)
+            return;
+
+        if (anchored)
+        {
+            // DIP-aware: WorkingArea jest w px fizycznych, Width okna w DIP.
+            var screen = Screens.ScreenFromWindow(this);
+            var workAreaDip = screen is null ? double.PositiveInfinity : screen.WorkingArea.Width / RenderScaling;
+            var target = ChatDockingLayout.WidenedWidth(Width, workAreaDip);
+            if (target <= Width)
+                return;
+
+            _chatPreAnchorWidth = Width;
+            Width = target;
+            _chatAutoGrantedWidth = target;
+        }
+        else
+        {
+            // Cofnij tylko gdy użytkownik nie zmienił szerokości ręcznie po poszerzeniu.
+            if (ChatDockingLayout.ShouldRevertAutoWidth(Width, _chatAutoGrantedWidth))
+                Width = _chatPreAnchorWidth;
+            _chatAutoGrantedWidth = null;
+        }
+    }
+
+    // Hook startowy: Opened = okno ma uchwyt, więc Screens.ScreenFromWindow działa.
+    // Flaga jednorazowości ustawiana PRZED resize: poszerzenie dodaje 520 bezwarunkowo,
+    // a Opened może zajść ponownie (np. Show() po ukryciu w tray).
+    private bool _chatAnchorStartupApplied;
+
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        if (Design.IsDesignMode || _chatAnchorStartupApplied)
+            return;
+        _chatAnchorStartupApplied = true;
+
+        // Po restarcie preferencja jest już w VM, ale okno startuje wąskie — przywróć dokowanie.
+        if (DataContext is MainWindowViewModel vm && vm.ChatAnchored)
+        {
+            AdjustChatAnchorWidth(true);
+            ApplyRightColumnLayout();
         }
     }
 
@@ -595,7 +710,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         if (vm.IsAnyToolModalOpen || vm.IsInlineDialogVisible || vm.IsAntivirusWarningVisible)
             return;
 
-        if (vm.IsChatOpen)
+        // Escape zamyka wyłącznie nakładkę czatu — nigdy zadokowaną kolumnę.
+        if (vm.IsChatOpen && !vm.IsChatDocked)
         {
             vm.IsChatOpen = false;
             e.Handled = true;

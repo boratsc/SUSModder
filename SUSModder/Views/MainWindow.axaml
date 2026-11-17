@@ -408,10 +408,10 @@
 			</Grid>
 		</Border>
 
-		<!-- ══ TREŚĆ: sidebar 230 | lista 440 | szczegóły na reszcie (pełna wysokość) ══
-		     Bez zaznaczenia lista pełnej szerokości; < 1100 px szczegóły jako overlay z powrotem.
-		     Czat = osobna nakładka pod dymkiem (E5). Szerokości zarządza ApplyRightColumnLayout. -->
-		<Grid Grid.Row="1" x:Name="ContentGrid" ColumnDefinitions="230,440,*">
+		<!-- ══ TREŚĆ: sidebar 230 | lista 440 | szczegóły na reszcie | czat 520 (gdy zadokowany) ══
+		     Bez zaznaczenia lista pełnej szerokości; < 1100 px części aplikacji szczegóły jako overlay z powrotem.
+		     Czat: jeden host w kolumnie 3 (dokowanie) lub nakładka nad treścią. Szerokości zarządza ApplyRightColumnLayout. -->
+		<Grid Grid.Row="1" x:Name="ContentGrid" ColumnDefinitions="230,440,*,0">
 
 			<!-- SIDEBAR -->
 			<Border Grid.Column="0"
@@ -1133,30 +1133,32 @@
 				  IsVisible="{Binding IsAppSettingsVisible}">
 				<local:AppSettingsView x:Name="AppSettingsViewControl"/>
 			</Grid>
+
+			<!-- CZAT: jeden panel, jeden host, dwa tryby (ApplyRightColumnLayout):
+			     dokowany = kolumna 3 (stretch, bez cienia/rogów/marginesu, ZIndex 0);
+			     nakładka = rozpięcie nad treścią (Column 1 Span 3), prawa/góra krawędź jak dawniej,
+			     ZIndex 60 nad szczegółami (50), ale POD modalami/menu „Więcej" (później w drzewie).
+		     Widoczność = rzeczywista widoczność czatu (kolumna LUB otwarta nakładka). -->
+			<Border Grid.Column="1" Grid.ColumnSpan="3"
+					x:Name="ChatOverlayHost"
+					HorizontalAlignment="Right"
+					VerticalAlignment="Top"
+					Margin="0,4,12,0"
+					Width="520"
+					MaxHeight="690"
+					CornerRadius="14"
+					Background="{DynamicResource SecondaryBackgroundBrush}"
+					BorderBrush="{DynamicResource BorderBrush}"
+					BorderThickness="1"
+					BoxShadow="0 8 24 0 #40000000"
+					ZIndex="60"
+					IsVisible="{Binding CommunityChat.IsChatVisible}">
+				<local:CommunityChatPanel DataContext="{Binding CommunityChat}"/>
+			</Border>
 		</Grid>
 
 		<!-- Bulk bar: pełna szerokość okna, pod treścią (jak w dawnym układzie) -->
 		<local:BulkActionBar Grid.Row="2" DataContext="{Binding}"/>
-
-		<!-- E5: CZAT JAKO NAKŁADKA — kotwica top-right pod dymkiem na belce, nad treścią,
-		     POD modalami/menu „Więcej"; ToastHost (ostatni w drzewie) zostaje nad wszystkim.
-		     Rozmiar min(520, dostępna szerokość) × min(690, wysokość treści) — ApplyRightColumnLayout.
-		     Jedyny dopuszczalny cień: subtelny cień nakładki. -->
-		<Border Grid.Row="1"
-				x:Name="ChatOverlayHost"
-				HorizontalAlignment="Right"
-				VerticalAlignment="Top"
-				Margin="0,4,12,0"
-				Width="520"
-				MaxHeight="690"
-				CornerRadius="14"
-				Background="{DynamicResource SecondaryBackgroundBrush}"
-				BorderBrush="{DynamicResource BorderBrush}"
-				BorderThickness="1"
-				BoxShadow="0 8 24 0 #40000000"
-				IsVisible="{Binding IsChatOpen}">
-			<local:CommunityChatPanel DataContext="{Binding CommunityChat}"/>
-		</Border>
 
 		<!-- Modal dla paneli narzędziowych -->
 		<Border Grid.Row="0"

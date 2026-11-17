@@ -176,7 +176,8 @@
       "More": "More",
       "ChatToggle": "Community chat",
       "ChatToggleUnread": "Community chat — {0} new messages",
-      "ChatToggleUnreadOne": "Community chat — {0} new message"
+      "ChatToggleUnreadOne": "Community chat — {0} new message",
+      "ChatScrollToLatest": "Scroll to latest messages"
     },
     "Window": {
       "Minimize": "Minimize",
@@ -1020,7 +1021,7 @@
       "Title": "Settings",
       "Subtitle": "The essentials, without unnecessary detail.",
       "Game": {
-        "Title": "Game",
+        "Title": "Mod library folder",
         "Description": "Mods library folder — game copies with installed mods.",
         "Browse": "Choose folder"
       },
@@ -1038,6 +1039,11 @@
         "Description": "Chat as an overlay; notifications when it is closed."
       },
       "Advanced": "Advanced"
+    },
+    "ChatAnchor": {
+      "Title": "Chat anchoring",
+      "Description": "Show chat as a permanent column on the right. The window will be widened.",
+      "WidthHint": "Widen the window to show chat next to your content."
     },
     "General": {
       "Language": {

@@ -50,6 +50,8 @@ namespace SUSModder.ViewModels
         private bool _originalShowQuickLaunchInTray = true;
         private bool _preferDepotDownloader;
         private bool _originalPreferDepotDownloader;
+        private bool _chatAnchored;
+        private bool _originalChatAnchored;
 
         // Stała lista dostępnych języków (aby uniknąć problemów z referencjami)
         private static readonly List<LanguageOption> _availableLanguages = new()
@@ -285,39 +287,19 @@ namespace SUSModder.ViewModels
         }
 
         /// <summary>
-        /// E7: wiersz „Czat społeczności" na ekranie głównym ustawień.
-        /// Brak osobnego ustawienia powiadomień — spinamy istniejący przełącznik nakładki czatu
-        /// (MainWindowViewModel.IsChatOpen). Efekt natychmiastowy, poza mechaniką Save/dirty-state.
+        /// Zakotwiczenie czatu — Save-based jak tray: efekt dopiero po udanym zapisie
+        /// (MainWindow dostaje zatwierdzoną wartość przez ścieżkę SettingsSaved).
         /// </summary>
-        public bool ChatOverlayOpen
+        public bool ChatAnchored
         {
-            get => TryGetMainWindowViewModel(out var mainVM) && mainVM.IsChatOpen;
+            get => _chatAnchored;
             set
             {
-                if (TryGetMainWindowViewModel(out var mainVM))
-                    mainVM.IsChatOpen = value;
-                this.RaisePropertyChanged(nameof(ChatOverlayOpen));
+                this.RaiseAndSetIfChanged(ref _chatAnchored, value);
+                CheckForChanges();
             }
         }
 
-        private IDisposable? _chatOpenSync;
-
-        /// <summary>E7: woła widok przy attach — MainWindow.DataContext istnieje dopiero po konstruktorze okna.</summary>
-        public void SyncChatOverlayState()
-        {
-            StopChatOverlaySync();
-            if (TryGetMainWindowViewModel(out var mainVM))
-                _chatOpenSync = mainVM.WhenAnyValue(x => x.IsChatOpen)
-                    .Subscribe(_ => this.RaisePropertyChanged(nameof(ChatOverlayOpen)));
-            this.RaisePropertyChanged(nameof(ChatOverlayOpen));
-        }
-
-        /// <summary>E9c: woła widok przy detach — zrywa subskrypcję stanu nakładki, by nie wyciekała.</summary>
-        public void StopChatOverlaySync()
-        {
-            _chatOpenSync?.Dispose();
-            _chatOpenSync = null;
-        }
         public bool PreferDepotDownloader
         {
             get => _preferDepotDownloader;
@@ -761,6 +743,8 @@ namespace SUSModder.ViewModels
                 _originalShowQuickLaunchInTray = _showQuickLaunchInTray;                _preferDepotDownloader = userSettings.PreferDepotDownloader;
                 _originalPreferDepotDownloader = _preferDepotDownloader;                this.RaisePropertyChanged(nameof(PreferDepotDownloader));
                 this.RaisePropertyChanged(nameof(IsSteamDepotDownloaderSectionVisible));
+                _chatAnchored = userSettings.ChatAnchored;
+                _originalChatAnchored = _chatAnchored;
 
                 // Załaduj GameMode z user settings
                 _gameMode = userSettings.Mode;
@@ -781,6 +765,8 @@ namespace SUSModder.ViewModels
                 _originalMinimizeToTray = true;
                 _showQuickLaunchInTray = true;
                 _originalShowQuickLaunchInTray = true;
+                _chatAnchored = false;
+                _originalChatAnchored = false;
             }
         }
 
@@ -817,7 +803,8 @@ namespace SUSModder.ViewModels
                                _telemetryEnabled != _originalTelemetryEnabled ||
                                _minimizeToTray != _originalMinimizeToTray ||
                                _showQuickLaunchInTray != _originalShowQuickLaunchInTray ||
-                               _preferDepotDownloader != _originalPreferDepotDownloader;
+                               _preferDepotDownloader != _originalPreferDepotDownloader ||
+                               _chatAnchored != _originalChatAnchored;
             this.RaisePropertyChanged(nameof(WindowTitle));
         }
 
@@ -989,6 +976,7 @@ namespace SUSModder.ViewModels
                     settings.UpdateChannel = UpdateChannel;
                     settings.MinimizeToTray = MinimizeToTray;
                     settings.ShowQuickLaunchInTray = ShowQuickLaunchInTray;                    settings.PreferDepotDownloader = PreferDepotDownloader;
+                    settings.ChatAnchored = ChatAnchored;
                     if (_selectedLanguage != null)
                     {
                         settings.Language = _selectedLanguage.Code;
@@ -1005,6 +993,7 @@ namespace SUSModder.ViewModels
                 _originalTelemetryEnabled = TelemetryEnabled;
                 _originalMinimizeToTray = MinimizeToTray;
                 _originalShowQuickLaunchInTray = ShowQuickLaunchInTray;                _originalPreferDepotDownloader = PreferDepotDownloader;
+                _originalChatAnchored = ChatAnchored;
                 HasUnsavedChanges = false;
 
                 // Powiadom o zapisaniu ustawień

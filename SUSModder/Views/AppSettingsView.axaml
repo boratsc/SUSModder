@@ -54,10 +54,11 @@
 			<Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
 			<Setter Property="TextWrapping" Value="Wrap"/>
 		</Style>
+		<!-- Ikona przy tytule (góra karty), nie na środku wysokiej karty. -->
 		<Style Selector="ic|SymbolIcon.settings-icon">
 			<Setter Property="FontSize" Value="20"/>
 			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-			<Setter Property="VerticalAlignment" Value="Center"/>
+			<Setter Property="VerticalAlignment" Value="Top"/>
 		</Style>
 		<Style Selector="Border.settings-chip">
 			<Setter Property="Background" Value="{DynamicResource TertiaryBackgroundBrush}"/>
@@ -70,6 +71,15 @@
 		<Style Selector="Border.settings-chip > TextBlock">
 			<Setter Property="FontSize" Value="12"/>
 			<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+		</Style>
+		<!-- Chrome treści Expandera niewidoczny: motyw Fluent stylami :down/:expanded:down narzuca
+		     Border#ExpanderContent obramowanie 1px i zaokrąglenia mimo wyzerowanych właściwości
+		     modal-details; aktywator :expanded daje priorytet StyleTrigger, żeby je przebić. -->
+		<Style Selector="Expander.modal-details:expanded /template/ Border#ExpanderContent">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderBrush" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="CornerRadius" Value="0"/>
 		</Style>
 	</UserControl.Styles>
 
@@ -86,68 +96,113 @@
 					<TextBlock Classes="settings-subtitle" Text="{local:Localize Settings.Main.Subtitle}"/>
 				</StackPanel>
 
-				<!-- Gra: wybór folderu instalacji (istniejące BrowseFolderCommand → ModsInstallPath) -->
+				<!-- Folder biblioteki modów: scalona karta „Gra” + „Ścieżki instalacji” — ścieżka w jednym miejscu. -->
 				<Border Classes="settings-row">
-					<Grid ColumnDefinitions="Auto,*,Auto">
+					<Grid ColumnDefinitions="Auto,*">
 						<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
 									   Symbol="{x:Static fic:Symbol.Folder}" Margin="0,0,14,0"/>
-						<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+						<StackPanel Grid.Column="1" Spacing="8">
 							<TextBlock Classes="settings-title" Text="{local:Localize Settings.Main.Game.Title}"/>
 							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Main.Game.Description}"/>
-							<TextBlock Classes="settings-path" Text="{Binding ModsInstallPath}"/>
+							<TextBox Text="{Binding ModsInstallPath}"
+									 PlaceholderText="{local:Localize Settings.Paths.ModsInstallPath.Placeholder}"
+									 FontSize="12"
+									 Padding="8"
+									 Background="{DynamicResource TertiaryBackgroundBrush}"
+									 BorderBrush="{DynamicResource BorderBrush}"
+									 BorderThickness="1"
+									 CornerRadius="4"/>
+							<StackPanel Orientation="Horizontal" Spacing="8">
+								<Button Classes="catalog-detail-secondary"
+										Content="{local:Localize Settings.Main.Game.Browse}"
+										Command="{Binding BrowseFolderCommand}"
+										Padding="12,6" FontSize="12"/>
+								<Button Content="{local:Localize Settings.Paths.ModsInstallPath.Reset}"
+										Command="{Binding ResetToDefaultCommand}"
+										Background="Transparent"
+										Foreground="{DynamicResource AccentBrush}"
+										BorderThickness="0"
+										Padding="10,6"
+										FontSize="11"/>
+							</StackPanel>
 						</StackPanel>
-						<Button Grid.Column="2" Classes="catalog-detail-secondary"
-								Content="{local:Localize Settings.Main.Game.Browse}"
-								Command="{Binding BrowseFolderCommand}"
-								Padding="14,7" FontSize="13"
-								VerticalAlignment="Center" Margin="14,0,0,0"/>
 					</Grid>
 				</Border>
 
-				<!-- Aktualizacje: brak istniejącego ustawienia auto-update aplikacji → statyczna informacja -->
+				<!-- Sekcja wyboru języka -->
 				<Border Classes="settings-row">
-					<Grid ColumnDefinitions="Auto,*,Auto">
+					<Grid ColumnDefinitions="Auto,*">
 						<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
-									   Symbol="{x:Static fic:Symbol.ArrowSync}" Margin="0,0,14,0"/>
-						<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-							<TextBlock Classes="settings-title" Text="{local:Localize Settings.Main.Updates.Title}"/>
-							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Main.Updates.Description}"/>
-						</StackPanel>
-						<Border Grid.Column="2" Classes="settings-chip" Margin="14,0,0,0">
-							<TextBlock Text="{local:Localize Settings.Main.Updates.State}"/>
+									   Symbol="{x:Static fic:Symbol.LocalLanguage}" Margin="0,0,14,0"/>
+					<StackPanel Grid.Column="1" Spacing="8">
+						<TextBlock Classes="settings-title" Text="{local:Localize Settings.General.Language.Label}"/>
+						<TextBlock Classes="settings-desc" Text="{local:Localize Settings.General.Language.Description}"/>
+						<ComboBox ItemsSource="{Binding AvailableLanguages}"
+								  SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
+								  Width="200"
+								  HorizontalAlignment="Left"
+								  FontSize="12"
+								  Padding="10,8"
+								  Background="{DynamicResource TertiaryBackgroundBrush}"
+								  BorderBrush="{DynamicResource BorderBrush}"
+								  BorderThickness="1"
+								  CornerRadius="4">
+							<ComboBox.ItemTemplate>
+								<DataTemplate>
+									<TextBlock Text="{Binding DisplayName}"/>
+								</DataTemplate>
+							</ComboBox.ItemTemplate>
+						</ComboBox>
+					</StackPanel>
+					</Grid>
+				</Border>
+
+				<!-- Sekcja zachowania okna / system tray -->
+				<Border Classes="settings-row">
+					<Grid ColumnDefinitions="Auto,*">
+						<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
+									   Symbol="{x:Static fic:Symbol.Window}" Margin="0,0,14,0"/>
+					<StackPanel Grid.Column="1" Spacing="8">
+						<TextBlock Classes="settings-title" Text="{local:Localize Settings.SystemTray.Title}"/>
+
+						<!-- Minimalizuj do tray -->
+						<Border Classes="settings-subrow">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+									<TextBlock Text="{local:Localize Settings.SystemTray.MinimizeToTray.Label}"
+											   FontSize="13" FontWeight="Medium"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   TextWrapping="Wrap"/>
+									<TextBlock Classes="settings-desc" Text="{local:Localize Settings.SystemTray.MinimizeToTray.Description}"/>
+								</StackPanel>
+								<ToggleSwitch Grid.Column="1"
+											  IsChecked="{Binding MinimizeToTray}"
+											  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+											  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+											  VerticalAlignment="Center"
+											  Margin="12,0,0,0"/>
+							</Grid>
 						</Border>
-					</Grid>
-				</Border>
 
-				<!-- Wygląd: jedyny motyw po D1 → statyczna informacja, bez przełącznika -->
-				<Border Classes="settings-row">
-					<Grid ColumnDefinitions="Auto,*,Auto">
-						<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
-									   Symbol="{x:Static fic:Symbol.Settings}" Margin="0,0,14,0"/>
-						<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-							<TextBlock Classes="settings-title" Text="{local:Localize Settings.Main.Appearance.Title}"/>
-							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Main.Appearance.Description}"/>
-						</StackPanel>
-						<Border Grid.Column="2" Classes="settings-chip" Margin="14,0,0,0">
-							<TextBlock Text="{local:Localize Settings.Main.Appearance.State}"/>
+						<!-- Szybkie uruchamianie w tray -->
+						<Border Classes="settings-subrow">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+									<TextBlock Text="{local:Localize Settings.SystemTray.QuickLaunch.Label}"
+											   FontSize="13" FontWeight="Medium"
+											   Foreground="{DynamicResource TextPrimaryBrush}"
+											   TextWrapping="Wrap"/>
+									<TextBlock Classes="settings-desc" Text="{local:Localize Settings.SystemTray.QuickLaunch.Description}"/>
+								</StackPanel>
+								<ToggleSwitch Grid.Column="1"
+											  IsChecked="{Binding ShowQuickLaunchInTray}"
+											  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+											  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+											  VerticalAlignment="Center"
+											  Margin="12,0,0,0"/>
+							</Grid>
 						</Border>
-					</Grid>
-				</Border>
-
-				<!-- Czat społeczności: istniejący przełącznik nakładki czatu (bez nowego ustawienia w Core) -->
-				<Border Classes="settings-row">
-					<Grid ColumnDefinitions="Auto,*,Auto">
-						<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
-									   Symbol="{x:Static fic:Symbol.Chat}" Margin="0,0,14,0"/>
-						<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-							<TextBlock Classes="settings-title" Text="{local:Localize UI.TopBar.ChatToggle}"/>
-							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Main.Chat.Description}"/>
-						</StackPanel>
-						<ToggleSwitch Grid.Column="2"
-									  IsChecked="{Binding ChatOverlayOpen}"
-									  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
-									  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
-									  VerticalAlignment="Center" Margin="14,0,0,0"/>
+					</StackPanel>
 					</Grid>
 				</Border>
 
@@ -160,20 +215,12 @@
 					</Expander.Header>
 					<StackPanel Spacing="12" Margin="0,12,0,0">
 
-					<!-- Bieżący kanał aktualizacji (informacja) -->
-					<Border Classes="settings-row">
-						<StackPanel Spacing="4">
-							<TextBlock Classes="settings-title" Text="{local:Localize Settings.UpdateChannel.CurrentTitle}"/>
-							<TextBlock Text="{Binding CurrentUpdateChannelSummary}"
-									   FontSize="13"
-									   Foreground="{DynamicResource TextPrimaryBrush}"/>
-							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.UpdateChannel.CurrentDescription}"/>
-						</StackPanel>
-					</Border>
-
 					<!-- Sekcja wyboru trybu gry -->
 					<Border Classes="settings-row">
-						<StackPanel Spacing="8">
+						<Grid ColumnDefinitions="Auto,*">
+							<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
+										   Symbol="{x:Static fic:Symbol.Games}" Margin="0,0,14,0"/>
+						<StackPanel Grid.Column="1" Spacing="8">
 							<TextBlock Classes="settings-title" Text="{local:Localize Settings.General.GameMode.Label}"/>
 							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.General.GameMode.Description}"/>
 							<TextBlock Text="{local:Localize Settings.General.GameMode.RestartRequired}"
@@ -189,11 +236,15 @@
 											 Foreground="{DynamicResource TextPrimaryBrush}"/>
 							</StackPanel>
 						</StackPanel>
+						</Grid>
 					</Border>
 
 					<!-- Steam: pobieranie vanilla (eksperymentalne) -->
 					<Border Classes="settings-row" IsVisible="{Binding IsSteamDepotDownloaderSectionVisible}">
-						<StackPanel Spacing="8">
+						<Grid ColumnDefinitions="Auto,*">
+							<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
+										   Symbol="{x:Static fic:Symbol.ArrowDownload}" Margin="0,0,14,0"/>
+						<StackPanel Grid.Column="1" Spacing="8">
 							<TextBlock Classes="settings-title" Text="{local:Localize Settings.SteamVanilla.Title}"/>
 							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.SteamVanilla.Description}"/>
 							<TextBlock Text="{local:Localize Settings.SteamVanilla.ExperimentalWarning}"
@@ -219,11 +270,15 @@
 								</Grid>
 							</Border>
 						</StackPanel>
+						</Grid>
 					</Border>
 
 					<!-- Epic: wersja narzędzia legendary.exe -->
 					<Border Classes="settings-row" IsVisible="{Binding IsEpicLegendarySectionVisible}">
-						<StackPanel Spacing="8">
+						<Grid ColumnDefinitions="Auto,*">
+							<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
+										   Symbol="{x:Static fic:Symbol.Wrench}" Margin="0,0,14,0"/>
+						<StackPanel Grid.Column="1" Spacing="8">
 							<TextBlock Classes="settings-title" Text="{local:Localize Settings.LegendaryVersion.Label}"/>
 							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.LegendaryVersion.Description}"/>
 							<TextBlock Text="{Binding LegendaryCurrentSummary}"
@@ -320,96 +375,19 @@
 
 							</StackPanel>
 						</StackPanel>
+						</Grid>
 					</Border>
 
-					<!-- Sekcja wyboru języka -->
+					<!-- Kanał aktualizacji: scalony bieżący kanał + wybór (bez osobnej karty informacyjnej). -->
 					<Border Classes="settings-row">
-						<StackPanel Spacing="8">
-							<TextBlock Classes="settings-title" Text="{local:Localize Settings.General.Language.Label}"/>
-							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.General.Language.Description}"/>
-							<ComboBox ItemsSource="{Binding AvailableLanguages}"
-									  SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
-									  Width="200"
-									  HorizontalAlignment="Left"
-									  FontSize="12"
-									  Padding="10,8"
-									  Background="{DynamicResource TertiaryBackgroundBrush}"
-									  BorderBrush="{DynamicResource BorderBrush}"
-									  BorderThickness="1"
-									  CornerRadius="4">
-								<ComboBox.ItemTemplate>
-									<DataTemplate>
-										<TextBlock Text="{Binding DisplayName}"/>
-									</DataTemplate>
-								</ComboBox.ItemTemplate>
-							</ComboBox>
-						</StackPanel>
-					</Border>
-
-					<!-- Sekcja ścieżek -->
-					<Border Classes="settings-row">
-						<StackPanel Spacing="8">
-							<TextBlock Classes="settings-title" Text="{local:Localize Settings.Paths.Title}"/>
-							<TextBlock Text="{local:Localize Settings.Paths.ModsInstallPath.Label}"
-									   FontSize="13" FontWeight="Medium"
-									   Foreground="{DynamicResource TextPrimaryBrush}"/>
-							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Paths.ModsInstallPath.Description}"/>
-							<TextBox Text="{Binding ModsInstallPath}"
-									 PlaceholderText="{local:Localize Settings.Paths.ModsInstallPath.Placeholder}"
-									 FontSize="12"
-									 Padding="8"
-									 Background="{DynamicResource TertiaryBackgroundBrush}"
-									 BorderBrush="{DynamicResource BorderBrush}"
-									 BorderThickness="1"
-									 CornerRadius="4"/>
-							<StackPanel Orientation="Horizontal" Spacing="8">
-								<Button Classes="catalog-detail-secondary"
-										Content="{local:Localize Settings.Paths.ModsInstallPath.Browse}"
-										Command="{Binding BrowseFolderCommand}"
-										Padding="12,6" FontSize="12"/>
-								<Button Content="{local:Localize Settings.Paths.ModsInstallPath.Reset}"
-										Command="{Binding ResetToDefaultCommand}"
-										Background="Transparent"
-										Foreground="{DynamicResource AccentBrush}"
-										BorderThickness="0"
-										Padding="10,6"
-										FontSize="11"/>
-							</StackPanel>
-						</StackPanel>
-					</Border>
-
-					<!-- Sekcja prywatności -->
-					<Border Classes="settings-row">
-						<StackPanel Spacing="8">
-							<TextBlock Classes="settings-title" Text="{local:Localize Settings.Privacy.Title}"/>
-							<Border Classes="settings-subrow">
-								<Grid ColumnDefinitions="*,Auto">
-									<StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
-										<TextBlock Text="{local:Localize Settings.Privacy.Telemetry.Label}"
-												   FontSize="13" FontWeight="Medium"
-												   Foreground="{DynamicResource TextPrimaryBrush}"
-												   TextWrapping="Wrap"/>
-										<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Privacy.Telemetry.Description}"/>
-										<TextBlock Text="{local:Localize Settings.Privacy.Telemetry.Details}"
-												   FontSize="10"
-												   Foreground="{DynamicResource TextMutedBrush}"
-												   TextWrapping="Wrap"/>
-									</StackPanel>
-									<ToggleSwitch Grid.Column="1"
-												  IsChecked="{Binding TelemetryEnabled}"
-												  OnContent="{local:Localize Settings.Privacy.Telemetry.OnContent}"
-												  OffContent="{local:Localize Settings.Privacy.Telemetry.OffContent}"
-												  VerticalAlignment="Center"
-												  Margin="12,0,0,0"/>
-								</Grid>
-							</Border>
-						</StackPanel>
-					</Border>
-
-					<!-- Sekcja wyboru kanału aktualizacji -->
-					<Border Classes="settings-row">
-						<StackPanel Spacing="8">
+						<Grid ColumnDefinitions="Auto,*">
+							<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
+										   Symbol="{x:Static fic:Symbol.ArrowSync}" Margin="0,0,14,0"/>
+						<StackPanel Grid.Column="1" Spacing="8">
 							<TextBlock Classes="settings-title" Text="{local:Localize Settings.UpdateChannel.Title}"/>
+							<TextBlock Text="{Binding CurrentUpdateChannelSummary}"
+									   FontSize="13"
+									   Foreground="{DynamicResource TextPrimaryBrush}"/>
 							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.UpdateChannel.Description}"/>
 							<ComboBox ItemsSource="{Binding AvailableUpdateChannels}"
 									  SelectedItem="{Binding SelectedUpdateChannel, Mode=TwoWay}"
@@ -433,11 +411,68 @@
 									HorizontalAlignment="Left"
 									Padding="12,6" FontSize="12"/>
 						</StackPanel>
+						</Grid>
+					</Border>
+
+					<!-- Zakotwiczenie czatu: stała kolumna po prawej (Save-based jak tray); efekt po udanym zapisie. -->
+					<Border Classes="settings-row">
+						<Grid ColumnDefinitions="Auto,*,Auto">
+							<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
+										   Symbol="{x:Static fic:Symbol.Pin}" Margin="0,0,14,0"/>
+							<StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+								<TextBlock Classes="settings-title" Text="{local:Localize Settings.ChatAnchor.Title}"/>
+								<TextBlock Classes="settings-desc" Text="{local:Localize Settings.ChatAnchor.Description}"/>
+								<!-- Neutralny hint tylko gdy preferencja włączona, ale okno za wąskie na kolumnę. -->
+								<TextBlock Classes="settings-desc"
+										   Text="{local:Localize Settings.ChatAnchor.WidthHint}"
+										   IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ChatAnchorHintVisible}"/>
+							</StackPanel>
+							<ToggleSwitch Grid.Column="2"
+										  IsChecked="{Binding ChatAnchored}"
+										  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
+										  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
+										  VerticalAlignment="Center" Margin="14,0,0,0"/>
+						</Grid>
+					</Border>
+
+					<!-- Sekcja prywatności -->
+					<Border Classes="settings-row">
+						<Grid ColumnDefinitions="Auto,*">
+							<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
+										   Symbol="{x:Static fic:Symbol.Shield}" Margin="0,0,14,0"/>
+						<StackPanel Grid.Column="1" Spacing="8">
+							<TextBlock Classes="settings-title" Text="{local:Localize Settings.Privacy.Title}"/>
+							<Border Classes="settings-subrow">
+								<Grid ColumnDefinitions="*,Auto">
+									<StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+										<TextBlock Text="{local:Localize Settings.Privacy.Telemetry.Label}"
+												   FontSize="13" FontWeight="Medium"
+												   Foreground="{DynamicResource TextPrimaryBrush}"
+												   TextWrapping="Wrap"/>
+										<TextBlock Classes="settings-desc" Text="{local:Localize Settings.Privacy.Telemetry.Description}"/>
+										<TextBlock Text="{local:Localize Settings.Privacy.Telemetry.Details}"
+												   FontSize="10"
+												   Foreground="{DynamicResource TextMutedBrush}"
+												   TextWrapping="Wrap"/>
+									</StackPanel>
+									<ToggleSwitch Grid.Column="1"
+												  IsChecked="{Binding TelemetryEnabled}"
+												  OnContent="{local:Localize Settings.Privacy.Telemetry.OnContent}"
+												  OffContent="{local:Localize Settings.Privacy.Telemetry.OffContent}"
+												  VerticalAlignment="Center"
+												  Margin="12,0,0,0"/>
+								</Grid>
+							</Border>
+						</StackPanel>
+						</Grid>
 					</Border>
 
 					<!-- Sekcja ustawień deweloperskich -->
 					<Border Classes="settings-row">
-						<StackPanel Spacing="8">
+						<Grid ColumnDefinitions="Auto,*">
+							<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
+										   Symbol="{x:Static fic:Symbol.Code}" Margin="0,0,14,0"/>
+						<StackPanel Grid.Column="1" Spacing="8">
 							<TextBlock Classes="settings-title" Text="{local:Localize Settings.Advanced.Title}"/>
 
 							<!-- DeveloperMode -->
@@ -476,56 +511,15 @@
 								</Grid>
 							</Border>
 						</StackPanel>
-					</Border>
-
-					<!-- Sekcja zachowania okna / system tray -->
-					<Border Classes="settings-row">
-						<StackPanel Spacing="8">
-							<TextBlock Classes="settings-title" Text="{local:Localize Settings.SystemTray.Title}"/>
-
-							<!-- Minimalizuj do tray -->
-							<Border Classes="settings-subrow">
-								<Grid ColumnDefinitions="*,Auto">
-									<StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-										<TextBlock Text="{local:Localize Settings.SystemTray.MinimizeToTray.Label}"
-												   FontSize="13" FontWeight="Medium"
-												   Foreground="{DynamicResource TextPrimaryBrush}"
-												   TextWrapping="Wrap"/>
-										<TextBlock Classes="settings-desc" Text="{local:Localize Settings.SystemTray.MinimizeToTray.Description}"/>
-									</StackPanel>
-									<ToggleSwitch Grid.Column="1"
-												  IsChecked="{Binding MinimizeToTray}"
-												  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
-												  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
-												  VerticalAlignment="Center"
-												  Margin="12,0,0,0"/>
-								</Grid>
-							</Border>
-
-							<!-- Szybkie uruchamianie w tray -->
-							<Border Classes="settings-subrow">
-								<Grid ColumnDefinitions="*,Auto">
-									<StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-										<TextBlock Text="{local:Localize Settings.SystemTray.QuickLaunch.Label}"
-												   FontSize="13" FontWeight="Medium"
-												   Foreground="{DynamicResource TextPrimaryBrush}"
-												   TextWrapping="Wrap"/>
-										<TextBlock Classes="settings-desc" Text="{local:Localize Settings.SystemTray.QuickLaunch.Description}"/>
-									</StackPanel>
-									<ToggleSwitch Grid.Column="1"
-												  IsChecked="{Binding ShowQuickLaunchInTray}"
-												  OnContent="{local:Localize Settings.Advanced.DeveloperMode.OnContent}"
-												  OffContent="{local:Localize Settings.Advanced.DeveloperMode.OffContent}"
-												  VerticalAlignment="Center"
-												  Margin="12,0,0,0"/>
-								</Grid>
-							</Border>
-						</StackPanel>
+						</Grid>
 					</Border>
 
 					<!-- Sekcja resetowania aplikacji -->
 					<Border Classes="settings-row">
-						<StackPanel Spacing="8">
+						<Grid ColumnDefinitions="Auto,*">
+							<ic:SymbolIcon Grid.Column="0" Classes="settings-icon"
+										   Symbol="{x:Static fic:Symbol.Warning}" Margin="0,0,14,0"/>
+						<StackPanel Grid.Column="1" Spacing="8">
 							<TextBlock Classes="settings-title" Text="{local:Localize Settings.FactoryReset.Title}"/>
 							<TextBlock Classes="settings-desc" Text="{local:Localize Settings.FactoryReset.Description}"/>
 							<Button Classes="modal-danger"
@@ -534,6 +528,7 @@
 									MinWidth="0" Padding="14,7" FontSize="12"
 									HorizontalAlignment="Left"/>
 						</StackPanel>
+						</Grid>
 					</Border>
 
 					</StackPanel>

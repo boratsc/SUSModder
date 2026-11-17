@@ -176,7 +176,8 @@
       "More": "Więcej",
       "ChatToggle": "Czat społeczności",
       "ChatToggleUnread": "Czat społeczności — {0} nowych wiadomości",
-      "ChatToggleUnreadOne": "Czat społeczności — {0} nowa wiadomość"
+      "ChatToggleUnreadOne": "Czat społeczności — {0} nowa wiadomość",
+      "ChatScrollToLatest": "Przewiń do najnowszych wiadomości"
     },
     "Window": {
       "Minimize": "Minimalizuj",
@@ -1020,7 +1021,7 @@
       "Title": "Ustawienia",
       "Subtitle": "Najważniejsze opcje, bez zbędnych szczegółów.",
       "Game": {
-        "Title": "Gra",
+        "Title": "Folder biblioteki modów",
         "Description": "Katalog biblioteki modów — kopie gry z zainstalowanymi modami.",
         "Browse": "Wybierz folder"
       },
@@ -1038,6 +1039,11 @@
         "Description": "Czat jako nakładka; powiadomienia, gdy jest zamknięty."
       },
       "Advanced": "Zaawansowane"
+    },
+    "ChatAnchor": {
+      "Title": "Zakotwiczenie czatu",
+      "Description": "Pokaż czat jako stałą kolumnę po prawej stronie. Okno zostanie poszerzone.",
+      "WidthHint": "Poszerz okno, aby pokazać czat obok treści."
     },
     "General": {
       "Language": {

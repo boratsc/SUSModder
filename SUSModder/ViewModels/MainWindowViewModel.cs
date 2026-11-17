@@ -639,6 +639,9 @@ public ReactiveCommand<Unit, Unit> CreateLocalPackCommand { get; } = null!;
             // Ustawienia użytkownika — potrzebne m.in. do znacznika zasad czatu.
             _userSettingsService = new UserSettingsService();
 
+            // Zakotwiczenie czatu: preferencja przy starcie; efektywny tryb ocenia MainWindow z szerokości okna.
+            _chatAnchored = _userSettingsService.LoadUserSettings().ChatAnchored;
+
             // Globalny komunikator — jedna instancja na okno, niezależna od zaznaczenia.
             CommunityChat = new CommunityChatPanelViewModel(
                 App.GetService<ICommunityChatService>(),

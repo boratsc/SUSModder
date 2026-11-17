@@ -5,6 +5,28 @@ namespace SUSModder.Core.Tests.Data;
 
 public class UserSettingsConcurrencyTests
 {
+    [Fact]
+    public async Task ChatAnchored_DefaultsToFalse_AndRoundTrips()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sus-settings-{Guid.NewGuid():N}.db");
+        try
+        {
+            await using var db = new DatabaseService(path);
+            await db.InitializeAsync();
+            var repository = new UserSettingsRepository(db);
+            Assert.False(repository.LoadSettings().ChatAnchored);
+            var settings = repository.LoadSettings();
+            settings.ChatAnchored = true;
+            repository.SaveSettings(settings);
+            repository.ClearCache();
+            Assert.True(repository.LoadSettings().ChatAnchored);
+        }
+        finally
+        {
+            try { File.Delete(path); } catch (IOException) { }
+        }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

@@ -1,4 +1,3 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
@@ -21,20 +20,6 @@ namespace SUSModder.Views
             _viewModel.UpdateChannelChanged += OnUpdateChannelChanged;
         }
 
-        protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
-        {
-            base.OnAttachedToVisualTree(e);
-            // E7: przełącznik czatu w ustawieniach odzwierciedla stan nakładki z MainWindowViewModel.
-            _viewModel?.SyncChatOverlayState();
-        }
-
-        protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-        {
-            // E9c: zerwij subskrypcję stanu nakładki przy odłączeniu widoku.
-            _viewModel?.StopChatOverlaySync();
-            base.OnDetachedFromVisualTree(e);
-        }
-
         private void OnSettingsSaved()
         {
             // Powiadom MainWindowViewModel o zapisaniu ustawień
@@ -50,6 +35,10 @@ namespace SUSModder.Views
 
             // Zsynchronizuj widoczność ikony tray z nowym ustawieniem MinimizeToTray
             mainWindow?.ApplyTrayVisibility();
+
+            // Zakotwiczenie czatu: zatwierdzona wartość trafia wprost do okna (bez ponownego odczytu serwisu).
+            if (_viewModel != null)
+                mainWindow?.ApplyChatAnchoredPreference(_viewModel.ChatAnchored);
         }
         
         private void OnUpdateChannelChanged(string newChannel)

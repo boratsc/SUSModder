@@ -77,11 +77,13 @@
 				<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ArrowSync}" FontSize="16"
 							   Foreground="{DynamicResource TextSecondaryBrush}"/>
 			</Button>
+			<!-- X zamyka tylko nakładkę; przy zadokowanej kolumnie ukryty (kolumny się nie zamyka). -->
 			<Button Grid.Column="4"
 					Padding="6"
 					VerticalAlignment="Top"
 					Background="Transparent"
 					BorderThickness="0"
+					IsVisible="{Binding IsDockedVisible, Converter={x:Static BoolConverters.Not}}"
 					Command="{Binding CloseChatCommand}"
 					AutomationProperties.Name="{loc:Localize UI.CommunityChat.Close}"
 					ToolTip.Tip="{loc:Localize UI.CommunityChat.Close}">

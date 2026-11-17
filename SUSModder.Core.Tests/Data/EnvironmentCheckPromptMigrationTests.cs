@@ -54,7 +54,7 @@ public sealed class EnvironmentCheckPromptMigrationTests
             }
             using var version = db.GetConnection().CreateCommand();
             version.CommandText = "PRAGMA user_version;";
-            Assert.Equal(22L, (long)version.ExecuteScalar()!);
+            Assert.Equal(23L, (long)version.ExecuteScalar()!);
         }
         finally { try { File.Delete(path); } catch (IOException) { } }
     }

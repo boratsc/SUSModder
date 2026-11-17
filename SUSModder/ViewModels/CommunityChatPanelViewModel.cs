@@ -309,34 +309,45 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
         NewMessageCount == 1 ? "UI.CommunityChat.NewMessagesOne" : "UI.CommunityChat.NewMessages",
         NewMessageCount);
 
-    /// <summary>E5: etykieta dymka na belce dla czytnika ekranu — z liczbą nieprzeczytanych, nie sama cyfra.</summary>
-    public string ChatToggleLabel => HasNewMessages
-        ? _loc.GetFormatted(NewMessageCount == 1 ? "UI.TopBar.ChatToggleUnreadOne" : "UI.TopBar.ChatToggleUnread", NewMessageCount)
-        : _loc.Get("UI.TopBar.ChatToggle");
+    /// <summary>
+    /// E5: etykieta dymka na belce dla czytnika ekranu — z liczbą nieprzeczytanych, nie sama cyfra.
+    /// Przy zadokowanej kolumnie przycisk przewija do najnowszych (nie otwiera nakładki).
+    /// </summary>
+    public string ChatToggleLabel => IsDockedVisible
+        ? _loc.Get("UI.TopBar.ChatScrollToLatest")
+        : HasNewMessages
+            ? _loc.GetFormatted(NewMessageCount == 1 ? "UI.TopBar.ChatToggleUnreadOne" : "UI.TopBar.ChatToggleUnread", NewMessageCount)
+            : _loc.Get("UI.TopBar.ChatToggle");
 
     private bool _isChatOpen;
+    private bool _isDockedVisible;
 
     /// <summary>
     /// E5: nakładka czatu otwarta (właścicielem stanu jest MainWindowViewModel, pushowany tutaj).
-    /// Otwarcie czyści nieprzeczytane, przewija do najnowszych i przenosi fokus do pola pisania.
+    /// Jawne otwarcie czyści nieprzeczytane, przewija do najnowszych i przenosi fokus do pola pisania.
     /// </summary>
     public bool IsChatOpen
     {
         get => _isChatOpen;
-        set
-        {
-            if (_isChatOpen == value)
-                return;
+        set => SetOverlayOpen(value, auto: false);
+    }
 
-            _isChatOpen = value;
-            this.RaisePropertyChanged(nameof(IsChatOpen));
-            if (!value)
-            {
-                // E11b: zamknięcie kończy sesję podglądu — snapshot i divider znikają.
-                _unreadSnapshot = null;
-                UpdateUnreadAnchor();
+    /// <summary>
+    /// Otwarcie/zamknięcie nakładki. auto=true = automatyczne przejście kolumna↔nakładka:
+    /// bez mark-read, fokusu i wymuszonego przewinięcia (sesja, szkic i przewinięcie zostają).
+    /// </summary>
+    public void SetOverlayOpen(bool value, bool auto)
+    {
+        if (_isChatOpen == value)
+            return;
+
+        _isChatOpen = value;
+        this.RaisePropertyChanged(nameof(IsChatOpen));
+        this.RaisePropertyChanged(nameof(IsChatVisible));
+        if (value)
+        {
+            if (auto)
                 return;
-            }
 
             // E11b: snapshot watermarka PRZED mark-read — kotwica dividera na czas sesji.
             _unreadSnapshot = _readWatermark;
@@ -349,7 +360,40 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
             if (!IsRulesVisible)
                 FocusInputRequested?.Invoke();
         }
+        else if (!_isDockedVisible)
+        {
+            // E11b: koniec sesji podglądu dopiero gdy czat znika całkiem (także kolumna).
+            _unreadSnapshot = null;
+            UpdateUnreadAnchor();
+        }
     }
+
+    /// <summary>
+    /// Kolumna czatu widoczna (automatyczna prezentacja przy dokowaniu). Bez mark-read i fokusu —
+    /// czytanie wyłącznie przez regułę widoczny + focused + na dole; badge rośnie po przewinięciu w górę.
+    /// </summary>
+    public bool IsDockedVisible
+    {
+        get => _isDockedVisible;
+        set
+        {
+            if (_isDockedVisible == value)
+                return;
+
+            _isDockedVisible = value;
+            this.RaisePropertyChanged(nameof(IsDockedVisible));
+            this.RaisePropertyChanged(nameof(IsChatVisible));
+            this.RaisePropertyChanged(nameof(ChatToggleLabel));
+            if (!value && !_isChatOpen)
+            {
+                _unreadSnapshot = null;
+                UpdateUnreadAnchor();
+            }
+        }
+    }
+
+    /// <summary>Rzeczywista widoczność czatu (kolumna LUB nakładka) — dla reguły czytania i polityki toastów.</summary>
+    public bool IsChatVisible => _isChatOpen || _isDockedVisible;
 
     private bool _windowFocused = true;
 
@@ -734,8 +778,8 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
         foreach (var item in Messages)
             _itemsById[item.Id] = item;
 
-        // E5: auto-scroll tylko gdy nakładka otwarta i użytkownik przy końcu.
-        if (newCount > 0 && IsChatOpen && UserAtBottom)
+        // E5: auto-scroll tylko gdy czat widoczny (nakładka lub kolumna) i użytkownik przy końcu.
+        if (newCount > 0 && IsChatVisible && UserAtBottom)
             ScrollToBottomRequested?.Invoke();
 
         RecomputeUnread(freshItems);
@@ -762,8 +806,8 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        // Czat otwarty + okno focused + użytkownik przy końcu = czytanie na żywo.
-        if (IsChatOpen && WindowFocused && UserAtBottom)
+        // Czat widoczny (nakładka lub kolumna) + okno focused + użytkownik przy końcu = czytanie na żywo.
+        if (IsChatVisible && WindowFocused && UserAtBottom)
             AdvanceWatermark(latestTs);
 
         var unread = Messages.Count(m => !m.IsOwn && UnixMs(m) > _readWatermark);
@@ -780,7 +824,7 @@ public sealed class CommunityChatPanelViewModel : ReactiveObject, IDisposable
         if (freshItems.Count > 0)
         {
             var freshUnread = freshItems.Where(m => !m.IsOwn && UnixMs(m) > _readWatermark).ToList();
-            var plan = ChatToastPolicy.Plan(freshUnread, IsChatOpen, WindowFocused);
+            var plan = ChatToastPolicy.Plan(freshUnread, IsChatVisible, WindowFocused);
             if (plan is not null)
                 ChatToastsRequested?.Invoke(plan);
         }

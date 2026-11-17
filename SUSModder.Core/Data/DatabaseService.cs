@@ -27,7 +27,8 @@ namespace SUSModder.Core.Data
         // v18 – user_settings: wybór wersji legendary (pinned / ręczny).
         // v19 – user_settings.chat_read_watermark_unix_ms.
         // v20 – user_settings.environment_check_prompt_version.
-        private const int LatestSchemaVersion = 22;
+        // v23 – user_settings.chat_anchored.
+        private const int LatestSchemaVersion = 23;
 
         public DatabaseService()
         {
@@ -236,7 +237,8 @@ namespace SUSModder.Core.Data
                     legendary_release_tag TEXT NOT NULL DEFAULT '',
                     legendary_release_asset TEXT NOT NULL DEFAULT '',
                     legendary_release_sha256 TEXT NOT NULL DEFAULT '',
-                    mod_list_sort TEXT NOT NULL DEFAULT 'PopularityDesc'
+                    mod_list_sort TEXT NOT NULL DEFAULT 'PopularityDesc',
+                    chat_anchored INTEGER NOT NULL DEFAULT 0
                 );";
             cmd.ExecuteNonQuery();
 
@@ -952,6 +954,26 @@ namespace SUSModder.Core.Data
                     throw;
                 }
             }
+
+            if (currentVersion < 23)
+            {
+                BackupDatabase();
+                using var tx = conn.BeginTransaction();
+                try
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = tx;
+                    EnsureColumn(cmd, "user_settings", "chat_anchored",
+                        "ALTER TABLE user_settings ADD COLUMN chat_anchored INTEGER NOT NULL DEFAULT 0;");
+                    tx.Commit();
+                    SetUserVersion(conn, 23);
+                }
+                catch
+                {
+                    try { tx.Rollback(); } catch { }
+                    throw;
+                }
+            }
         }
 
         /// <summary>
@@ -1511,13 +1533,13 @@ namespace SUSModder.Core.Data
                         mods_install_path, license_accepted, first_run_date, update_channel,
                         vanilla_install_path, av_warning_sig, last_seen_version,
                         minimize_to_tray, show_quick_launch_tray, tray_first_minimize_shown,
-                        settings_version, environment_check_prompt_version
+                        settings_version, environment_check_prompt_version, chat_anchored
                     ) VALUES (
                         1, @mode, @last_launch_id, @theme, @language, @telemetry_enabled,
                         @mods_install_path, @license_accepted, @first_run_date, @update_channel,
                         @vanilla_install_path, @av_warning_sig, @last_seen_version,
                         @minimize_to_tray, @show_quick_launch_tray, @tray_first_minimize_shown,
-                        @settings_version, @environment_check_prompt_version
+                        @settings_version, @environment_check_prompt_version, @chat_anchored
                     );";
 
                 cmd.Parameters.AddWithValue("@mode", settings.Mode ?? string.Empty);
@@ -1537,6 +1559,7 @@ namespace SUSModder.Core.Data
                 cmd.Parameters.AddWithValue("@tray_first_minimize_shown", settings.TrayFirstMinimizeShown ? 1 : 0);
                 cmd.Parameters.AddWithValue("@settings_version", settings.SettingsVersion);
                 cmd.Parameters.AddWithValue("@environment_check_prompt_version", settings.EnvironmentCheckPromptVersion);
+                cmd.Parameters.AddWithValue("@chat_anchored", settings.ChatAnchored ? 1 : 0);
 
                 cmd.ExecuteNonQuery();
                 System.Diagnostics.Debug.WriteLine($"[DatabaseService] Zaimportowano user-settings.json → user_settings (mode={settings.Mode}, theme={settings.Theme}, lang={settings.Language})");

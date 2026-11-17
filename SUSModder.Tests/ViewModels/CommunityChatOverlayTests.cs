@@ -216,4 +216,120 @@ public sealed class CommunityChatOverlayTests
         Assert.Equal(0, toasts);
         vm.Dispose();
     }
+
+    // ══════════ Zakotwiczenie czatu: kolumna = automatyczna prezentacja ══════════
+
+    [Fact]
+    public async Task DockedColumn_AutoShow_DoesNotMarkReadOrFocusOrScroll()
+    {
+        var fake = TwoStageFake();
+        using var vm = NewVm(fake);
+        vm.WindowFocused = false; // izolacja: czytanie na żywo nie rusza watermarka bez focusu
+
+        vm.Start();
+        await WaitUntilAsync(() => vm.NewMessageCount == 1, "badge przed dokowaniem");
+        vm.NotifyUserAtBottom(false); // użytkownik czyta starsze treści
+
+        var scrolls = 0;
+        var focus = 0;
+        vm.ScrollToBottomRequested += () => scrolls++;
+        vm.FocusInputRequested += () => focus++;
+
+        vm.IsDockedVisible = true;
+
+        // Samo pokazanie kolumny nie czyta historii, nie kradnie fokusu i nie wymusza przewinięcia.
+        Assert.True(vm.IsChatVisible);
+        Assert.Equal(1, vm.NewMessageCount);
+        Assert.False(vm.UserAtBottom);
+        Assert.Equal(0, scrolls);
+        Assert.Equal(0, focus);
+
+        await WaitUntilAsync(() => fake.GetCalls >= 3, "kolejne pollingi przy widocznej kolumnie");
+        Assert.Equal(1, vm.NewMessageCount); // badge stabilny — brak mark-read przy prezentacji
+        Assert.Equal(0, focus);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task DockedColumn_Focused_AtBottom_LiveReads_NoToasts()
+    {
+        var fake = TwoStageFake();
+        using var vm = NewVm(fake);
+        vm.IsDockedVisible = true;
+        vm.WindowFocused = true;
+        var toasts = 0;
+        vm.ChatToastsRequested += _ => toasts++;
+
+        vm.Start();
+        await WaitUntilAsync(() => vm.Messages.Count == 2, "druga wiadomość dopłynęła");
+
+        // Kolumna czyta przez istniejącą regułę widoczny + focused + na dole (jak otwarta nakładka).
+        Assert.Equal(0, vm.NewMessageCount);
+        Assert.Equal(0, toasts);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public void DockedChat_ToggleLabel_IsScrollToLatest_NotOpenChat()
+    {
+        using var vm = NewVm(new FakeCommunityChatService());
+
+        vm.IsDockedVisible = true;
+        Assert.Equal("UI.TopBar.ChatScrollToLatest", vm.ChatToggleLabel);
+
+        vm.IsDockedVisible = false;
+        Assert.Equal("UI.TopBar.ChatToggle", vm.ChatToggleLabel);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task AutoOverlayTransition_OpensWithoutMarkReadOrFocus()
+    {
+        var fake = TwoStageFake();
+        using var vm = NewVm(fake);
+
+        vm.Start();
+        await WaitUntilAsync(() => vm.NewMessageCount == 1, "badge przed przejściem");
+        await vm.AcknowledgeRulesCommand.Execute().ToTask();
+
+        var scrolls = 0;
+        var focus = 0;
+        vm.ScrollToBottomRequested += () => scrolls++;
+        vm.FocusInputRequested += () => focus++;
+
+        // Rozdokowanie zostawia rozmowę jako nakładkę — przejście automatyczne, bez skutków jawnego otwarcia.
+        vm.SetOverlayOpen(true, auto: true);
+
+        Assert.True(vm.IsChatOpen);
+        Assert.True(vm.IsChatVisible);
+        Assert.Equal(1, vm.NewMessageCount);
+        Assert.Equal(0, scrolls);
+        Assert.Equal(0, focus);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task CloseOverlay_WhileDocked_KeepsSession_UntilFullyHidden()
+    {
+        var fake = TwoStageFake();
+        using var vm = NewVm(fake);
+
+        vm.Start();
+        await WaitUntilAsync(() => vm.NewMessageCount == 1, "badge przed otwarciem");
+
+        vm.IsChatOpen = true;
+        Assert.Equal("b", vm.UnreadAnchorMessageId);
+
+        // Przejście kolumna↔nakładka zachowuje sesję: zamknięcie nakładki przy widocznej kolumnie nie kończy podglądu.
+        vm.IsDockedVisible = true;
+        vm.IsChatOpen = false;
+        Assert.True(vm.IsChatVisible);
+        Assert.True(vm.HasUnreadAnchor);
+
+        // Dopiero pełne ukrycie (kolumna i nakładka) kończy sesję.
+        vm.IsDockedVisible = false;
+        Assert.False(vm.IsChatVisible);
+        Assert.False(vm.HasUnreadAnchor);
+        vm.Dispose();
+    }
 }

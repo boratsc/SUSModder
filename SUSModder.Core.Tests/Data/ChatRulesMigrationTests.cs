@@ -8,7 +8,7 @@ namespace SUSModder.Core.Tests.Data;
 /// </summary>
 public class ChatRulesMigrationTests : IDisposable
 {
-    private const int ExpectedSchemaVersion = 22;
+    private const int ExpectedSchemaVersion = 23;
 
     private readonly string _tempDir;
 

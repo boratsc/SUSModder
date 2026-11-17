@@ -360,6 +360,52 @@ public sealed class CommunityChatReadStateTests
         vm.Dispose();
     }
 
+    // ══════════ Zakotwiczenie czatu: kolumna a watermark przeczytania ══════════
+
+    [Fact]
+    public async Task DockedShow_Alone_DoesNotPersistWatermark()
+    {
+        var store = new FakeReadStateStore { Watermark = Ms(0) };
+        var fake = new FakeCommunityChatService { GetFactory = _ => Snapshot(At("a", 1), At("b", 2)) };
+        using var vm = NewVm(fake, store);
+        vm.WindowFocused = false; // izolacja od czytania na żywo
+
+        vm.Start();
+        await WaitUntilAsync(() => vm.NewMessageCount == 2, "badge przed dokowaniem");
+
+        vm.IsDockedVisible = true;
+        await WaitUntilAsync(() => fake.GetCalls >= 3, "pollingi przy widocznej kolumnie");
+
+        // Automatyczna prezentacja nie czyta historii — watermark i badge nietknięte.
+        Assert.Equal(Ms(0), store.Watermark);
+        Assert.Equal(0, store.Writes);
+        Assert.Equal(2, vm.NewMessageCount);
+        vm.Dispose();
+    }
+
+    [Fact]
+    public async Task DockedVisible_Focused_AtBottom_AdvancesWatermark_NoBadgeNoToasts()
+    {
+        var store = new FakeReadStateStore { Watermark = Ms(0) };
+        var fake = new FakeCommunityChatService
+        {
+            GetFactory = call => call == 1 ? Snapshot(At("a", 1)) : Snapshot(At("a", 1), At("b", 2))
+        };
+        using var vm = NewVm(fake, store);
+        vm.IsDockedVisible = true;
+        vm.WindowFocused = true;
+        var toasts = 0;
+        vm.ChatToastsRequested += _ => toasts++;
+
+        vm.Start();
+        await WaitUntilAsync(() => store.Watermark == Ms(2), "live-read kolumny przesuwa watermark");
+
+        Assert.Equal(0, vm.NewMessageCount);
+        Assert.Equal(0, toasts);
+        Assert.Equal(2, store.Writes);
+        vm.Dispose();
+    }
+
     private sealed class FakeReadStateStore : IChatReadStateStore
     {
         public long Watermark { get; set; }

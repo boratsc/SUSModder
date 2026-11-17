@@ -79,7 +79,7 @@ namespace SUSModder.Core.Data
                     chat_read_watermark_unix_ms,
                     legendary_use_pinned, legendary_release_source, legendary_release_tag,
                     legendary_release_asset, legendary_release_sha256,
-                    mod_list_sort
+                    mod_list_sort, chat_anchored
                 ) VALUES (
                     1, @mode, @last_launch_id, @theme, @language, @telemetry_enabled,
                     @mods_install_path, @license_accepted, @first_run_date, @update_channel,
@@ -95,7 +95,7 @@ namespace SUSModder.Core.Data
                     @chat_read_watermark_unix_ms,
                     @legendary_use_pinned, @legendary_release_source, @legendary_release_tag,
                     @legendary_release_asset, @legendary_release_sha256,
-                    @mod_list_sort
+                    @mod_list_sort, @chat_anchored
                 )
                 ON CONFLICT(id) DO UPDATE SET
                     mode = excluded.mode,
@@ -131,7 +131,8 @@ namespace SUSModder.Core.Data
                     legendary_release_tag = CASE WHEN @legendary_changed THEN excluded.legendary_release_tag ELSE legendary_release_tag END,
                     legendary_release_asset = CASE WHEN @legendary_changed THEN excluded.legendary_release_asset ELSE legendary_release_asset END,
                     legendary_release_sha256 = CASE WHEN @legendary_changed THEN excluded.legendary_release_sha256 ELSE legendary_release_sha256 END,
-                    mod_list_sort = excluded.mod_list_sort;";
+                    mod_list_sort = excluded.mod_list_sort,
+                    chat_anchored = excluded.chat_anchored;";
 
             cmd.Parameters.AddWithValue("@mode", settings.Mode ?? string.Empty);
             cmd.Parameters.AddWithValue("@last_launch_id", settings.LastLaunchId);
@@ -168,6 +169,7 @@ namespace SUSModder.Core.Data
             cmd.Parameters.AddWithValue("@legendary_release_asset", settings.LegendaryReleaseAsset ?? string.Empty);
             cmd.Parameters.AddWithValue("@legendary_release_sha256", settings.LegendaryReleaseSha256 ?? string.Empty);
             cmd.Parameters.AddWithValue("@mod_list_sort", string.IsNullOrWhiteSpace(settings.ModListSort) ? "PopularityDesc" : settings.ModListSort);
+            cmd.Parameters.AddWithValue("@chat_anchored", settings.ChatAnchored ? 1 : 0);
             bool legendaryChanged = settings.LegendaryBaseline is null || settings.LegendaryBaseline.Value != settings.LegendarySelection;
             cmd.Parameters.AddWithValue("@legendary_changed", legendaryChanged ? 1 : 0);
 
@@ -202,7 +204,7 @@ namespace SUSModder.Core.Data
                 "chat_read_watermark_unix_ms",
                 "legendary_use_pinned", "legendary_release_source", "legendary_release_tag",
                 "legendary_release_asset", "legendary_release_sha256",
-                "mod_list_sort"
+                "mod_list_sort", "chat_anchored"
             };
 
             if (!allowedColumns.Contains(columnName))
@@ -282,7 +284,8 @@ namespace SUSModder.Core.Data
                 LegendaryReleaseTag = TryGetString(reader, "legendary_release_tag", string.Empty),
                 LegendaryReleaseAsset = TryGetString(reader, "legendary_release_asset", string.Empty),
                 LegendaryReleaseSha256 = TryGetString(reader, "legendary_release_sha256", string.Empty),
-                ModListSort = TryGetString(reader, "mod_list_sort", "PopularityDesc")
+                 ModListSort = TryGetString(reader, "mod_list_sort", "PopularityDesc"),
+                 ChatAnchored = TryGetBool(reader, "chat_anchored", false)
             };
         }
 

@@ -11,13 +11,59 @@ namespace SUSModder.ViewModels
 
         /// <summary>
         /// E5: stan nakładki czatu społeczności (dymek na belce, klik toastu, X, Escape).
-        /// Czat nie ma stałej kolumny; domyślnie zamknięty.
+        /// Przy dokowaniu czat jest stałą kolumną (IsChatDocked) — ten stan dotyczy tylko nakładki.
         /// </summary>
         public bool IsChatOpen
         {
             get => _isChatOpen;
             set => this.RaiseAndSetIfChanged(ref _isChatOpen, value);
         }
+
+        private bool _chatAnchored;
+
+        /// <summary>Preferencja zakotwiczenia czatu (z ustawień, po zapisie). Efektywny tryb wymaga też szerokości okna.</summary>
+        public bool ChatAnchored
+        {
+            get => _chatAnchored;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _chatAnchored, value);
+                this.RaisePropertyChanged(nameof(ChatAnchorHintVisible));
+            }
+        }
+
+        private bool _isChatDocked;
+
+        /// <summary>
+        /// Dokowanie efektywne: preferencja + szerokość okna >= 1420 DIP. Ustawiane przez MainWindow
+        /// z układu; wyłączenie zostawia otwarty czat jako nakładkę (bez mark-read i fokusu).
+        /// </summary>
+        public bool IsChatDocked
+        {
+            get => _isChatDocked;
+            set
+            {
+                if (_isChatDocked == value)
+                    return;
+
+                var wasDocked = _isChatDocked;
+                this.RaiseAndSetIfChanged(ref _isChatDocked, value);
+                this.RaisePropertyChanged(nameof(ChatAnchorHintVisible));
+                CommunityChat.IsDockedVisible = value;
+
+                // Rozdokowanie nie zamyka rozmowy: kolumna staje się nakładką automatycznie
+                // (auto=true — bez kasowania nieprzeczytanych, fokusu i wymuszonego przewinięcia).
+                if (wasDocked && !value && !_isChatOpen)
+                {
+                    CommunityChat.SetOverlayOpen(true, auto: true);
+                    _isChatOpen = true;
+                    this.RaisePropertyChanged(nameof(IsChatOpen));
+                }
+            }
+        }
+
+        /// <summary>Neutralny hint w ustawieniach: preferencja włączona, ale okno za wąskie na kolumnę.</summary>
+        public bool ChatAnchorHintVisible => ChatAnchored && !IsChatDocked;
 
         public ReactiveCommand<Unit, Unit> ToggleChatCommand { get; private set; } =
             ReactiveCommand.Create(() => { });
@@ -146,13 +192,21 @@ namespace SUSModder.ViewModels
         private void InitializeFrontendLayout()
         {
             CloseToolModalCommand = ReactiveCommand.Create(CloseToolModal);
-            ToggleChatCommand = ReactiveCommand.Create(() => { IsChatOpen = !IsChatOpen; });
+            // Dokowany czat: przycisk belki przewija do najnowszych; nakładka: toggle jak dotąd.
+            ToggleChatCommand = ReactiveCommand.Create(() =>
+            {
+                if (IsChatDocked)
+                    CommunityChat.OnNewMessagesButton();
+                else
+                    IsChatOpen = !IsChatOpen;
+            });
         }
 
         /// <summary>
         /// E5: mapuje plan polityki toastów czatu na ToastService.
         /// ≥2 wiadomości: toast grupowy + najwyżej 2 najnowsze podglądy (wzorzec hosta: max 3 widoczne).
-        /// Klik toastu otwiera nakładkę; X usuwa tylko toast (obsługa hosta).
+        /// Klik toastu: nakładka otwiera się; przy dokowaniu przewija do najnowszych (bez drugiego czatu).
+        /// X usuwa tylko toast (obsługa hosta).
         /// </summary>
         private void OnChatToastsRequested(ChatToastPlan plan)
         {
@@ -161,14 +215,22 @@ namespace SUSModder.ViewModels
                     _localizationService.GetFormatted("UI.CommunityChat.NewMessages", count),
                     _localizationService.Get("UI.CommunityChat.Title"),
                     _localizationService.Get("UI.CommunityChat.Toast.GroupHint"),
-                    () => IsChatOpen = true);
+                    OpenChatFromToast);
 
             foreach (var message in plan.Previews)
                 ToastService.ShowChat(
                     _localizationService.Get("UI.CommunityChat.Toast.SingleTitle"),
                     message.AuthorDisplay,
                     message.DisplayContent,
-                    () => IsChatOpen = true);
+                    OpenChatFromToast);
+        }
+
+        private void OpenChatFromToast()
+        {
+            if (IsChatDocked)
+                CommunityChat.OnNewMessagesButton();
+            else
+                IsChatOpen = true;
         }
 
         /// <summary>E11: unread spadło do 0 / przeczytano — zdejmij aktywne toasty czatu.</summary>

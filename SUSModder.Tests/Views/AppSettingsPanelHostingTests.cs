@@ -30,6 +30,41 @@ public class AppSettingsPanelHostingTests
     }
 
     [Fact]
+    public void ContentGrid_HasFourthColumn_ForAnchoredChat()
+    {
+        var doc = LoadMainWindow();
+        var contentGrid = doc.Descendants(XamlNs + "Grid")
+            .Single(e => (string?)e.Attribute(XNs + "Name") == "ContentGrid");
+
+        // Czwarta kolumna (czat dokowany); szerokością zarządza ApplyRightColumnLayout (520 albo 0).
+        var columns = ((string?)contentGrid.Attribute("ColumnDefinitions"))!.Split(',');
+        Assert.Equal(4, columns.Length);
+        Assert.Equal("230", columns[0]);
+        Assert.Equal("440", columns[1]);
+        Assert.Equal("*", columns[2]);
+    }
+
+    [Fact]
+    public void ChatHost_IsSingleInstance_InsideContentGrid_NotAModal()
+    {
+        var doc = LoadMainWindow();
+        var contentGrid = doc.Descendants(XamlNs + "Grid")
+            .Single(e => (string?)e.Attribute(XNs + "Name") == "ContentGrid");
+
+        // Jeden panel i jeden host w całym oknie (bez dublowania kolumna/nakładka).
+        Assert.Single(doc.Descendants(), e => e.Name.LocalName == "CommunityChatPanel");
+        var chatHost = doc.Descendants(XamlNs + "Border")
+            .Single(e => (string?)e.Attribute(XNs + "Name") == "ChatOverlayHost");
+        Assert.Contains(contentGrid.Descendants(), e => e == chatHost);
+        Assert.Single(chatHost.Descendants(), e => e.Name.LocalName == "CommunityChatPanel");
+
+        // Widoczność = rzeczywista widoczność czatu (kolumna LUB nakładka), nie sam stan nakładki.
+        Assert.Equal("{Binding CommunityChat.IsChatVisible}", (string?)chatHost.Attribute("IsVisible"));
+        // Nakładka nad szczegółami (50), ale pod modalami (później w drzewie, ZIndex domyślny).
+        Assert.Equal("60", (string?)chatHost.Attribute("ZIndex"));
+    }
+
+    [Fact]
     public void SettingsPanel_IsNotInsideToolModalOverlay()
     {
         var doc = LoadMainWindow();
