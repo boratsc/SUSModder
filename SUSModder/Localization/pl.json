@@ -83,7 +83,8 @@
       "InstallLatest": "Instaluj (najnowsza wersja)",
       "SelectVersion": "📦 Wybierz wersję...",
       "AddDll": "Dodaj DLL",
-      "Roles": "Role"
+      "Roles": "Role",
+      "FirewallRules": "Reguły firewalla"
     },
     "Bulk": {
       "SelectMode": "Zaznacz",
@@ -642,8 +643,7 @@
         "sac": "Smart App Control (Windows)",
         "firewall": {
           "profiles": "Zapora Windows",
-          "thirdparty": "Inna zapora sieciowa",
-          "rules": "Zezwolenie zapory dla gry"
+          "thirdparty": "Inna zapora sieciowa"
         },
         "av": {
           "thirdparty": "Antywirus spoza Windows"
@@ -673,12 +673,7 @@
             "enabled": "Zapora Windows jest włączona — to normalne i bezpieczne.",
             "thirdparty_unknown": "Nie udało się sprawdzić, czy jest inna zapora sieciowa.",
             "thirdparty_none": "Nie ma innej zapory sieciowej — o dostęp do sieci dba tylko Zapora Windows.",
-            "thirdparty_detected": "Jest inna zapora sieciowa: {0}. Ona też może decydować, czy gra ma dostęp do sieci.",
-            "rules_unknown": "Nie udało się sprawdzić zezwolenia zapory dla gry.",
-            "rules_not_applicable": "Nie znaleziono pliku gry, więc nie ma czego sprawdzać.",
-            "rules_missing": "Zapora Windows nie ma zezwolenia dla tej gry. Dodaj je narzędziem firewalla — przycisk poniżej.",
-            "rules_drift": "Zezwolenie zapory dotyczy innego pliku gry niż ten, którego używasz. Odśwież je narzędziem firewalla.",
-            "rules_ok": "Zapora Windows ma poprawne zezwolenie dla tej gry."
+            "thirdparty_detected": "Jest inna zapora sieciowa: {0}. Ona też może decydować, czy gra ma dostęp do sieci."
           },
           "av": {
             "unknown": "Nie udało się sprawdzić antywirusa.",
@@ -714,7 +709,6 @@
       "Action": {
         "OpenWindowsSecurity": "Otwórz Windows Security",
         "OpenSteam": "Otwórz Steam",
-        "OpenFirewallTool": "Otwórz narzędzie firewalla",
         "SacInstruction": "Smart App Control to ochrona całego komputera. Jeśli mody nie działają, ta funkcja może je blokować, bo nie są podpisane cyfrowo. 1. Otwórz Windows Security przyciskiem poniżej. 2. Zobacz, czy Smart App Control jest włączony — szczegóły pokaże Windows Security. 3. Decyzja o zmianie należy do Ciebie — my nie zmieniamy tego ustawienia.",
         "SteamBetaInstruction": "1. Otwórz Steam przyciskiem poniżej. 2. Kliknij Among Us w bibliotece prawym przyciskiem i wybierz „Właściwości”. 3. Wejdź w „Betas” i wybierz „Brak”. 4. Poczekaj, aż Steam pobierze zwykłą wersję gry.",
         "AvInstruction": "Antywirus może blokować lub usuwać pliki modów. 1. Otwórz swój antywirus. 2. Dodaj folder „{0}” do wyjątków (zaufanych). 3. Jeśli mod został usunięty, zainstaluj go ponownie w SUSModderze. SUSModder nie zmienia ustawień antywirusa automatycznie.",
@@ -723,8 +717,6 @@
       "Detail": {
         "Code": "Kod: {0}",
         "Path": "Ścieżka: {0}",
-        "RulePath": "Zezwolenie zapory dotyczy: {0}",
-        "TargetPath": "Gra jest tutaj: {0}",
         "Branch": "Wersja w Steam: {0}"
       }
     }
@@ -2023,6 +2015,7 @@
     "Actions.CreateSupportBundle": "Utwórz pakiet wsparcia",
     "Actions.ReinstallMod": "Przeinstaluj moda",
     "Actions.OpenAiSupport": "Pomoc SUSModder",
+    "Actions.OpenFirewallTool": "Narzędzie firewalla",
     "Actions.Close": "Zamknij",
     "Privacy.SupportBundleNotice": "Pakiet wsparcia zawiera zanonimizowane logi i metadane. Nie wysyłamy go automatycznie.",
     "AdminConsent.Explanation": "Ta operacja wymaga uprawnień administratora. Zostaniesz poproszony o zgodę przez kontrolę konta użytkownika (UAC)."

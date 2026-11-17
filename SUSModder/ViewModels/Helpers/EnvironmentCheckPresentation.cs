@@ -11,8 +11,7 @@ public enum EnvironmentCheckAction
 {
     None,
     OpenWindowsSecurity,
-    OpenSteam,
-    OpenFirewallTool
+    OpenSteam
 }
 
 /// <summary>Wiersz raportu: ikona statusu + etykieta tekstowa + tytuł + wyjaśnienie + opcjonalna akcja.</summary>
@@ -130,10 +129,6 @@ public static class EnvironmentCheckPresentation
             case "env.steam.files_only":
                 lines.Add(loc.GetFormatted("UI.EnvironmentCheck.Detail.Path", Value(result, "path")));
                 break;
-            case "env.firewall.rules_drift":
-                lines.Add(loc.GetFormatted("UI.EnvironmentCheck.Detail.RulePath", Value(result, "rulePath")));
-                lines.Add(loc.GetFormatted("UI.EnvironmentCheck.Detail.TargetPath", Value(result, "targetPath")));
-                break;
             case "env.steam.beta_nondefault":
             case "env.steam.beta_inconsistent":
                 lines.Add(loc.GetFormatted("UI.EnvironmentCheck.Detail.Branch", Value(result, "branch")));
@@ -159,11 +154,6 @@ public static class EnvironmentCheckPresentation
                 EnvironmentCheckAction.OpenSteam,
                 "UI.EnvironmentCheck.Action.OpenSteam",
                 "UI.EnvironmentCheck.Action.SteamBetaInstruction",
-                Array.Empty<object>()),
-            ("firewall.rules", "env.firewall.rules_missing" or "env.firewall.rules_drift") => (
-                EnvironmentCheckAction.OpenFirewallTool,
-                "UI.EnvironmentCheck.Action.OpenFirewallTool",
-                null,
                 Array.Empty<object>()),
             ("av.thirdparty", "env.av.detected") => (
                 EnvironmentCheckAction.None,

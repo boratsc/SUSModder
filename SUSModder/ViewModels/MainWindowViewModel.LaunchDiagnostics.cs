@@ -23,6 +23,7 @@ public partial class MainWindowViewModel
     private string _launchDiagBtnOpenLogs = string.Empty;
     private string _launchDiagBtnSupportBundle = string.Empty;
     private string _launchDiagBtnAiSupport = string.Empty;
+    private string _launchDiagBtnFirewallTool = string.Empty;
     private string _launchDiagBtnClose = string.Empty;
 
     public string LaunchDiagBtnOpenModFolder
@@ -47,6 +48,12 @@ public partial class MainWindowViewModel
     {
         get => _launchDiagBtnAiSupport;
         private set => this.RaiseAndSetIfChanged(ref _launchDiagBtnAiSupport, value);
+    }
+
+    public string LaunchDiagBtnFirewallTool
+    {
+        get => _launchDiagBtnFirewallTool;
+        private set => this.RaiseAndSetIfChanged(ref _launchDiagBtnFirewallTool, value);
     }
 
     public string LaunchDiagBtnClose
@@ -134,6 +141,7 @@ public partial class MainWindowViewModel
         LaunchDiagBtnOpenLogs = _localizationService.Get("LaunchDiagnostics.Actions.OpenLogs");
         LaunchDiagBtnSupportBundle = _localizationService.Get("LaunchDiagnostics.Actions.CreateSupportBundle");
         LaunchDiagBtnAiSupport = _localizationService.Get("LaunchDiagnostics.Actions.OpenAiSupport");
+        LaunchDiagBtnFirewallTool = _localizationService.Get("LaunchDiagnostics.Actions.OpenFirewallTool");
         LaunchDiagBtnClose = _localizationService.Get("LaunchDiagnostics.Actions.Close");
 
         AiSupportTitle = _localizationService.Get("AiSupport.Title");
@@ -509,6 +517,12 @@ public partial class MainWindowViewModel
                 Process.Start("explorer.exe", bepInExDir);
         }
     }
+
+    /// <summary>
+    /// Narzędzie firewalla z panelu diagnostyki launcha (reaktywnie — gdy gra nie wystartowała).
+    /// Ten sam flow co w panelu napraw: wybór gry/moda, potwierdzenie, zgoda administratora.
+    /// </summary>
+    public Task OpenFirewallToolAsync() => ExecuteRepairOptionAsync(RepairOption.Firewall);
 
     /// <summary>
     /// Generuje support bundle ZIP.

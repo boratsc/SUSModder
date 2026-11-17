@@ -26,9 +26,6 @@ public partial class EnvironmentCheckReportDialog : Window
     /// <summary>Ostatni raport (null, gdy zamknięto przed wynikiem).</summary>
     public SelfCheckReport? Report { get; private set; }
 
-    /// <summary>Użytkownik kliknął „Narzędzie firewalla" — VM dispatchuje RepairOption.Firewall po zamknięciu.</summary>
-    public bool FirewallToolRequested { get; private set; }
-
     /// <summary>Konstruktor wymagany przez loader XAML (design-time / AVLN3001).</summary>
     public EnvironmentCheckReportDialog()
     {
@@ -65,10 +62,6 @@ public partial class EnvironmentCheckReportDialog : Window
             case EnvironmentCheckAction.OpenSteam:
                 // Instrukcja tekstowa jest zawsze widoczna, więc best-effort wystarczy.
                 TryOpen(SteamLinks.AmongUsGameProperties);
-                break;
-            case EnvironmentCheckAction.OpenFirewallTool:
-                FirewallToolRequested = true;
-                Close();
                 break;
         }
     }

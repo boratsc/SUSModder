@@ -15,8 +15,7 @@ namespace SUSModder.ViewModels
     {
         /// <summary>
         /// Otwiera raport sprawdzenia środowiska z kontekstem z ustawień użytkownika.
-        /// Zwraca raport (null, gdy okno zamknięto przed wynikiem). Po kliknięciu
-        /// „Narzędzie firewalla" w raporcie dispatchuje RepairOption.Firewall.
+        /// Zwraca raport (null, gdy okno zamknięto przed wynikiem).
         /// </summary>
         internal async Task<SelfCheckReport?> ShowEnvironmentCheckReportAsync()
         {
@@ -37,12 +36,6 @@ namespace SUSModder.ViewModels
             }
 
             await dialog.ShowDialog(mainWindow);
-
-            if (dialog.FirewallToolRequested)
-            {
-                await ExecuteRepairOptionAsync(RepairOption.Firewall);
-            }
-
             return dialog.Report;
         }
     }

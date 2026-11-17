@@ -5,23 +5,22 @@ namespace SUSModder.Core.Tests.Diagnostics.Environment;
 
 public sealed class EnvironmentSelfCheckServiceTests
 {
-    private static readonly string[] CheckIds = ["sac", "firewall.profiles", "firewall.thirdparty", "av.thirdparty", "defender.realtime", "defender.cfa", "defender.tamper", "steam.installed", "steam.beta", "firewall.rules"];
+    private static readonly string[] CheckIds = ["sac", "firewall.profiles", "firewall.thirdparty", "av.thirdparty", "defender.realtime", "defender.cfa", "defender.tamper", "steam.installed", "steam.beta"];
     private static SelfCheckContext Context(string mode = "steam") => new() { Mode = mode, ModsInstallPath = Path.GetTempPath() };
     private static EnvironmentSelfCheckService Service(
         Func<int?>? sac = null, Func<int>? build = null, Func<FirewallProfilesSnapshot?>? firewall = null,
         Func<IReadOnlyList<string>?>? firewallNames = null, Func<AntivirusDetectionResult>? av = null,
         Func<DefenderSnapshot?>? defender = null, Func<IReadOnlyList<(string InstallDir, string ManifestPath)>>? steam = null,
-        Func<string, string?>? rules = null, TimeSpan timeout = default) =>
-        new(sac, build, firewall, firewallNames, av, defender, steam ?? (() => Array.Empty<(string, string)>()), rules ?? (_ => null), timeout);
+        TimeSpan timeout = default) =>
+        new(sac, build, firewall, firewallNames, av, defender, steam ?? (() => Array.Empty<(string, string)>()), timeout);
 
     [Fact]
     public async Task RunsChecksInStableOrderAndMapsFirewallAndSac()
     {
         var svc = Service(() => 1, () => 22621, () => new(5, false, true, false), () => Array.Empty<string>(),
-            () => new(Array.Empty<string>()), () => new(true, false, true, 0), () => Array.Empty<(string, string)>(),
-            _ => null);
+            () => new(Array.Empty<string>()), () => new(true, false, true, 0), () => Array.Empty<(string, string)>());
         var report = await svc.RunAsync(Context("epic"), TestContext.Current.CancellationToken);
-        Assert.Equal(new[] { "sac", "firewall.profiles", "firewall.thirdparty", "av.thirdparty", "defender.realtime", "defender.cfa", "defender.tamper", "steam.installed", "steam.beta", "firewall.rules" }, report.Results.Select(x => x.CheckId));
+        Assert.Equal(CheckIds, report.Results.Select(x => x.CheckId));
         Assert.Equal("env.sac.enforce", report.Results[0].Code);
         Assert.Equal("5", report.Results[1].Data["activeProfiles"]);
         Assert.Equal(SelfCheckStatus.Warning, report.Results[1].Status);
@@ -35,7 +34,7 @@ public sealed class EnvironmentSelfCheckServiceTests
         var svc = Service(sac: () => throw new InvalidOperationException(), timeout: TimeSpan.FromMilliseconds(100));
         var report = await svc.RunAsync(Context("epic"), TestContext.Current.CancellationToken);
         Assert.Equal(SelfCheckStatus.Unknown, report.Results[0].Status);
-        Assert.Equal(10, report.Results.Count);
+        Assert.Equal(9, report.Results.Count);
     }
 
     [Fact]
@@ -140,62 +139,21 @@ public sealed class EnvironmentSelfCheckServiceTests
     [Fact] public async Task NoManifest_Unknown_ReasonNoManifest() { var r = (await Service(steam: () => Array.Empty<(string, string)>()).RunAsync(Context(), TestContext.Current.CancellationToken)).Results[8]; Assert.Equal(SelfCheckStatus.Unknown, r.Status); Assert.Equal("no_manifest", r.Data["reason"]); }
     [Fact] public async Task AmbiguousInstalls_Unknown_ReasonAmbiguous() { var r = (await Service(steam: () => new[] { ("a", "1"), ("b", "2") }).RunAsync(Context(), TestContext.Current.CancellationToken)).Results[8]; Assert.Equal(SelfCheckStatus.Unknown, r.Status); Assert.Equal("ambiguous", r.Data["reason"]); }
 
-    private static string Readback(string path) => $"Rule Name: Among Us - Vanilla (Inbound)\nEnabled: Yes\nDirection: In\nProgram: {path}\nAction: Allow\nOk.";
-    [Fact]
-    public async Task Epic_MatchingReadback_Ok()
-    {
-        var dir = Directory.CreateTempSubdirectory();
-        try
-        {
-            var target = SUSModder.Core.GameIntegration.EpicInstallPathResolver.GetVanillaExpectedExePath(dir.FullName);
-            var r = await Service(rules: _ => Readback(target)).RunAsync(new() { Mode = "epic", ModsInstallPath = dir.FullName }, TestContext.Current.CancellationToken);
-            Assert.Equal(SelfCheckStatus.Ok, r.Results[9].Status); Assert.Equal("env.firewall.rules_ok", r.Results[9].Code);
-        }
-        finally { dir.Delete(true); }
-    }
-    [Fact]
-    public async Task Epic_Drift_Warning_WithData()
-    {
-        var dir = Directory.CreateTempSubdirectory();
-        try
-        {
-            var r = await Service(rules: _ => Readback("C:\\other\\Among Us.exe")).RunAsync(new() { Mode = "epic", ModsInstallPath = dir.FullName }, TestContext.Current.CancellationToken);
-            Assert.Equal(SelfCheckStatus.Warning, r.Results[9].Status); Assert.Equal("env.firewall.rules_drift", r.Results[9].Code);
-            Assert.Equal("C:\\other\\Among Us.exe", r.Results[9].Data["rulePath"]);
-            Assert.Equal(SUSModder.Core.GameIntegration.EpicInstallPathResolver.GetVanillaExpectedExePath(dir.FullName), r.Results[9].Data["targetPath"]);
-        }
-        finally { dir.Delete(true); }
-    }
-    [Fact] public async Task BothReadbacksNull_InfoMissing() { var r = await Service(rules: _ => null).RunAsync(new() { Mode = "epic", ModsInstallPath = Path.GetTempPath() }, TestContext.Current.CancellationToken); Assert.Equal(SelfCheckStatus.Info, r.Results[9].Status); Assert.Equal("env.firewall.rules_missing", r.Results[9].Code); }
-    [Fact]
-    public async Task Steam_SingleInstall_ExistingExe_Ok()
-    {
-        var dir = Directory.CreateTempSubdirectory();
-        try
-        {
-            var exe = Path.Combine(dir.FullName, "Among Us.exe"); File.WriteAllText(exe, "");
-            var r = await Service(steam: () => new[] { (dir.FullName, "manifest") }, rules: _ => Readback(exe)).RunAsync(Context(), TestContext.Current.CancellationToken);
-            Assert.Equal(SelfCheckStatus.Ok, r.Results[9].Status); Assert.Equal("env.firewall.rules_ok", r.Results[9].Code);
-        }
-        finally { dir.Delete(true); }
-    }
-    [Fact] public async Task Steam_NoTarget_NotApplicable() { var r = await Service(steam: () => Array.Empty<(string, string)>()).RunAsync(Context(), TestContext.Current.CancellationToken); Assert.Equal(SelfCheckStatus.NotApplicable, r.Results[9].Status); Assert.Equal("env.firewall.rules_not_applicable", r.Results[9].Code); }
-
     [Fact]
     public async Task ThrowingProbe_Unknown_PreservesCheckId()
     {
         var r = await Service(sac: () => throw new InvalidOperationException(), build: () => 22621).RunAsync(Context(), TestContext.Current.CancellationToken);
         Assert.Equal("sac", r.Results[0].CheckId); Assert.Equal(SelfCheckStatus.Unknown, r.Results[0].Status); Assert.Equal("env.sac.unknown", r.Results[0].Code);
-        Assert.Equal(10, r.Results.Count); Assert.Equal(CheckIds, r.Results.Select(x => x.CheckId));
+        Assert.Equal(9, r.Results.Count); Assert.Equal(CheckIds, r.Results.Select(x => x.CheckId));
     }
     [Fact]
     public async Task SlowProbe_Timeout_Unknown_PreservesCheckId()
     {
         var r = await Service(firewall: () => { Thread.Sleep(500); return null; }, timeout: TimeSpan.FromMilliseconds(100)).RunAsync(Context(), TestContext.Current.CancellationToken);
         Assert.Equal("firewall.profiles", r.Results[1].CheckId); Assert.Equal(SelfCheckStatus.Unknown, r.Results[1].Status); Assert.Equal("env.firewall.unknown", r.Results[1].Code);
-        Assert.Equal(10, r.Results.Count);
+        Assert.Equal(9, r.Results.Count);
     }
     [Fact] public async Task SacNullValue_Unknown() { var r = await Service(sac: () => null, build: () => 22621).RunAsync(Context(), TestContext.Current.CancellationToken); Assert.Equal(SelfCheckStatus.Unknown, r.Results[0].Status); Assert.Equal("env.sac.unknown", r.Results[0].Code); }
     [Fact] public async Task SacOldBuild_NotApplicable() { var r = await Service(sac: () => 0, build: () => 22000).RunAsync(Context(), TestContext.Current.CancellationToken); Assert.Equal(SelfCheckStatus.NotApplicable, r.Results[0].Status); }
-    [Fact] public async Task Report_AlwaysTenResults_StableCheckIds() { var r = await Service().RunAsync(Context("epic"), TestContext.Current.CancellationToken); Assert.Equal(10, r.Results.Count); Assert.Equal(CheckIds, r.Results.Select(x => x.CheckId)); }
+    [Fact] public async Task Report_AlwaysNineResults_StableCheckIds() { var r = await Service().RunAsync(Context("epic"), TestContext.Current.CancellationToken); Assert.Equal(9, r.Results.Count); Assert.Equal(CheckIds, r.Results.Select(x => x.CheckId)); }
 }

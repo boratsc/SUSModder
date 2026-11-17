@@ -2,11 +2,13 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reactive;
 using System.Text;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
+using ReactiveUI;
 using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Services;
 using SUSModder.Core.Utilities;
@@ -439,58 +441,69 @@ namespace SUSModder.ViewModels
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-        private async Task ExecuteFixFirewallAsync()
+        private Task ExecuteFixFirewallAsync() => ExecuteFixFirewallAsync(preselected: null);
+
+        /// <summary>
+        /// Preselekcja (menu „Więcej" karty moda) pomija dialog wyboru; walidacja, potwierdzenie,
+        /// ownership pre-check, elewacja i sprzątanie identyczne jak przy wyborze z dialogu.
+        /// </summary>
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        private async Task ExecuteFixFirewallAsync(FirewallModItem? preselected)
         {
             string? scriptPath = null;
             string? outPath = null;
             try
             {
-                // Kandydaci: vanilla bieżącego trybu + zainstalowane mody full.
-                var settings = _userSettingsService.LoadUserSettings();
-                var mode = DeterminePlatform();
-                string? steamVanillaDir = null;
-                if (!string.Equals(mode, "epic", StringComparison.OrdinalIgnoreCase))
-                {
-                    steamVanillaDir = AmongUsPathDiscovery.IsValidInstallDirectory(settings.VanillaInstallPath)
-                        ? settings.VanillaInstallPath
-                        : GameLocator.TryFindSteamPath();
-                }
-
-                var candidates = FirewallToolPlan.BuildCandidates(
-                    mode,
-                    steamVanillaDir,
-                    PathSettings.ModsInstallPath,
-                    Mods.Where(m => !string.IsNullOrEmpty(m.InstallPath) && m.ModType == "full")
-                        .Select(m => (m.Name, m.InstallPath)),
-                    _localizationService.Get("UI.Repair.Firewall.VanillaEntry"),
-                    File.Exists);
-
-                if (candidates.Count == 0)
-                {
-                    await ShowMessageAsync(
-                        _localizationService.Get("Dialogs.Info.Title"),
-                        _localizationService.Get("UI.Repair.Firewall.NoModsInstalled"));
-                    return;
-                }
-
-                // Pokaż dialog wyboru (jawny wybór + potwierdzenie zostają).
-                var dialog = new FirewallModSelectionDialog(candidates);
-                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-
-                if (mainWindow != null)
-                {
-                    await dialog.ShowDialog(mainWindow);
-                }
-                else
-                {
-                    dialog.Show();
-                    return;
-                }
-
-                var selected = dialog.SelectedMod;
+                var selected = preselected;
                 if (selected == null)
                 {
-                    return; // Anulowano
+                    // Kandydaci: vanilla bieżącego trybu + zainstalowane mody full.
+                    var settings = _userSettingsService.LoadUserSettings();
+                    var mode = DeterminePlatform();
+                    string? steamVanillaDir = null;
+                    if (!string.Equals(mode, "epic", StringComparison.OrdinalIgnoreCase))
+                    {
+                        steamVanillaDir = AmongUsPathDiscovery.IsValidInstallDirectory(settings.VanillaInstallPath)
+                            ? settings.VanillaInstallPath
+                            : GameLocator.TryFindSteamPath();
+                    }
+
+                    var candidates = FirewallToolPlan.BuildCandidates(
+                        mode,
+                        steamVanillaDir,
+                        PathSettings.ModsInstallPath,
+                        Mods.Where(m => !string.IsNullOrEmpty(m.InstallPath) && m.ModType == "full")
+                            .Select(m => (m.Name, m.InstallPath)),
+                        _localizationService.Get("UI.Repair.Firewall.VanillaEntry"),
+                        File.Exists);
+
+                    if (candidates.Count == 0)
+                    {
+                        await ShowMessageAsync(
+                            _localizationService.Get("Dialogs.Info.Title"),
+                            _localizationService.Get("UI.Repair.Firewall.NoModsInstalled"));
+                        return;
+                    }
+
+                    // Pokaż dialog wyboru (jawny wybór + potwierdzenie zostają).
+                    var dialog = new FirewallModSelectionDialog(candidates);
+                    var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+                    if (mainWindow != null)
+                    {
+                        await dialog.ShowDialog(mainWindow);
+                    }
+                    else
+                    {
+                        dialog.Show();
+                        return;
+                    }
+
+                    selected = dialog.SelectedMod;
+                    if (selected == null)
+                    {
+                        return; // Anulowano
+                    }
                 }
 
                 string targetExePath = selected.ExePath;
@@ -521,7 +534,7 @@ namespace SUSModder.ViewModels
                 if (!confirmResult)
                     return;
 
-                // Vanilla → "Among Us - Vanilla" (spójne z checkiem firewall.rules w Core).
+                // Vanilla → "Among Us - Vanilla" (nazwa reguły tworzona przez to narzędzie).
                 string ruleBaseName = FirewallRuleService.BuildRuleBaseName(selected.IsVanilla ? "Vanilla" : selected.Name);
 
                 // Ownership pre-check bez elewacji — nie usuwamy cudzych reguł.
@@ -649,6 +662,44 @@ namespace SUSModder.ViewModels
                     _localizationService.Get("Dialogs.Info.Title"),
                     _localizationService.Get("UI.Repair.Firewall.NameConflictOpenError"));
             }
+        }
+
+        private ReactiveCommand<ModItem, Unit>? _openModFirewallRulesCommand;
+
+        /// <summary>„Reguły firewalla" w menu „Więcej" karty moda — narzędzie z preselekcją tego moda.</summary>
+        public ReactiveCommand<ModItem, Unit> OpenModFirewallRulesCommand =>
+            _openModFirewallRulesCommand ??= ReactiveCommand.CreateFromTask<ModItem>(OpenModFirewallRulesAsync);
+
+        private async Task OpenModFirewallRulesAsync(ModItem mod)
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                await ShowMessageAsync(
+                    _localizationService.Get("Dialogs.Info.Title"),
+                    "This feature is only available on Windows.");
+                return;
+            }
+
+            // Jednoelementowa lista → ta sama logika ścieżek Steam/Epic co globalne narzędzie.
+            // Vanilla pomijamy: pozycja dotyczy modów full (vanilla obsługuje globalne wejście).
+            var candidate = FirewallToolPlan.BuildCandidates(
+                    DeterminePlatform(),
+                    steamVanillaInstallDir: null,
+                    PathSettings.ModsInstallPath,
+                    new[] { (mod.Name, mod.InstallPath) },
+                    vanillaDisplayName: string.Empty,
+                    File.Exists)
+                .FirstOrDefault(c => !c.IsVanilla);
+
+            if (candidate == null)
+            {
+                await ShowMessageAsync(
+                    _localizationService.Get("Dialogs.Info.Title"),
+                    _localizationService.Get("UI.Repair.Firewall.ExeNotFound"));
+                return;
+            }
+
+            await ExecuteFixFirewallAsync(candidate);
         }
 
         #endregion

@@ -17,14 +17,13 @@ public sealed class EnvironmentSelfCheckService
     private readonly Func<AntivirusDetectionResult> _av;
     private readonly Func<DefenderSnapshot?> _defender;
     private readonly Func<IReadOnlyList<(string InstallDir, string ManifestPath)>> _steam;
-    private readonly Func<string, string?> _readback;
     private readonly TimeSpan _timeout;
 
     public EnvironmentSelfCheckService(Func<int?>? sacStateProbe = null, Func<int>? osBuildProbe = null,
         Func<FirewallProfilesSnapshot?>? firewallProbe = null, Func<IReadOnlyList<string>?>? thirdPartyFirewallProbe = null,
         Func<AntivirusDetectionResult>? avProbe = null, Func<DefenderSnapshot?>? defenderProbe = null,
         Func<IReadOnlyList<(string InstallDir, string ManifestPath)>>? steamInstallsProbe = null,
-        Func<string, string?>? ruleReadbackProbe = null, TimeSpan probeTimeout = default)
+        TimeSpan probeTimeout = default)
     {
         _sac = sacStateProbe ?? (() => OperatingSystem.IsWindows() ? ProbeSac() : null);
         _build = osBuildProbe ?? new Func<int>(() => System.Environment.OSVersion.Version.Build);
@@ -33,20 +32,13 @@ public sealed class EnvironmentSelfCheckService
         _av = avProbe ?? (() => new AntivirusDetectionService().DetectInstalledThirdPartyAntivirus());
         _defender = defenderProbe ?? (() => OperatingSystem.IsWindows() ? ProbeDefender() : null);
         _steam = steamInstallsProbe ?? AmongUsPathDiscovery.TryFindSteamInstallsWithManifest;
-        _readback = ruleReadbackProbe ?? (name =>
-        {
-            var direction = name.EndsWith("(Inbound)", StringComparison.Ordinal) ? "Inbound" : "Outbound";
-            var suffix = $" ({direction})";
-            var ruleBaseName = name.EndsWith(suffix, StringComparison.Ordinal) ? name[..^suffix.Length] : name;
-            return FirewallRuleService.TryShowRuleVerboseAsync(ruleBaseName, direction).GetAwaiter().GetResult();
-        });
         _timeout = probeTimeout == default ? TimeSpan.FromSeconds(5) : probeTimeout;
     }
 
     public async Task<SelfCheckReport> RunAsync(SelfCheckContext context, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var results = new SelfCheckResult[10];
+        var results = new SelfCheckResult[9];
         var snapshot = await RunValueProbeAsync(_defender, ct).ConfigureAwait(false);
         IReadOnlyList<(string InstallDir, string ManifestPath)>? steamSnapshot;
         try { steamSnapshot = await Task.Run(_steam, CancellationToken.None).WaitAsync(_timeout, ct).ConfigureAwait(false); }
@@ -58,8 +50,7 @@ public sealed class EnvironmentSelfCheckService
             ("defender.realtime", "env.defender.unknown", () => DefenderRealtime(snapshot)),
             ("defender.cfa", "env.defender.cfa_unknown", () => DefenderCfa(snapshot)),
             ("defender.tamper", "env.defender.tamper_unknown", () => DefenderTamper(snapshot)),
-             ("steam.installed", "env.steam.unknown", () => SteamInstalled(context, steamSnapshot)), ("steam.beta", "env.steam.beta_unknown", () => SteamBeta(context, steamSnapshot)),
-             ("firewall.rules", "env.firewall.rules_unknown", () => FirewallRules(context, steamSnapshot))
+             ("steam.installed", "env.steam.unknown", () => SteamInstalled(context, steamSnapshot)), ("steam.beta", "env.steam.beta_unknown", () => SteamBeta(context, steamSnapshot))
         };
         var tasks = jobs.Select(job => RunProbeAsync(job.Id, job.UnknownCode, job.Job, ct)).ToArray();
         try { await Task.WhenAll(tasks).ConfigureAwait(false); } catch { }
@@ -168,22 +159,6 @@ public sealed class EnvironmentSelfCheckService
             _ => Unknown("steam.beta", "env.steam.beta_unknown")
         };
     }
-    private SelfCheckResult FirewallRules(SelfCheckContext c, IReadOnlyList<(string InstallDir, string ManifestPath)>? installs)
-    {
-        installs ??= Array.Empty<(string InstallDir, string ManifestPath)>();
-        string? target = IsSteam(c) ? Path.Combine(installs.Count == 1 ? installs[0].InstallDir : c.VanillaInstallPath ?? "", "Among Us.exe") : EpicInstallPathResolver.GetVanillaExpectedExePath(c.ModsInstallPath);
-        if (string.IsNullOrWhiteSpace(target) || (IsSteam(c) && !File.Exists(target))) return Result("firewall.rules", SelfCheckStatus.NotApplicable, "env.firewall.rules_not_applicable");
-        var inbound = _readback("Among Us - Vanilla (Inbound)");
-        var outbound = _readback("Among Us - Vanilla (Outbound)");
-        if (inbound is null && outbound is null) return Result("firewall.rules", SelfCheckStatus.Info, "env.firewall.rules_missing");
-        var p1 = FirewallRuleService.ParseProgramPath(inbound ?? "");
-        var p2 = FirewallRuleService.ParseProgramPath(outbound ?? "");
-        var drift = new[] { p1, p2 }.FirstOrDefault(p => p is not null && !string.Equals(p, target, StringComparison.OrdinalIgnoreCase));
-        if (drift is not null) return Result("firewall.rules", SelfCheckStatus.Warning, "env.firewall.rules_drift", ("rulePath", drift), ("targetPath", target));
-        if (p1 is null || p2 is null) return Result("firewall.rules", SelfCheckStatus.Info, "env.firewall.rules_missing");
-        return Result("firewall.rules", SelfCheckStatus.Ok, "env.firewall.rules_ok");
-    }
-
     private static bool IsSteam(SelfCheckContext c) => string.Equals(c.Mode, "steam", StringComparison.OrdinalIgnoreCase);
     private static string? SafeExe(string? path) { try { return string.IsNullOrWhiteSpace(path) ? null : Path.Combine(path, "Among Us.exe"); } catch { return null; } }
     private static string S(bool? value) => value?.ToString().ToLowerInvariant() ?? "null";

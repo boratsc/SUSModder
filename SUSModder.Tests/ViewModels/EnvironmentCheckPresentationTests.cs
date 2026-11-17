@@ -12,7 +12,7 @@ namespace SUSModder.Tests.ViewModels;
 /// </summary>
 public class EnvironmentCheckPresentationTests
 {
-    /// <summary>Pełny kontrakt kodów Core (10 checków, 39 kodów) — przypięty na stałe.</summary>
+    /// <summary>Pełny kontrakt kodów Core (9 checków, 34 kody) — przypięty na stałe.</summary>
     private static readonly string[] AllCodes =
     {
         "env.sac.not_applicable", "env.sac.off", "env.sac.enforce", "env.sac.evaluation", "env.sac.unknown",
@@ -25,15 +25,13 @@ public class EnvironmentCheckPresentationTests
         "env.steam.not_applicable", "env.steam.unknown", "env.steam.installed", "env.steam.multiple",
         "env.steam.files_only", "env.steam.not_found",
         "env.steam.beta_not_applicable", "env.steam.beta_default", "env.steam.beta_nondefault",
-        "env.steam.beta_inconsistent", "env.steam.beta_unknown",
-        "env.firewall.rules_not_applicable", "env.firewall.rules_missing", "env.firewall.rules_drift",
-        "env.firewall.rules_ok", "env.firewall.rules_unknown"
+        "env.steam.beta_inconsistent", "env.steam.beta_unknown"
     };
 
     private static readonly string[] AllCheckIds =
     {
         "sac", "firewall.profiles", "firewall.thirdparty", "av.thirdparty", "defender.realtime",
-        "defender.cfa", "defender.tamper", "steam.installed", "steam.beta", "firewall.rules"
+        "defender.cfa", "defender.tamper", "steam.installed", "steam.beta"
     };
 
     private static readonly string[] StaticKeys =
@@ -44,11 +42,10 @@ public class EnvironmentCheckPresentationTests
         "UI.EnvironmentCheck.Proposal.Title", "UI.EnvironmentCheck.Proposal.Message",
         "UI.EnvironmentCheck.Proposal.Check", "UI.EnvironmentCheck.Proposal.Skip",
         "UI.EnvironmentCheck.Action.OpenWindowsSecurity", "UI.EnvironmentCheck.Action.OpenSteam",
-        "UI.EnvironmentCheck.Action.OpenFirewallTool", "UI.EnvironmentCheck.Action.SacInstruction",
+        "UI.EnvironmentCheck.Action.SacInstruction",
         "UI.EnvironmentCheck.Action.SteamBetaInstruction", "UI.EnvironmentCheck.Action.AvInstruction",
         "UI.EnvironmentCheck.Action.CfaInstruction",
         "UI.EnvironmentCheck.Detail.Code", "UI.EnvironmentCheck.Detail.Path",
-        "UI.EnvironmentCheck.Detail.RulePath", "UI.EnvironmentCheck.Detail.TargetPath",
         "UI.EnvironmentCheck.Detail.Branch",
         "UI.Repair.EnvironmentCheck.Title", "UI.Repair.EnvironmentCheck.Description",
         "UI.Repair.SteamLoginCheck.BetaBranchMismatchTitle", "UI.Repair.SteamLoginCheck.BetaBranchMismatch",
@@ -162,36 +159,6 @@ public class EnvironmentCheckPresentationTests
         Assert.False(row.HasInstruction);
     }
 
-    [Theory]
-    [InlineData("env.firewall.rules_missing")]
-    [InlineData("env.firewall.rules_drift")]
-    public void RulesMissingOrDrift_OpensFirewallTool(string code)
-    {
-        var row = EnvironmentCheckPresentation.BuildRow(
-            R("firewall.rules", SelfCheckStatus.Warning, code,
-                ("rulePath", @"C:\Stara\Among Us.exe"), ("targetPath", @"C:\Nowa\Among Us.exe")),
-            new LocalizationService(), @"C:\Mody");
-
-        Assert.Equal(EnvironmentCheckAction.OpenFirewallTool, row.Action);
-        Assert.True(row.HasAction);
-    }
-
-    [Fact]
-    public void RulesDrift_PathsOnlyInDetails_NotInMainDescription()
-    {
-        var row = EnvironmentCheckPresentation.BuildRow(
-            R("firewall.rules", SelfCheckStatus.Warning, "env.firewall.rules_drift",
-                ("rulePath", @"C:\Stara\Among Us.exe"), ("targetPath", @"C:\Nowa\Among Us.exe")),
-            new LocalizationService(), @"C:\Mody");
-
-        Assert.DoesNotContain(@"C:\Stara\Among Us.exe", row.Description);
-        Assert.DoesNotContain(@"C:\Nowa\Among Us.exe", row.Description);
-        Assert.True(row.HasDetails);
-        Assert.Contains(@"C:\Stara\Among Us.exe", row.Details);
-        Assert.Contains(@"C:\Nowa\Among Us.exe", row.Details);
-        Assert.Contains("env.firewall.rules_drift", row.Details);
-    }
-
     [Fact]
     public void AvDetected_InstructionOnly_WithJoinedNamesAndModsPath()
     {
@@ -262,10 +229,10 @@ public class EnvironmentCheckPresentationTests
             R("steam.beta", SelfCheckStatus.Warning, "env.steam.beta_nondefault"),
             R("av.thirdparty", SelfCheckStatus.Ok, "env.av.none")
         });
-        // Pozycja Info z akcją (brak zezwolenia zapory) też wymaga działania — liczy się do podsumowania.
+        // Pozycja Info z akcją (ochrona folderów) też wymaga działania — liczy się do podsumowania.
         var actionableInfo = new SelfCheckReport(DateTimeOffset.UtcNow, new[]
         {
-            R("firewall.rules", SelfCheckStatus.Info, "env.firewall.rules_missing"),
+            R("defender.cfa", SelfCheckStatus.Info, "env.defender.cfa_on"),
             R("av.thirdparty", SelfCheckStatus.Ok, "env.av.none")
         });
 
@@ -285,7 +252,6 @@ public class EnvironmentCheckPresentationTests
         {
             R("sac", SelfCheckStatus.Warning, "env.sac.enforce"),
             R("defender.cfa", SelfCheckStatus.Unknown, "env.defender.cfa_unknown"),
-            R("firewall.rules", SelfCheckStatus.Info, "env.firewall.rules_missing"),
             R("av.thirdparty", SelfCheckStatus.Info, "env.av.detected", ("names", "Avast")),
             R("firewall.profiles", SelfCheckStatus.Info, "env.firewall.enabled"),
             R("steam.installed", SelfCheckStatus.Ok, "env.steam.installed", ("path", @"C:\Steam\Among Us"))
@@ -295,7 +261,7 @@ public class EnvironmentCheckPresentationTests
         var visible = rows.Where(EnvironmentCheckPresentation.NeedsAttention).Select(r => r.CheckId).ToArray();
         var collapsed = rows.Where(r => !EnvironmentCheckPresentation.NeedsAttention(r)).Select(r => r.CheckId).ToArray();
 
-        Assert.Equal(new[] { "sac", "defender.cfa", "firewall.rules", "av.thirdparty" }, visible);
+        Assert.Equal(new[] { "sac", "defender.cfa", "av.thirdparty" }, visible);
         Assert.Equal(new[] { "firewall.profiles", "steam.installed" }, collapsed);
     }
 

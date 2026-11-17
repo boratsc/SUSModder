@@ -1294,6 +1294,12 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             await ViewModel.GenerateSupportBundleAsync();
     }
 
+    private async void OnOpenFirewallToolClicked(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+            await ViewModel.OpenFirewallToolAsync();
+    }
+
     private void OnOpenAiSupportClicked(object? sender, RoutedEventArgs e)
     {
         if (ViewModel != null)

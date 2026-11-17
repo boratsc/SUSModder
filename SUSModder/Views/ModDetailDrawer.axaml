@@ -380,6 +380,20 @@
 										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Link}" FontSize="16"/>
 									</MenuItem.Icon>
 								</MenuItem>
+								<MenuItem Header="{loc:Localize UI.Buttons.FirewallRules}"
+										  Command="{Binding $parent[local:ModDetailDrawer].DataContext.OpenModFirewallRulesCommand}"
+										  CommandParameter="{Binding}">
+									<MenuItem.IsVisible>
+										<MultiBinding Converter="{x:Static BoolConverters.And}">
+											<Binding Path="IsInstalled"/>
+											<Binding Path="IsFullMod"/>
+											<Binding Path="IsVanilla" Converter="{x:Static BoolConverters.Not}"/>
+										</MultiBinding>
+									</MenuItem.IsVisible>
+									<MenuItem.Icon>
+										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.ShieldKeyhole}" FontSize="16"/>
+									</MenuItem.Icon>
+								</MenuItem>
 								<Separator/>
 								<MenuItem Header="{loc:Localize UI.Buttons.Delete}"
 										  IsVisible="{Binding IsInstalled}"

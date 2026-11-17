@@ -83,7 +83,8 @@
       "InstallLatest": "Install (latest version)",
       "SelectVersion": "📦 Choose version...",
       "AddDll": "Add DLL",
-      "Roles": "Roles"
+      "Roles": "Roles",
+      "FirewallRules": "Firewall rules"
     },
     "Bulk": {
       "SelectMode": "Select",
@@ -642,8 +643,7 @@
         "sac": "Smart App Control (Windows)",
         "firewall": {
           "profiles": "Windows Firewall",
-          "thirdparty": "Other firewall software",
-          "rules": "Firewall permission for the game"
+          "thirdparty": "Other firewall software"
         },
         "av": {
           "thirdparty": "Third-party antivirus"
@@ -673,12 +673,7 @@
             "enabled": "Windows Firewall is on — this is normal and safe.",
             "thirdparty_unknown": "Could not check whether other firewall software is present.",
             "thirdparty_none": "No other firewall software — only Windows Firewall manages network access.",
-            "thirdparty_detected": "Other firewall software is present: {0}. It may also decide whether the game can access the network.",
-            "rules_unknown": "Could not check the firewall permission for the game.",
-            "rules_not_applicable": "The game file was not found, so there is nothing to check.",
-            "rules_missing": "Windows Firewall has no permission for this game yet. Add it with the firewall tool — button below.",
-            "rules_drift": "The firewall permission points to a different game file than the one you use. Refresh it with the firewall tool.",
-            "rules_ok": "Windows Firewall has a correct permission for this game."
+            "thirdparty_detected": "Other firewall software is present: {0}. It may also decide whether the game can access the network."
           },
           "av": {
             "unknown": "Could not check the antivirus.",
@@ -714,7 +709,6 @@
       "Action": {
         "OpenWindowsSecurity": "Open Windows Security",
         "OpenSteam": "Open Steam",
-        "OpenFirewallTool": "Open firewall tool",
         "SacInstruction": "Smart App Control protects your whole PC. If mods don't work, this feature may block them because they are not digitally signed. 1. Open Windows Security with the button below. 2. See whether Smart App Control is on — Windows Security will show the details. 3. The decision is yours — we do not change this setting.",
         "SteamBetaInstruction": "1. Open Steam with the button below. 2. Right-click Among Us in your library and choose \"Properties\". 3. Go to \"Betas\" and select \"None\". 4. Wait for Steam to download the normal game version.",
         "AvInstruction": "The antivirus may block or remove mod files. 1. Open your antivirus. 2. Add the folder \"{0}\" to its exceptions (trusted items). 3. If a mod was removed, install it again in SUSModder. SUSModder does not change antivirus settings automatically.",
@@ -723,8 +717,6 @@
       "Detail": {
         "Code": "Code: {0}",
         "Path": "Path: {0}",
-        "RulePath": "Firewall permission points to: {0}",
-        "TargetPath": "The game is here: {0}",
         "Branch": "Steam version: {0}"
       }
     }
@@ -2022,6 +2014,7 @@
     "Actions.CreateSupportBundle": "Create support bundle",
     "Actions.ReinstallMod": "Reinstall mod",
     "Actions.OpenAiSupport": "SUSModder Help",
+    "Actions.OpenFirewallTool": "Firewall tool",
     "Actions.Close": "Close",
     "Privacy.SupportBundleNotice": "Support bundle contains anonymized logs and metadata. It is not sent automatically.",
     "AdminConsent.Explanation": "This operation requires administrator privileges. You will be prompted by User Account Control (UAC)."

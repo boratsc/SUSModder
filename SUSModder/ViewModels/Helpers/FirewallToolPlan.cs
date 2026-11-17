@@ -56,7 +56,7 @@ public static class FirewallToolPlan
         var isEpic = string.Equals(mode, "epic", StringComparison.OrdinalIgnoreCase);
         var items = new List<FirewallModItem>();
 
-        // Vanilla: reguły "Among Us - Vanilla" — spójne z checkiem firewall.rules w Core.
+        // Vanilla: reguły "Among Us - Vanilla" (nazwa reguły tworzona przez to narzędzie).
         string? vanillaExe = isEpic
             ? EpicInstallPathResolver.GetVanillaExpectedExePath(modsInstallPath)
             : string.IsNullOrWhiteSpace(steamVanillaInstallDir)

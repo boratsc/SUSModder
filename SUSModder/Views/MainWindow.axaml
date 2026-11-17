@@ -1314,6 +1314,8 @@
 											Classes="secondary" Padding="12,6" Margin="0,0,6,6"/>
 									<Button Content="{Binding LaunchDiagBtnSupportBundle}" Click="OnGenerateSupportBundleClicked"
 											Classes="secondary" Padding="12,6" Margin="0,0,6,6"/>
+									<Button Content="{Binding LaunchDiagBtnFirewallTool}" Click="OnOpenFirewallToolClicked"
+											Classes="secondary" Padding="12,6" Margin="0,0,6,6"/>
 									<Button Content="{Binding LaunchDiagBtnAiSupport}" Click="OnOpenAiSupportClicked"
 											Classes="accent" Padding="12,6" Margin="0,0,6,6"/>
 									<Button Content="{Binding LaunchDiagBtnClose}" Click="OnCloseLaunchDiagnosticsClicked"
