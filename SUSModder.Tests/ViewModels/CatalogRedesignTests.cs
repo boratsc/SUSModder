@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using SUSModder.Converters;
 using SUSModder.Core.Configuration;
 using SUSModder.Services.Localization;
 using SUSModder.ViewModels;
@@ -83,7 +85,18 @@ public class CatalogRedesignLocalizationTests
         "UI.Labels.GameCompatibility",
         "UI.Labels.LastUpdated",
         "UI.Labels.Repository",
-        "ModTypes.Game"
+        "ModTypes.Game",
+        "UI.Buttons.Install",
+        "UI.Buttons.Launch",
+        "UI.Beta.InstallStable",
+        "UI.Beta.InstallBeta",
+        "UI.Browser.Sort.Label",
+        "UI.Browser.Sort.ButtonLabel",
+        "UI.Browser.Sort.PopularityDesc",
+        "UI.Browser.Sort.PopularityAsc",
+        "UI.Browser.Sort.NameAsc",
+        "UI.Browser.Sort.NameDesc",
+        "UI.Browser.NotInstalledSeparator"
     ];
 
     [Fact]
@@ -126,5 +139,109 @@ public class CatalogRedesignLocalizationTests
             else if (property.Value.ValueKind == JsonValueKind.String)
                 result[key] = property.Value.GetString()!;
         }
+    }
+}
+
+/// <summary>
+/// Szybkie akcje wiersza katalogu: warunki widoczności przycisków oparte na stanach ModItem
+/// (bindingi w MainWindow.axaml łączą te same właściwości).
+/// </summary>
+public class CatalogRowQuickActionTests
+{
+    private static ModItem Item(string type, string version = "1.0.0") =>
+        ModItemAdapter.FromConfig(new ModConfiguration
+        {
+            ModType = type,
+            ModVersion = version,
+            AmongVersion = "2026-9-29"
+        });
+
+    [Fact]
+    public void NotInstalledWithoutBeta_ShowsSingleInstall()
+    {
+        var item = Item("full");
+        Assert.True(item.CanInstall);          // "Instaluj" widoczny
+        Assert.False(item.HasAvailableBeta);   // brak przycisków stabilna/beta
+        Assert.False(item.IsInstalled);        // brak "Uruchom"
+    }
+
+    [Fact]
+    public void NotInstalledWithBeta_ShowsStableAndBeta()
+    {
+        var item = Item("full");
+        item.LatestBetaVersion = "1.1.0";
+        Assert.True(item.CanInstall);
+        Assert.True(item.HasAvailableBeta);    // "Instaluj stabilną" + "Instaluj beta"
+    }
+
+    [Fact]
+    public void InstalledMod_ShowsLaunchInsteadOfInstall()
+    {
+        var item = Item("full");
+        item.InstallPath = @"C:\Mods\Test";
+        Assert.True(item.IsInstalled);         // "Uruchom" widoczny
+        Assert.False(item.CanInstall);         // przyciski instalacji ukryte
+    }
+
+    [Fact]
+    public void InstallingMod_HidesInstallButtons()
+    {
+        var item = Item("full");
+        item.IsInstalling = true;
+        Assert.False(item.CanInstall);
+    }
+
+    [Fact]
+    public void VanillaNeverOffersBetaInstall()
+    {
+        var item = Item("Vanilla");
+        item.LatestBetaVersion = "1.1.0";
+        Assert.True(item.IsVanilla);           // wiersz pokazuje tylko "Uruchom"
+        Assert.False(item.HasAvailableBeta);
+    }
+
+    [Fact]
+    public void InstalledVersionEqualToLatestBeta_HidesBetaOption()
+    {
+        var item = Item("full", version: "1.1.0");
+        item.LatestBetaVersion = "1.1.0";
+        Assert.False(item.HasAvailableBeta);
+    }
+}
+
+/// <summary>ReferenceEqualsMultiConverter z parametrem "Invert" (wiersz != zaznaczony mod).</summary>
+public class ReferenceEqualsMultiConverterTests
+{
+    private static readonly ReferenceEqualsMultiConverter Converter = new();
+
+    private static object? Convert(object? a, object? b, string? parameter = null) =>
+        Converter.Convert(new[] { a, b }, typeof(bool), parameter, CultureInfo.InvariantCulture);
+
+    [Fact]
+    public void SameReference_EqualsTrue_InvertFalse()
+    {
+        var item = new ModItem();
+        Assert.Equal(true, Convert(item, item));
+        Assert.Equal(false, Convert(item, item, "Invert"));
+    }
+
+    [Fact]
+    public void DifferentReference_EqualsFalse_InvertTrue()
+    {
+        Assert.Equal(false, Convert(new ModItem(), new ModItem()));
+        Assert.Equal(true, Convert(new ModItem(), new ModItem(), "Invert"));
+    }
+
+    [Fact]
+    public void NoSelection_InvertTrue()
+    {
+        Assert.Equal(false, Convert(new ModItem(), null));
+        Assert.Equal(true, Convert(new ModItem(), null, "Invert"));
+    }
+
+    [Fact]
+    public void MissingValues_StillFalse()
+    {
+        Assert.Equal(false, Converter.Convert(new object?[] { new ModItem() }, typeof(bool), "Invert", CultureInfo.InvariantCulture));
     }
 }

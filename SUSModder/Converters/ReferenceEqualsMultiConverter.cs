@@ -14,7 +14,9 @@ namespace SUSModder.Converters
                 return false;
             }
 
-            return ReferenceEquals(values[0], values[1]);
+            bool equals = ReferenceEquals(values[0], values[1]);
+            // "Invert" = czy to INNY element (np. wiersz nie jest zaznaczonym modem).
+            return parameter is string param && (param == "Invert" || param == "True") ? !equals : equals;
         }
     }
 }

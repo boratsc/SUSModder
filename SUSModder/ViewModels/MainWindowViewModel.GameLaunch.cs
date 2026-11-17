@@ -2,12 +2,14 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reactive;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using Microsoft.Extensions.Configuration;
+using ReactiveUI;
 using SUSModder.Core.Configuration;
 using SUSModder.Core.GameIntegration;
 using SUSModder.Core.Services;
@@ -51,6 +53,20 @@ namespace SUSModder.ViewModels
         }
 
         private void Launch() => _ = LaunchModItemAsync(SelectedMod);
+
+        private ReactiveCommand<ModItem, Unit>? _quickLaunchCommand;
+
+        /// <summary>
+        /// Szybkie uruchomienie z wiersza katalogu — działa na klikniętym modzie,
+        /// bez zmieniania zaznaczenia (nie otwiera panelu szczegółów).
+        /// </summary>
+        public ReactiveCommand<ModItem, Unit> QuickLaunchCommand =>
+            _quickLaunchCommand ??= ReactiveCommand.CreateFromTask<ModItem>(async mod =>
+            {
+                if (mod is null || mod.IsInstalling)
+                    return;
+                await LaunchModItemAsync(mod);
+            });
 
         internal async Task LaunchModItemAsync(ModItem? modItem)
         {

@@ -84,11 +84,15 @@ namespace SUSModder.ViewModels
                 }
             }
 
-            return DeduplicateConfigsById(fullMods)
-                .OrderBy(c => !c.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
-                .ThenBy(c => string.IsNullOrEmpty(c.InstallPath) ? 1 : 0)
-                .ThenBy(c => c.ModName)
-                .ToList();
+            return CatalogBrowserProjection.OrderCatalog(
+                DeduplicateConfigsById(fullMods),
+                _modSortOption,
+                c => new CatalogSortKey(
+                    c.ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase),
+                    !string.IsNullOrEmpty(c.InstallPath),
+                    c.Popularity30d,
+                    c.ModName,
+                    c.Id));
         }
 
         private static List<ModConfiguration> DeduplicateConfigsById(IEnumerable<ModConfiguration> configs)
@@ -113,13 +117,24 @@ namespace SUSModder.ViewModels
 
         private void RefreshModsSortingKeepSelection(ModItem selectedMod)
         {
+            ResortCatalogKeepSelection(selectedMod);
+            NotifyStorageFilesChanged();
+        }
+
+        /// <summary>
+        /// Wspólny rdzeń przesorowania katalogu z zachowaniem zaznaczenia (zmiana opcji
+        /// sortowania i odświeżenie po operacjach). Flaga ignoruje chwilowe null z ListBox
+        /// przy Clear+re-add, a przywrócenie po Id utrzymuje otwarty panel szczegółów.
+        /// </summary>
+        private void ResortCatalogKeepSelection(ModItem? selectedMod)
+        {
             _suppressSelectedModPanelReset = true;
             try
             {
                 // Mods is a filtered projection: never replace the complete snapshot with that subset.
-                _catalogModsSnapshot = SortCatalogSnapshot(_catalogModsSnapshot, Mods);
+                _catalogModsSnapshot = SortCatalogSnapshot(_catalogModsSnapshot, Mods, _modSortOption);
                 ApplyBrowserSearchFilter();
-                if (IsCatalogTab)
+                if (IsCatalogTab && selectedMod != null)
                     SelectedMod = Mods.FirstOrDefault(m => m.Id == selectedMod.Id);
             }
             finally
@@ -127,16 +142,18 @@ namespace SUSModder.ViewModels
                 _suppressSelectedModPanelReset = false;
             }
             ClearFilteredBrowserSelection();
-            NotifyStorageFilesChanged();
         }
 
-        internal static List<ModItem> SortCatalogSnapshot(IEnumerable<ModItem> snapshot, IEnumerable<ModItem> displayed)
+        internal static List<ModItem> SortCatalogSnapshot(
+            IEnumerable<ModItem> snapshot,
+            IEnumerable<ModItem> displayed,
+            ModSortOption sortOption = ModSortOption.PopularityDesc)
         {
             var complete = snapshot.ToList();
-            return (complete.Count > 0 ? complete : displayed)
-                .OrderBy(m => !m.IsVanilla ? 1 : 0)
-                .ThenBy(m => string.IsNullOrEmpty(m.InstallPath) ? 1 : 0)
-                .ThenBy(m => m.Name).ToList();
+            return CatalogBrowserProjection.OrderCatalog(
+                complete.Count > 0 ? complete : displayed,
+                sortOption,
+                m => new CatalogSortKey(m.IsVanilla, m.IsInstalled, m.Popularity30d, m.Name, m.Id));
         }
 
         private void SyncModsListInPlace(IReadOnlyList<ModConfiguration> sortedConfigs)

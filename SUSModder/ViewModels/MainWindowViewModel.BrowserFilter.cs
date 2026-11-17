@@ -62,6 +62,7 @@ namespace SUSModder.ViewModels
                 BrowserFavoritesOnly = false;
             });
             InitializeIconAssets();
+            InitializeBrowserSort();
             _localizationService.PropertyChanged += OnLibraryLanguageChanged;
             InitializeStorageOverview();
         }
@@ -99,8 +100,12 @@ namespace SUSModder.ViewModels
             var query = BrowserSearchText?.Trim();
 
             if (IsCatalogTab)
+            {
                 ApplyFilterToCollection(Mods, _catalogModsSnapshot, query,
                     (mod, text) => (!BrowserFavoritesOnly || mod.IsFavorite) && MatchesCatalogMod(mod, text), BrowserFavoritesOnly);
+                // K2: separator „Niezainstalowane" nad pierwszym wierszem drugiej grupy (także przy filtrach).
+                CatalogBrowserProjection.MarkNotInstalledSeparator(Mods);
+            }
             else if (IsMyPacksTab)
                 ApplyFilterToCollection(PackInstances, _packInstancesSnapshot, query, MatchesPackInstance);
             else if (IsDllAddonsTab)

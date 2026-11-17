@@ -26,6 +26,7 @@ namespace SUSModder.Core.Configuration
                 HasRoles = config.HasRoles,
                 LobbyRegionBaseUrl = config.LobbyRegionBaseUrl,
                 SupportsLobbySharing = config.SupportsLobbySharing,
+                Popularity30d = config.Popularity30d,
                 VtScanStatus = config.VtScanStatus,
                 VtPermalink = config.VtPermalink,
                 VtLastCheckedAt = config.VtLastCheckedAt,
@@ -58,6 +59,7 @@ namespace SUSModder.Core.Configuration
             item.HasRoles = config.HasRoles;
             item.LobbyRegionBaseUrl = config.LobbyRegionBaseUrl;
             item.SupportsLobbySharing = config.SupportsLobbySharing;
+            item.Popularity30d = config.Popularity30d;
             item.VtScanStatus = config.VtScanStatus;
             item.VtPermalink = config.VtPermalink;
             item.VtLastCheckedAt = config.VtLastCheckedAt;
@@ -85,6 +87,7 @@ namespace SUSModder.Core.Configuration
                 HasRoles = item.HasRoles,
                 LobbyRegionBaseUrl = item.LobbyRegionBaseUrl,
                 SupportsLobbySharing = item.SupportsLobbySharing,
+                Popularity30d = item.Popularity30d,
                 LatestStableVersion = item.LatestStableVersion,
                 LatestBetaVersion = item.LatestBetaVersion,
                 AvailableReleases = item.AvailableReleases

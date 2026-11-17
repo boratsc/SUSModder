@@ -88,6 +88,13 @@ public class ModCardVersionTests
     }
 
     [Fact]
+    public void ToConfigRoundtripPreservesPopularity()
+    {
+        var item = ModItemAdapter.FromConfig(new ModConfiguration { Popularity30d = 42 });
+        Assert.Equal(42, ModItemAdapter.ToConfig(item).Popularity30d);
+    }
+
+    [Fact]
     public void SplitRequiresFullModMatchingReleaseAndIdleState()
     {
         var item = ModItemAdapter.FromConfig(Catalog());

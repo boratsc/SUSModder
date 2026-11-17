@@ -627,6 +627,25 @@ namespace SUSModder.ViewModels
         }
 
         public bool IsVanilla => ModType.Equals("Vanilla", StringComparison.OrdinalIgnoreCase);
+
+        // ── K2: sortowanie katalogu i separator „Niezainstalowane" ──
+        private int _popularity30d;
+        private bool _showNotInstalledSeparator;
+
+        /// <summary>Popularność z katalogu (30 dni). 0 = brak danych — sortowanie wg nazwy.</summary>
+        public int Popularity30d
+        {
+            get => _popularity30d;
+            set => this.RaiseAndSetIfChanged(ref _popularity30d, value);
+        }
+
+        /// <summary>Nagłówek grupy „Niezainstalowane" nad tym wierszem (tylko pierwszy wiersz grupy).</summary>
+        public bool ShowNotInstalledSeparator
+        {
+            get => _showNotInstalledSeparator;
+            set => this.RaiseAndSetIfChanged(ref _showNotInstalledSeparator, value);
+        }
+
         public bool IsPinnedVersionInstall =>
             IsInstalled &&
             DisableAutoUpdatePrompt &&
