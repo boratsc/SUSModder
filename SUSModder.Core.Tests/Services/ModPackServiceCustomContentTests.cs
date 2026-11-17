@@ -39,7 +39,7 @@ public class ModPackServiceCustomContentTests
 
         try
         {
-            var result = await service.UploadCustomDllAsync(PackCode, filePath);
+            var result = await service.UploadCustomDllAsync(PackCode, filePath, TestContext.Current.CancellationToken);
 
             Assert.NotNull(result);
             Assert.Equal("uploaded_dll", result.SourceKind);
@@ -78,7 +78,7 @@ public class ModPackServiceCustomContentTests
 
         try
         {
-            var result = await service.UploadExternalDllAsync(PackCode, filePath);
+            var result = await service.UploadExternalDllAsync(PackCode, filePath, TestContext.Current.CancellationToken);
 
             Assert.NotNull(result);
             Assert.Equal("returned.dll", result.FileName);
@@ -111,7 +111,7 @@ public class ModPackServiceCustomContentTests
         """));
         var service = CreateService(api.Object);
 
-        var result = await service.GetExternalDllStatusAsync(PackCode, Sha256);
+        var result = await service.GetExternalDllStatusAsync(PackCode, Sha256, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Equal("clean", result.Status);
@@ -152,7 +152,7 @@ public class ModPackServiceCustomContentTests
         """));
         var service = CreateService(api.Object);
 
-        var pack = await service.GetPackAsync(PackCode);
+        var pack = await service.GetPackAsync(PackCode, TestContext.Current.CancellationToken);
 
         Assert.NotNull(pack);
         Assert.Equal("ready", pack.Status);
@@ -198,8 +198,8 @@ public class ModPackServiceCustomContentTests
         {
             DisplayName = "GitHub DLL",
             GithubUrl = "https://github.com/owner/repo/releases/download/v1/mod.dll"
-        });
-        var finalized = await service.FinalizePackAsync(PackCode);
+        }, TestContext.Current.CancellationToken);
+        var finalized = await service.FinalizePackAsync(PackCode, TestContext.Current.CancellationToken);
 
         Assert.NotNull(declared);
         Assert.Equal("gh-1", declared.ArtifactId);
@@ -241,7 +241,7 @@ public class ModPackServiceCustomContentTests
         """));
         var service = CreateService(api.Object);
 
-        var pack = await service.GetPackAsync(PackCode);
+        var pack = await service.GetPackAsync(PackCode, TestContext.Current.CancellationToken);
 
         Assert.NotNull(pack);
         Assert.True(pack!.HasCustomFullMod);
@@ -274,7 +274,7 @@ public class ModPackServiceCustomContentTests
         """));
         var service = CreateService(api.Object);
 
-        var pack = await service.GetPackAsync(PackCode);
+        var pack = await service.GetPackAsync(PackCode, TestContext.Current.CancellationToken);
 
         Assert.NotNull(pack);
         Assert.Equal("2025-3-25", pack!.CustomFullMod!.AmongVersion);
@@ -310,7 +310,7 @@ public class ModPackServiceCustomContentTests
             DisplayName = "Custom Full",
             AmongVersion = "2024-6-18",
             GithubUrl = "https://github.com/owner/repo/releases/download/v1/mod.zip"
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.NotNull(artifact);
         Assert.Equal("2024-6-18", artifact!.AmongVersion);

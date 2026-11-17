@@ -16,7 +16,7 @@ public class StorageCleanupPlannerTests
 
         var planner = new StorageCleanupPlanner();
 
-        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         var archive = Assert.Single(plan.Entries, e => e.Category == StorageCleanupCategory.VanillaArchive);
 
@@ -37,7 +37,7 @@ public class StorageCleanupPlannerTests
 
         var planner = new StorageCleanupPlanner();
 
-        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         var archive = Assert.Single(plan.Entries, e => e.Category == StorageCleanupCategory.VanillaArchive);
 
@@ -56,7 +56,7 @@ public class StorageCleanupPlannerTests
 
         var planner = new StorageCleanupPlanner();
 
-        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         var entry = Assert.Single(plan.Entries, e => e.Category == StorageCleanupCategory.InstallWorkspace);
 
@@ -79,7 +79,7 @@ public class StorageCleanupPlannerTests
         {
             LibraryRoot = tree.Root,
             KnownInstallPaths = new[] { install }
-        });
+        }, TestContext.Current.CancellationToken);
 
         var entry = Assert.Single(plan.Entries, e => e.Category == StorageCleanupCategory.ModInstallations);
 
@@ -96,7 +96,7 @@ public class StorageCleanupPlannerTests
 
         var planner = new StorageCleanupPlanner();
 
-        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         var extracted = Assert.Single(plan.Entries, e => e.Category == StorageCleanupCategory.VanillaExtractedCache);
 
@@ -112,7 +112,7 @@ public class StorageCleanupPlannerTests
 
         var planner = new StorageCleanupPlanner();
 
-        await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         Assert.True(File.Exists(Path.Combine(tree.Root, "Among Us - Vanilla", StorageVersion + ".7z")));
         Assert.True(File.Exists(Path.Combine(tree.Root, "temp", "abc", "mod.zip")));
@@ -126,7 +126,7 @@ public class StorageCleanupPlannerTests
         var plan = await planner.PlanAsync(new StorageCleanupPlanRequest
         {
             LibraryRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.Empty(plan.Entries);
         Assert.Equal(0, plan.MeasuredBytes);
@@ -147,7 +147,7 @@ public class StorageCleanupPlannerTests
         using var measurement = new StorageSizeMeasurementService(4, null, probe);
         using var planner = new StorageCleanupPlanner(measurement, probe);
 
-        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         // Błąd inwentaryzacji nie jest cicho zamieniany na „0 B i komplet”.
         Assert.Equal(StorageSizeState.Unavailable, plan.State);
@@ -169,7 +169,7 @@ public class StorageCleanupPlannerTests
         using var measurement = new StorageSizeMeasurementService(4, null, probe);
         using var planner = new StorageCleanupPlanner(measurement, probe);
 
-        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         Assert.Equal(StorageSizeState.Partial, plan.State);
     }
@@ -194,7 +194,7 @@ public class StorageCleanupPlannerTests
         {
             var planner = new StorageCleanupPlanner();
 
-            var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+            var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
             var linked = Assert.Single(plan.Entries, e => e.IsLink);
             Assert.Equal(StorageCleanupSkipReason.PathIsLink, linked.SkipReason);
@@ -229,7 +229,7 @@ public class StorageCleanupPlannerTests
         {
             var planner = new StorageCleanupPlanner();
 
-            var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = junction });
+            var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = junction }, TestContext.Current.CancellationToken);
 
             // Preflight: biblioteka będąca linkiem jest odrzucona, zanim policzymy cokolwiek.
             Assert.Equal(StorageSizeState.Unavailable, plan.State);
@@ -255,7 +255,7 @@ public class StorageCleanupPlannerTests
         using var measurement = new StorageSizeMeasurementService(4, null, probe);
         using var planner = new StorageCleanupPlanner(measurement, probe);
 
-        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         // Nieczytelne atrybuty = nie wiemy, czy to link — suma nie może być podawana jako kompletna.
         Assert.Equal(StorageSizeState.Partial, plan.State);
@@ -273,7 +273,7 @@ public class StorageCleanupPlannerTests
         using var measurement = new StorageSizeMeasurementService(4, null, probe);
         using var planner = new StorageCleanupPlanner(measurement, probe);
 
-        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         // Rozmiar pliku bez odczytu = suma zaniżona bez ostrzeżenia — plan musi być niepełny.
         Assert.Equal(StorageSizeState.Partial, plan.State);
@@ -295,7 +295,7 @@ public class StorageCleanupPlannerTests
         {
             LibraryRoot = tree.Root,
             MeasureLibraryTotal = true
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Pomiar całej biblioteki się nie udał — plan nie może raportować „Complete”.
         Assert.Equal(StorageSizeState.Unavailable, plan.State);
@@ -320,7 +320,7 @@ public class StorageCleanupPlannerTests
         {
             LibraryRoot = tree.Root,
             MeasureLibraryTotal = true
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.Equal(StorageSizeState.Partial, plan.State);
     }
@@ -336,7 +336,7 @@ public class StorageCleanupPlannerTests
 
         var planner = new StorageCleanupPlanner();
 
-        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         // Plik w katalogu rozpakowanego cache nie jest katalogiem wersji — plan musi to ujawnić.
         Assert.Equal(StorageSizeState.Partial, plan.State);
@@ -354,7 +354,7 @@ public class StorageCleanupPlannerTests
 
         var planner = new StorageCleanupPlanner();
 
-        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         Assert.Equal(300, plan.MeasuredBytes);
         Assert.Equal(StorageSizeState.Complete, plan.State);

@@ -56,10 +56,10 @@ public class Sha256VerifierTests
         try
         {
             var bytes = Encoding.UTF8.GetBytes("file-ok");
-            await File.WriteAllBytesAsync(path, bytes);
+            await File.WriteAllBytesAsync(path, bytes, TestContext.Current.CancellationToken);
             var hash = Sha256Verifier.ComputeHex(bytes);
 
-            Assert.True(await Sha256Verifier.VerifyFileAsync(path, hash));
+            Assert.True(await Sha256Verifier.VerifyFileAsync(path, hash, ct: TestContext.Current.CancellationToken));
             Assert.True(File.Exists(path));
         }
         finally
@@ -74,10 +74,10 @@ public class Sha256VerifierTests
         var path = Path.Combine(Path.GetTempPath(), $"sha256-bad-{Guid.NewGuid():N}.bin");
         try
         {
-            await File.WriteAllBytesAsync(path, Encoding.UTF8.GetBytes("file-bad"));
+            await File.WriteAllBytesAsync(path, Encoding.UTF8.GetBytes("file-bad"), TestContext.Current.CancellationToken);
             var otherHash = Sha256Verifier.ComputeHex(Encoding.UTF8.GetBytes("other"));
 
-            Assert.False(await Sha256Verifier.VerifyFileAsync(path, otherHash, deleteOnMismatch: true));
+            Assert.False(await Sha256Verifier.VerifyFileAsync(path, otherHash, deleteOnMismatch: true, ct: TestContext.Current.CancellationToken));
             Assert.False(File.Exists(path));
         }
         finally
@@ -92,8 +92,8 @@ public class Sha256VerifierTests
         var path = Path.Combine(Path.GetTempPath(), $"sha256-missing-{Guid.NewGuid():N}.bin");
         try
         {
-            await File.WriteAllBytesAsync(path, Encoding.UTF8.GetBytes("x"));
-            Assert.False(await Sha256Verifier.VerifyFileAsync(path, null));
+            await File.WriteAllBytesAsync(path, Encoding.UTF8.GetBytes("x"), TestContext.Current.CancellationToken);
+            Assert.False(await Sha256Verifier.VerifyFileAsync(path, null, ct: TestContext.Current.CancellationToken));
             Assert.True(File.Exists(path));
         }
         finally

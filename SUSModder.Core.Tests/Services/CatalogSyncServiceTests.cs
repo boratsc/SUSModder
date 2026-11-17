@@ -38,7 +38,7 @@ public class CatalogSyncServiceTests : IDisposable
         };
 
         var service = CreateService(api, modRepo, syncState, compatCache);
-        var result = await service.RefreshCatalogIfDueAsync(force: true);
+        var result = await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(CatalogSyncStatus.NotModified, result.Status);
         Assert.Equal(0, modRepo.ApplyCount);
@@ -68,7 +68,7 @@ public class CatalogSyncServiceTests : IDisposable
         };
 
         var service = CreateService(api, modRepo, syncState, compatCache);
-        var result = await service.RefreshCatalogIfDueAsync(force: true);
+        var result = await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(CatalogSyncStatus.OfflineUsingCache, result.Status);
         Assert.Equal(0, modRepo.ApplyCount);
@@ -103,7 +103,7 @@ public class CatalogSyncServiceTests : IDisposable
         };
 
         var service = CreateService(api, modRepo, syncState, compatCache);
-        var result = await service.RefreshCatalogIfDueAsync(force: true);
+        var result = await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(CatalogSyncStatus.Updated, result.Status);
         Assert.Equal(1, modRepo.ApplyCount);
@@ -131,7 +131,7 @@ public class CatalogSyncServiceTests : IDisposable
             }
         };
         var service = CreateService(api, modRepo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db));
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(0, modRepo.LocalMods.Single(x => x.Id == 1).Popularity30d);
         Assert.Equal(88, modRepo.LocalMods.Single(x => x.Id == 2).Popularity30d);
     }
@@ -154,7 +154,7 @@ public class CatalogSyncServiceTests : IDisposable
         };
         var service = CreateService(api, modRepo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db));
 
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(12, modRepo.LocalMods.Single().Popularity30d);
     }
@@ -184,14 +184,14 @@ public class CatalogSyncServiceTests : IDisposable
             PopularityHandler = () => new SusModderApiResult<List<CatalogPopularityItemDto>>
                 { StatusCode = 200, IsDegraded = true, Data = [new CatalogPopularityItemDto { Id = 1, Popularity = 0 }] }
         };
-        await CreateService(api, modRepo, sync, cache).RefreshCatalogIfDueAsync(force: true);
+        await CreateService(api, modRepo, sync, cache).RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(88, new ModRepository(db, api).GetAllMods().Single().Popularity30d);
 
         sync.SaveSuccess(CatalogSyncService.CatalogStateKey, "etag", null, DateTime.UtcNow.AddMinutes(-10));
         api.CatalogHandler = (_, _) => new SusModderApiResult<List<CatalogItemDto>> { StatusCode = 304 };
         api.PopularityHandler = () => new SusModderApiResult<List<CatalogPopularityItemDto>>
             { StatusCode = 200, Data = [new CatalogPopularityItemDto { Id = 1, Popularity = 12 }] };
-        await CreateService(api, modRepo, sync, cache).RefreshCatalogIfDueAsync(force: true);
+        await CreateService(api, modRepo, sync, cache).RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(12, new ModRepository(db, api).GetAllMods().Single().Popularity30d);
     }
 
@@ -206,7 +206,7 @@ public class CatalogSyncServiceTests : IDisposable
         var instance = list.Single();
         instance.Description = "keep me";
         api.PopularityHandler = () => new() { StatusCode = 200, Data = [new CatalogPopularityItemDto { Id = 1, Popularity = 12 }] };
-        var result = await CreateService(api, repo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(true);
+        var result = await CreateService(api, repo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(true, TestContext.Current.CancellationToken);
         Assert.Equal(CatalogSyncStatus.Updated, result.Status);
         Assert.Same(list, repo.GetAllMods());
         Assert.Same(instance, repo.GetAllMods().Single());
@@ -223,7 +223,7 @@ public class CatalogSyncServiceTests : IDisposable
         repo.SaveAllMods([new ModConfiguration { Id = 1, ModName = "One", ModType = "full", Popularity30d = 4 }]);
         api.PopularityHandler = () => new() { StatusCode = 200, Data = [null!] };
         var sync = new CatalogSyncStateRepository(db);
-        var result = await CreateService(api, repo, sync, new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(true);
+        var result = await CreateService(api, repo, sync, new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(true, TestContext.Current.CancellationToken);
         Assert.Equal(CatalogSyncStatus.NotModified, result.Status);
         Assert.Equal(4, repo.GetAllMods().Single().Popularity30d);
         Assert.Equal(0, sync.Get(CatalogSyncService.CatalogStateKey)?.FailureCount ?? 0);
@@ -242,7 +242,7 @@ public class CatalogSyncServiceTests : IDisposable
         repo.SaveAllMods([new ModConfiguration { Id = 1, ModName = "One", ModType = "full", Popularity30d = 4 }]);
         var sync = new CatalogSyncStateRepository(db);
 
-        var result = await CreateService(api, repo, sync, new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(true);
+        var result = await CreateService(api, repo, sync, new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(true, TestContext.Current.CancellationToken);
 
         Assert.Equal(CatalogSyncStatus.Updated, result.Status);
         Assert.Equal(4, new ModRepository(db, api).GetAllMods().Single().Popularity30d);
@@ -260,7 +260,7 @@ public class CatalogSyncServiceTests : IDisposable
         };
         var repo = new ModRepository(db, api);
 
-        await CreateService(api, repo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(true);
+        await CreateService(api, repo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(true, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, new ModRepository(db, api).GetAllMods().Single().Popularity30d);
     }
@@ -279,7 +279,7 @@ public class CatalogSyncServiceTests : IDisposable
         }
         api.PopularityHandler = () => new() { StatusCode = 200, Data = [new CatalogPopularityItemDto { Id = 1, Popularity = 4 }] };
         var service = CreateService(api, repo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db));
-        var result = await service.RefreshCatalogIfDueAsync(true);
+        var result = await service.RefreshCatalogIfDueAsync(true, TestContext.Current.CancellationToken);
         Assert.Equal(CatalogSyncStatus.NotModified, result.Status);
         using var cmd = db.GetConnection().CreateCommand();
         cmd.CommandText = "SELECT n FROM popularity_writes";
@@ -307,7 +307,7 @@ public class CatalogSyncServiceTests : IDisposable
         };
 
         var result = await CreateService(api, repo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db))
-            .RefreshCatalogIfDueAsync(force: true);
+            .RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(CatalogSyncStatus.Updated, result.Status);
         Assert.Equal(88, new ModRepository(db, api).GetAllMods().Single().Popularity30d);
@@ -335,7 +335,7 @@ public class CatalogSyncServiceTests : IDisposable
         var sync = new CatalogSyncStateRepository(db);
 
         var result = await CreateService(api, repo, sync, new CompatibilityCacheRepository(db))
-            .RefreshCatalogIfDueAsync(force: true);
+            .RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(CatalogSyncStatus.Updated, result.Status);
         Assert.Equal(88, new ModRepository(db, api).GetAllMods().Single().Popularity30d);
@@ -356,7 +356,7 @@ public class CatalogSyncServiceTests : IDisposable
                 { StatusCode = 200, Data = [new CatalogPopularityItemDto { Id = 1, Popularity = 12 }, new CatalogPopularityItemDto { Id = 1, Popularity = 99 }] }
         };
         var repo = new ModRepository(db, api);
-        var result = await CreateService(api, repo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(force: true);
+        var result = await CreateService(api, repo, new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db)).RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotEqual(CatalogSyncStatus.OfflineUsingCache, result.Status);
         Assert.Equal(12, new ModRepository(db, api).GetAllMods().Single(x => x.Id == 1).Popularity30d);
     }
@@ -391,7 +391,7 @@ public class CatalogSyncServiceTests : IDisposable
         };
 
         var service = CreateService(api, modRepo, syncState, compatCache, icons);
-        await service.RefreshIconAssignmentsAsync();
+        await service.RefreshIconAssignmentsAsync(TestContext.Current.CancellationToken);
 
         var vanilla = icons.GetGlobal(IconGlobalRole.Vanilla);
         Assert.NotNull(vanilla);
@@ -428,7 +428,7 @@ public class CatalogSyncServiceTests : IDisposable
         };
 
         var service = CreateService(api, modRepo, syncState, compatCache, icons);
-        await service.RefreshIconAssignmentsAsync();
+        await service.RefreshIconAssignmentsAsync(TestContext.Current.CancellationToken);
 
         var vanilla = icons.GetGlobal(IconGlobalRole.Vanilla);
         Assert.NotNull(vanilla);
@@ -472,7 +472,7 @@ public class CatalogSyncServiceTests : IDisposable
         };
 
         var service = CreateService(api, modRepo, syncState, compatCache, icons);
-        await service.RefreshIconAssignmentsFromCatalogAsync();
+        await service.RefreshIconAssignmentsFromCatalogAsync(TestContext.Current.CancellationToken);
 
         var modIcon = icons.GetForMod(7);
         Assert.NotNull(modIcon);

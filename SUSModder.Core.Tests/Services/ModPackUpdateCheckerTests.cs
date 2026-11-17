@@ -23,7 +23,7 @@ public class ModPackUpdateCheckerTests
             : new List<ModInstanceConfig> { new() { ConfigType = "tou", ConfigJson = snapshotJson } });
         var checker = CreateChecker(repository, JsonDocument.Parse(remoteJson).RootElement);
 
-        var result = await checker.CheckInstanceAsync(CreateInstance());
+        var result = await checker.CheckInstanceAsync(CreateInstance(), TestContext.Current.CancellationToken);
 
         Assert.Equal(expectedChange, result.Changes.Any(c => c.ChangeType == "config"));
     }
@@ -32,7 +32,7 @@ public class ModPackUpdateCheckerTests
     public async Task CheckInstance_RemoteWithoutTouConfig_HasNoConfigChange()
     {
         var checker = CreateChecker(new Mock<IModInstanceRepository>(), null);
-        var result = await checker.CheckInstanceAsync(CreateInstance());
+        var result = await checker.CheckInstanceAsync(CreateInstance(), TestContext.Current.CancellationToken);
         Assert.DoesNotContain(result.Changes, c => c.ChangeType == "config");
     }
 
@@ -52,7 +52,7 @@ public class ModPackUpdateCheckerTests
             .ReturnsAsync(new ModPack { PackCode = "pack" });
         var checker = new ModPackUpdateChecker(packService.Object, repository.Object, new TestDiagnosticsOutput(), new ConfigService());
 
-        var results = await checker.CheckAllInstancesAsync();
+        var results = await checker.CheckAllInstancesAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(new[] { "clone", "shared" }, results.Select(r => r.InstanceId));
         Assert.Equal(2, packService.Invocations.Count(i => i.Method.Name == nameof(IModPackService.GetPackAsync)));

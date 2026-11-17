@@ -46,7 +46,7 @@ public sealed class DllModDownloadTests : IDisposable
     public async Task Download_EveryDllMod_DownloadsAndVerifies()
     {
         Assert.NotNull(_client);
-        var catalog = await _client.GetCatalogAsync(new() { Limit = 200 });
+        var catalog = await _client.GetCatalogAsync(new() { Limit = 200 }, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(catalog.Data);
 
         var dllMods = catalog.Data.Where(m =>
@@ -95,7 +95,7 @@ public sealed class DllModDownloadTests : IDisposable
                 result.ExpectedFileName = expectedFileName;
 
                 var downloadPath = _ctx.GetDownloadPath(expectedFileName);
-                var response = await _http.GetAsync(resolution.Url);
+                var response = await _http.GetAsync(resolution.Url, TestContext.Current.CancellationToken);
                 result.HttpStatus = (int)response.StatusCode;
 
                 if (!response.IsSuccessStatusCode)
@@ -106,8 +106,8 @@ public sealed class DllModDownloadTests : IDisposable
                 }
 
                 await using var fileStream = File.Create(downloadPath);
-                await response.Content.CopyToAsync(fileStream);
-                await fileStream.FlushAsync();
+                await response.Content.CopyToAsync(fileStream, TestContext.Current.CancellationToken);
+                await fileStream.FlushAsync(TestContext.Current.CancellationToken);
                 fileStream.Close();
 
                 var fileInfo = new FileInfo(downloadPath);
@@ -116,7 +116,7 @@ public sealed class DllModDownloadTests : IDisposable
                 // Verify SHA256
                 if (!string.IsNullOrWhiteSpace(resolution.ExpectedSha256))
                 {
-                    var actualHash = await Sha256Verifier.ComputeFileHexAsync(downloadPath);
+                    var actualHash = await Sha256Verifier.ComputeFileHexAsync(downloadPath, TestContext.Current.CancellationToken);
                     result.ActualSha256 = actualHash;
                     result.ExpectedSha256 = resolution.ExpectedSha256;
 
@@ -133,7 +133,7 @@ public sealed class DllModDownloadTests : IDisposable
                 var header = new byte[2];
                 await using (var fs = File.OpenRead(downloadPath))
                 {
-                    await fs.ReadExactlyAsync(header, 0, 2);
+                    await fs.ReadExactlyAsync(header, 0, 2, TestContext.Current.CancellationToken);
                 }
                 var isPeHeader = header[0] == 0x4D && header[1] == 0x5A; // "MZ"
                 result.IsValidDll = isPeHeader;

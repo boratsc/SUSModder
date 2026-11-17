@@ -33,7 +33,7 @@ public class ModPackBackendIntegrationTests
     {
         using var client = CreateClient();
 
-        var catalog = await client.GetCatalogAsync(new CatalogQuery { Limit = 200 });
+        var catalog = await client.GetCatalogAsync(new CatalogQuery { Limit = 200 }, cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(catalog.IsSuccess);
         Assert.NotNull(catalog.Data);
 
@@ -56,8 +56,8 @@ public class ModPackBackendIntegrationTests
 
         // HEAD requests to confirm the URLs are reachable without downloading payloads.
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-        var steamHead = await http.SendAsync(new HttpRequestMessage(HttpMethod.Head, steamUrl));
-        var epicHead = await http.SendAsync(new HttpRequestMessage(HttpMethod.Head, epicUrl));
+        var steamHead = await http.SendAsync(new HttpRequestMessage(HttpMethod.Head, steamUrl), TestContext.Current.CancellationToken);
+        var epicHead = await http.SendAsync(new HttpRequestMessage(HttpMethod.Head, epicUrl), TestContext.Current.CancellationToken);
 
         Assert.True(
             steamHead.StatusCode == HttpStatusCode.OK || steamHead.StatusCode == HttpStatusCode.Redirect,
@@ -74,7 +74,7 @@ public class ModPackBackendIntegrationTests
         SUSModderApiClientProvider.SetDefault(client);
         try
         {
-            var catalog = await client.GetCatalogAsync(new CatalogQuery { Limit = 200 });
+            var catalog = await client.GetCatalogAsync(new CatalogQuery { Limit = 200 }, cancellationToken: TestContext.Current.CancellationToken);
             Assert.True(catalog.IsSuccess);
             Assert.NotNull(catalog.Data);
 
@@ -100,16 +100,16 @@ public class ModPackBackendIntegrationTests
                     ModVersion = version
                 };
 
-                var steamResolution = await SUSModder.Core.Utilities.ModDownloadUrlBuilder.ResolveWithHashAsync(modConfig, "steam");
-                var epicResolution = await SUSModder.Core.Utilities.ModDownloadUrlBuilder.ResolveWithHashAsync(modConfig, "epic");
+                var steamResolution = await SUSModder.Core.Utilities.ModDownloadUrlBuilder.ResolveWithHashAsync(modConfig, "steam", TestContext.Current.CancellationToken);
+                var epicResolution = await SUSModder.Core.Utilities.ModDownloadUrlBuilder.ResolveWithHashAsync(modConfig, "epic", TestContext.Current.CancellationToken);
 
                 Assert.False(string.IsNullOrWhiteSpace(steamResolution.Url),
                     $"Steam URL unresolved for {catalogMod.Name} ({catalogMod.Id}) v{version}");
                 Assert.False(string.IsNullOrWhiteSpace(epicResolution.Url),
                     $"Epic URL unresolved for {catalogMod.Name} ({catalogMod.Id}) v{version}");
 
-                var steamHead = await http.SendAsync(new HttpRequestMessage(HttpMethod.Head, steamResolution.Url));
-                var epicHead = await http.SendAsync(new HttpRequestMessage(HttpMethod.Head, epicResolution.Url));
+                var steamHead = await http.SendAsync(new HttpRequestMessage(HttpMethod.Head, steamResolution.Url), TestContext.Current.CancellationToken);
+                var epicHead = await http.SendAsync(new HttpRequestMessage(HttpMethod.Head, epicResolution.Url), TestContext.Current.CancellationToken);
 
                 Assert.True(
                     steamHead.StatusCode == HttpStatusCode.OK || steamHead.StatusCode == HttpStatusCode.Redirect,

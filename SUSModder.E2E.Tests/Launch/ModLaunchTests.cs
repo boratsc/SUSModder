@@ -71,7 +71,7 @@ public sealed class ModLaunchTests : IDisposable
         }
 
         Assert.NotNull(_client);
-        var catalog = await _client.GetCatalogAsync(new() { Limit = 200 });
+        var catalog = await _client.GetCatalogAsync(new() { Limit = 200 }, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(catalog.Data);
 
         var results = new List<LaunchTestResult>();
@@ -80,7 +80,7 @@ public sealed class ModLaunchTests : IDisposable
 
         foreach (var mod in fullMods)
         {
-            var detail = await _client.GetCatalogModDetailAsync(mod.Id);
+            var detail = await _client.GetCatalogModDetailAsync(mod.Id, cancellationToken: TestContext.Current.CancellationToken);
             if (detail.Data?.Variants == null ||
                 !detail.Data.Variants.Any(v => v.Platform.Equals("steam", StringComparison.OrdinalIgnoreCase)))
                 continue;

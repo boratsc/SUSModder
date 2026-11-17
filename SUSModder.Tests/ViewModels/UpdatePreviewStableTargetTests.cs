@@ -27,6 +27,7 @@ public class UpdatePreviewStableTargetTests
         var refreshed = MainWindowViewModel.RefreshUpdateInfoFromCatalog(original, [entry]);
 
         Assert.NotNull(refreshed);
+        Assert.NotNull(refreshed.RemoteMod);
         Assert.Equal("1.7.5", refreshed.NewVersion);
         Assert.Equal("2026-8-18", refreshed.RemoteMod.AmongVersion);
         Assert.Equal(UpdateTargetValidationStatus.Valid,

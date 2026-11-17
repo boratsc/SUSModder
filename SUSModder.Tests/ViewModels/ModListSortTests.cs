@@ -263,6 +263,32 @@ public class NotInstalledSeparatorTests
         CatalogBrowserProjection.MarkNotInstalledSeparator(items);
         Assert.All(items, m => Assert.False(m.ShowNotInstalledSeparator));
     }
+
+    [Fact]
+    public void RowDivider_HiddenOnlyBeforeHeader_MovesWithHeaderAndRestores()
+    {
+        var vanilla = Mod(0, "AmongUs", installed: true, type: "Vanilla");
+        var installed = Mod(1, "Alpha", installed: true);
+        var notA = Mod(2, "Beta");
+        var notB = Mod(3, "Gamma");
+        var items = new[] { vanilla, installed, notA, notB };
+
+        CatalogBrowserProjection.MarkNotInstalledSeparator(items);
+        Assert.True(vanilla.ShowRowSeparator);
+        Assert.False(installed.ShowRowSeparator); // wiersz tuż przed nagłówkiem — bez podwójnej linii
+        Assert.True(notA.ShowRowSeparator);
+        Assert.True(notB.ShowRowSeparator);
+
+        // Po instalacji notA nagłówek przechodzi na notB — ukryta linia przesuwa się razem z nim,
+        // a linia wiersza „installed" (wcześniej ukryta) wraca.
+        notA.InstallPath = @"C:\Mods\Beta";
+        CatalogBrowserProjection.MarkNotInstalledSeparator(items);
+        Assert.True(notB.ShowNotInstalledSeparator);
+        Assert.False(notA.ShowRowSeparator);
+        Assert.True(installed.ShowRowSeparator);
+        Assert.True(vanilla.ShowRowSeparator);
+        Assert.True(notB.ShowRowSeparator);
+    }
 }
 
 /// <summary>K2: odczyt ustawienia sortowania (nieznana wartość = domyślna) i domyślna wartość ustawienia.</summary>

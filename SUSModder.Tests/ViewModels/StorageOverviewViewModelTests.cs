@@ -99,7 +99,7 @@ public class StorageOverviewViewModelTests
         };
 
         var vm = CreateVm(backend);
-        await vm.MeasureAsync();
+        await vm.MeasureAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(2, vm.Categories.Count);
 
@@ -168,7 +168,7 @@ public class StorageOverviewViewModelTests
         };
 
         var vm = CreateVm(new FakeBackend { PlanAsyncImpl = (_, _) => Task.FromResult(plan) });
-        await vm.MeasureAsync();
+        await vm.MeasureAsync(TestContext.Current.CancellationToken);
 
         var row = Assert.Single(vm.Categories);
         // Niedostępność ≠ 0 B.
@@ -183,7 +183,7 @@ public class StorageOverviewViewModelTests
         var backend = new FakeBackend();
         var vm = CreateVm(backend, () => Scope(exists: false));
 
-        await vm.MeasureAsync();
+        await vm.MeasureAsync(TestContext.Current.CancellationToken);
 
         Assert.True(vm.IsLibraryMissing);
         Assert.Empty(vm.TotalMeasuredText); // nie udajemy „0 B”
@@ -203,7 +203,7 @@ public class StorageOverviewViewModelTests
         };
 
         var vm = CreateVm(new FakeBackend { PlanAsyncImpl = (_, _) => Task.FromResult(plan) });
-        await vm.MeasureAsync();
+        await vm.MeasureAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal("10 B", vm.TotalMeasuredText);
         Assert.Equal("UI.Storage.Overview.TotalPartial", vm.TotalNoteText);
@@ -221,7 +221,7 @@ public class StorageOverviewViewModelTests
         };
 
         var vm = CreateVm(new FakeBackend { PlanAsyncImpl = (_, _) => Task.FromResult(plan) });
-        await vm.MeasureAsync();
+        await vm.MeasureAsync(TestContext.Current.CancellationToken);
 
         Assert.Empty(vm.TotalMeasuredText);
         Assert.Equal("UI.Storage.Overview.TotalNotAccessible", vm.TotalNoteText);
@@ -269,8 +269,8 @@ public class StorageOverviewViewModelTests
 
         var vm = CreateVm(backend);
 
-        var first = vm.MeasureAsync();
-        var second = vm.MeasureAsync(); // wygasza pierwszy przebieg
+        var first = vm.MeasureAsync(TestContext.Current.CancellationToken);
+        var second = vm.MeasureAsync(TestContext.Current.CancellationToken); // wygasza pierwszy przebieg
 
         gate2.TrySetResult(freshPlan);
         await Task.WhenAll(first, second);
@@ -291,7 +291,7 @@ public class StorageOverviewViewModelTests
         var backend = new FakeBackend { PlanAsyncImpl = (_, ct) => never.Task.WaitAsync(ct) };
 
         var vm = CreateVm(backend);
-        var measure = vm.MeasureAsync();
+        var measure = vm.MeasureAsync(TestContext.Current.CancellationToken);
 
         await Task.Yield();
         vm.CancelMeasurement();
@@ -312,7 +312,7 @@ public class StorageOverviewViewModelTests
         };
 
         var vm = CreateVm(backend);
-        await vm.MeasureAsync();
+        await vm.MeasureAsync(TestContext.Current.CancellationToken);
 
         Assert.False(vm.IsMeasuring);
         Assert.Equal("UI.Storage.Overview.Error", vm.StatusText);
@@ -345,7 +345,7 @@ public class StorageOverviewViewModelTests
         };
 
         var vm = CreateVm(backend);
-        await vm.MeasureAsync();
+        await vm.MeasureAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(captured);
         Assert.Equal(@"R:\Fake\Mods", captured!.LibraryRoot);

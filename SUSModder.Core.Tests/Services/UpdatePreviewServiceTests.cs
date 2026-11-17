@@ -32,9 +32,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
     {
         var service = CreateService(Array.Empty<ModConfiguration>());
 
-        var preview = await service.BuildPreviewAsync(
-            CreateFullMod(installPath: string.Empty, installedVersion: "1.0.0"),
-            CreateTarget("2.0.0"));
+        var preview = await service.BuildPreviewAsync(CreateFullMod(installPath: string.Empty, installedVersion: "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(preview.IsInstalled);
         Assert.False(preview.HasInstallationMap);
@@ -51,9 +49,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
         await InstallationMapManager.SaveInstallationMapAsync(modPath, CreateMap(modPath, "1.2.3"));
         var service = CreateService(Array.Empty<ModConfiguration>());
 
-        var preview = await service.BuildPreviewAsync(
-            CreateFullMod(modPath, installedVersion: "0.0.1"),
-            CreateTarget("2.0.0"));
+        var preview = await service.BuildPreviewAsync(CreateFullMod(modPath, installedVersion: "0.0.1"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("1.2.3", preview.CurrentVersion);
         Assert.True(preview.HasInstallationMap);
@@ -67,9 +63,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
         await InstallationMapManager.SaveInstallationMapAsync(modPath, CreateMap(modPath, "1.0.0"));
         var service = CreateService(Array.Empty<ModConfiguration>());
 
-        var preview = await service.BuildPreviewAsync(
-            CreateFullMod(modPath, "1.0.0"),
-            CreateTarget("2.0.0"));
+        var preview = await service.BuildPreviewAsync(CreateFullMod(modPath, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(UpdateConfigStatus.NotGuaranteed, preview.ConfigStatus);
     }
@@ -83,9 +77,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
             new[] { CreateDllMod(30, "CrowdedMod") },
             new ThrowingCompatibilityLookup());
 
-        var preview = await service.BuildPreviewAsync(
-            CreateFullMod(modPath, "1.0.0"),
-            CreateTarget("2.0.0"));
+        var preview = await service.BuildPreviewAsync(CreateFullMod(modPath, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
         var addon = Assert.Single(preview.Addons);
         Assert.Equal(UpdateAddonStatus.RetainedCompatibilityUnknown, addon.Status);
@@ -101,9 +93,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
         await InstallationMapManager.SaveInstallationMapAsync(modPath, map);
         var service = CreateService(Array.Empty<ModConfiguration>());
 
-        var preview = await service.BuildPreviewAsync(
-            CreateFullMod(modPath, "1.0.0"),
-            CreateTarget("2.0.0"));
+        var preview = await service.BuildPreviewAsync(CreateFullMod(modPath, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Empty(preview.Addons);
         Assert.False(preview.RequiresAttention);
@@ -121,9 +111,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
                 Result = new CompatibilityInfo { StatusCode = "W", IsCurrentVersion = true }
             });
 
-        var preview = await service.BuildPreviewAsync(
-            CreateFullMod(modPath, "1.0.0"),
-            CreateTarget("2.0.0"));
+        var preview = await service.BuildPreviewAsync(CreateFullMod(modPath, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
         var addon = Assert.Single(preview.Addons);
         Assert.Equal(UpdateAddonStatus.Retained, addon.Status);
@@ -143,7 +131,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
             Result = new CompatibilityInfo { StatusCode = "W", IsCurrentVersion = true }
         };
         var preview = await CreateService(new[] { CreateDllMod(30, "CrowdedMod") }, lookup)
-            .BuildPreviewAsync(CreateFullMod(path, "1.0.0"), CreateTarget("2.0.0"));
+            .BuildPreviewAsync(CreateFullMod(path, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("2.0.0", lookup.LastDllVersion);
         Assert.Equal("1.2.3", Assert.Single(preview.Addons).InstalledVersion);
         Assert.Equal("2.0.0", Assert.Single(preview.Addons).RestoredVersion);
@@ -157,7 +145,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
         map.FullMod.ModId = 999;
         await InstallationMapManager.SaveInstallationMapAsync(path, map);
         var preview = await CreateService(new[] { CreateDllMod(30, "CrowdedMod") })
-            .BuildPreviewAsync(CreateFullMod(path, "1.0.0"), CreateTarget("2.0.0"));
+            .BuildPreviewAsync(CreateFullMod(path, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(preview.HasInstallationMap);
         Assert.Empty(preview.Addons);
     }
@@ -172,7 +160,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
             Result = new CompatibilityInfo { StatusCode = "NW", IsCurrentVersion = false }
         };
         var preview = await CreateService(new[] { CreateDllMod(30, "CrowdedMod") }, lookup)
-            .BuildPreviewAsync(CreateFullMod(path, "1.0.0"), CreateTarget("2.0.0"));
+            .BuildPreviewAsync(CreateFullMod(path, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(UpdateAddonStatus.RetainedCompatibilityUnknown, Assert.Single(preview.Addons).Status);
     }
 
@@ -188,9 +176,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
                 Result = new CompatibilityInfo { StatusCode = "NW", IsCurrentVersion = true }
             });
 
-        var preview = await service.BuildPreviewAsync(
-            CreateFullMod(modPath, "1.0.0"),
-            CreateTarget("2.0.0"));
+        var preview = await service.BuildPreviewAsync(CreateFullMod(modPath, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
         var addon = Assert.Single(preview.Addons);
         Assert.Equal(UpdateAddonStatus.RetainedIncompatible, addon.Status);
@@ -207,9 +193,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
             new[] { CreateDllMod(30, "CrowdedMod") },
             new FakeCompatibilityLookup { Result = null });
 
-        var preview = await service.BuildPreviewAsync(
-            CreateFullMod(modPath, "1.0.0"),
-            CreateTarget("2.0.0"));
+        var preview = await service.BuildPreviewAsync(CreateFullMod(modPath, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
         var addon = Assert.Single(preview.Addons);
         Assert.Equal(UpdateAddonStatus.RetainedCompatibilityUnknown, addon.Status);
@@ -229,9 +213,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
                 Result = new CompatibilityInfo { StatusCode = "F", IsCurrentVersion = false }
             });
 
-        var preview = await service.BuildPreviewAsync(
-            CreateFullMod(modPath, "1.0.0"),
-            CreateTarget("2.0.0"));
+        var preview = await service.BuildPreviewAsync(CreateFullMod(modPath, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
         var addon = Assert.Single(preview.Addons);
         Assert.Equal(UpdateAddonStatus.RetainedCompatibilityUnknown, addon.Status);
@@ -245,9 +227,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
         await InstallationMapManager.SaveInstallationMapAsync(modPath, CreateMap(modPath, "1.0.0"));
         var service = CreateService(Array.Empty<ModConfiguration>());
 
-        var preview = await service.BuildPreviewAsync(
-            CreateFullMod(modPath, "1.0.0"),
-            CreateTarget("2.0.0"));
+        var preview = await service.BuildPreviewAsync(CreateFullMod(modPath, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
         var addon = Assert.Single(preview.Addons);
         Assert.Equal(UpdateAddonStatus.NotRestoredMissingCatalog, addon.Status);
@@ -269,9 +249,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
 
         var service = CreateService(Array.Empty<ModConfiguration>());
 
-        var preview = await service.BuildPreviewAsync(
-            CreateFullMod(modPath, "1.0.0"),
-            CreateTarget("2.0.0"));
+        var preview = await service.BuildPreviewAsync(CreateFullMod(modPath, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
         var addon = Assert.Single(preview.Addons);
         Assert.Equal(UpdateAddonStatus.NotRestoredCustomFile, addon.Status);
@@ -291,9 +269,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
 
         var service = CreateService(new[] { CreateDllMod(30, "CrowdedMod") });
 
-        var preview = await service.BuildPreviewAsync(
-            CreateFullMod(modPath, "1.0.0"),
-            CreateTarget("2.0.0"));
+        var preview = await service.BuildPreviewAsync(CreateFullMod(modPath, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
         var addon = Assert.Single(preview.Addons);
         Assert.Equal(30, addon.ModId);
@@ -307,18 +283,16 @@ public sealed class UpdatePreviewServiceTests : IDisposable
         await InstallationMapManager.SaveInstallationMapAsync(modPath, CreateMap(modPath, "1.0.0"));
 
         string mapPath = Path.Combine(modPath, ".susmodder-install.json");
-        string mapContentBefore = await File.ReadAllTextAsync(mapPath);
+        string mapContentBefore = await File.ReadAllTextAsync(mapPath, TestContext.Current.CancellationToken);
         var filesBefore = Directory.GetFiles(modPath, "*", SearchOption.AllDirectories)
             .Select(path => Path.GetRelativePath(modPath, path))
             .OrderBy(path => path)
             .ToList();
 
         var service = CreateService(new[] { CreateDllMod(30, "CrowdedMod") });
-        await service.BuildPreviewAsync(
-            CreateFullMod(modPath, "1.0.0"),
-            CreateTarget("2.0.0"));
+        await service.BuildPreviewAsync(CreateFullMod(modPath, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
-        string mapContentAfter = await File.ReadAllTextAsync(mapPath);
+        string mapContentAfter = await File.ReadAllTextAsync(mapPath, TestContext.Current.CancellationToken);
         var filesAfter = Directory.GetFiles(modPath, "*", SearchOption.AllDirectories)
             .Select(path => Path.GetRelativePath(modPath, path))
             .OrderBy(path => path)
@@ -343,9 +317,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
 
         var service = CreateService(new[] { CreateDllMod(30, "CrowdedMod") });
 
-        var preview = await service.BuildPreviewAsync(
-            CreateFullMod(outerPath, "1.0.0"),
-            CreateTarget("2.0.0"));
+        var preview = await service.BuildPreviewAsync(CreateFullMod(outerPath, "1.0.0"), CreateTarget("2.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(preview.HasInstallationMap);
         var addon = Assert.Single(preview.Addons);
@@ -397,7 +369,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
             }
         };
 
-        var previews = await service.BuildPreviewsAsync(updates);
+        var previews = await service.BuildPreviewsAsync(updates, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(2, previews.Count);
         Assert.Equal("Town of Us", previews[0].ModName);
@@ -413,9 +385,7 @@ public sealed class UpdatePreviewServiceTests : IDisposable
         await InstallationMapManager.SaveInstallationMapAsync(modPath, CreateMap(modPath, "1.0.0"));
         var service = CreateService(Array.Empty<ModConfiguration>());
 
-        var preview = await service.BuildPreviewAsync(
-            CreateFullMod(modPath, "1.0.0"),
-            CreateTarget("1.0.0"));
+        var preview = await service.BuildPreviewAsync(CreateFullMod(modPath, "1.0.0"), CreateTarget("1.0.0"), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("1.0.0", preview.TargetVersion);
         Assert.Contains("version:1.0.0", preview.TargetKey);

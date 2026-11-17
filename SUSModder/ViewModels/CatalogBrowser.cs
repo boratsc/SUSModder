@@ -84,8 +84,10 @@ namespace SUSModder.ViewModels
         {
             bool hasFirstGroup = false;
             bool separatorPlaced = false;
+            ModItem? previous = null;
             foreach (var item in ordered)
             {
+                item.ShowRowSeparator = true;
                 if (item.IsVanilla || item.IsInstalled)
                 {
                     hasFirstGroup = true;
@@ -95,7 +97,11 @@ namespace SUSModder.ViewModels
                 {
                     item.ShowNotInstalledSeparator = hasFirstGroup && !separatorPlaced;
                     separatorPlaced |= item.ShowNotInstalledSeparator;
+                    // Nagłówek ma własną linię — schowaj dolną linię poprzedniego wiersza (podwójna linia).
+                    if (item.ShowNotInstalledSeparator && previous is not null)
+                        previous.ShowRowSeparator = false;
                 }
+                previous = item;
             }
         }
 

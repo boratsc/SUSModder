@@ -83,7 +83,7 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
             TouConfig = JsonDocument.Parse("{\"roles\":1}").RootElement
         };
 
-        var result = await installer.InstallPackAsync(pack, "steam", displayName: "ToU - shared");
+        var result = await installer.InstallPackAsync(pack, "steam", displayName: "ToU - shared", ct: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.False(string.IsNullOrEmpty(result.InstanceId));
@@ -159,8 +159,8 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
             }
         };
 
-        var steamResult = await installer.InstallPackAsync(pack, "steam", displayName: "ToU - steam");
-        var epicResult = await installer.InstallPackAsync(pack, "epic", displayName: "ToU - epic");
+        var steamResult = await installer.InstallPackAsync(pack, "steam", displayName: "ToU - steam", ct: TestContext.Current.CancellationToken);
+        var epicResult = await installer.InstallPackAsync(pack, "epic", displayName: "ToU - epic", ct: TestContext.Current.CancellationToken);
 
         Assert.True(steamResult.Success);
         Assert.True(epicResult.Success);
@@ -239,7 +239,7 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
             }
         };
 
-        var result = await installer.InstallPackAsync(pack, "epic", displayName: "ToU - epic shared");
+        var result = await installer.InstallPackAsync(pack, "epic", displayName: "ToU - epic shared", ct: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.False(string.IsNullOrEmpty(result.InstanceId));
@@ -312,7 +312,7 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
             }
         };
 
-        var result = await installer.InstallPackAsync(pack, "steam", displayName: "custom artifact");
+        var result = await installer.InstallPackAsync(pack, "steam", displayName: "custom artifact", ct: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Contains("custom.dll", result.InstalledMods);

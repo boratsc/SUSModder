@@ -76,7 +76,7 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         using var handler = new FakeHandler(_ => JsonResponse(ReleasesWithHeroic02041Json));
         var service = CreateService(handler);
 
-        var releases = await service.GetReleasesAsync();
+        var releases = await service.GetReleasesAsync(TestContext.Current.CancellationToken);
 
         var previous = releases.FirstOrDefault(r =>
             r.Source == LegendaryReleaseSource.Heroic && r.Tag == "0.20.41");
@@ -96,7 +96,7 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         using var handler = new FakeHandler(_ => JsonResponse(ReleasesJson));
         var service = CreateService(handler);
 
-        var releases = await service.GetReleasesAsync();
+        var releases = await service.GetReleasesAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains(releases, r => r.Source == LegendaryReleaseSource.Upstream && r.Tag == "0.21.1");
         Assert.Contains(releases, r => r.Source == LegendaryReleaseSource.Heroic && r.Tag == "0.20.43");
@@ -115,7 +115,7 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         using var handler = new FakeHandler(_ => JsonResponse(ReleasesJson));
         var service = CreateService(handler);
 
-        var releases = await service.GetReleasesAsync();
+        var releases = await service.GetReleasesAsync(TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain(releases, r => r.Tag == "0.21.0");
     }
@@ -126,7 +126,7 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         using var handler = new FakeHandler(_ => JsonResponse(ReleasesJson));
         var service = CreateService(handler);
 
-        var releases = await service.GetReleasesAsync();
+        var releases = await service.GetReleasesAsync(TestContext.Current.CancellationToken);
 
         Assert.All(releases, r => Assert.True(
             string.Equals(r.AssetName, UpstreamAsset, StringComparison.OrdinalIgnoreCase) ||
@@ -141,7 +141,7 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         var service = CreateService(handler);
 
         var ex = await Assert.ThrowsAsync<LegendaryReleaseException>(
-            () => service.GetReleasesAsync());
+            () => service.GetReleasesAsync(TestContext.Current.CancellationToken));
 
         Assert.Equal(LegendaryErrorCodes.GitHubUnavailable, ex.ErrorCode);
     }
@@ -162,13 +162,13 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         var service = CreateService(handler);
         var release = new LegendaryReleaseInfo(LegendaryReleaseSource.Heroic, "0.20.43", HeroicAsset, expectedSha);
 
-        var result = await service.SwitchAsync(release);
+        var result = await service.SwitchAsync(release, ct: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Null(result.ErrorCode);
         Assert.Equal(expectedSha, result.Installed!.Sha256);
         Assert.Equal("0.20.43", result.Installed.Tag);
-        Assert.Equal(expectedSha, await Sha256Verifier.ComputeFileHexAsync(_toolPath));
+        Assert.Equal(expectedSha, await Sha256Verifier.ComputeFileHexAsync(_toolPath, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -184,16 +184,16 @@ public sealed class LegendaryVersionServiceTests : IDisposable
 
         var service = CreateService(handler);
         File.WriteAllText(_toolPath, "old-binary");
-        string oldSha = await Sha256Verifier.ComputeFileHexAsync(_toolPath);
+        string oldSha = await Sha256Verifier.ComputeFileHexAsync(_toolPath, TestContext.Current.CancellationToken);
 
         var release = new LegendaryReleaseInfo(LegendaryReleaseSource.Heroic, "0.20.43", HeroicAsset, expectedSha);
-        var result = await service.SwitchAsync(release);
+        var result = await service.SwitchAsync(release, ct: TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal(LegendaryErrorCodes.HashMismatch, result.ErrorCode);
 
         // Stary plik zostaje nietknięty — nie ma pół-podmienionej binarki.
-        Assert.Equal(oldSha, await Sha256Verifier.ComputeFileHexAsync(_toolPath));
+        Assert.Equal(oldSha, await Sha256Verifier.ComputeFileHexAsync(_toolPath, TestContext.Current.CancellationToken));
         Assert.Equal("old-binary", File.ReadAllText(_toolPath));
     }
 
@@ -210,7 +210,7 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         File.WriteAllText(_toolPath, "old-binary");
 
         var release = new LegendaryReleaseInfo(LegendaryReleaseSource.Heroic, "0.20.43", HeroicAsset, new string('a', 64));
-        var result = await service.SwitchAsync(release);
+        var result = await service.SwitchAsync(release, ct: TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal(LegendaryErrorCodes.NoWindowsAsset, result.ErrorCode);
@@ -227,10 +227,10 @@ public sealed class LegendaryVersionServiceTests : IDisposable
             new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(payload) });
 
         var service = CreateService(handler);
-        var state = await service.GetStateAsync();
+        var state = await service.GetStateAsync(TestContext.Current.CancellationToken);
 
         // Pin w kodzie ma własny SHA — symulujemy pobranie zgodne z pinem.
-        var result = await service.SwitchAsync(null);
+        var result = await service.SwitchAsync(null, ct: TestContext.Current.CancellationToken);
 
         // Pinned nie przechodzi weryfikacji (fałszywy payload) → stary plik zostaje.
         Assert.False(result.Success);
@@ -253,7 +253,7 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         File.WriteAllText(_toolPath, "old-binary");
 
         var release = new LegendaryReleaseInfo(LegendaryReleaseSource.Heroic, "0.20.43", HeroicAsset, expectedSha);
-        var result = await service.SwitchAsync(release);
+        var result = await service.SwitchAsync(release, ct: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
 
@@ -275,7 +275,7 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         File.WriteAllText(_toolPath, "old-binary");
 
         var release = new LegendaryReleaseInfo(LegendaryReleaseSource.Heroic, "0.20.43", HeroicAsset, new string('b', 64));
-        var result = await service.SwitchAsync(release);
+        var result = await service.SwitchAsync(release, ct: TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal(LegendaryErrorCodes.Offline, result.ErrorCode);
@@ -297,7 +297,7 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         using (var lockStream = new FileStream(_toolPath, FileMode.Open, FileAccess.Read, FileShare.None))
         {
             var release = new LegendaryReleaseInfo(LegendaryReleaseSource.Heroic, "0.20.43", HeroicAsset, new string('c', 64));
-            var result = await service.SwitchAsync(release);
+            var result = await service.SwitchAsync(release, ct: TestContext.Current.CancellationToken);
 
             Assert.False(result.Success);
             Assert.Equal(LegendaryErrorCodes.ToolBusy, result.ErrorCode);
@@ -323,10 +323,10 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         var service = CreateService(handler);
         var release = new LegendaryReleaseInfo(LegendaryReleaseSource.Heroic, "0.20.43", HeroicAsset, expectedSha);
 
-        var result = await service.SwitchAsync(release);
+        var result = await service.SwitchAsync(release, ct: TestContext.Current.CancellationToken);
         Assert.True(result.Success);
 
-        var state = await service.GetStateAsync();
+        var state = await service.GetStateAsync(TestContext.Current.CancellationToken);
 
         Assert.False(state.UsePinned);
         Assert.NotNull(state.Selected);
@@ -349,15 +349,15 @@ public sealed class LegendaryVersionServiceTests : IDisposable
 
         var service = CreateService(handler);
         var manual = new LegendaryReleaseInfo(LegendaryReleaseSource.Heroic, "0.20.43", HeroicAsset, expectedSha);
-        await service.SwitchAsync(manual);
+        await service.SwitchAsync(manual, ct: TestContext.Current.CancellationToken);
 
-        var revert = await service.SwitchAsync(null);
+        var revert = await service.SwitchAsync(null, ct: TestContext.Current.CancellationToken);
 
         // Powrót do pinu wymaga pobrania przypiętej binarki — fałszywy payload nie przechodzi weryfikacji,
         // więc tryb ręczny musi pozostać nietknięty.
         Assert.False(revert.Success);
 
-        var state = await service.GetStateAsync();
+        var state = await service.GetStateAsync(TestContext.Current.CancellationToken);
         Assert.False(state.UsePinned);
     }
 
@@ -367,7 +367,7 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         using var handler = new FakeHandler(_ => JsonResponse(ReleasesJson));
         var service = CreateService(handler);
 
-        var state = await service.GetStateAsync();
+        var state = await service.GetStateAsync(TestContext.Current.CancellationToken);
 
         Assert.True(state.UsePinned);
         Assert.Null(state.Selected);
@@ -394,16 +394,16 @@ public sealed class LegendaryVersionServiceTests : IDisposable
 
         var service = CreateService(handler);
         var manual = new LegendaryReleaseInfo(LegendaryReleaseSource.Heroic, "0.20.43", HeroicAsset, expectedSha);
-        await service.SwitchAsync(manual);
+        await service.SwitchAsync(manual, ct: TestContext.Current.CancellationToken);
 
         // Usuamy binarkę — serwis musi odtworzyć wydanie ręczne, nie przypięte.
         File.Delete(_toolPath);
         requests.Clear();
 
-        var result = await service.EnsureInstalledAsync();
+        var result = await service.EnsureInstalledAsync(ct: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
-        Assert.Equal(expectedSha, await Sha256Verifier.ComputeFileHexAsync(_toolPath));
+        Assert.Equal(expectedSha, await Sha256Verifier.ComputeFileHexAsync(_toolPath, TestContext.Current.CancellationToken));
         Assert.DoesNotContain(requests, u => u.Contains("legendary_windows_x64.exe"));
     }
 
@@ -425,12 +425,12 @@ public sealed class LegendaryVersionServiceTests : IDisposable
 
         var service = CreateService(handler);
         var manual = new LegendaryReleaseInfo(LegendaryReleaseSource.Heroic, "0.20.43", HeroicAsset, expectedSha);
-        await service.SwitchAsync(manual);
+        await service.SwitchAsync(manual, ct: TestContext.Current.CancellationToken);
 
         File.Delete(_toolPath);
         requests.Clear();
 
-        var result = await service.EnsureInstalledAsync();
+        var result = await service.EnsureInstalledAsync(ct: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.DoesNotContain(requests, u => u.Contains("/releases/tags/"));
@@ -454,16 +454,16 @@ public sealed class LegendaryVersionServiceTests : IDisposable
 
         var service = CreateService(handler);
         var manual = new LegendaryReleaseInfo(LegendaryReleaseSource.Heroic, "0.20.43", HeroicAsset, expectedSha);
-        await service.SwitchAsync(manual);
+        await service.SwitchAsync(manual, ct: TestContext.Current.CancellationToken);
 
         // Na dysku inna wersja — tło ma ją wymienić na wybraną ręcznie, nie na przypiętą.
         File.WriteAllText(_toolPath, "some-other-build");
         requests.Clear();
 
-        var result = await service.EnsureInstalledAsync();
+        var result = await service.EnsureInstalledAsync(ct: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
-        Assert.Equal(expectedSha, await Sha256Verifier.ComputeFileHexAsync(_toolPath));
+        Assert.Equal(expectedSha, await Sha256Verifier.ComputeFileHexAsync(_toolPath, TestContext.Current.CancellationToken));
         Assert.DoesNotContain(requests, u => u.Contains("legendary_windows_x64.exe"));
     }
 
@@ -480,7 +480,7 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         var service = CreateService(handler);
         File.WriteAllText(_toolPath, "stale-binary");
 
-        var result = await service.EnsureInstalledAsync();
+        var result = await service.EnsureInstalledAsync(ct: TestContext.Current.CancellationToken);
 
         // Payload nie zgadza się z pinem (sha z pinu jest stałą w kodzie) → weryfikacja odrzuca,
         // stara binarka zostaje na miejscu.
@@ -506,7 +506,7 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         var service = CreateService(handler);
         File.WriteAllText(_toolPath, "not-the-pinned-binary");
 
-        var result = await service.EnsureInstalledAsync();
+        var result = await service.EnsureInstalledAsync(ct: TestContext.Current.CancellationToken);
 
         // SHA nie zgadza się z pinem → próba pobrania; payload jest fałszywy → weryfikacja odrzuca.
         Assert.False(result.Success);
@@ -534,7 +534,7 @@ public sealed class LegendaryVersionServiceTests : IDisposable
         repository.LoadSettings().LegendaryReleaseAsset = HeroicAsset;
         repository.LoadSettings().LegendaryReleaseSha256 = "not-a-sha";
 
-        var state = await service.GetStateAsync();
+        var state = await service.GetStateAsync(TestContext.Current.CancellationToken);
 
         Assert.True(state.UsePinned);
         Assert.Null(state.Selected);
@@ -553,9 +553,9 @@ public sealed class LegendaryVersionServiceTests : IDisposable
 
         var service = CreateService(handler);
         var manual = new LegendaryReleaseInfo(LegendaryReleaseSource.Heroic, "0.20.43", HeroicAsset, expectedSha);
-        await service.SwitchAsync(manual);
+        await service.SwitchAsync(manual, ct: TestContext.Current.CancellationToken);
 
-        var state = await service.GetStateAsync();
+        var state = await service.GetStateAsync(TestContext.Current.CancellationToken);
 
         Assert.False(state.UsePinned);
         Assert.NotNull(state.Installed);

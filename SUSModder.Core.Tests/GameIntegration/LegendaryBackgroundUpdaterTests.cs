@@ -26,7 +26,7 @@ public sealed class LegendaryBackgroundUpdaterTests
         var provider = new RecordingProvider();
 
         LegendaryBackgroundUpdater.Schedule("steam", provider);
-        await Task.Delay(150);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, provider.Calls);
     }
@@ -40,7 +40,7 @@ public sealed class LegendaryBackgroundUpdaterTests
 
         // Zadanie jest asynchroniczne — czekamy na wykonanie.
         for (int i = 0; i < 50 && provider.Calls == 0; i++)
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
 
         Assert.Equal(1, provider.Calls);
     }
@@ -51,7 +51,7 @@ public sealed class LegendaryBackgroundUpdaterTests
         var provider = new RecordingProvider { ThrowOnEnsure = true };
 
         LegendaryBackgroundUpdater.Schedule("epic", provider);
-        await Task.Delay(150);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
 
         // Wyjątek w tle nie może przerwać działania aplikacji.
         Assert.Equal(1, provider.Calls);
@@ -61,7 +61,7 @@ public sealed class LegendaryBackgroundUpdaterTests
     public async Task Schedule_NullProvider_DoesNotThrow()
     {
         LegendaryBackgroundUpdater.Schedule("epic", null);
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -76,9 +76,9 @@ public sealed class LegendaryBackgroundUpdaterTests
         LegendaryBackgroundUpdater.Schedule("epic", provider);
 
         for (int i = 0; i < 50 && provider.Calls == 0; i++)
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
 
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
         Assert.Equal(0, provider.Calls);
     }
 

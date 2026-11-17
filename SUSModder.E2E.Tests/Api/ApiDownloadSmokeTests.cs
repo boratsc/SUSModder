@@ -48,7 +48,7 @@ public sealed class ApiDownloadSmokeTests : IDisposable
     [Fact]
     public async Task Download_EveryDeclaredVariant_ResolvesAndDownloads()
     {
-        var catalog = await _client.GetCatalogAsync(new CatalogQuery { Limit = 200 });
+        var catalog = await _client.GetCatalogAsync(new CatalogQuery { Limit = 200 }, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(catalog.Data);
 
         var results = new List<VariantTestResult>();
@@ -57,7 +57,7 @@ public sealed class ApiDownloadSmokeTests : IDisposable
 
         foreach (var item in catalog.Data)
         {
-            var detail = await _client.GetCatalogModDetailAsync(item.Id);
+            var detail = await _client.GetCatalogModDetailAsync(item.Id, cancellationToken: TestContext.Current.CancellationToken);
             if (detail.Data?.Variants == null || detail.Data.Variants.Count == 0)
                 continue;
 
@@ -106,7 +106,7 @@ public sealed class ApiDownloadSmokeTests : IDisposable
                     var fileName = SanitizeFileName($"{item.Id}_{item.Name}_{variant.Platform}_{variant.Architecture}.zip");
                     var downloadPath = _ctx.GetDownloadPath(fileName);
 
-                    var response = await _http.GetAsync(resolution.Url);
+                    var response = await _http.GetAsync(resolution.Url, TestContext.Current.CancellationToken);
                     result.HttpStatus = (int)response.StatusCode;
 
                     if (!response.IsSuccessStatusCode)
@@ -117,8 +117,8 @@ public sealed class ApiDownloadSmokeTests : IDisposable
                     }
 
                     await using var fileStream = File.Create(downloadPath);
-                    await response.Content.CopyToAsync(fileStream);
-                    await fileStream.FlushAsync();
+                    await response.Content.CopyToAsync(fileStream, TestContext.Current.CancellationToken);
+                    await fileStream.FlushAsync(TestContext.Current.CancellationToken);
                     fileStream.Close();
 
                     var fileInfo = new FileInfo(downloadPath);
@@ -128,7 +128,7 @@ public sealed class ApiDownloadSmokeTests : IDisposable
                     var expectedSha256 = variant.Sha256 ?? resolution.ExpectedSha256;
                     if (!string.IsNullOrWhiteSpace(expectedSha256))
                     {
-                        var actualHash = await Sha256Verifier.ComputeFileHexAsync(downloadPath);
+                        var actualHash = await Sha256Verifier.ComputeFileHexAsync(downloadPath, TestContext.Current.CancellationToken);
                         result.ActualSha256 = actualHash;
                         result.ExpectedSha256 = expectedSha256;
 

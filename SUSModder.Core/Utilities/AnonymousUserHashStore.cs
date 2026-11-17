@@ -22,7 +22,7 @@ internal static class AnonymousUserHashStore
             try
             {
                 var existing = path is null ? null : File.ReadAllText(path).Trim();
-                if (AnonymousUserHash.IsValid(existing))
+                if (existing is not null && AnonymousUserHash.IsValid(existing))
                     return existing;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) { }

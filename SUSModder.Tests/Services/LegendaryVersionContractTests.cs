@@ -75,7 +75,7 @@ public sealed class LegendaryVersionContractTests
         };
 
         var service = new CoreLegendaryVersionService(provider);
-        var releases = await service.GetReleasesAsync();
+        var releases = await service.GetReleasesAsync(TestContext.Current.CancellationToken);
 
         var release = Assert.Single(releases);
         Assert.Equal(LegendaryReleaseSource.Upstream, release.Source);
@@ -95,7 +95,7 @@ public sealed class LegendaryVersionContractTests
 
         // Wyjątek Core mapujemy na stabilny kod, nie przepuszczamy go do UI.
         var ex = await Assert.ThrowsAsync<SUSModder.Core.GameIntegration.LegendaryReleaseException>(
-            () => service.GetReleasesAsync());
+            () => service.GetReleasesAsync(TestContext.Current.CancellationToken));
         Assert.Equal(LegendaryErrorCodes.GitHubUnavailable, ex.ErrorCode);
     }
 

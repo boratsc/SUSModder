@@ -149,7 +149,7 @@ public sealed class CommunityChatPanelViewModelTests
         Assert.True(vm.HasBanner);
         vm.Pause();
         Assert.False(vm.HasBanner);
-        await Task.Delay(80);
+        await Task.Delay(80, TestContext.Current.CancellationToken);
         Assert.Equal(1, vm.BannerOpacity);
         Assert.Equal("x", vm.Draft);
     }
@@ -206,7 +206,7 @@ public sealed class CommunityChatPanelViewModelTests
         var vm = NewVm(fake, new FakeLocalizationService(), TimeSpan.FromMilliseconds(20));
         vm.Start();
 
-        await Task.Delay(320);
+        await Task.Delay(320, TestContext.Current.CancellationToken);
         var callsInWindow = fake.GetCalls;
         vm.Dispose();
 
@@ -226,7 +226,7 @@ public sealed class CommunityChatPanelViewModelTests
 
         vm.Pause();
         var afterPause = fake.GetCalls;
-        await Task.Delay(150);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
         Assert.Equal(afterPause, fake.GetCalls);
 
         vm.Resume();
@@ -245,7 +245,7 @@ public sealed class CommunityChatPanelViewModelTests
 
         vm.Dispose();
         var atDispose = fake.GetCalls;
-        await Task.Delay(150);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
         Assert.Equal(atDispose, fake.GetCalls);
 
         Assert.Throws<ObjectDisposedException>(() => vm.Start());
@@ -509,7 +509,7 @@ public sealed class CommunityChatPanelViewModelTests
         vm.SendCommand.Execute().Subscribe();
 
         await WaitUntilAsync(() => vm.HasBanner, "banner błędu wysłania");
-        await Task.Delay(120); // odczekać na ewentualne ciche ponowienia
+        await Task.Delay(120, TestContext.Current.CancellationToken); // odczekać na ewentualne ciche ponowienia
 
         Assert.Equal("Treść próbna 123", vm.Draft); // błąd wysłania pozostawia szkic
         Assert.Equal(1, fake.SendCalls);            // brak automatycznego ponawiania POST
@@ -552,12 +552,12 @@ public sealed class CommunityChatPanelViewModelTests
         await WaitUntilAsync(() => vm.IsSending, "wysyłanie w toku");
         vm.SendCommand.Execute().Subscribe();   // Enter #2 podczas trwającej operacji
 
-        await Task.Delay(80);
+        await Task.Delay(80, TestContext.Current.CancellationToken);
         Assert.Equal(1, fake.SendCalls);        // druga intencja zablokowana (CanExecute + flaga)
 
         gate.SetResult();
         await WaitUntilAsync(() => !vm.IsSending, "zakończenie wysyłania");
-        await Task.Delay(80);
+        await Task.Delay(80, TestContext.Current.CancellationToken);
         Assert.Equal(1, fake.SendCalls);        // i brak ponowienia po zakończeniu
         vm.Dispose();
     }
@@ -641,20 +641,20 @@ public sealed class CommunityChatPanelViewModelTests
 
         // manualny Refresh w oknie Retry-After → żadnych kolejnych wywołań serwisu
         vm.RefreshCommand.Execute().Subscribe();
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
         Assert.Equal(1, fake.GetCalls);
 
         // kolejka odświeżeń też jest tłumiona
         vm.RefreshCommand.Execute().Subscribe();
         vm.RefreshCommand.Execute().Subscribe();
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
         Assert.Equal(1, fake.GetCalls);
 
         // hide/show (Pause/Resume) nie obchodzi blokady
         vm.Pause();
-        await Task.Delay(60);
+        await Task.Delay(60, TestContext.Current.CancellationToken);
         vm.Resume();
-        await Task.Delay(150); // pętla z interwałem 15 ms nie wywołała odczytu wbrew oknu
+        await Task.Delay(150, TestContext.Current.CancellationToken); // pętla z interwałem 15 ms nie wywołała odczytu wbrew oknu
         Assert.Equal(1, fake.GetCalls);
 
         vm.Dispose();
@@ -677,10 +677,10 @@ public sealed class CommunityChatPanelViewModelTests
         await WaitUntilAsync(() => vm.HasBanner, "429 z Retry-After 1s");
 
         vm.RefreshCommand.Execute().Subscribe();
-        await Task.Delay(60);
+        await Task.Delay(60, TestContext.Current.CancellationToken);
         Assert.Equal(1, fake.GetCalls); // wciąż w oknie
 
-        await Task.Delay(1200); // okno minęło
+        await Task.Delay(1200, TestContext.Current.CancellationToken); // okno minęło
         vm.RefreshCommand.Execute().Subscribe();
         await WaitUntilAsync(() => fake.GetCalls >= 2, "odczyt dozwolony po oknie serwera");
         vm.Dispose();
@@ -711,7 +711,7 @@ public sealed class CommunityChatPanelViewModelTests
         gate.SetResult(); // zapis "dopływa" już po pauzie
 
         await WaitUntilAsync(() => !vm.IsSending, "handler zapisu zakończony");
-        await Task.Delay(80);
+        await Task.Delay(80, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, fake.GetCalls);           // odświeżenie po zapisie stłumione
         Assert.Empty(vm.Messages);                // bez mutacji UI w pauzie — prawdę przyniesie odczyt po wznowieniu
@@ -742,7 +742,7 @@ public sealed class CommunityChatPanelViewModelTests
         vm.Dispose();     // zamknięcie okna w trakcie żądania
         gate.SetResult();
 
-        await Task.Delay(120);
+        await Task.Delay(120, TestContext.Current.CancellationToken);
         Assert.Equal(0, fake.GetCalls); // Dispose blokuje odczyty zawsze
     }
 
@@ -765,7 +765,7 @@ public sealed class CommunityChatPanelViewModelTests
 
         vm.Pause();
         vm.RefreshCommand.Execute().Subscribe();
-        await Task.Delay(80);
+        await Task.Delay(80, TestContext.Current.CancellationToken);
         Assert.Equal(0, fake.GetCalls);
 
         vm.Resume(); // wznowienie.startuje pętlę z natychmiastowym odczytem
@@ -812,7 +812,7 @@ public sealed class CommunityChatPanelViewModelTests
         vm.DeleteConfirmation = _ => Task.FromResult(false);
 
         vm.DeleteCommand.Execute(own).Subscribe();
-        await Task.Delay(120);
+        await Task.Delay(120, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, fake.DeleteCalls);
         Assert.Contains(own, vm.Messages);
@@ -843,7 +843,7 @@ public sealed class CommunityChatPanelViewModelTests
         vm.DeleteConfirmation = null; // bezpieczny domyślny: brak dialogu = brak usunięcia
 
         vm.DeleteCommand.Execute(own).Subscribe();
-        await Task.Delay(120);
+        await Task.Delay(120, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, fake.DeleteCalls);
         Assert.Contains(own, vm.Messages);

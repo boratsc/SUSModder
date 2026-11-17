@@ -44,7 +44,7 @@ public sealed class IconAssetCacheTests : IDisposable
     {
         var handler = new Handler(_ => Task.FromResult(Ok()));
         using var cache = Cache(handler);
-        Assert.Null(await cache.GetAsync("mod:1", Reference(url: url)));
+        Assert.Null(await cache.GetAsync("mod:1", Reference(url: url), cancellationToken: TestContext.Current.CancellationToken));
         Assert.Equal(0, handler.Calls);
     }
 
@@ -53,16 +53,16 @@ public sealed class IconAssetCacheTests : IDisposable
     {
         string? original;
         using (var cache = Cache(new Handler(_ => Task.FromResult(Ok()))))
-            original = await cache.GetAsync("mod:1", Reference());
+            original = await cache.GetAsync("mod:1", Reference(), cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(original);
         Assert.Equal(Reference().Sha256 + ".png", Path.GetFileName(original));
         using var offline = Cache(new Handler(_ => throw new HttpRequestException("offline")));
         var changed = Reference(Png.Concat(new byte[] { 1 }).ToArray());
-        Assert.Equal(original, await offline.GetAsync("mod:1", changed));
-        Assert.Equal(original, await offline.GetAsync("mod:1", Reference()));
-        Assert.Null(await offline.GetAsync("mod:1", null));
+        Assert.Equal(original, await offline.GetAsync("mod:1", changed, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(original, await offline.GetAsync("mod:1", Reference(), cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Null(await offline.GetAsync("mod:1", null, cancellationToken: TestContext.Current.CancellationToken));
         using var restarted = Cache(new Handler(_ => throw new HttpRequestException("offline")));
-        Assert.Null(await restarted.GetAsync("mod:1", changed));
+        Assert.Null(await restarted.GetAsync("mod:1", changed, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public sealed class IconAssetCacheTests : IDisposable
         using var cancel = new CancellationTokenSource();
         var first = cache.GetAsync("mod:1", Reference(), cancellationToken: cancel.Token);
         await started.Task;
-        var second = cache.GetAsync("mod:2", Reference());
+        var second = cache.GetAsync("mod:2", Reference(), cancellationToken: TestContext.Current.CancellationToken);
         cancel.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
         release.SetResult();
@@ -89,8 +89,8 @@ public sealed class IconAssetCacheTests : IDisposable
         var handler = new Handler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Redirect)
         { Headers = { Location = new Uri("https://127.0.0.1/a.png") } }));
         using var cache = Cache(handler);
-        Assert.Null(await cache.GetAsync("mod:1", Reference()));
-        Assert.Null(await cache.GetAsync("mod:1", Reference()));
+        Assert.Null(await cache.GetAsync("mod:1", Reference(), cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Null(await cache.GetAsync("mod:1", Reference(), cancellationToken: TestContext.Current.CancellationToken));
         Assert.Equal(1, handler.Calls);
     }
 
@@ -112,7 +112,7 @@ public sealed class IconAssetCacheTests : IDisposable
         var reference = failure == "hash" ? Reference(Png.Concat(new byte[] { 1 }).ToArray()) : Reference(bytes);
         if (failure == "size") reference = new CatalogIconDto { AssetId = "a", Url = reference.Url,
             Sha256 = reference.Sha256, ContentType = "image/png", SizeBytes = 1 };
-        Assert.Null(await cache.GetAsync("mod:1", reference));
+        Assert.Null(await cache.GetAsync("mod:1", reference, cancellationToken: TestContext.Current.CancellationToken));
         Assert.Empty(Directory.Exists(_root) ? Directory.GetFiles(_root, "*.png") : []);
     }
 
@@ -122,24 +122,24 @@ public sealed class IconAssetCacheTests : IDisposable
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var cache = Cache(new Handler(async _ => { started.SetResult(); await release.Task; return Ok(); }));
-        var old = cache.GetAsync("mod:1", Reference());
+        var old = cache.GetAsync("mod:1", Reference(), cancellationToken: TestContext.Current.CancellationToken);
         await started.Task;
-        Assert.Null(await cache.GetAsync("mod:1", null));
+        Assert.Null(await cache.GetAsync("mod:1", null, cancellationToken: TestContext.Current.CancellationToken));
         release.SetResult();
         Assert.Null(await old);
         using var restarted = Cache(new Handler(_ => throw new HttpRequestException()));
-        Assert.Null(await restarted.GetAsync("mod:1", Reference(Png.Concat(new byte[] { 1 }).ToArray())));
+        Assert.Null(await restarted.GetAsync("mod:1", Reference(Png.Concat(new byte[] { 1 }).ToArray()), cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task DecoderFailureDoesNotDisplaceLastGood()
     {
         string? first;
-        using (var cache = Cache(new Handler(_ => Task.FromResult(Ok())))) first = await cache.GetAsync("mod:1", Reference());
+        using (var cache = Cache(new Handler(_ => Task.FromResult(Ok())))) first = await cache.GetAsync("mod:1", Reference(), cancellationToken: TestContext.Current.CancellationToken);
         var invalid = Png.Concat(new byte[] { 1 }).ToArray();
         using var changed = new IconAssetCache(bytes => bytes.Length == Png.Length, _root,
             new Handler(_ => Task.FromResult(Ok(invalid))));
-        Assert.Equal(first, await changed.GetAsync("mod:1", Reference(invalid)));
+        Assert.Equal(first, await changed.GetAsync("mod:1", Reference(invalid), cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public sealed class IconAssetCacheTests : IDisposable
         var handler = new Handler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
         { Content = new UnknownLengthContent(new byte[IconAssetCache.MaxBytes + 1]) }));
         using var cache = Cache(handler);
-        Assert.Null(await cache.GetAsync("mod:1", null, "https://susmodder.app/icons/legacy.png"));
+        Assert.Null(await cache.GetAsync("mod:1", null, "https://susmodder.app/icons/legacy.png", TestContext.Current.CancellationToken));
         Assert.Empty(Directory.Exists(_root) ? Directory.GetFiles(_root, "*.png") : []);
     }
 
@@ -166,12 +166,12 @@ public sealed class IconAssetCacheTests : IDisposable
         using var cache = Cache(handler);
         var requests = Enumerable.Range(0, 10).Select(i => cache.GetAsync("mod:" + i, null,
             "https://susmodder.app/icons/" + i + ".png")).ToArray();
-        await fourStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await fourStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.Equal(4, handler.Calls);
         cache.Dispose();
-        await Task.WhenAll(requests).WaitAsync(TimeSpan.FromSeconds(5));
+        await Task.WhenAll(requests).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.Equal(4, handler.Calls);
-        Assert.Null(await cache.GetAsync("mod:after", null, "https://susmodder.app/icons/after.png"));
+        Assert.Null(await cache.GetAsync("mod:after", null, "https://susmodder.app/icons/after.png", TestContext.Current.CancellationToken));
         Assert.Equal(4, handler.Calls);
     }
 
@@ -179,12 +179,12 @@ public sealed class IconAssetCacheTests : IDisposable
     public async Task CorruptDiskFileIsRejectedAndRepaired()
     {
         string? path;
-        using (var first = Cache(new Handler(_ => Task.FromResult(Ok())))) path = await first.GetAsync("mod:1", Reference());
-        await File.WriteAllBytesAsync(path!, new byte[] { 0 });
+        using (var first = Cache(new Handler(_ => Task.FromResult(Ok())))) path = await first.GetAsync("mod:1", Reference(), cancellationToken: TestContext.Current.CancellationToken);
+        await File.WriteAllBytesAsync(path!, new byte[] { 0 }, TestContext.Current.CancellationToken);
         var handler = new Handler(_ => Task.FromResult(Ok()));
         using var cache = Cache(handler);
-        Assert.Equal(path, await cache.GetAsync("mod:1", Reference()));
-        Assert.Equal(Png, await File.ReadAllBytesAsync(path!));
+        Assert.Equal(path, await cache.GetAsync("mod:1", Reference(), cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(Png, await File.ReadAllBytesAsync(path!, TestContext.Current.CancellationToken));
         Assert.Equal(1, handler.Calls);
     }
 
@@ -231,12 +231,12 @@ public sealed class IconAssetCacheTests : IDisposable
         var handler = new Handler(_ => Task.FromResult(Ok(Interlocked.Increment(ref requests) == 1 ? Png : changed)));
         using var cache = new IconAssetCache(_ => true, _root, handler, clock);
         const string url = "https://susmodder.app/icons/mutable.png";
-        var original = await cache.GetAsync("legacy:" + url, null, url);
+        var original = await cache.GetAsync("legacy:" + url, null, url, TestContext.Current.CancellationToken);
         clock.Advance(TimeSpan.FromHours(23));
-        Assert.Equal(original, await cache.GetAsync("legacy:" + url, null, url));
+        Assert.Equal(original, await cache.GetAsync("legacy:" + url, null, url, TestContext.Current.CancellationToken));
         Assert.Equal(1, handler.Calls);
         clock.Advance(TimeSpan.FromHours(1));
-        var updated = await cache.GetAsync("legacy:" + url, null, url);
+        var updated = await cache.GetAsync("legacy:" + url, null, url, TestContext.Current.CancellationToken);
         Assert.NotNull(updated);
         Assert.NotEqual(original, updated);
         Assert.Equal(2, handler.Calls);
@@ -251,14 +251,14 @@ public sealed class IconAssetCacheTests : IDisposable
             ? new HttpResponseMessage(HttpStatusCode.InternalServerError) : Ok()));
         using var cache = new IconAssetCache(_ => true, _root, handler, clock);
         const string url = "https://susmodder.app/icons/mutable.png";
-        var original = await cache.GetAsync("legacy:" + url, null, url);
+        var original = await cache.GetAsync("legacy:" + url, null, url, TestContext.Current.CancellationToken);
         clock.Advance(TimeSpan.FromDays(1));
-        Assert.Equal(original, await cache.GetAsync("legacy:" + url, null, url));
+        Assert.Equal(original, await cache.GetAsync("legacy:" + url, null, url, TestContext.Current.CancellationToken));
         clock.Advance(TimeSpan.FromSeconds(59));
-        Assert.Equal(original, await cache.GetAsync("legacy:" + url, null, url));
+        Assert.Equal(original, await cache.GetAsync("legacy:" + url, null, url, TestContext.Current.CancellationToken));
         Assert.Equal(2, handler.Calls);
         clock.Advance(TimeSpan.FromSeconds(1));
-        Assert.Equal(original, await cache.GetAsync("legacy:" + url, null, url));
+        Assert.Equal(original, await cache.GetAsync("legacy:" + url, null, url, TestContext.Current.CancellationToken));
         Assert.Equal(3, handler.Calls);
     }
 
@@ -269,26 +269,26 @@ public sealed class IconAssetCacheTests : IDisposable
         var served = Png;
         using var cache = new IconAssetCache(_ => true, _root, new Handler(_ => Task.FromResult(Ok(served))),
             clock, cacheBudgetBytes: 3 * (Png.Length + 3));
-        var stable = await cache.GetAsync("mod:1", Reference());
+        var stable = await cache.GetAsync("mod:1", Reference(), cancellationToken: TestContext.Current.CancellationToken);
         const string obsoleteUrl = "https://susmodder.app/icons/obsolete.png";
         const string activeUrl = "https://susmodder.app/icons/active.png";
         const string nextUrl = "https://susmodder.app/icons/next.png";
         served = Png.Concat(new byte[] { 1 }).ToArray();
-        var obsolete = await cache.GetAsync("legacy:" + obsoleteUrl, null, obsoleteUrl);
+        var obsolete = await cache.GetAsync("legacy:" + obsoleteUrl, null, obsoleteUrl, TestContext.Current.CancellationToken);
         served = Png.Concat(new byte[] { 1, 2 }).ToArray();
-        var active = await cache.GetAsync("legacy:" + activeUrl, null, activeUrl);
+        var active = await cache.GetAsync("legacy:" + activeUrl, null, activeUrl, TestContext.Current.CancellationToken);
         File.SetLastWriteTimeUtc(obsolete!, clock.GetUtcNow().UtcDateTime.AddMinutes(-2));
-        await cache.ReconcileLegacyAssignmentsAsync([activeUrl, nextUrl]);
+        await cache.ReconcileLegacyAssignmentsAsync([activeUrl, nextUrl], TestContext.Current.CancellationToken);
         // Reconciliation removes only protection, not a bitmap's disk file immediately.
         Assert.True(File.Exists(obsolete));
         served = Png.Concat(new byte[] { 1, 2, 3 }).ToArray();
-        Assert.NotNull(await cache.GetAsync("legacy:" + nextUrl, null, nextUrl));
+        Assert.NotNull(await cache.GetAsync("legacy:" + nextUrl, null, nextUrl, TestContext.Current.CancellationToken));
         Assert.False(File.Exists(obsolete));
         Assert.True(File.Exists(active));
         Assert.True(File.Exists(stable));
         using var offline = new IconAssetCache(_ => true, _root, new Handler(_ => throw new HttpRequestException()), clock);
-        Assert.Equal(stable, await offline.GetAsync("mod:1", Reference(Png.Concat(new byte[] { 5 }).ToArray())));
-        Assert.Equal(active, await offline.GetAsync("legacy:" + activeUrl, null, activeUrl));
+        Assert.Equal(stable, await offline.GetAsync("mod:1", Reference(Png.Concat(new byte[] { 5 }).ToArray()), cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(active, await offline.GetAsync("legacy:" + activeUrl, null, activeUrl, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -298,12 +298,12 @@ public sealed class IconAssetCacheTests : IDisposable
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var cache = Cache(new Handler(async _ => { started.SetResult(); await release.Task; return Ok(); }));
         const string url = "https://susmodder.app/icons/obsolete.png";
-        var pending = cache.GetAsync("legacy:" + url, null, url);
+        var pending = cache.GetAsync("legacy:" + url, null, url, TestContext.Current.CancellationToken);
         await started.Task;
-        await cache.ReconcileLegacyAssignmentsAsync([]);
+        await cache.ReconcileLegacyAssignmentsAsync([], TestContext.Current.CancellationToken);
         release.SetResult();
         Assert.Null(await pending);
-        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(_root, "manifest.json")));
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(_root, "manifest.json"), TestContext.Current.CancellationToken));
         Assert.False(document.RootElement.TryGetProperty("legacy:" + url, out _));
     }
 

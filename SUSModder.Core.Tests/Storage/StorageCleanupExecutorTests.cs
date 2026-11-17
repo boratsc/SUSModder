@@ -21,14 +21,14 @@ public class StorageCleanupExecutorTests
         var archive = Path.Combine(tree.Root, "Among Us - Vanilla", StorageVersion + ".7z");
 
         var planner = new StorageCleanupPlanner();
-        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         // Kwalifikacja informacyjna istnieje, ale uprawnienia do usunięcia nie ma.
         Assert.Contains(plan.Entries, e => e.ReasonCode == StorageCleanupRules.ReasonVanillaArchiveRedundant);
         Assert.True(plan.IsMeasurementOnly);
 
         var executor = new StorageCleanupExecutor();
-        var result = await executor.ExecuteAsync(plan);
+        var result = await executor.ExecuteAsync(plan, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.RemovedCount);
         Assert.Equal(0, result.RemovedBytes);
@@ -60,10 +60,10 @@ public class StorageCleanupExecutorTests
             var child = Path.Combine(junction, "child.bin");
 
             var planner = new StorageCleanupPlanner();
-            var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+            var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
             var executor = new StorageCleanupExecutor();
-            var result = await executor.ExecuteAsync(plan);
+            var result = await executor.ExecuteAsync(plan, TestContext.Current.CancellationToken);
 
             Assert.Equal(0, result.RemovedCount);
             Assert.True(File.Exists(child));
@@ -84,13 +84,13 @@ public class StorageCleanupExecutorTests
         var archive = Path.Combine(tree.Root, "Among Us - Vanilla", StorageVersion + ".7z");
 
         var planner = new StorageCleanupPlanner();
-        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         // Podmiana pliku po podglądzie planu.
         File.WriteAllBytes(archive, new byte[4096]);
 
         var executor = new StorageCleanupExecutor();
-        var result = await executor.ExecuteAsync(plan);
+        var result = await executor.ExecuteAsync(plan, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.RemovedCount);
         Assert.True(File.Exists(archive));
@@ -106,10 +106,10 @@ public class StorageCleanupExecutorTests
         tree.CreateFile("My Mod/Among Us.exe", 128);
 
         var planner = new StorageCleanupPlanner();
-        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         var executor = new StorageCleanupExecutor();
-        var result = await executor.ExecuteAsync(plan);
+        var result = await executor.ExecuteAsync(plan, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.RemovedCount);
         Assert.Equal(plan.Entries.Count, result.SkippedCount);
@@ -126,11 +126,11 @@ public class StorageCleanupExecutorTests
         tree.CreateFile(Path.Combine("temp", Guid.NewGuid().ToString("N"), "mod.zip"), 10);
 
         var planner = new StorageCleanupPlanner();
-        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root });
+        var plan = await planner.PlanAsync(new StorageCleanupPlanRequest { LibraryRoot = tree.Root }, TestContext.Current.CancellationToken);
 
         var executor = new StorageCleanupExecutor();
-        var first = await executor.ExecuteAsync(plan);
-        var second = await executor.ExecuteAsync(plan);
+        var first = await executor.ExecuteAsync(plan, TestContext.Current.CancellationToken);
+        var second = await executor.ExecuteAsync(plan, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, first.RemovedCount);
         Assert.Equal(0, second.RemovedCount);

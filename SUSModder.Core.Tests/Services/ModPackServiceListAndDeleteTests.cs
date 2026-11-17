@@ -26,7 +26,7 @@ public class ModPackServiceListAndDeleteTests
         var api = CreateApi(new List<SusModderApiRequest>(), _ =>
             JsonResponse(HttpStatusCode.OK, "{\"success\":true,\"pack\":{\"packCode\":\"" + PackCode +
                 "\",\"modName\":\"Test\"" + (fields == "{}" ? "" : "," + fields.Trim('{', '}')) + "}}"));
-        var result = await CreateService(api.Object).GetPackAsync(PackCode);
+        var result = await CreateService(api.Object).GetPackAsync(PackCode, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         if (expected is null)
@@ -45,7 +45,7 @@ public class ModPackServiceListAndDeleteTests
         var properties = fields == "{}" ? "" : "," + fields.Trim('{', '}');
         var api = CreateApi(new List<SusModderApiRequest>(), _ => JsonResponse(HttpStatusCode.OK,
             "{\"success\":true,\"packs\":[{\"packCode\":\"" + PackCode + "\"" + properties + "}]}"));
-        var result = await CreateService(api.Object).ListOwnPacksDetailedAsync();
+        var result = await CreateService(api.Object).ListOwnPacksDetailedAsync(TestContext.Current.CancellationToken);
 
         var entry = Assert.Single(result.Packs);
         if (expected is null)
@@ -98,7 +98,7 @@ public class ModPackServiceListAndDeleteTests
         """));
         var service = CreateService(api.Object);
 
-        var result = await service.ListOwnPacksDetailedAsync();
+        var result = await service.ListOwnPacksDetailedAsync(TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Equal(2, result.Packs.Count);
@@ -140,7 +140,7 @@ public class ModPackServiceListAndDeleteTests
         """));
         var service = CreateService(api.Object);
 
-        var result = await service.ListOwnPacksDetailedAsync();
+        var result = await service.ListOwnPacksDetailedAsync(TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Single(result.Packs);
@@ -156,7 +156,7 @@ public class ModPackServiceListAndDeleteTests
         var api = CreateApi(requests, _ => JsonResponse(HttpStatusCode.NotFound, "{\"error\":{\"code\":\"NOT_FOUND\"}}"));
         var service = CreateService(api.Object);
 
-        var result = await service.ListOwnPacksDetailedAsync();
+        var result = await service.ListOwnPacksDetailedAsync(TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal(404, result.StatusCode);
@@ -179,7 +179,7 @@ public class ModPackServiceListAndDeleteTests
         """));
         var service = CreateService(api.Object);
 
-        var packs = await service.ListOwnPacksAsync();
+        var packs = await service.ListOwnPacksAsync(TestContext.Current.CancellationToken);
 
         Assert.Single(packs);
         Assert.Equal("AAA-BBBB-CCCC", packs[0].PackCode);
@@ -199,7 +199,7 @@ public class ModPackServiceListAndDeleteTests
         });
         var service = CreateService(api.Object);
 
-        var result = await service.DeletePackDetailedAsync(PackCode);
+        var result = await service.DeletePackDetailedAsync(PackCode, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Equal(200, result.StatusCode);
@@ -217,7 +217,7 @@ public class ModPackServiceListAndDeleteTests
         var api = CreateApi(requests, _ => JsonResponse(HttpStatusCode.Forbidden, "{\"error\":{\"code\":\"NOT_PACK_OWNER\",\"message\":\"x\"}}"));
         var service = CreateService(api.Object);
 
-        var result = await service.DeletePackDetailedAsync(PackCode);
+        var result = await service.DeletePackDetailedAsync(PackCode, TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal(403, result.StatusCode);
@@ -230,7 +230,7 @@ public class ModPackServiceListAndDeleteTests
         var api = CreateApi(new List<SusModderApiRequest>(), _ => JsonResponse(HttpStatusCode.OK, "{}"));
         var service = CreateService(api.Object);
 
-        var result = await service.DeletePackDetailedAsync("not-a-valid-code");
+        var result = await service.DeletePackDetailedAsync("not-a-valid-code", TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal("INVALID_PACK_CODE", result.ErrorCode);
@@ -243,7 +243,7 @@ public class ModPackServiceListAndDeleteTests
         var api = CreateApi(requests, _ => JsonResponse(HttpStatusCode.OK, "{\"success\":true}"));
         var service = CreateService(api.Object);
 
-        var ok = await service.DeletePackAsync(PackCode);
+        var ok = await service.DeletePackAsync(PackCode, TestContext.Current.CancellationToken);
 
         Assert.True(ok);
     }
@@ -297,7 +297,7 @@ public class ModPackServiceListAndDeleteTests
             FullModId = 1,
             FullModVersion = "1.0.0",
             ModName = "Test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Single(requests);

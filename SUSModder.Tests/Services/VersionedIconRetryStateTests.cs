@@ -32,14 +32,14 @@ public sealed class VersionedIconRetryStateTests
         }, shutdown.Token);
 
         var wanted = state.Register("mod:1", expected);
-        await state.Queue(wanted).WaitAsync(TimeSpan.FromSeconds(5));
-        await delayStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await state.Queue(wanted).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        await delayStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         // Includes the initial-memory-miss overlap and repeated converter reads during backoff.
         await Task.WhenAll(Enumerable.Range(0, 50).Select(_ => state.QueueMissing("mod:1")));
         Assert.Equal(1, calls);
         clock.Advance(TimeSpan.FromMinutes(1));
         releaseDelay.SetResult();
-        await succeeded.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await succeeded.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.Equal(2, calls);
         Assert.True(state.IsCurrent(wanted));
         shutdown.Cancel();
@@ -64,7 +64,7 @@ public sealed class VersionedIconRetryStateTests
         }, lifetimeToken: shutdown.Token);
         var old = state.Register("global:vanilla", Icon("old"));
         await state.Queue(old);
-        await delayed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await delayed.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         var removed = state.Register("global:vanilla", null);
         await state.Queue(removed);
         await Task.WhenAll(Enumerable.Range(0, 50).Select(_ => state.QueueMissing("global:vanilla")));
@@ -102,15 +102,15 @@ public sealed class VersionedIconRetryStateTests
             return true;
         }, lifetimeToken: shutdown.Token);
         var initial = Enumerable.Range(0, 4).Select(i => state.Queue(state.Register("block:" + i, Icon("block")))).ToArray();
-        await fourStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await fourStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         var old = state.Register("mod:1", Icon("old"));
         var oldAttempt = state.Queue(old);
         var newer = state.Register("mod:1", current);
         var newAttempt = state.Queue(newer);
         Assert.False(state.ApplyIfCurrent(old, () => throw new Exception("stale decode published")));
         release.SetResult();
-        await Task.WhenAll(initial.Append(oldAttempt).Append(newAttempt)).WaitAsync(TimeSpan.FromSeconds(5));
-        await newLoaded.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await Task.WhenAll(initial.Append(oldAttempt).Append(newAttempt)).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        await newLoaded.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.Equal(0, oldCalls);
         Assert.True(state.IsCurrent(newer));
         Assert.False(state.IsCurrent(old));

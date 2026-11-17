@@ -48,12 +48,12 @@ public class EpicModInstallerTests : IDisposable
                 ModVersion = "5.5.0"
             };
 
-            var result = await installer.InstallAsync(mod, targetPath, progress, log);
+            var result = await installer.InstallAsync(mod, targetPath, progress, log, TestContext.Current.CancellationToken);
 
             Assert.True(result.Success, $"{result.ErrorMessage}{Environment.NewLine}{string.Join(Environment.NewLine, log.Messages)}");
             var gamePath = Path.Combine(targetPath, "AmongUs");
             Assert.True(File.Exists(Path.Combine(gamePath, "Among Us.exe")));
-            Assert.Equal("epic-game", await File.ReadAllTextAsync(Path.Combine(gamePath, "Among Us.exe")));
+            Assert.Equal("epic-game", await File.ReadAllTextAsync(Path.Combine(gamePath, "Among Us.exe"), TestContext.Current.CancellationToken));
             Assert.Equal(gamePath, PathSettings.GetActualModPath(targetPath));
             Assert.True(progress.LastPercent >= 0 && progress.LastPercent <= 100);
         }
@@ -83,7 +83,7 @@ public class EpicModInstallerTests : IDisposable
             var log = new TestDiagnosticsOutput();
             var mod = new ModConfiguration { Id = 10, ModName = "Town of Us", ModVersion = "5.5.0" };
 
-            var result = await installer.InstallAsync(mod, targetPath, progress, log);
+            var result = await installer.InstallAsync(mod, targetPath, progress, log, TestContext.Current.CancellationToken);
 
             Assert.False(result.Success);
             Assert.False(Directory.Exists(targetPath) && Directory.EnumerateFileSystemEntries(targetPath).Any());
@@ -114,7 +114,7 @@ public class EpicModInstallerTests : IDisposable
             var log = new TestDiagnosticsOutput();
             var mod = new ModConfiguration { Id = 10, ModName = "Town of Us", ModVersion = "5.5.0" };
 
-            var result = await installer.InstallAsync(mod, targetPath, progress, log);
+            var result = await installer.InstallAsync(mod, targetPath, progress, log, TestContext.Current.CancellationToken);
 
             Assert.True(result.Success, $"{result.ErrorMessage}{Environment.NewLine}{string.Join(Environment.NewLine, log.Messages)}");
             Assert.True(File.Exists(Path.Combine(targetPath, "BepInEx", "plugins", "mod.dll")));
@@ -146,7 +146,7 @@ public class EpicModInstallerTests : IDisposable
             var log = new TestDiagnosticsOutput();
             var mod = new ModConfiguration { Id = 10, ModName = "Town of Us", ModVersion = "5.5.0" };
 
-            var result = await installer.InstallAsync(mod, targetPath, progress, log);
+            var result = await installer.InstallAsync(mod, targetPath, progress, log, TestContext.Current.CancellationToken);
 
             Assert.False(result.Success);
         }

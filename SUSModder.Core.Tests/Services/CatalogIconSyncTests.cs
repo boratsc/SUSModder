@@ -40,7 +40,7 @@ public class CatalogIconSyncTests : IDisposable
         var changes = new List<IconAssignmentChange>();
         service.IconAssignmentsChanged += (_, args) => changes.AddRange(args.Changes);
 
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("icon_mod_one", icons.GetForMod(1)!.AssetId);
         Assert.Equal("icon_vanilla", icons.GetGlobal(IconGlobalRole.Vanilla)!.AssetId);
@@ -64,12 +64,12 @@ public class CatalogIconSyncTests : IDisposable
         };
 
         var service = CreateService(api, db, icons);
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(icons.GetForMod(1)!.IsRemoved);
 
         // Drugi przebieg: backend potwierdza jawne usunięcie przypisania.
         api.CatalogHandler = (_, _) => CatalogResponse([CatalogItem(1, "Town of Us", null, iconMemberPresent: true)]);
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         var tombstone = icons.GetForMod(1);
         Assert.NotNull(tombstone);
@@ -95,11 +95,11 @@ public class CatalogIconSyncTests : IDisposable
         };
 
         var service = CreateService(api, db, icons);
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         // Kolejna odpowiedź bez członu "icon" — przypisanie zostaje bez zmian.
         api.CatalogHandler = (_, _) => CatalogResponse([CatalogItem(1, "Town of Us", null, iconMemberPresent: false)]);
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         var assignment = icons.GetForMod(1);
         Assert.NotNull(assignment);
@@ -119,14 +119,14 @@ public class CatalogIconSyncTests : IDisposable
         };
 
         var service = CreateService(api, db, icons);
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         IconAssignmentsChangedEventArgs? observed = null;
         service.IconAssignmentsChanged += (_, args) => observed = args;
 
         // Backend odpowiada bez obsługiwanego schematu.
         api.MetaHandler = _ => MetaResponse(new CatalogMetaDto { IconsSchemaVersion = 2 });
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(observed);
         Assert.True(observed!.ClearVersionedIcons);
@@ -152,7 +152,7 @@ public class CatalogIconSyncTests : IDisposable
         IconAssignmentsChangedEventArgs? observed = null;
         service.IconAssignmentsChanged += (_, args) => observed = args;
 
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(observed);
         Assert.True(observed!.ClearVersionedIcons);
@@ -173,14 +173,14 @@ public class CatalogIconSyncTests : IDisposable
         };
 
         var service = CreateService(api, db, icons);
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         IconAssignmentsChangedEventArgs? observed = null;
         service.IconAssignmentsChanged += (_, args) => observed = args;
 
         // Awaria transportu metadanych — przypisania zostają, brak sygnału czyszczenia.
         api.MetaHandler = _ => throw new HttpRequestException("offline");
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Null(observed);
         Assert.Equal("icon_mod_one", icons.GetForMod(1)!.AssetId);
@@ -199,7 +199,7 @@ public class CatalogIconSyncTests : IDisposable
         };
 
         var service = CreateService(api, db, icons);
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         // Katalog bez zmian (304), ale globalna ikona się zmieniła.
         api.CatalogHandler = (_, _) => new SusModderApiResult<List<CatalogItemDto>> { StatusCode = 304, ETag = "etag-catalog" };
@@ -208,7 +208,7 @@ public class CatalogIconSyncTests : IDisposable
         var changes = new List<IconAssignmentChange>();
         service.IconAssignmentsChanged += (_, args) => changes.AddRange(args.Changes);
 
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("icon_vanilla_new", icons.GetGlobal(IconGlobalRole.Vanilla)!.AssetId);
         Assert.Contains(changes, c => c.AssignmentKey == "global:vanilla");
@@ -226,13 +226,13 @@ public class CatalogIconSyncTests : IDisposable
         };
 
         var service = CreateService(api, db, icons);
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         // Metadane bez zmian — schemat pochodzi z ostatniego udanego zapisu stanu.
         api.MetaHandler = _ => new SusModderApiResult<CatalogMetaDto> { StatusCode = 304, ETag = "etag-meta" };
         api.CatalogHandler = (_, _) => CatalogResponse([CatalogItem(2, "In the Woods", IconRef("mod_two"))]);
 
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("icon_mod_two", icons.GetForMod(2)!.AssetId);
         Assert.True(service.IsVersionedIconSchemaActive);
@@ -260,7 +260,7 @@ public class CatalogIconSyncTests : IDisposable
         };
 
         var service = CreateService(api, db, icons);
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         // Migawka katalogu była ucięta — przypisania per mod nie są commitowane.
         Assert.DoesNotContain(icons.GetAll(), a => a.AssignmentKey.StartsWith("mod:", StringComparison.Ordinal));
@@ -281,7 +281,7 @@ public class CatalogIconSyncTests : IDisposable
         };
 
         var service = CreateService(api, db, icons);
-        var result = await service.RefreshCatalogIfDueAsync(force: true);
+        var result = await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotEqual(CatalogSyncStatus.Updated, result.Status);
         Assert.DoesNotContain(icons.GetAll(), a => a.AssignmentKey.StartsWith("mod:", StringComparison.Ordinal));
@@ -299,12 +299,12 @@ public class CatalogIconSyncTests : IDisposable
         };
 
         var service = CreateService(api, db, icons);
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         var changes = new List<IconAssignmentChange>();
         service.IconAssignmentsChanged += (_, args) => changes.AddRange(args.Changes);
 
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Empty(changes);
     }
@@ -321,7 +321,7 @@ public class CatalogIconSyncTests : IDisposable
         };
 
         var service = CreateService(api, db, icons);
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         // Nieprawidłowy hash referencji — nie zapisujemy jej i nie kasujemy poprzedniej.
         api.CatalogHandler = (_, _) => CatalogResponse([CatalogItem(1, "Town of Us", new CatalogIconDto
@@ -333,7 +333,7 @@ public class CatalogIconSyncTests : IDisposable
             SizeBytes = 10
         })]);
 
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         var assignment = icons.GetForMod(1);
         Assert.NotNull(assignment);
@@ -358,7 +358,7 @@ public class CatalogIconSyncTests : IDisposable
             new CompatibilityCacheRepository(db),
             new NullDiagnostics());
 
-        var result = await service.RefreshCatalogIfDueAsync(force: true);
+        var result = await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(CatalogSyncStatus.Updated, result.Status);
         Assert.Empty(service.GetIconAssignments());
@@ -381,7 +381,7 @@ public class CatalogIconSyncTests : IDisposable
         service.IconAssignmentsChanged += (_, args) => events.Add(args);
 
         // 1) Kontrakt wersjonowany aktywny.
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Single(events);
         Assert.True(events[0].IsSchemaActive);
         Assert.True(service.IsVersionedIconSchemaActive);
@@ -390,7 +390,7 @@ public class CatalogIconSyncTests : IDisposable
         //    ale wiersze przypisań pozostają w bazie.
         events.Clear();
         api.MetaHandler = _ => MetaResponse(new CatalogMetaDto { IconsSchemaVersion = 2 });
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Single(events);
         Assert.True(events[0].ClearVersionedIcons);
@@ -404,7 +404,7 @@ public class CatalogIconSyncTests : IDisposable
         //    inaczej pozostałoby w trybie legacy do restartu aplikacji.
         events.Clear();
         api.MetaHandler = _ => MetaResponse(Schema1Meta(IconRef("vanilla"), IconRef("dll")));
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Single(events);
         Assert.True(events[0].IsSchemaActive);
@@ -430,13 +430,13 @@ public class CatalogIconSyncTests : IDisposable
         };
 
         var service = CreateService(api, db, icons);
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         var events = new List<IconAssignmentsChangedEventArgs>();
         service.IconAssignmentsChanged += (_, args) => events.Add(args);
 
         // Ten sam schemat i te same referencje — bez przejścia i bez zmian: brak zdarzenia.
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Empty(events);
     }
@@ -453,14 +453,14 @@ public class CatalogIconSyncTests : IDisposable
         };
 
         var service = CreateService(api, db, icons);
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         var events = new List<IconAssignmentsChangedEventArgs>();
         service.IconAssignmentsChanged += (_, args) => events.Add(args);
 
         // 304 metadanych potwierdza niezmieniony schemat — nie jest to przejście.
         api.MetaHandler = _ => new SusModderApiResult<CatalogMetaDto> { StatusCode = 304, ETag = "etag-meta" };
-        await service.RefreshCatalogIfDueAsync(force: true);
+        await service.RefreshCatalogIfDueAsync(force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain(events, e => e.SchemaTransition);
         Assert.True(service.IsVersionedIconSchemaActive);

@@ -1048,7 +1048,8 @@
 														 IsVisible="{Binding IsInstalling}"/>
 										</Panel>
 									</Border>
-									<Border Classes="catalog-row-separator"/>
+									<Border Classes="catalog-row-separator"
+											IsVisible="{Binding ShowRowSeparator}"/>
 								</StackPanel>
 							</DataTemplate>
 						</ListBox.ItemTemplate>

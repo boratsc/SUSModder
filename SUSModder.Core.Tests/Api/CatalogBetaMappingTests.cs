@@ -29,7 +29,7 @@ public class CatalogBetaMappingTests
               {{betaField}}"latestStableVersion":"1.7.3","latestBetaVersion":"1.7.9",
               "availableReleases":[{"releaseId":"beta","version":"1.7.9","isBeta":true}]}]}
             """);
-        var item = Assert.Single((await api.GetCatalogAsync()).Data!);
+        var item = Assert.Single((await api.GetCatalogAsync(cancellationToken: TestContext.Current.CancellationToken)).Data!);
         var config = CatalogMapper.ToModConfiguration(item, api);
 
         Assert.Equal(expectedUpdate, ModUpdateManager.IsUpdateCandidate("1.7.3", config));
@@ -43,7 +43,7 @@ public class CatalogBetaMappingTests
     public async Task AutomaticUpdates_LegacyCatalogWithoutBetaFields_RemainsSupported()
     {
         var api = CreateApi("""{"data":[{"id":13,"name":"Town of Us Mira","type":"full","currentVersion":"1.7.9"}]}""");
-        var config = CatalogMapper.ToModConfiguration(Assert.Single((await api.GetCatalogAsync()).Data!), api);
+        var config = CatalogMapper.ToModConfiguration(Assert.Single((await api.GetCatalogAsync(cancellationToken: TestContext.Current.CancellationToken)).Data!), api);
 
         Assert.True(ModUpdateManager.IsUpdateCandidate("1.7.3", config));
         Assert.True(ModInstanceUpdateChecker.HasCatalogUpdate(new ModInstance { FullModVersion = "1.7.3" }, config));
@@ -59,7 +59,7 @@ public class CatalogBetaMappingTests
                 {"releaseId":"stable","version":"1.7.5","isBeta":false,"amongVersion":"2026-8-18"},
                 {"releaseId":"beta","version":"1.7.9","isBeta":true}]}]}
             """);
-        var config = CatalogMapper.ToModConfiguration(Assert.Single((await api.GetCatalogAsync()).Data!), api);
+        var config = CatalogMapper.ToModConfiguration(Assert.Single((await api.GetCatalogAsync(cancellationToken: TestContext.Current.CancellationToken)).Data!), api);
         var target = StableUpdateTarget.Resolve(config);
 
         Assert.NotNull(target);
@@ -127,7 +127,7 @@ public class CatalogBetaMappingTests
               ]}]}
             """);
 
-        var result = await api.GetCatalogAsync();
+        var result = await api.GetCatalogAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var item = Assert.Single(result.Data!);
         Assert.False(item.IsBeta);
@@ -145,7 +145,7 @@ public class CatalogBetaMappingTests
             {"data":[{"id":1,"name":"Town of Us","type":"full","currentVersion":"6.0.0"}]}
             """);
 
-        var result = await api.GetCatalogAsync();
+        var result = await api.GetCatalogAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var item = Assert.Single(result.Data!);
         Assert.Null(item.IsBeta);
@@ -167,7 +167,7 @@ public class CatalogBetaMappingTests
               ]}]}
             """);
 
-        var result = await api.GetCatalogAsync();
+        var result = await api.GetCatalogAsync(cancellationToken: TestContext.Current.CancellationToken);
         var config = CatalogMapper.ToModConfiguration(Assert.Single(result.Data!), api);
 
         Assert.False(config.IsBeta);
@@ -217,7 +217,7 @@ public class CatalogBetaMappingTests
               ]}}
             """);
 
-        var result = await api.GetCatalogModDetailAsync(7);
+        var result = await api.GetCatalogModDetailAsync(7, cancellationToken: TestContext.Current.CancellationToken);
 
         var detail = result.Data!;
         Assert.Equal("7.2.0-rc7", detail.LatestBetaVersion);

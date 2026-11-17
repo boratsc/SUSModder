@@ -66,7 +66,7 @@ public sealed class SteamHeadlessLoginVerifierTests
     public async Task UnsafeBranchStopsBeforeLogOrLaunch(SteamBranchStatus branch, SteamHeadlessLoginStatus expected)
     {
         var env = new FakeEnv { Branch = new(branch, "beta") };
-        var result = await env.Build(FastTimeout, FastPoll).RunAsync();
+        var result = await env.Build(FastTimeout, FastPoll).RunAsync(TestContext.Current.CancellationToken);
         Assert.Equal(expected, result.Status);
         Assert.Null(env.LaunchedUri);
         Assert.Equal(0, env.LogPathCalls);
@@ -76,7 +76,7 @@ public sealed class SteamHeadlessLoginVerifierTests
     public async Task UnknownBranchCanBeExplicitlyAllowed()
     {
         var env = new FakeEnv { Branch = new(SteamBranchStatus.Unknown, null), LogProvider = _ => null };
-        var result = await env.Build(TimeSpan.FromMilliseconds(30), FastPoll).RunAsync(allowUnknownBranch: true);
+        var result = await env.Build(TimeSpan.FromMilliseconds(30), FastPoll).RunAsync(TestContext.Current.CancellationToken, allowUnknownBranch: true);
         Assert.NotNull(env.LaunchedUri);
         Assert.Equal(1, env.LogPathCalls);
         Assert.Equal(SteamHeadlessLoginStatus.NotConfirmed, result.Status);
@@ -86,7 +86,7 @@ public sealed class SteamHeadlessLoginVerifierTests
     public async Task BranchProbeExceptionIsUnknown()
     {
         var env = new FakeEnv { BranchError = new InvalidOperationException() };
-        var result = await env.Build(FastTimeout, FastPoll).RunAsync();
+        var result = await env.Build(FastTimeout, FastPoll).RunAsync(TestContext.Current.CancellationToken);
         Assert.Equal(SteamHeadlessLoginStatus.BranchUnknown, result.Status);
         Assert.Null(env.LaunchedUri);
         Assert.Equal(0, env.LogPathCalls);
@@ -100,7 +100,7 @@ public sealed class SteamHeadlessLoginVerifierTests
     {
         var env = new FakeEnv { GameRunning = true };
 
-        var result = await env.Build(FastTimeout, FastPoll).RunAsync();
+        var result = await env.Build(FastTimeout, FastPoll).RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SteamHeadlessLoginStatus.GameAlreadyRunning, result.Status);
         Assert.Null(env.LaunchedUri);
@@ -118,7 +118,7 @@ public sealed class SteamHeadlessLoginVerifierTests
             launchUri: _ => launched = true,
             branchProbe: () => new SteamBranchResult(SteamBranchStatus.Default, null));
 
-        var result = await verifier.RunAsync();
+        var result = await verifier.RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SteamHeadlessLoginStatus.GameNotInstalled, result.Status);
         Assert.False(launched);
@@ -129,7 +129,7 @@ public sealed class SteamHeadlessLoginVerifierTests
     {
         var env = new FakeEnv { LogProvider = _ => $"... blah\n{SuccessMarker} - steam\n" };
 
-        var result = await env.Build(FastTimeout, FastPoll).RunAsync();
+        var result = await env.Build(FastTimeout, FastPoll).RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SteamHeadlessLoginStatus.Confirmed, result.Status);
         // Sukces: nasz własny log (potencjalne dane konta) jest usuwany.
@@ -142,7 +142,7 @@ public sealed class SteamHeadlessLoginVerifierTests
     {
         var env = new FakeEnv { LogProvider = _ => "EOS: finishing flow, login status LoggedIn" };
 
-        var result = await env.Build(FastTimeout, FastPoll).RunAsync();
+        var result = await env.Build(FastTimeout, FastPoll).RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SteamHeadlessLoginStatus.Confirmed, result.Status);
     }
@@ -157,7 +157,7 @@ public sealed class SteamHeadlessLoginVerifierTests
             Finder = _ => Array.Empty<int>(),
         };
 
-        var result = await env.Build(FastTimeout, FastPoll).RunAsync();
+        var result = await env.Build(FastTimeout, FastPoll).RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SteamHeadlessLoginStatus.NotConfirmed, result.Status);
         Assert.Equal(env.LogPath, result.LogPath);
@@ -174,7 +174,7 @@ public sealed class SteamHeadlessLoginVerifierTests
             Finder = token => token == "steam-headless-test.log" ? new[] { 4242 } : Array.Empty<int>(),
         };
 
-        var result = await env.Build(FastTimeout, FastPoll).RunAsync();
+        var result = await env.Build(FastTimeout, FastPoll).RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SteamHeadlessLoginStatus.NotConfirmed, result.Status);
         Assert.Equal(new[] { 4242 }, env.Killed);
@@ -190,7 +190,7 @@ public sealed class SteamHeadlessLoginVerifierTests
             FinderError = new InvalidOperationException("WMI niedostępne"),
         };
 
-        var result = await env.Build(FastTimeout, FastPoll).RunAsync();
+        var result = await env.Build(FastTimeout, FastPoll).RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SteamHeadlessLoginStatus.NotConfirmed, result.Status);
         Assert.Empty(env.Killed);
@@ -205,7 +205,7 @@ public sealed class SteamHeadlessLoginVerifierTests
         var verifier = env.Build(TimeSpan.FromSeconds(30), TimeSpan.FromMilliseconds(10));
 
         var task = verifier.RunAsync(cts.Token);
-        await Task.Delay(40);
+        await Task.Delay(40, TestContext.Current.CancellationToken);
         cts.Cancel();
 
         var result = await task;
@@ -218,7 +218,7 @@ public sealed class SteamHeadlessLoginVerifierTests
     {
         var env = new FakeEnv { LaunchError = new Win32Exception(2, "no association") };
 
-        var result = await env.Build(FastTimeout, FastPoll).RunAsync();
+        var result = await env.Build(FastTimeout, FastPoll).RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SteamHeadlessLoginStatus.SteamUnavailable, result.Status);
         Assert.Empty(env.ReadLogPaths);
@@ -230,7 +230,7 @@ public sealed class SteamHeadlessLoginVerifierTests
     {
         var env = new FakeEnv { LaunchError = new InvalidOperationException("boom") };
 
-        var result = await env.Build(FastTimeout, FastPoll).RunAsync();
+        var result = await env.Build(FastTimeout, FastPoll).RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SteamHeadlessLoginStatus.Failed, result.Status);
         Assert.Equal("boom", result.Diagnostic);

@@ -87,7 +87,7 @@ public sealed class UpdateTargetRevalidatorTests
             CreateTarget(10, "Town of Us", "2.0.0", "2025.6.1")
         };
 
-        var result = await UpdateTargetRevalidator.RevalidateAsync(preview, () => Task.FromResult<List<ModConfiguration>?>(catalog));
+        var result = await UpdateTargetRevalidator.RevalidateAsync(preview, () => Task.FromResult<List<ModConfiguration>?>(catalog), TestContext.Current.CancellationToken);
 
         Assert.Equal(UpdateTargetValidationStatus.Valid, result.Status);
     }
@@ -101,7 +101,7 @@ public sealed class UpdateTargetRevalidatorTests
             CreateTarget(10, "Town of Us", "2.1.0", "2025.6.1")
         };
 
-        var result = await UpdateTargetRevalidator.RevalidateAsync(preview, () => Task.FromResult<List<ModConfiguration>?>(catalog));
+        var result = await UpdateTargetRevalidator.RevalidateAsync(preview, () => Task.FromResult<List<ModConfiguration>?>(catalog), TestContext.Current.CancellationToken);
 
         Assert.Equal(UpdateTargetValidationStatus.TargetChanged, result.Status);
         Assert.True(result.RequiresConfirmation);
@@ -116,7 +116,7 @@ public sealed class UpdateTargetRevalidatorTests
             CreateTarget(11, "Other Mod", "1.0.0", "2025.6.1")
         };
 
-        var result = await UpdateTargetRevalidator.RevalidateAsync(preview, () => Task.FromResult<List<ModConfiguration>?>(catalog));
+        var result = await UpdateTargetRevalidator.RevalidateAsync(preview, () => Task.FromResult<List<ModConfiguration>?>(catalog), TestContext.Current.CancellationToken);
 
         Assert.Equal(UpdateTargetValidationStatus.TargetMissing, result.Status);
     }
@@ -126,7 +126,7 @@ public sealed class UpdateTargetRevalidatorTests
     {
         var preview = CreatePreview("2.0.0", "2025.6.1");
 
-        var result = await UpdateTargetRevalidator.RevalidateAsync(preview, () => Task.FromResult<List<ModConfiguration>?>(null));
+        var result = await UpdateTargetRevalidator.RevalidateAsync(preview, () => Task.FromResult<List<ModConfiguration>?>(null), TestContext.Current.CancellationToken);
 
         Assert.Equal(UpdateTargetValidationStatus.CatalogUnavailable, result.Status);
         Assert.True(result.RequiresConfirmation);
@@ -138,9 +138,7 @@ public sealed class UpdateTargetRevalidatorTests
     {
         var preview = CreatePreview("2.0.0", "2025.6.1");
 
-        var result = await UpdateTargetRevalidator.RevalidateAsync(
-            preview,
-            () => throw new InvalidOperationException("offline"));
+        var result = await UpdateTargetRevalidator.RevalidateAsync(preview, () => throw new InvalidOperationException("offline"), TestContext.Current.CancellationToken);
 
         Assert.Equal(UpdateTargetValidationStatus.CatalogUnavailable, result.Status);
         Assert.True(result.RequiresConfirmation);
@@ -155,7 +153,7 @@ public sealed class UpdateTargetRevalidatorTests
             CreateTarget(0, "Town of Us", "2.0.0", "2025.6.1")
         };
 
-        var result = await UpdateTargetRevalidator.RevalidateAsync(preview, () => Task.FromResult<List<ModConfiguration>?>(catalog));
+        var result = await UpdateTargetRevalidator.RevalidateAsync(preview, () => Task.FromResult<List<ModConfiguration>?>(catalog), TestContext.Current.CancellationToken);
 
         Assert.Equal(UpdateTargetValidationStatus.Valid, result.Status);
     }
@@ -168,10 +166,7 @@ public sealed class UpdateTargetRevalidatorTests
             CreateTarget(10, "Town of Us", "2.0.0", "2025.6.1")
         };
 
-        var result = await UpdateTargetRevalidator.RevalidateAsync(
-            "2.0.0",
-            "2025.6.1",
-            () => Task.FromResult<List<ModConfiguration>?>(catalog));
+        var result = await UpdateTargetRevalidator.RevalidateAsync("2.0.0", "2025.6.1", () => Task.FromResult<List<ModConfiguration>?>(catalog), TestContext.Current.CancellationToken);
 
         Assert.Equal(UpdateTargetValidationStatus.Valid, result.Status);
         Assert.False(result.RequiresConfirmation);
@@ -185,10 +180,7 @@ public sealed class UpdateTargetRevalidatorTests
             CreateTarget(10, "Town of Us", "2.1.0", "2025.6.1")
         };
 
-        var result = await UpdateTargetRevalidator.RevalidateAsync(
-            "2.0.0",
-            "2025.6.1",
-            () => Task.FromResult<List<ModConfiguration>?>(catalog));
+        var result = await UpdateTargetRevalidator.RevalidateAsync("2.0.0", "2025.6.1", () => Task.FromResult<List<ModConfiguration>?>(catalog), TestContext.Current.CancellationToken);
 
         Assert.Equal(UpdateTargetValidationStatus.TargetMissing, result.Status);
         Assert.True(result.RequiresConfirmation);
@@ -216,12 +208,7 @@ public sealed class UpdateTargetRevalidatorTests
             CreateTarget(11, "Other Mod", "2.0.0", "2025.6.1")
         };
 
-        var result = await UpdateTargetRevalidator.RevalidateAsync(
-            () => Task.FromResult<List<ModConfiguration>?>(catalog),
-            11,
-            "Other Mod",
-            "2.0.0",
-            "2025.6.1");
+        var result = await UpdateTargetRevalidator.RevalidateAsync(() => Task.FromResult<List<ModConfiguration>?>(catalog), 11, "Other Mod", "2.0.0", "2025.6.1", TestContext.Current.CancellationToken);
 
         Assert.Equal(UpdateTargetValidationStatus.Valid, result.Status);
     }
@@ -235,12 +222,7 @@ public sealed class UpdateTargetRevalidatorTests
             CreateTarget(11, "Other Mod", "2.1.0", "2025.6.1")
         };
 
-        var result = await UpdateTargetRevalidator.RevalidateAsync(
-            () => Task.FromResult<List<ModConfiguration>?>(catalog),
-            11,
-            "Other Mod",
-            "2.0.0",
-            "2025.6.1");
+        var result = await UpdateTargetRevalidator.RevalidateAsync(() => Task.FromResult<List<ModConfiguration>?>(catalog), 11, "Other Mod", "2.0.0", "2025.6.1", TestContext.Current.CancellationToken);
 
         Assert.Equal(UpdateTargetValidationStatus.TargetChanged, result.Status);
         Assert.Equal("2.1.0", result.AvailableVersion);
@@ -254,12 +236,7 @@ public sealed class UpdateTargetRevalidatorTests
             CreateTarget(10, "Town of Us", "2.0.0", "2025.6.1")
         };
 
-        var result = await UpdateTargetRevalidator.RevalidateAsync(
-            () => Task.FromResult<List<ModConfiguration>?>(catalog),
-            11,
-            "Other Mod",
-            "2.0.0",
-            "2025.6.1");
+        var result = await UpdateTargetRevalidator.RevalidateAsync(() => Task.FromResult<List<ModConfiguration>?>(catalog), 11, "Other Mod", "2.0.0", "2025.6.1", TestContext.Current.CancellationToken);
 
         Assert.Equal(UpdateTargetValidationStatus.TargetMissing, result.Status);
     }

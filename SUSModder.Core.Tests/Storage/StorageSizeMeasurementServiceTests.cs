@@ -15,7 +15,7 @@ public class StorageSizeMeasurementServiceTests
 
         using var service = new StorageSizeMeasurementService();
 
-        var result = await service.MeasureAsync(tree.Root);
+        var result = await service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(StorageSizeState.Complete, result.State);
         Assert.Equal(300, result.LogicalBytes);
@@ -31,7 +31,7 @@ public class StorageSizeMeasurementServiceTests
         using var tree = new StorageTestTree();
         using var service = new StorageSizeMeasurementService();
 
-        var result = await service.MeasureAsync(tree.Root);
+        var result = await service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(StorageSizeState.Complete, result.State);
         Assert.Equal(0, result.LogicalBytes);
@@ -44,7 +44,7 @@ public class StorageSizeMeasurementServiceTests
         using var tree = new StorageTestTree();
         using var service = new StorageSizeMeasurementService();
 
-        var result = await service.MeasureAsync(Path.Combine(tree.Root, "nie-ma-mnie"));
+        var result = await service.MeasureAsync(Path.Combine(tree.Root, "nie-ma-mnie"), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(StorageSizeState.Unavailable, result.State);
         Assert.False(result.HasValue);
@@ -57,7 +57,7 @@ public class StorageSizeMeasurementServiceTests
     {
         using var service = new StorageSizeMeasurementService();
 
-        var result = await service.MeasureAsync("   ");
+        var result = await service.MeasureAsync("   ", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(StorageSizeState.Unavailable, result.State);
         Assert.Equal(StorageSizeErrorCode.PathEmpty, result.ErrorCode);
@@ -76,7 +76,7 @@ public class StorageSizeMeasurementServiceTests
 
         using var service = new StorageSizeMeasurementService(4, null, probe);
 
-        var result = await service.MeasureAsync(tree.Root);
+        var result = await service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(StorageSizeState.Partial, result.State);
         Assert.Equal(100, result.LogicalBytes);
@@ -97,7 +97,7 @@ public class StorageSizeMeasurementServiceTests
 
         using var service = new StorageSizeMeasurementService(4, null, probe);
 
-        var result = await service.MeasureAsync(tree.Root);
+        var result = await service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(StorageSizeState.Partial, result.State);
         Assert.Equal(100, result.LogicalBytes);
@@ -124,7 +124,7 @@ public class StorageSizeMeasurementServiceTests
         {
             using var service = new StorageSizeMeasurementService();
 
-            var result = await service.MeasureAsync(tree.Root);
+            var result = await service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
 
             Assert.Equal(StorageSizeState.Partial, result.State);
             Assert.Equal(100, result.LogicalBytes);
@@ -154,8 +154,8 @@ public class StorageSizeMeasurementServiceTests
         {
             using var service = new StorageSizeMeasurementService();
 
-            var measurement = service.MeasureAsync(tree.Root);
-            var finished = await Task.WhenAny(measurement, Task.Delay(TimeSpan.FromSeconds(20)));
+            var measurement = service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
+            var finished = await Task.WhenAny(measurement, Task.Delay(TimeSpan.FromSeconds(20), TestContext.Current.CancellationToken));
 
             Assert.Same(measurement, finished);
 
@@ -186,7 +186,7 @@ public class StorageSizeMeasurementServiceTests
         {
             using var service = new StorageSizeMeasurementService();
 
-            var result = await service.MeasureAsync(junction);
+            var result = await service.MeasureAsync(junction, cancellationToken: TestContext.Current.CancellationToken);
 
             Assert.Equal(StorageSizeState.Unavailable, result.State);
             Assert.Equal(StorageSizeErrorCode.PathIsLink, result.ErrorCode);
@@ -216,7 +216,7 @@ public class StorageSizeMeasurementServiceTests
         {
             using var service = new StorageSizeMeasurementService();
 
-            var result = await service.MeasureAsync(Path.Combine(junction, "child.bin"));
+            var result = await service.MeasureAsync(Path.Combine(junction, "child.bin"), cancellationToken: TestContext.Current.CancellationToken);
 
             Assert.Equal(StorageSizeState.Unavailable, result.State);
             Assert.Equal(StorageSizeErrorCode.PathIsLink, result.ErrorCode);
@@ -246,15 +246,13 @@ public class StorageSizeMeasurementServiceTests
         {
             using var service = new StorageSizeMeasurementService();
 
-            var blocked = await service.MeasureAsync(
-                junction,
-                new StorageMeasurementOptions { TrustedRoot = tree.Root });
+            var blocked = await service.MeasureAsync(junction, new StorageMeasurementOptions { TrustedRoot = tree.Root }, TestContext.Current.CancellationToken);
 
             Assert.Equal(StorageSizeState.Unavailable, blocked.State);
             Assert.Equal(StorageSizeErrorCode.PathIsLink, blocked.ErrorCode);
 
             // Bez granicy zaufania blokada nadal obowiązuje (przodkowie sprawdzani do korzenia woluminu).
-            var alsoBlocked = await service.MeasureAsync(junction);
+            var alsoBlocked = await service.MeasureAsync(junction, cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(StorageSizeState.Unavailable, alsoBlocked.State);
         }
         finally
@@ -285,8 +283,8 @@ public class StorageSizeMeasurementServiceTests
             var measuredPath = Path.Combine(junction, "lib", "sub");
             var trustedRoot = Path.Combine(junction, "lib");
 
-            var bounded = service.MeasureAsync(measuredPath, new StorageMeasurementOptions { TrustedRoot = trustedRoot });
-            var unbounded = service.MeasureAsync(measuredPath);
+            var bounded = service.MeasureAsync(measuredPath, new StorageMeasurementOptions { TrustedRoot = trustedRoot }, TestContext.Current.CancellationToken);
+            var unbounded = service.MeasureAsync(measuredPath, cancellationToken: TestContext.Current.CancellationToken);
 
             await Task.WhenAll(bounded, unbounded);
 
@@ -325,9 +323,7 @@ public class StorageSizeMeasurementServiceTests
             var measuredPath = Path.Combine(junction, "lib");
 
             // Granica zaufania to sama mierzona ścieżka — przodkowie powyżej nie są sprawdzani.
-            var result = await service.MeasureAsync(
-                measuredPath,
-                new StorageMeasurementOptions { TrustedRoot = measuredPath });
+            var result = await service.MeasureAsync(measuredPath, new StorageMeasurementOptions { TrustedRoot = measuredPath }, TestContext.Current.CancellationToken);
 
             Assert.Equal(StorageSizeState.Complete, result.State);
             Assert.Equal(100, result.LogicalBytes);
@@ -373,11 +369,11 @@ public class StorageSizeMeasurementServiceTests
 
         using var service = new StorageSizeMeasurementService();
 
-        var first = await service.MeasureAsync(tree.Root);
+        var first = await service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
 
         tree.CreateFile("b.bin", 1000);
 
-        var second = await service.MeasureAsync(tree.Root);
+        var second = await service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Same(first, second);
         Assert.Equal(100, second.LogicalBytes);
@@ -391,10 +387,10 @@ public class StorageSizeMeasurementServiceTests
 
         using var service = new StorageSizeMeasurementService();
 
-        var first = await service.MeasureAsync(tree.Root);
+        var first = await service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
         tree.CreateFile("b.bin", 1000);
 
-        var second = await service.MeasureAsync(tree.Root, new StorageMeasurementOptions { ForceRefresh = true });
+        var second = await service.MeasureAsync(tree.Root, new StorageMeasurementOptions { ForceRefresh = true }, TestContext.Current.CancellationToken);
 
         Assert.NotSame(first, second);
         Assert.Equal(1100, second.LogicalBytes);
@@ -408,7 +404,7 @@ public class StorageSizeMeasurementServiceTests
 
         using var service = new StorageSizeMeasurementService();
 
-        var first = await service.MeasureAsync(tree.Root);
+        var first = await service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
         service.Invalidate(tree.Root);
 
         var display = service.GetDisplaySnapshot(tree.Root);
@@ -416,7 +412,7 @@ public class StorageSizeMeasurementServiceTests
         Assert.Equal(first.LogicalBytes, display.LogicalBytes);
 
         tree.CreateFile("b.bin", 1000);
-        var second = await service.MeasureAsync(tree.Root);
+        var second = await service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotSame(first, second);
         Assert.Equal(1100, second.LogicalBytes);
@@ -429,7 +425,7 @@ public class StorageSizeMeasurementServiceTests
         using var tree = new StorageTestTree();
         using var service = new StorageSizeMeasurementService();
 
-        var missing = await service.MeasureAsync(Path.Combine(tree.Root, "nie-ma-mnie"));
+        var missing = await service.MeasureAsync(Path.Combine(tree.Root, "nie-ma-mnie"), cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(StorageSizeState.Unavailable, missing.State);
 
         service.Invalidate(tree.Root);
@@ -448,7 +444,7 @@ public class StorageSizeMeasurementServiceTests
         using var tree = new StorageTestTree();
         using var service = new StorageSizeMeasurementService(StorageSizeMeasurementService.DefaultMaxConcurrency, TimeSpan.Zero);
 
-        var missing = await service.MeasureAsync(Path.Combine(tree.Root, "nie-ma-mnie"));
+        var missing = await service.MeasureAsync(Path.Combine(tree.Root, "nie-ma-mnie"), cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(StorageSizeState.Unavailable, missing.State);
 
         var display = service.GetDisplaySnapshot(Path.Combine(tree.Root, "nie-ma-mnie"));
@@ -465,7 +461,7 @@ public class StorageSizeMeasurementServiceTests
 
         using var service = new StorageSizeMeasurementService();
 
-        var nested = await service.MeasureAsync(Path.Combine(tree.Root, "sub"));
+        var nested = await service.MeasureAsync(Path.Combine(tree.Root, "sub"), cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(StorageSizeState.Complete, nested.State);
 
         service.InvalidateUnder(tree.Root);
@@ -483,8 +479,8 @@ public class StorageSizeMeasurementServiceTests
         var probe = new FakeStorageFileSystemProbe { DelayPerDirectory = TimeSpan.FromMilliseconds(150) };
         using var service = new StorageSizeMeasurementService(4, null, probe);
 
-        var measurement = service.MeasureAsync(tree.Root);
-        await Task.Delay(50);
+        var measurement = service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         service.Invalidate(tree.Root);
 
@@ -503,17 +499,18 @@ public class StorageSizeMeasurementServiceTests
         var probe = new FakeStorageFileSystemProbe { DelayPerDirectory = TimeSpan.FromMilliseconds(150) };
         using var service = new StorageSizeMeasurementService(4, null, probe);
 
-        var first = service.MeasureAsync(tree.Root);
-        await Task.Delay(40);
+        var first = service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
+        await Task.Delay(40, TestContext.Current.CancellationToken);
 
         service.Invalidate(tree.Root);
 
-        var second = await service.MeasureAsync(tree.Root);
+        var second = await service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
         await first;
 
         // Po unieważnieniu nie dołączamy do lotu o starej rewizji — powstaje nowy skan.
         Assert.True(probe.EnumerateCallCount >= 2);
-        Assert.True(second.Revision > first.Result.Revision);
+        var firstResult = await first;
+        Assert.True(second.Revision > firstResult.Revision);
     }
 
     [Fact]
@@ -524,7 +521,7 @@ public class StorageSizeMeasurementServiceTests
 
         using var service = new StorageSizeMeasurementService();
 
-        var measurement = await service.MeasureManyAsync(new[] { tree.Root, tree.Root, tree.Root });
+        var measurement = await service.MeasureManyAsync(new[] { tree.Root, tree.Root, tree.Root }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Single(measurement.IncludedRootPaths);
         Assert.Equal(2, measurement.DeduplicatedRootPaths.Count);
@@ -540,7 +537,7 @@ public class StorageSizeMeasurementServiceTests
 
         using var service = new StorageSizeMeasurementService();
 
-        var measurement = await service.MeasureManyAsync(new[] { tree.Root, Path.Combine(tree.Root, "sub") });
+        var measurement = await service.MeasureManyAsync(new[] { tree.Root, Path.Combine(tree.Root, "sub") }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Single(measurement.IncludedRootPaths);
         Assert.Equal(300, measurement.TotalLogicalBytes);
@@ -560,7 +557,7 @@ public class StorageSizeMeasurementServiceTests
             tree.Root,
             // Ścieżka spoza mierzonego korzenia — inaczej zostałaby odrzucona jako zagnieżdżona.
             Path.Combine(Path.GetTempPath(), "susmodder-storage-tests", Guid.NewGuid().ToString("N"))
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(StorageSizeState.Partial, measurement.State);
         Assert.Equal(1, measurement.UnavailableRootCount);
@@ -578,7 +575,7 @@ public class StorageSizeMeasurementServiceTests
         {
             Path.Combine(tree.Root, "nie-ma-1"),
             Path.Combine(tree.Root, "nie-ma-2")
-        });
+        }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(StorageSizeState.Unavailable, measurement.State);
         Assert.False(measurement.HasValue);
@@ -593,8 +590,8 @@ public class StorageSizeMeasurementServiceTests
         var probe = new FakeStorageFileSystemProbe { DelayPerDirectory = TimeSpan.FromMilliseconds(120) };
         using var service = new StorageSizeMeasurementService(4, null, probe);
 
-        var first = service.MeasureAsync(tree.Root);
-        var second = service.MeasureAsync(tree.Root);
+        var first = service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
+        var second = service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
 
         await Task.WhenAll(first, second);
 
@@ -611,7 +608,7 @@ public class StorageSizeMeasurementServiceTests
 
         using var service = new StorageSizeMeasurementService();
 
-        var result = await service.MeasureAsync(file);
+        var result = await service.MeasureAsync(file, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(StorageSizeState.Complete, result.State);
         Assert.Equal(250, result.LogicalBytes);
@@ -625,7 +622,7 @@ public class StorageSizeMeasurementServiceTests
 
         using var service = new StorageSizeMeasurementService();
 
-        var result = await service.MeasureAsync(tree.Root);
+        var result = await service.MeasureAsync(tree.Root, cancellationToken: TestContext.Current.CancellationToken);
         var revision = service.GetRevision(tree.Root);
 
         Assert.True(result.Revision > 0);

@@ -1,8 +1,10 @@
 using SUSModder.Core.Services;
+using System.Runtime.Versioning;
 using Xunit;
 
 namespace SUSModder.Core.Tests.GameIntegration;
 
+[SupportedOSPlatform("windows")]
 public sealed class AntivirusDetectionServiceTests
 {
     [Theory]

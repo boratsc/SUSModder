@@ -65,9 +65,7 @@ public class InstallationMapBetaTests : IDisposable
               "installedDlls": []
             }
             """;
-        await File.WriteAllTextAsync(
-            Path.Combine(_tempDir, ".susmodder-install.json"),
-            legacyJson);
+        await File.WriteAllTextAsync(Path.Combine(_tempDir, ".susmodder-install.json"), legacyJson, TestContext.Current.CancellationToken);
 
         var loaded = await InstallationMapManager.LoadInstallationMapAsync(_tempDir);
 

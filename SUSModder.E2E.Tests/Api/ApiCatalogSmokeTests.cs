@@ -39,7 +39,7 @@ public sealed class ApiCatalogSmokeTests : IDisposable
     [Fact]
     public async Task Catalog_ReturnsNonEmptyList()
     {
-        var result = await _client.GetCatalogAsync(new CatalogQuery { Limit = 200 });
+        var result = await _client.GetCatalogAsync(new CatalogQuery { Limit = 200 }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(200, result.StatusCode);
         Assert.NotNull(result.Data);
@@ -55,7 +55,7 @@ public sealed class ApiCatalogSmokeTests : IDisposable
     [Fact]
     public async Task Catalog_EveryItemHasRequiredFields()
     {
-        var result = await _client.GetCatalogAsync(new CatalogQuery { Limit = 200 });
+        var result = await _client.GetCatalogAsync(new CatalogQuery { Limit = 200 }, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(result.Data);
 
         var failures = new List<string>();
@@ -78,7 +78,7 @@ public sealed class ApiCatalogSmokeTests : IDisposable
     [Fact]
     public async Task Catalog_EveryFullModHasVariants()
     {
-        var catalog = await _client.GetCatalogAsync(new CatalogQuery { Limit = 200 });
+        var catalog = await _client.GetCatalogAsync(new CatalogQuery { Limit = 200 }, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(catalog.Data);
 
         var fullMods = catalog.Data.Where(m =>
@@ -87,7 +87,7 @@ public sealed class ApiCatalogSmokeTests : IDisposable
         var failures = new List<string>();
         foreach (var mod in fullMods)
         {
-            var detail = await _client.GetCatalogModDetailAsync(mod.Id);
+            var detail = await _client.GetCatalogModDetailAsync(mod.Id, cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(200, detail.StatusCode);
             Assert.NotNull(detail.Data);
 
@@ -111,7 +111,7 @@ public sealed class ApiCatalogSmokeTests : IDisposable
     [Fact]
     public async Task Catalog_CatalogMetaWorks()
     {
-        var result = await _client.GetCatalogMetaAsync();
+        var result = await _client.GetCatalogMetaAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(result.StatusCode is 200 or 304);
         _log.Write($"[E2E] Catalog meta: HTTP {result.StatusCode}, ETag={result.ETag}");
     }
@@ -119,7 +119,7 @@ public sealed class ApiCatalogSmokeTests : IDisposable
     [Fact]
     public async Task Catalog_VersionsEndpointWorks()
     {
-        var result = await _client.GetAmongUsVersionsAsync();
+        var result = await _client.GetAmongUsVersionsAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(result.StatusCode is 200 or 304);
         Assert.NotNull(result.Data);
         Assert.NotEmpty(result.Data);
@@ -129,7 +129,7 @@ public sealed class ApiCatalogSmokeTests : IDisposable
     [Fact]
     public async Task Catalog_CompatibilitySnapshotWorks()
     {
-        var result = await _client.GetCompatibilitySnapshotAsync();
+        var result = await _client.GetCompatibilitySnapshotAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(result.StatusCode is 200 or 304);
         _log.Write($"[E2E] Compatibility snapshot: HTTP {result.StatusCode}");
     }

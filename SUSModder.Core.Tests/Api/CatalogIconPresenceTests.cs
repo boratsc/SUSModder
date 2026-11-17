@@ -21,7 +21,7 @@ public class CatalogIconPresenceTests
             {"data":[{"id":1,"name":"Town of Us","icon":null}]}
             """);
 
-        var result = await api.GetCatalogAsync();
+        var result = await api.GetCatalogAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var item = Assert.Single(result.Data!);
         Assert.Null(item.Icon);
@@ -35,7 +35,7 @@ public class CatalogIconPresenceTests
             {"data":[{"id":1,"name":"Town of Us"}]}
             """);
 
-        var result = await api.GetCatalogAsync();
+        var result = await api.GetCatalogAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var item = Assert.Single(result.Data!);
         Assert.Null(item.Icon);
@@ -49,7 +49,7 @@ public class CatalogIconPresenceTests
             {"data":[{"id":1,"name":"Town of Us","icon":{"assetId":"icon_1","url":"https://susmodder.app/assets/icons/a.png","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","contentType":"image/png","sizeBytes":10}}]}
             """);
 
-        var result = await api.GetCatalogAsync();
+        var result = await api.GetCatalogAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var item = Assert.Single(result.Data!);
         Assert.NotNull(item.Icon);
@@ -64,7 +64,7 @@ public class CatalogIconPresenceTests
             {"data":{"iconsSchemaVersion":1,"icons":{"vanilla":null,"dll":{"assetId":"icon_dll","url":"https://susmodder.app/assets/icons/d.png","sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","contentType":"image/png","sizeBytes":10}}}}
             """, "catalog-meta");
 
-        var result = await api.GetCatalogMetaAsync();
+        var result = await api.GetCatalogMetaAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var meta = result.Data!;
         Assert.Equal(1, meta.IconsSchemaVersion);
@@ -82,7 +82,7 @@ public class CatalogIconPresenceTests
             {"data":{"iconsSchemaVersion":1}}
             """, "catalog-meta");
 
-        var result = await api.GetCatalogMetaAsync();
+        var result = await api.GetCatalogMetaAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var meta = result.Data!;
         Assert.Null(meta.Icons);

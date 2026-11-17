@@ -33,7 +33,7 @@ public class ModDownloadUrlBuilderTests
         SUSModderApiClientProvider.SetDefault(api.Object);
         try
         {
-            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, platform);
+            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, platform, TestContext.Current.CancellationToken);
             Assert.Contains($"/13/1.7.5?platform={platform}", result.Url);
             Assert.DoesNotContain("1.7.9", result.Url);
         }
@@ -72,7 +72,7 @@ public class ModDownloadUrlBuilderTests
         SUSModderApiClientProvider.SetDefault(api.Object);
         try
         {
-            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic");
+            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic", TestContext.Current.CancellationToken);
             Assert.Contains("/13/1.7.5?platform=epic&arch=x64", result.Url);
             Assert.Equal(new string('a', 64), result.ExpectedSha256);
         }
@@ -153,7 +153,7 @@ public class ModDownloadUrlBuilderTests
         try
         {
             // Act
-            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic");
+            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Equal("x64", ExtractQueryParam(result.Url, "arch"));
@@ -208,7 +208,7 @@ public class ModDownloadUrlBuilderTests
         SUSModderApiClientProvider.SetDefault(mockApi.Object);
         try
         {
-            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "steam");
+            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "steam", TestContext.Current.CancellationToken);
 
             Assert.Equal("x86", ExtractQueryParam(result.Url, "arch"));
         }
@@ -262,7 +262,7 @@ public class ModDownloadUrlBuilderTests
         SUSModderApiClientProvider.SetDefault(mockApi.Object);
         try
         {
-            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic");
+            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic", TestContext.Current.CancellationToken);
 
             // The fallback variant is the only available Steam/x86 build.
             Assert.Equal("x86", ExtractQueryParam(result.Url, "arch"));
@@ -316,7 +316,7 @@ public class ModDownloadUrlBuilderTests
         SUSModderApiClientProvider.SetDefault(mockApi.Object);
         try
         {
-            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic");
+            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic", TestContext.Current.CancellationToken);
 
             Assert.Equal("epic", ExtractQueryParam(result.Url, "platform"));
             Assert.Equal("x86", ExtractQueryParam(result.Url, "arch"));
@@ -374,7 +374,7 @@ public class ModDownloadUrlBuilderTests
         SUSModderApiClientProvider.SetDefault(mockApi.Object);
         try
         {
-            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic");
+            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic", TestContext.Current.CancellationToken);
 
             Assert.Equal("epic", ExtractQueryParam(result.Url, "platform"));
             Assert.Equal("x64", ExtractQueryParam(result.Url, "arch"));
@@ -432,7 +432,7 @@ public class ModDownloadUrlBuilderTests
         SUSModderApiClientProvider.SetDefault(mockApi.Object);
         try
         {
-            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic");
+            var result = await ModDownloadUrlBuilder.ResolveWithHashAsync(mod, "epic", TestContext.Current.CancellationToken);
 
             Assert.Equal("epic", ExtractQueryParam(result.Url, "platform"));
             Assert.Contains("/5.4.0?", result.Url);

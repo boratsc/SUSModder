@@ -40,7 +40,7 @@ public class ModChangelogServiceTests
         var mockApi = new Mock<ISUSModderApiClient>();
         mockApi
             .Setup(x => x.GetCatalogChangelogAsync(
-                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>(), default))
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SusModderApiResult<List<CatalogChangelogEntryDto>>
             {
                 StatusCode = 404,
@@ -49,7 +49,7 @@ public class ModChangelogServiceTests
             });
 
         var service = new ModChangelogService(mockApi.Object, NoOpLog);
-        var result = await service.GetChangelogAsync(1, "pl");
+        var result = await service.GetChangelogAsync(1, "pl", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.IsEmpty);
         Assert.Empty(result.Entries);
@@ -75,7 +75,7 @@ public class ModChangelogServiceTests
         var mockApi = new Mock<ISUSModderApiClient>();
         mockApi
             .Setup(x => x.GetCatalogChangelogAsync(
-                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>(), default))
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SusModderApiResult<List<CatalogChangelogEntryDto>>
             {
                 StatusCode = 200,
@@ -84,7 +84,7 @@ public class ModChangelogServiceTests
             });
 
         var service = new ModChangelogService(mockApi.Object, NoOpLog);
-        var result = await service.GetChangelogAsync(1, "pl");
+        var result = await service.GetChangelogAsync(1, "pl", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(result.IsEmpty);
         Assert.Single(result.Entries);
@@ -112,7 +112,7 @@ public class ModChangelogServiceTests
         // First call: 200 with entries
         mockApi
             .SetupSequence(x => x.GetCatalogChangelogAsync(
-                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>(), default))
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SusModderApiResult<List<CatalogChangelogEntryDto>>
             {
                 StatusCode = 200,
@@ -129,11 +129,11 @@ public class ModChangelogServiceTests
         var service = new ModChangelogService(mockApi.Object, NoOpLog);
 
         // First call: populate cache
-        var result1 = await service.GetChangelogAsync(1, "pl");
+        var result1 = await service.GetChangelogAsync(1, "pl", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Single(result1.Entries);
 
         // Second call: should get 304 and return cached data
-        var result2 = await service.GetChangelogAsync(1, "pl");
+        var result2 = await service.GetChangelogAsync(1, "pl", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Single(result2.Entries);
         Assert.Equal("Cached body", result2.Entries[0].Body);
     }
@@ -144,7 +144,7 @@ public class ModChangelogServiceTests
         var mockApi = new Mock<ISUSModderApiClient>();
         mockApi
             .Setup(x => x.GetCatalogChangelogAsync(
-                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>(), default))
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SusModderApiResult<List<CatalogChangelogEntryDto>>
             {
                 StatusCode = 500,
@@ -152,7 +152,7 @@ public class ModChangelogServiceTests
             });
 
         var service = new ModChangelogService(mockApi.Object, NoOpLog);
-        var result = await service.GetChangelogAsync(1, "pl");
+        var result = await service.GetChangelogAsync(1, "pl", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result.ErrorCode);
         Assert.Equal("INTERNAL_ERROR", result.ErrorCode);

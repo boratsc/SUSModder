@@ -122,7 +122,7 @@ public class InstallPathWriteHelperTests
             Directory.CreateDirectory(extractPath);
             File.WriteAllText(Path.Combine(extractPath, "stale.txt"), "x");
 
-            await InstallPathWriteHelper.PrepareExtractionDirectoryAsync(extractPath);
+            await InstallPathWriteHelper.PrepareExtractionDirectoryAsync(extractPath, ct: TestContext.Current.CancellationToken);
 
             Assert.True(Directory.Exists(extractPath));
             Assert.True(InstallPathWriteHelper.TryVerifyWriteAccess(extractPath));

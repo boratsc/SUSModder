@@ -124,9 +124,9 @@ public class ModInstanceInstallerTests : IDisposable
         var pluginsDir = Path.Combine(sourcePath, "BepInEx", "plugins");
         Directory.CreateDirectory(pluginsDir);
         var dllPath = Path.Combine(pluginsDir, "Extra.dll");
-        await File.WriteAllTextAsync(dllPath, "dll");
+        await File.WriteAllTextAsync(dllPath, "dll", TestContext.Current.CancellationToken);
         var integrationPath = Path.Combine(pluginsDir, "integration.dll");
-        await File.WriteAllTextAsync(integrationPath, "integration");
+        await File.WriteAllTextAsync(integrationPath, "integration", TestContext.Current.CancellationToken);
 
         var source = CreateInstance("source-id", sourcePath);
         source.DisplayName = "ToU - source";

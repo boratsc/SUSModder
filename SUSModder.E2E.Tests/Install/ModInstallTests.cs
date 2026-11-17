@@ -48,7 +48,7 @@ public sealed class ModInstallTests : IDisposable
     public async Task Install_EveryFullModSteam_ToIsolatedDirectory()
     {
         Assert.NotNull(_client);
-        var catalog = await _client.GetCatalogAsync(new() { Limit = 200 });
+        var catalog = await _client.GetCatalogAsync(new() { Limit = 200 }, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(catalog.Data);
 
         var results = new List<InstallResult>();
@@ -57,7 +57,7 @@ public sealed class ModInstallTests : IDisposable
 
         foreach (var mod in fullMods)
         {
-            var detail = await _client.GetCatalogModDetailAsync(mod.Id);
+            var detail = await _client.GetCatalogModDetailAsync(mod.Id, cancellationToken: TestContext.Current.CancellationToken);
             if (detail.Data?.Variants == null ||
                 !detail.Data.Variants.Any(v => v.Platform.Equals("steam", StringComparison.OrdinalIgnoreCase)))
                 continue;
@@ -134,7 +134,7 @@ public sealed class ModInstallTests : IDisposable
     public async Task Install_EveryFullModEpic_ToIsolatedDirectory()
     {
         Assert.NotNull(_client);
-        var catalog = await _client.GetCatalogAsync(new() { Limit = 200 });
+        var catalog = await _client.GetCatalogAsync(new() { Limit = 200 }, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(catalog.Data);
 
         var results = new List<InstallResult>();
@@ -143,7 +143,7 @@ public sealed class ModInstallTests : IDisposable
 
         foreach (var mod in fullMods)
         {
-            var detail = await _client.GetCatalogModDetailAsync(mod.Id);
+            var detail = await _client.GetCatalogModDetailAsync(mod.Id, cancellationToken: TestContext.Current.CancellationToken);
             if (detail.Data?.Variants == null ||
                 !detail.Data.Variants.Any(v => v.Platform.Equals("epic", StringComparison.OrdinalIgnoreCase)))
                 continue;
@@ -171,11 +171,7 @@ public sealed class ModInstallTests : IDisposable
 
                 var progress = new E2EProgressReporter();
                 var epicInstaller = new EpicModInstaller();
-                var installResult = await epicInstaller.InstallAsync(
-                    modConfig,
-                    installPath,
-                    progress,
-                    _log);
+                var installResult = await epicInstaller.InstallAsync(modConfig, installPath, progress, _log, TestContext.Current.CancellationToken);
 
                 if (!installResult.Success)
                 {

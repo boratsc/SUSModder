@@ -47,7 +47,7 @@ public sealed class ModExtractionTests : IDisposable
     public async Task Extract_EveryFullModSteamVariant_HasExpectedStructure()
     {
         Assert.NotNull(_client);
-        var catalog = await _client.GetCatalogAsync(new() { Limit = 200 });
+        var catalog = await _client.GetCatalogAsync(new() { Limit = 200 }, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(catalog.Data);
 
         var results = new List<ExtractionResult>();
@@ -56,7 +56,7 @@ public sealed class ModExtractionTests : IDisposable
 
         foreach (var mod in fullMods)
         {
-            var detail = await _client.GetCatalogModDetailAsync(mod.Id);
+            var detail = await _client.GetCatalogModDetailAsync(mod.Id, cancellationToken: TestContext.Current.CancellationToken);
             if (detail.Data?.Variants == null) continue;
 
             var steamVariants = detail.Data.Variants
@@ -84,7 +84,7 @@ public sealed class ModExtractionTests : IDisposable
                         ModVersion = variant.Version ?? detail.Data.CurrentVersion
                     };
 
-                    var resolution = await ModDownloadUrlBuilder.ResolveWithHashAsync(modConfig, "steam");
+                    var resolution = await ModDownloadUrlBuilder.ResolveWithHashAsync(modConfig, "steam", TestContext.Current.CancellationToken);
                     if (string.IsNullOrWhiteSpace(resolution.Url))
                     {
                         result.Status = "SKIP_NO_URL";
@@ -94,7 +94,7 @@ public sealed class ModExtractionTests : IDisposable
 
                     // Download
                     var zipPath = _ctx.GetDownloadPath($"steam_{mod.Id}_{mod.Name}.zip");
-                    var response = await _http.GetAsync(resolution.Url);
+                    var response = await _http.GetAsync(resolution.Url, TestContext.Current.CancellationToken);
                     if (!response.IsSuccessStatusCode)
                     {
                         result.Status = $"FAIL_DOWNLOAD_{response.StatusCode}";
@@ -103,14 +103,14 @@ public sealed class ModExtractionTests : IDisposable
                     }
 
                     await using var fs = File.Create(zipPath);
-                    await response.Content.CopyToAsync(fs);
-                    await fs.FlushAsync();
+                    await response.Content.CopyToAsync(fs, TestContext.Current.CancellationToken);
+                    await fs.FlushAsync(TestContext.Current.CancellationToken);
                     fs.Close();
 
                     // Verify SHA256
                     if (!string.IsNullOrWhiteSpace(resolution.ExpectedSha256))
                     {
-                        var actualHash = await Sha256Verifier.ComputeFileHexAsync(zipPath);
+                        var actualHash = await Sha256Verifier.ComputeFileHexAsync(zipPath, TestContext.Current.CancellationToken);
                         if (!string.Equals(actualHash, resolution.ExpectedSha256, StringComparison.OrdinalIgnoreCase))
                         {
                             result.Status = "FAIL_SHA256";
@@ -162,7 +162,7 @@ public sealed class ModExtractionTests : IDisposable
     public async Task Extract_EveryFullModEpicVariant_HasExpectedStructure()
     {
         Assert.NotNull(_client);
-        var catalog = await _client.GetCatalogAsync(new() { Limit = 200 });
+        var catalog = await _client.GetCatalogAsync(new() { Limit = 200 }, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(catalog.Data);
 
         var results = new List<ExtractionResult>();
@@ -171,7 +171,7 @@ public sealed class ModExtractionTests : IDisposable
 
         foreach (var mod in fullMods)
         {
-            var detail = await _client.GetCatalogModDetailAsync(mod.Id);
+            var detail = await _client.GetCatalogModDetailAsync(mod.Id, cancellationToken: TestContext.Current.CancellationToken);
             if (detail.Data?.Variants == null) continue;
 
             var epicVariants = detail.Data.Variants
@@ -198,7 +198,7 @@ public sealed class ModExtractionTests : IDisposable
                         ModVersion = variant.Version ?? detail.Data.CurrentVersion
                     };
 
-                    var resolution = await ModDownloadUrlBuilder.ResolveWithHashAsync(modConfig, "epic");
+                    var resolution = await ModDownloadUrlBuilder.ResolveWithHashAsync(modConfig, "epic", TestContext.Current.CancellationToken);
                     if (string.IsNullOrWhiteSpace(resolution.Url))
                     {
                         result.Status = "SKIP_NO_URL";
@@ -207,7 +207,7 @@ public sealed class ModExtractionTests : IDisposable
                     }
 
                     var zipPath = _ctx.GetDownloadPath($"epic_{mod.Id}_{mod.Name}.zip");
-                    var response = await _http.GetAsync(resolution.Url);
+                    var response = await _http.GetAsync(resolution.Url, TestContext.Current.CancellationToken);
                     if (!response.IsSuccessStatusCode)
                     {
                         result.Status = $"FAIL_DOWNLOAD_{response.StatusCode}";
@@ -216,13 +216,13 @@ public sealed class ModExtractionTests : IDisposable
                     }
 
                     await using var fs = File.Create(zipPath);
-                    await response.Content.CopyToAsync(fs);
-                    await fs.FlushAsync();
+                    await response.Content.CopyToAsync(fs, TestContext.Current.CancellationToken);
+                    await fs.FlushAsync(TestContext.Current.CancellationToken);
                     fs.Close();
 
                     if (!string.IsNullOrWhiteSpace(resolution.ExpectedSha256))
                     {
-                        var actualHash = await Sha256Verifier.ComputeFileHexAsync(zipPath);
+                        var actualHash = await Sha256Verifier.ComputeFileHexAsync(zipPath, TestContext.Current.CancellationToken);
                         if (!string.Equals(actualHash, resolution.ExpectedSha256, StringComparison.OrdinalIgnoreCase))
                         {
                             result.Status = "FAIL_SHA256";

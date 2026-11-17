@@ -631,6 +631,7 @@ namespace SUSModder.ViewModels
         // ── K2: sortowanie katalogu i separator „Niezainstalowane" ──
         private int _popularity30d;
         private bool _showNotInstalledSeparator;
+        private bool _showRowSeparator = true;
 
         /// <summary>Popularność z katalogu (30 dni). 0 = brak danych — sortowanie wg nazwy.</summary>
         public int Popularity30d
@@ -644,6 +645,14 @@ namespace SUSModder.ViewModels
         {
             get => _showNotInstalledSeparator;
             set => this.RaiseAndSetIfChanged(ref _showNotInstalledSeparator, value);
+        }
+
+        /// <summary>Dolna linia oddzielająca wiersze; ukryta tuż przed nagłówkiem „Niezainstalowane",
+        /// żeby nie dublowała jego linii (podwójna linia).</summary>
+        public bool ShowRowSeparator
+        {
+            get => _showRowSeparator;
+            set => this.RaiseAndSetIfChanged(ref _showRowSeparator, value);
         }
 
         public bool IsPinnedVersionInstall =>
