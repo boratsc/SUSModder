@@ -49,8 +49,15 @@ jobs:
           -c Release --no-build --logger "trx;LogFileName=test-results.trx"
           --results-directory TestResults
 
+      - name: Test UI
+        id: test-ui
+        run: >
+          dotnet test SUSModder.Tests/SUSModder.Tests.csproj
+          -c Release --no-build --logger "trx;LogFileName=test-results-ui.trx"
+          --results-directory TestResults
+
       - name: Upload test results on failure
-        if: failure() && steps.test.outcome == 'failure'
+        if: failure() && (steps.test.outcome == 'failure' || steps.test-ui.outcome == 'failure')
         uses: actions/upload-artifact@v7
         with:
           name: test-results
