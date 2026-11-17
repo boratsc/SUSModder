@@ -12,6 +12,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using System.Runtime.InteropServices;
 using WinFormsApp = System.Windows.Forms.Application;
 
 namespace SUSModder.Services
@@ -24,6 +25,9 @@ namespace SUSModder.Services
     {
         private NotifyIcon? _notifyIcon;
         private Icon? _trayIcon;
+        private readonly Dictionary<string, Icon> _badgeIcons = new();
+        private IntPtr _taskbarList;
+        // shortcut: Explorer restart clears taskbar overlays; add TaskbarCreated handling if persistence is required.
         private ContextMenuStrip? _contextMenu;
         private Window? _mainWindow;
         private bool _isVisible;
@@ -85,6 +89,53 @@ namespace SUSModder.Services
 
             Debug.WriteLine("[SystemTrayService] Zainicjalizowano");
         }
+
+        public void SetUnreadCount(int count)
+        {
+            if (_disposed) return;
+            var label = NotificationBadgeRenderer.GetLabel(count);
+            if (_notifyIcon != null)
+            {
+                if (label == null) _notifyIcon.Icon = _trayIcon;
+                else
+                {
+                    var key = "tray:" + label;
+                    if (!_badgeIcons.TryGetValue(key, out var icon))
+                        _badgeIcons[key] = icon = NotificationBadgeRenderer.RenderTrayIcon(_trayIcon!, label);
+                    _notifyIcon.Icon = icon;
+                }
+            }
+
+            try
+            {
+                var hwnd = _mainWindow?.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+                if (hwnd == IntPtr.Zero) return;
+                if (_taskbarList == IntPtr.Zero)
+                {
+                    var clsid = new Guid("56FDF344-FD6D-11d0-958A-006097C9A090");
+                    var iid = new Guid("ea1afb91-9e28-4b86-90e9-9e9f8a5eefaf");
+                    CoCreateInstance(ref clsid, IntPtr.Zero, 1, ref iid, out _taskbarList);
+                    Marshal.GetDelegateForFunctionPointer<HrInitDelegate>(Marshal.ReadIntPtr(Marshal.ReadIntPtr(_taskbarList, 0), 3 * IntPtr.Size))(_taskbarList);
+                }
+                var overlay = IntPtr.Zero;
+                if (label != null)
+                {
+                    var key = "overlay:" + label;
+                    if (!_badgeIcons.TryGetValue(key, out var icon))
+                        _badgeIcons[key] = icon = NotificationBadgeRenderer.RenderOverlayIcon(label);
+                    overlay = icon.Handle;
+                }
+                Marshal.GetDelegateForFunctionPointer<SetOverlayIconDelegate>(Marshal.ReadIntPtr(Marshal.ReadIntPtr(_taskbarList, 0), 18 * IntPtr.Size))(_taskbarList, hwnd, overlay, label == null ? null : $"{count} new messages");
+            }
+            catch (Exception ex) { Debug.WriteLine($"[SystemTrayService] Taskbar badge: {ex.Message}"); }
+        }
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int HrInitDelegate(IntPtr self);
+        [UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet = CharSet.Unicode)]
+        private delegate int SetOverlayIconDelegate(IntPtr self, IntPtr hwnd, IntPtr icon, string? description);
+        [DllImport("ole32.dll", ExactSpelling = true)]
+        private static extern int CoCreateInstance(ref Guid clsid, IntPtr outer, uint context, ref Guid iid, out IntPtr instance);
 
         /// <summary>
         /// Ładuje ikonę tray z zasobów Avalonia (nie z ikony procesu hosta — dotnet.exe przy F5).
@@ -320,6 +371,9 @@ namespace SUSModder.Services
                 return;
 
             _disposed = true;
+            foreach (var icon in _badgeIcons.Values) icon.Dispose();
+            _badgeIcons.Clear();
+            if (_taskbarList != IntPtr.Zero) Marshal.Release(_taskbarList);
             _notifyIcon?.Dispose(); // dispose też przypisanej Icon
             _contextMenu?.Dispose();
             _notifyIcon = null;

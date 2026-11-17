@@ -3,9 +3,11 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using SUSModder.Core.Services.Localization;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -16,9 +18,16 @@ namespace SUSModder.Views
 {
     public partial class ConsoleWindow : Window
     {
+        private const int MaxEntries = 1000;
+
         private readonly ObservableCollection<LogEntry> _logEntries = new();
         private static ConsoleWindow? _instance;
         private readonly ILocalizationService _localizationService;
+
+        // Historia logów trzymana także przy zamkniętym oknie, żeby po otwarciu
+        // konsola nie była pusta. Współdzielona między wątkami — dostęp pod lockiem.
+        private static readonly Queue<LogEntry> _backlog = new();
+        private static readonly object _backlogLock = new();
 
         public ConsoleWindow()
         {
@@ -26,6 +35,14 @@ namespace SUSModder.Views
             _localizationService = App.GetService<ILocalizationService>();
             
             LogItemsControl.ItemsSource = _logEntries;
+
+            // Zasiej okno historią zebraną przed jego otwarciem
+            foreach (var entry in GetBacklogSnapshot())
+            {
+                _logEntries.Add(entry);
+            }
+            UpdateLogCount();
+
             _instance = this;
 
             Closing += (s, e) => _instance = null;
@@ -46,20 +63,56 @@ namespace SUSModder.Views
 
         public static void WriteLog(string message, LogLevel level = LogLevel.Info)
         {
-            if (_instance != null)
-            {
-                _instance.AddLogEntry(message, level);
-            }
-        }
-
-        private void AddLogEntry(string message, LogLevel level)
-        {
             var entry = new LogEntry
             {
                 Text = $"[{DateTime.Now:HH:mm:ss}] {message}",
                 Level = level
             };
 
+            lock (_backlogLock)
+            {
+                _backlog.Enqueue(entry);
+                while (_backlog.Count > MaxEntries)
+                {
+                    _backlog.Dequeue();
+                }
+            }
+
+            // Przy zamkniętym oknie nie dotykamy Dispatchera ani UI —
+            // ścieżka musi działać bez zainicjalizowanej Avalonii (testy).
+            var instance = _instance;
+            if (instance == null) return;
+
+            // ObservableCollection podpięta do ItemsControl wolno modyfikować tylko na UI thread
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                instance.AddLogEntry(entry);
+            }
+            else
+            {
+                Dispatcher.UIThread.Post(() => instance.AddLogEntry(entry));
+            }
+        }
+
+        internal static LogEntry[] GetBacklogSnapshot()
+        {
+            lock (_backlogLock)
+            {
+                return _backlog.ToArray();
+            }
+        }
+
+        internal static void ClearBacklog()
+        {
+            lock (_backlogLock)
+            {
+                _backlog.Clear();
+            }
+        }
+
+        // Wyłącznie na UI thread (dispatch zapewnia WriteLog)
+        private void AddLogEntry(LogEntry entry)
+        {
             _logEntries.Add(entry);
             UpdateLogCount();
 
@@ -69,8 +122,8 @@ namespace SUSModder.Views
                 ScrollToBottom();
             }
 
-            // Ogranicz liczbę wpisów (np. do 1000)
-            if (_logEntries.Count > 1000)
+            // Ogranicz liczbę wpisów do tego samego limitu co bufor historii
+            while (_logEntries.Count > MaxEntries)
             {
                 _logEntries.RemoveAt(0);
             }
@@ -92,6 +145,8 @@ namespace SUSModder.Views
         private void OnClearClick(object? sender, RoutedEventArgs e)
         {
             _logEntries.Clear();
+            // Wyczyść też historię, żeby usunięte logi nie wracały po ponownym otwarciu okna
+            ClearBacklog();
             UpdateLogCount();
             StatusText.Text = _localizationService.Get("Console.StatusCleared");
         }

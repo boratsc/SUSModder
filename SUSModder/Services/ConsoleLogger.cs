@@ -16,7 +16,11 @@ namespace SUSModder.Services
         {
             if (_isInitialized) return;
 
-            // Przechwytuj Debug.WriteLine przez Trace.Listeners
+            // Przechwytuj Debug.WriteLine i Trace.WriteLine przez Trace.Listeners.
+            // UWAGA: samo Debug.WriteLine omija Trace.Listeners (domyślny DebugProvider
+            // pisze tylko do debuggera), ale pierwsze użycie Trace.Listeners instaluje
+            // w runtime TraceProvider, który kieruje Debug.WriteLine do listenerów.
+            // Zweryfikowano empirycznie na .NET 10.0.10/Windows.
             _debugListener = new DebugTraceListener();
             Trace.Listeners.Add(_debugListener);
 
@@ -43,7 +47,8 @@ namespace SUSModder.Services
         // Metody pomocnicze (opcjonalne - dla bezpośredniego użycia)
         public static void WriteLine(string message, LogLevel level = LogLevel.Info)
         {
-            Debug.WriteLine(message);
+            // Bez Debug.WriteLine — listener już loguje każde Debug.WriteLine,
+            // a podwójne wywołanie tworzyłoby zduplikowany wpis.
             ConsoleWindow.WriteLog(message, level);
         }
 
@@ -53,7 +58,7 @@ namespace SUSModder.Services
         public static void WriteDebug(string message) => WriteLine(message, LogLevel.Debug);
     }
 
-    // Przechwytuje Debug.WriteLine
+    // Przechwytuje Debug.WriteLine (przez TraceProvider runtime) i Trace.WriteLine
     internal class DebugTraceListener : TraceListener
     {
         public override void Write(string? message)
