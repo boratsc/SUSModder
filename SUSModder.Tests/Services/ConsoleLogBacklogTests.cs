@@ -99,9 +99,11 @@ public sealed class ConsoleLogBacklogTests
         Assert.Empty(ConsoleWindow.GetBacklogSnapshot());
     }
 
+#if DEBUG
     // Regresja routingu: Debug.WriteLine omija Trace.Listeners przy domyślnym
     // providerze, ale pierwsze użycie Trace.Listeners instaluje TraceProvider,
     // który kieruje Debug.WriteLine do listenerów (zweryfikowane na .NET 10).
+    // Tylko Debug: Debug.WriteLine ma [Conditional("DEBUG")] i w Release znika.
     [Fact]
     public void DebugWriteLineReachesBacklogThroughTraceListener()
     {
@@ -119,4 +121,5 @@ public sealed class ConsoleLogBacklogTests
             Trace.Listeners.Remove(listener);
         }
     }
+#endif
 }
