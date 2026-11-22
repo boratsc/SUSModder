@@ -145,7 +145,7 @@ public sealed class CatalogSyncService
             if (fetch.Complete && fetch.Items.Count > 0)
                 await SyncIconAssignmentsAsync(fetch.Items, catalogComplete: true, cancellationToken);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
@@ -350,6 +350,24 @@ public sealed class CatalogSyncService
                 };
             }
 
+            if (!fetch.Complete)
+            {
+                _syncState.SaveFailure(CatalogStateKey, "PARTIAL_RESPONSE", nowUtc, ComputeNextAttemptUtc(state));
+                await SyncIconAssignmentsAsync(null, catalogComplete: false, cancellationToken);
+                if (localCount > 0)
+                {
+                    return OfflineResult(CatalogStateKey, CatalogSyncStatus.OfflineUsingCache,
+                        "Niekompletna odpowiedź katalogu — użyto lokalnego katalogu.");
+                }
+
+                return new CatalogSyncResult
+                {
+                    Status = CatalogSyncStatus.InvalidResponse,
+                    ErrorMessage = "Niekompletna odpowiedź katalogu",
+                    ModCount = 0
+                };
+            }
+
             if (!ValidateCatalog(fetch.Mods, localCount, out var validationError))
             {
                 _syncState.SaveFailure(CatalogStateKey, "INVALID_RESPONSE", nowUtc, ComputeNextAttemptUtc(state));
@@ -385,7 +403,7 @@ public sealed class CatalogSyncService
                 LastSuccessUtc = nowUtc
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
@@ -480,7 +498,7 @@ public sealed class CatalogSyncService
                 LastSuccessUtc = nowUtc
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
@@ -589,7 +607,7 @@ public sealed class CatalogSyncService
 
             RaiseIconAssignmentsChanged(changes, schemaActive: true, schemaTransition: schemaTransition);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
@@ -734,7 +752,8 @@ public sealed class CatalogSyncService
         });
     }
 
-    private async Task<(List<ModConfiguration> Mods, List<CatalogItemDto> Items, bool Complete, string? ETag, bool NotModified)> FetchCatalogAsync(        string? etag,
+    private async Task<(List<ModConfiguration> Mods, List<CatalogItemDto> Items, bool Complete, string? ETag, bool NotModified)> FetchCatalogAsync(
+        string? etag,
         CancellationToken cancellationToken)
     {
         var allItems = new List<CatalogItemDto>();

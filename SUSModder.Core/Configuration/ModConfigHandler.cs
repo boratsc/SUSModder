@@ -209,44 +209,7 @@ namespace SUSModder.Core.Configuration
                 System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] ApiPort: {apiPort}");
                 System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] UploadEndpoint: {uploadEndpoint}");
 
-                // Sprawdź czy URL używa HTTPS
-                bool isHttps = serverUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
-                System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Używa HTTPS: {isHttps}");
-
                 var handler = new HttpClientHandler();
-
-                if (isHttps)
-                {
-                    // Konfiguracja SSL tylko dla HTTPS
-                    handler.ServerCertificateCustomValidationCallback = (message, certificate, chain, sslPolicyErrors) =>
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[SSL] Walidacja certyfikatu dla: {message?.RequestUri}");
-                        System.Diagnostics.Debug.WriteLine($"[SSL] Certificate Subject: {certificate?.Subject}");
-                        System.Diagnostics.Debug.WriteLine($"[SSL] Certificate Issuer: {certificate?.Issuer}");
-                        System.Diagnostics.Debug.WriteLine($"[SSL] Certificate Valid From: {certificate?.NotBefore}");
-                        System.Diagnostics.Debug.WriteLine($"[SSL] Certificate Valid To: {certificate?.NotAfter}");
-                        System.Diagnostics.Debug.WriteLine($"[SSL] SSL Policy Errors: {sslPolicyErrors}");
-
-                        if (chain?.ChainStatus != null)
-                        {
-                            foreach (var status in chain.ChainStatus)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"[SSL] Chain Status: {status.Status} - {status.StatusInformation}");
-                            }
-                        }
-
-                        if (sslPolicyErrors != System.Net.Security.SslPolicyErrors.None)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[SSL] UWAGA: Ignoruję błędy SSL: {sslPolicyErrors}");
-                        }
-
-                        return true; // Zawsze akceptuj (dla testów)
-                    };
-
-                    // Dodatkowe opcje SSL
-                    //handler.SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13;
-                    System.Diagnostics.Debug.WriteLine($"[SSL] Ustawiono protokoły: TLS 1.2 i TLS 1.3");
-                }
 
                 using var client = new HttpClient(handler);
                 client.Timeout = TimeSpan.FromSeconds(30);
@@ -284,54 +247,6 @@ namespace SUSModder.Core.Configuration
                         var responseContent = await response.Content.ReadAsStringAsync();
                         System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Błąd serwera - Response content: {responseContent}");
                         throw new HttpRequestException($"Błąd serwera: {response.StatusCode}. Szczegóły: {responseContent}");
-                    }
-                }
-                catch (HttpRequestException ex) when (ex.Message.Contains("SSL connection could not be established"))
-                {
-                    System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Błąd SSL: {ex.Message}");
-
-                    // Legacy ToU: HTTP fallback tylko w trybie deweloperskim (bezpieczeństwo)
-                    if (isHttps && DeveloperModeSettings.IsEnabled)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Próbuję fallback na HTTP...");
-                        string httpUrl = serverUrl.Replace("https://", "http://");
-
-                        try
-                        {
-                            using var httpHandler = new HttpClientHandler();
-                            using var httpClient = new HttpClient(httpHandler);
-                            httpClient.Timeout = TimeSpan.FromSeconds(30);
-                            httpClient.DefaultRequestHeaders.Add("Authorization", downloadToken);
-                            httpClient.DefaultRequestHeaders.Add("User-Agent", "SUSModder/1.0");
-
-                            using var httpContent = new MultipartFormDataContent();
-                            using var httpFs = File.OpenRead(tempFilePath);
-                            httpContent.Add(new StreamContent(httpFs), "file", Path.GetFileName(tempFilePath));
-
-                            System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Fallback POST do: {httpUrl}");
-                            var httpResponse = await httpClient.PostAsync(httpUrl, httpContent);
-
-                            if (httpResponse.IsSuccessStatusCode)
-                            {
-                                AddConfigToJSON(hash);
-                                System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] Sukces przez HTTP! Hash: {hash}");
-                                return hash;
-                            }
-                            else
-                            {
-                                var httpResponseContent = await httpResponse.Content.ReadAsStringAsync();
-                                throw new HttpRequestException($"Błąd serwera (HTTP fallback): {httpResponse.StatusCode}. Szczegóły: {httpResponseContent}");
-                            }
-                        }
-                        catch (Exception httpEx)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[SaveServerConfig] HTTP fallback też nie działa: {httpEx.Message}");
-                            throw new HttpRequestException($"Nie udało się połączyć ani przez HTTPS ani przez HTTP. HTTPS: {ex.Message}, HTTP: {httpEx.Message}", ex);
-                        }
-                    }
-                    else
-                    {
-                        throw; // Jeśli to już było HTTP, przekaż błąd dalej
                     }
                 }
                 catch (HttpRequestException ex)
@@ -423,19 +338,6 @@ namespace SUSModder.Core.Configuration
             if (isHttps)
             {
                 // Konfiguracja SSL tylko dla HTTPS
-                handler.ServerCertificateCustomValidationCallback = (message, certificate, chain, sslPolicyErrors) =>
-                {
-                    System.Diagnostics.Debug.WriteLine($"[SSL] Walidacja certyfikatu dla: {message?.RequestUri}");
-                    System.Diagnostics.Debug.WriteLine($"[SSL] SSL Policy Errors: {sslPolicyErrors}");
-
-                    if (sslPolicyErrors != System.Net.Security.SslPolicyErrors.None)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[SSL] UWAGA: Ignoruję błędy SSL: {sslPolicyErrors}");
-                    }
-
-                    return true; // Zawsze akceptuj (dla testów)
-                };
-
                 handler.SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13;
                 System.Diagnostics.Debug.WriteLine($"[SSL] Ustawiono protokoły: TLS 1.2 i TLS 1.3");
             }
@@ -476,57 +378,6 @@ namespace SUSModder.Core.Configuration
                     var responseContent = await response.Content.ReadAsStringAsync();
                     System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Błąd serwera - Response content: {responseContent}");
                     throw new HttpRequestException($"Nie udało się pobrać konfiguracji z serwera. Kod statusu: {response.StatusCode}. Szczegóły: {responseContent}");
-                }
-            }
-            catch (HttpRequestException ex) when (ex.Message.Contains("SSL connection could not be established"))
-            {
-                System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Błąd SSL: {ex.Message}");
-
-                // Legacy ToU: HTTP fallback tylko w trybie deweloperskim (bezpieczeństwo)
-                if (isHttps && DeveloperModeSettings.IsEnabled)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Próbuję fallback na HTTP...");
-                    string httpUrl = serverUrl.Replace("https://", "http://");
-
-                    try
-                    {
-                        using var httpHandler = new HttpClientHandler();
-                        using var httpClient = new HttpClient(httpHandler);
-                        httpClient.Timeout = TimeSpan.FromSeconds(30);
-
-                        string downloadToken = SecretProvider.GetDownloadToken();
-                        httpClient.DefaultRequestHeaders.Add("Authorization", downloadToken);
-                        httpClient.DefaultRequestHeaders.Add("User-Agent", "SUSModder/1.0");
-
-                        System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Fallback GET do: {httpUrl}");
-                        var httpResponse = await httpClient.GetAsync(httpUrl);
-
-                        if (httpResponse.IsSuccessStatusCode)
-                        {
-                            using (var fs = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
-                            {
-                                await httpResponse.Content.CopyToAsync(fs);
-                            }
-
-                            LoadConfigFromFile(tempFilePath);
-                            System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] Sukces przez HTTP!");
-                            return;
-                        }
-                        else
-                        {
-                            var httpResponseContent = await httpResponse.Content.ReadAsStringAsync();
-                            throw new HttpRequestException($"Błąd serwera (HTTP fallback): {httpResponse.StatusCode}. Szczegóły: {httpResponseContent}");
-                        }
-                    }
-                    catch (Exception httpEx)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[LoadServerConfig] HTTP fallback też nie działa: {httpEx.Message}");
-                        throw new HttpRequestException($"Nie udało się połączyć ani przez HTTPS ani przez HTTP. HTTPS: {ex.Message}, HTTP: {httpEx.Message}", ex);
-                    }
-                }
-                else
-                {
-                    throw; // Jeśli to już było HTTP, przekaż błąd dalej
                 }
             }
             catch (HttpRequestException ex)

@@ -12,26 +12,50 @@ public class ModChangelogServiceTests
 {
     private static IDiagnosticsOutput NoOpLog => new Mock<IDiagnosticsOutput>().Object;
 
-    [Fact]
-    public void EnsureQuoted_AlreadyQuoted_ReturnsSame()
+    [Theory]
+    // Pełny ETag z cache (mocny lub słaby) musi trafiać do klienta bez zmian —
+    // doklejanie cudzysłowów powodowało 200 zamiast 304.
+    [InlineData(4001, "W/\"abc\"")]
+    [InlineData(4002, "\"abc\"")]
+    public async Task GetChangelogAsync_PassesCachedEtagUnchanged(int modId, string etag)
     {
-        var result = ModChangelogService.EnsureQuoted("\"abc123\"");
-        Assert.Equal("\"abc123\"", result);
-    }
+        var entries = new List<CatalogChangelogEntryDto>
+        {
+            new() { Id = 1, ModId = modId, Version = "5.4.0", Body = "Cached body", Language = "pl" }
+        };
+        var sentIfNoneMatch = new List<string?>();
 
-    [Fact]
-    public void EnsureQuoted_NotQuoted_AddsQuotes()
-    {
-        var result = ModChangelogService.EnsureQuoted("abc123");
-        Assert.Equal("\"abc123\"", result);
-    }
+        var mockApi = new Mock<ISUSModderApiClient>();
+        mockApi
+            .Setup(x => x.GetCatalogChangelogAsync(modId, "pl", 5, It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Returns((int _, string __, int ___, string? ifNoneMatch, CancellationToken ____) =>
+            {
+                sentIfNoneMatch.Add(ifNoneMatch);
+                return Task.FromResult(sentIfNoneMatch.Count == 1
+                    ? new SusModderApiResult<List<CatalogChangelogEntryDto>>
+                    {
+                        StatusCode = 200,
+                        Data = entries,
+                        ETag = etag
+                    }
+                    : new SusModderApiResult<List<CatalogChangelogEntryDto>>
+                    {
+                        StatusCode = 304,
+                        ETag = etag
+                    });
+            });
 
-    [Fact]
-    public void EnsureQuoted_NullOrEmpty_ReturnsSame()
-    {
-        Assert.Null(ModChangelogService.EnsureQuoted(null!));
-        Assert.Equal(string.Empty, ModChangelogService.EnsureQuoted(string.Empty));
-        Assert.Equal("   ", ModChangelogService.EnsureQuoted("   "));
+        var service = new ModChangelogService(mockApi.Object, NoOpLog);
+
+        var first = await service.GetChangelogAsync(modId, "pl", cancellationToken: TestContext.Current.CancellationToken);
+        var second = await service.GetChangelogAsync(modId, "pl", cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Null(sentIfNoneMatch[0]);
+        Assert.Equal(etag, Assert.Single(sentIfNoneMatch.Skip(1)));
+        Assert.Equal(etag, second.ETag);
+        Assert.Single(second.Entries);
+        Assert.Equal("Cached body", second.Entries[0].Body);
+        Assert.False(first.IsEmpty);
     }
 
     [Fact]

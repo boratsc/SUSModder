@@ -144,10 +144,8 @@ public sealed class SUSModderApiClient : ISUSModderApiClient
 
             if (!page.IsSuccess || page.Data is null)
             {
-                if (allItems.Count > 0)
-                    break;
+                _log.Write($"[ApiClient] GetCatalog incomplete: HTTP {page.StatusCode} at offset {offset}");
 
-                _log.Write($"[ApiClient] GetCatalog failed: HTTP {page.StatusCode}");
                 return [];
             }
 
@@ -350,7 +348,7 @@ public sealed class SUSModderApiClient : ISUSModderApiClient
             IfNoneMatch = ifNoneMatch
         }, cancellationToken);
 
-        var etag = response.Headers.ETag?.Tag?.Trim('"');
+        var etag = response.Headers.ETag?.ToString();
 
         if (response.StatusCode == HttpStatusCode.NotModified)
         {

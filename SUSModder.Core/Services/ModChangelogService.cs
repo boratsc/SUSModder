@@ -51,12 +51,10 @@ public sealed class ModChangelogService : IDisposable
 
         try
         {
-            var ifNoneMatch = cachedEtag?.ETag is not null
-                ? EnsureQuoted(cachedEtag.ETag)
-                : null;
-
+            // Klient zwraca pełny ETag (z cudzysłowami, ewentualnie z prefiksem W/),
+            // więc przekazujemy go bez zmian — doklejanie cudzysłowów psuło 304.
             var result = await _apiClient.GetCatalogChangelogAsync(
-                modId, normalizedLang, clampedLimit, ifNoneMatch, cancellationToken);
+                modId, normalizedLang, clampedLimit, cachedEtag?.ETag, cancellationToken);
 
             if (result.IsNotModified && cachedEtag?.Entries is not null)
             {
@@ -142,17 +140,6 @@ public sealed class ModChangelogService : IDisposable
             "en-gb" => "en",
             _ => "pl"
         };
-    }
-
-    /// <summary>
-    /// Ensures the ETag value is quoted for If-None-Match.
-    /// The API client strips quotes on save; the backend requires them.
-    /// </summary>
-    internal static string EnsureQuoted(string etag)
-    {
-        if (string.IsNullOrWhiteSpace(etag))
-            return etag;
-        return etag.StartsWith('"') ? etag : $"\"{etag}\"";
     }
 
     public void Dispose()

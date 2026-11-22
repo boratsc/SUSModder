@@ -110,6 +110,127 @@ public class CatalogSyncServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RefreshCatalogIfDueAsync_PartialPagination_DoesNotApplyPartialCatalog()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var modRepo = new RecordingModRepository(db)
+        {
+            LocalMods = [new ModConfiguration { Id = 1, ModName = "Local" }]
+        };
+        var syncState = new CatalogSyncStateRepository(db);
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (query, _) => query?.Offset == 0
+                ? new SusModderApiResult<List<CatalogItemDto>>
+                {
+                    StatusCode = 200,
+                    Meta = new SusModderApiMeta { Total = 250 },
+                    Data = Enumerable.Range(1, 200).Select(id => new CatalogItemDto
+                    {
+                        Id = id, Name = $"Mod {id}", Type = "full", CurrentVersion = "1", GitHubProjectUrl = "https://example.com"
+                    }).ToList()
+                }
+                : new SusModderApiResult<List<CatalogItemDto>> { StatusCode = 503 }
+        };
+        var result = await CreateService(api, modRepo, syncState, new CompatibilityCacheRepository(db))
+            .RefreshCatalogIfDueAsync(true, TestContext.Current.CancellationToken);
+        Assert.Equal(CatalogSyncStatus.OfflineUsingCache, result.Status);
+        Assert.Equal(0, modRepo.ApplyCount);
+        Assert.Equal(1, syncState.Get(CatalogSyncService.CatalogStateKey)?.FailureCount);
+    }
+
+    [Fact]
+    public async Task RefreshCatalogIfDueAsync_PartialPaginationWithoutLocalCatalog_IsInvalidResponse()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var modRepo = new RecordingModRepository(db);
+        var syncState = new CatalogSyncStateRepository(db);
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (query, _) => query?.Offset == 0
+                ? new SusModderApiResult<List<CatalogItemDto>>
+                {
+                    StatusCode = 200,
+                    Meta = new SusModderApiMeta { Total = 250 },
+                    Data = Enumerable.Range(1, 200).Select(id => new CatalogItemDto
+                    {
+                        Id = id, Name = $"Mod {id}", Type = "full", CurrentVersion = "1", GitHubProjectUrl = "https://example.com"
+                    }).ToList()
+                }
+                : new SusModderApiResult<List<CatalogItemDto>> { StatusCode = 503 }
+        };
+        var result = await CreateService(api, modRepo, syncState, new CompatibilityCacheRepository(db))
+            .RefreshCatalogIfDueAsync(true, TestContext.Current.CancellationToken);
+
+        // Brak lokalnego katalogu — nie ma czego użyć, więc sync musi być jawna porażka.
+        Assert.Equal(CatalogSyncStatus.InvalidResponse, result.Status);
+        Assert.Equal(0, modRepo.ApplyCount);
+        Assert.Equal(1, syncState.Get(CatalogSyncService.CatalogStateKey)?.FailureCount);
+    }
+
+    [Fact]
+    public async Task RefreshCatalogIfDueAsync_LegacyUnquotedEtagState_AdvancesToFullEtag()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var modRepo = new RecordingModRepository(db);
+        var syncState = new CatalogSyncStateRepository(db);
+        // Stary stan zapisany przed poprawką klienta: ETag bez cudzysłowów.
+        syncState.SaveSuccess(CatalogSyncService.CatalogStateKey, "abc", null, DateTime.UtcNow.AddMinutes(-10));
+        string? sentEtag = null;
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (_, etag) =>
+            {
+                sentEtag = etag;
+                return new SusModderApiResult<List<CatalogItemDto>>
+                {
+                    StatusCode = 200,
+                    ETag = "\"abc\"",
+                    Data = [new CatalogItemDto { Id = 1, Name = "One", Type = "full", CurrentVersion = "1", GitHubProjectUrl = "https://example.com/a.zip" }]
+                };
+            }
+        };
+
+        var result = await CreateService(api, modRepo, syncState, new CompatibilityCacheRepository(db))
+            .RefreshCatalogIfDueAsync(true, TestContext.Current.CancellationToken);
+
+        // Stara wartość idzie w If-None-Match, a udana odpowiedź nadpisuje ją pełnym ETagiem
+        // bez żadnej migracji.
+        Assert.Equal(CatalogSyncStatus.Updated, result.Status);
+        Assert.Equal("abc", sentEtag);
+        Assert.Equal("\"abc\"", syncState.Get(CatalogSyncService.CatalogStateKey)?.ETag);
+    }
+
+    [Fact]
+    public async Task RefreshCatalogIfDueAsync_TimeoutUsesCacheAndRecordsFailure()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var modRepo = new RecordingModRepository(db) { LocalMods = [new ModConfiguration { Id = 1, ModName = "Local" }] };
+        var syncState = new CatalogSyncStateRepository(db);
+        var api = new FakeApiClient { CatalogHandler = (_, _) => throw new TaskCanceledException("timeout") };
+        var result = await CreateService(api, modRepo, syncState, new CompatibilityCacheRepository(db))
+            .RefreshCatalogIfDueAsync(true, TestContext.Current.CancellationToken);
+        Assert.Equal(CatalogSyncStatus.OfflineUsingCache, result.Status);
+        Assert.Equal(1, syncState.Get(CatalogSyncService.CatalogStateKey)?.FailureCount);
+        Assert.NotNull(syncState.Get(CatalogSyncService.CatalogStateKey)?.NextAllowedAttemptUtc);
+    }
+
+    [Fact]
+    public async Task RefreshCatalogIfDueAsync_CancellationStillPropagates()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var api = new FakeApiClient
+        {
+            CatalogHandler = (_, _) => throw new OperationCanceledException()
+        };
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            CreateService(api, new RecordingModRepository(db), new CatalogSyncStateRepository(db), new CompatibilityCacheRepository(db))
+                .RefreshCatalogIfDueAsync(true, cancellation.Token));
+    }
+
+    [Fact]
     public async Task RefreshCatalog_MergesPopularityById_AndKeepsStoredValueWhenDegraded()
     {
         await using var db = await CreateDatabaseAsync();

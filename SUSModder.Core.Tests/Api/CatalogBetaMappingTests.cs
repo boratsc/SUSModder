@@ -240,6 +240,30 @@ public class CatalogBetaMappingTests
         return new SUSModderApiClient(configuration, new NullDiagnostics(), httpClient);
     }
 
+    [Fact]
+    public async Task GetCatalog_PreservesWeakETagAndSendsIfNoneMatchUnchanged()
+    {
+        HttpRequestMessage? sent = null;
+        using var httpClient = new HttpClient(new StubHandler(_ =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"data":[]}""", Encoding.UTF8, "application/json")
+            };
+            response.Headers.TryAddWithoutValidation("ETag", "W/\"abc\"");
+            return response;
+        }, request => sent = request));
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Configuration:ApiV2BaseUrl"] = "https://example.test/v2" })
+            .Build();
+        using var api = new SUSModderApiClient(configuration, new NullDiagnostics(), httpClient);
+
+        var result = await api.GetCatalogAsync(ifNoneMatch: "W/\"abc\"", cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal("W/\"abc\"", result.ETag);
+        Assert.Equal("W/\"abc\"", sent!.Headers.GetValues("If-None-Match").Single());
+    }
+
     private sealed class NullDiagnostics : IDiagnosticsOutput
     {
         public void Write(string message) { }
@@ -247,16 +271,26 @@ public class CatalogBetaMappingTests
 
     private sealed class StubHandler : HttpMessageHandler
     {
-        private readonly string _json;
+        private readonly Func<HttpRequestMessage, HttpResponseMessage> _response;
+        private readonly Action<HttpRequestMessage>? _capture;
 
-        public StubHandler(string json) => _json = json;
+        public StubHandler(string json) : this(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json")
+        }) { }
+
+        public StubHandler(Func<HttpRequestMessage, HttpResponseMessage> response, Action<HttpRequestMessage>? capture = null)
+        {
+            _response = response;
+            _capture = capture;
+        }
 
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(_json, Encoding.UTF8, "application/json")
-            });
+            CancellationToken cancellationToken)
+        {
+            _capture?.Invoke(request);
+            return Task.FromResult(_response(request));
+        }
     }
 }

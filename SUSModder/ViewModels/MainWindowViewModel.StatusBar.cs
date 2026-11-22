@@ -476,7 +476,12 @@ public int AvailableUpdatesCount
                         {
                             var catalogResult = await catalogSync.RefreshCatalogIfDueAsync(force: false);
                             configRefreshed = catalogResult.ConfigChanged;
-                            _ = catalogSync.RefreshCompatibilityIfDueAsync(force: false);
+                            // Bez czekania, ale wyjątek musi być obserwowany (inak UnobservedTaskException).
+                            _ = catalogSync.RefreshCompatibilityIfDueAsync(force: false)
+                                .ContinueWith(
+                                    t => System.Diagnostics.Debug.WriteLine(
+                                        $"[Compatibility] Live refresh failed: {t.Exception?.GetBaseException().Message}"),
+                                    TaskContinuationOptions.OnlyOnFaulted);
                         }
                         else
                         {

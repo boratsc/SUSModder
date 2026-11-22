@@ -418,8 +418,9 @@ namespace SUSModder.Core.GameIntegration
                     progress.Report(0, "Ściąganie moda DLL...");
                     log.Write($"Rozpoczynam pobieranie DLL moda '{modConfig.ModName}' z: {downloadUrl}");
 
-                    using (var client = new HttpClient())
+                    using (var client = new HttpClient { Timeout = TimeSpan.FromMinutes(5) })
                     {
+                        client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "SUSModder/3.0");
                         string downloadToken = SecretProvider.GetDownloadToken();
                         client.DefaultRequestHeaders.Add("Authorization", downloadToken);
 
