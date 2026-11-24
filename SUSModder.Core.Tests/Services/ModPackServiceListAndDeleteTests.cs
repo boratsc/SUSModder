@@ -214,6 +214,26 @@ public class ModPackServiceListAndDeleteTests
     public async Task DeletePackDetailedAsync_ParsesErrorCode_OnNotOwner()
     {
         var requests = new List<SusModderApiRequest>();
+        var api = CreateApi(requests, _ => JsonResponse(HttpStatusCode.Forbidden, "{\"error\":{\"code\":\"FORBIDDEN\",\"message\":\"x\"}}"));
+        // Kontrakt ownerToken: 403 bez tokenu w magazynie i bez stabilnego kodu serwera → PACK_NOT_MANAGEABLE.
+        var missingStorePath = Path.Combine(Path.GetTempPath(), "SUSModder.Core.Tests", Guid.NewGuid().ToString("N"), "pack-owner-tokens");
+        var config = new ConfigurationBuilder().Build();
+        var log = new Mock<IDiagnosticsOutput>();
+        var hardware = new Mock<IHardwareIdProvider>();
+        hardware.Setup(x => x.GetAnonymousUserHash()).Returns(CreatorHash);
+        var service = new ModPackService(config, log.Object, hardware.Object, api.Object, missingStorePath);
+
+        var result = await service.DeletePackDetailedAsync(PackCode, TestContext.Current.CancellationToken);
+
+        Assert.False(result.Success);
+        Assert.Equal(403, result.StatusCode);
+        Assert.Equal("PACK_NOT_MANAGEABLE", result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task DeletePackDetailedAsync_403WithoutToken_StableServerCode_NotOverwritten()
+    {
+        var requests = new List<SusModderApiRequest>();
         var api = CreateApi(requests, _ => JsonResponse(HttpStatusCode.Forbidden, "{\"error\":{\"code\":\"NOT_PACK_OWNER\",\"message\":\"x\"}}"));
         var service = CreateService(api.Object);
 
@@ -260,7 +280,8 @@ public class ModPackServiceListAndDeleteTests
         var log = new Mock<IDiagnosticsOutput>();
         var hardware = new Mock<IHardwareIdProvider>();
         hardware.Setup(x => x.GetAnonymousUserHash()).Returns(rawGuid);
-        var service = new ModPackService(config, log.Object, hardware.Object, api.Object);
+        var service = new ModPackService(config, log.Object, hardware.Object, api.Object,
+            Path.Combine(Path.GetTempPath(), "SUSModder.Core.Tests", Guid.NewGuid().ToString("N"), "pack-owner-tokens"));
 
         Assert.Equal(64, service.CreatorHash.Length);
         Assert.True(AnonymousUserHash.IsValid(service.CreatorHash));
@@ -290,7 +311,8 @@ public class ModPackServiceListAndDeleteTests
         var log = new Mock<IDiagnosticsOutput>();
         var hardware = new Mock<IHardwareIdProvider>();
         hardware.Setup(x => x.GetAnonymousUserHash()).Returns(rawGuid);
-        var service = new ModPackService(config, log.Object, hardware.Object, api.Object);
+        var service = new ModPackService(config, log.Object, hardware.Object, api.Object,
+            Path.Combine(Path.GetTempPath(), "SUSModder.Core.Tests", Guid.NewGuid().ToString("N"), "pack-owner-tokens"));
 
         var result = await service.CreatePackAsync(new ModPackCreateRequest
         {
@@ -312,7 +334,9 @@ public class ModPackServiceListAndDeleteTests
         var log = new Mock<IDiagnosticsOutput>();
         var hardware = new Mock<IHardwareIdProvider>();
         hardware.Setup(x => x.GetAnonymousUserHash()).Returns(CreatorHash);
-        return new ModPackService(config, log.Object, hardware.Object, apiClient);
+        // Izolacja od realnego magazynu tokenów użytkownika (magazyn tylko do odczytu w tych testach).
+        var storePath = Path.Combine(Path.GetTempPath(), "SUSModder.Core.Tests", Guid.NewGuid().ToString("N"), "pack-owner-tokens");
+        return new ModPackService(config, log.Object, hardware.Object, apiClient, storePath);
     }
 
     private static Mock<ISUSModderApiClient> CreateApi(

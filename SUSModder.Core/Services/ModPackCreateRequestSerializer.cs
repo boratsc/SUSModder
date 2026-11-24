@@ -29,7 +29,9 @@ internal static class ModPackCreateRequestSerializer
             TtlDays = request.TtlDays,
             DllMods = request.DllMods,
             TouConfig = request.TouConfig,
-            Metadata = request.Metadata
+            Metadata = request.Metadata,
+            // ownerToken wymaga DPAPI (Windows); inne platformy tworzą paczki legacy.
+            OwnershipMode = OperatingSystem.IsWindows() ? "ownerToken" : null
         };
 
         return JsonSerializer.Serialize(payload, JsonOptions);
@@ -48,5 +50,6 @@ internal static class ModPackCreateRequestSerializer
         public IReadOnlyList<ModPackDllModRequest> DllMods { get; set; } = Array.Empty<ModPackDllModRequest>();
         public JsonElement? TouConfig { get; set; }
         public JsonElement? Metadata { get; set; }
+        public string? OwnershipMode { get; set; }
     }
 }

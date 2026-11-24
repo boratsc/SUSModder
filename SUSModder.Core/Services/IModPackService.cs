@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using SUSModder.Core.Models;
+using SUSModder.Core.Utilities;
 
 namespace SUSModder.Core.Services
 {
@@ -21,5 +22,27 @@ namespace SUSModder.Core.Services
         Task<ModPackFinalizeResult> FinalizePackAsync(string packCode, CancellationToken ct = default);
         ModPackValidationResult ValidatePack(ModPack pack, bool externalDllConsentGiven);
         string CreatorHash { get; }
+
+        /// <summary>Czy lokalny magazyn ma token właściciela paczki (gating akcji zapisu). Błąd odczytu → false.</summary>
+        bool HasOwnerToken(string packCode);
+
+        /// <summary>
+        /// Stan tokenu właściciela: Available / Missing (legacy, brak wpisu) / Unreadable (błąd IO/DPAPI/uszkodzony plik).
+        /// Domyślna implementacja nie rozróżnia Unreadable — nadpisz w implementacji z magazynem.
+        /// </summary>
+        OwnerTokenState GetOwnerTokenState(string packCode) =>
+            HasOwnerToken(packCode) ? OwnerTokenState.Available : OwnerTokenState.Missing;
+
+        /// <summary>
+        /// Migawka stanów tokenów dla wielu kodów po jednym odczycie magazynu (klucze: znormalizowane kody).
+        /// Domyślna implementacja czyta per kod — nadpisz w implementacji z magazynem.
+        /// </summary>
+        IReadOnlyDictionary<string, OwnerTokenState> GetOwnerTokenStates(IEnumerable<string> packCodes)
+        {
+            var states = new Dictionary<string, OwnerTokenState>(System.StringComparer.Ordinal);
+            foreach (var code in packCodes)
+                states[ModPackCodeValidator.IsValid(code) ? ModPackCodeValidator.Normalize(code) : code] = GetOwnerTokenState(code);
+            return states;
+        }
     }
 }

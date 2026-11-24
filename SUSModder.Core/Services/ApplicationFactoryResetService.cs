@@ -12,6 +12,7 @@ namespace SUSModder.Core.Services
 {
     /// <summary>
     /// Przywraca aplikację do stanu fabrycznego: usuwa mody, dane w %APPDATA% i config.json.
+    /// Magazyn tokenów właściciela paczek (pack-owner-tokens) jest ZACHOWYWANY — to credentials, nie ustawienia.
     /// Czyszczenie bazy SQLite odbywa się przy następnym starcie (plik jest zablokowany przez działającą instancję).
     /// </summary>
     public class ApplicationFactoryResetService
@@ -201,10 +202,16 @@ namespace SUSModder.Core.Services
                 File.Delete(configPath);
         }
 
-        private static void ClearDirectoryContents(string directoryPath)
+        internal static void ClearDirectoryContents(string directoryPath)
         {
             foreach (var file in Directory.GetFiles(directoryPath))
+            {
+                // Tokeny właściciela paczek przetrwają reset (credentials, nie ustawienia) — decyzja użytkownika.
+                if (string.Equals(Path.GetFileName(file), PackOwnerTokenStore.FileName, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 TryDeleteFile(file);
+            }
 
             foreach (var dir in Directory.GetDirectories(directoryPath))
                 ForceDeleteDirectorySync(dir);

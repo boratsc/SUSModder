@@ -28,12 +28,14 @@ namespace SUSModder.Core.Services
 
         private readonly IDiagnosticsOutput _log;
         private readonly ISUSModderApiClient _apiClient;
+        private readonly string? _ownerTokenStorePath;
 
         public ModPackService(
             IConfiguration configuration,
             IDiagnosticsOutput log,
             IHardwareIdProvider hardwareIdProvider,
-            ISUSModderApiClient? apiClient = null)
+            ISUSModderApiClient? apiClient = null,
+            string? ownerTokenStorePath = null)
         {
             _ = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _log = log ?? throw new ArgumentNullException(nameof(log));
@@ -45,12 +47,68 @@ namespace SUSModder.Core.Services
                 _log.Write($"[ModPack] creatorHash znormalizowany (len {rawHash?.Length ?? 0} → {CreatorHash.Length})");
             _apiClient = apiClient ?? SUSModderApiClientProvider.TryGetDefault()
                 ?? new SUSModderApiClient(configuration, log);
+            _ownerTokenStorePath = ownerTokenStorePath ?? PackOwnerTokenStore.DefaultPath;
         }
 
         public string CreatorHash { get; }
 
         private static string PackPath(string? path = null) =>
             string.IsNullOrWhiteSpace(path) ? "modpacks" : $"modpacks/{path.TrimStart('/')}";
+
+        /// <summary>
+        /// Token właściciela z magazynu, gdy istnieje; w przeciwnym razie legacy CreatorHash.
+        /// null = magazyn nieczytelny (Unreadable) — fail-closed, nie wysyłać hashu czatu dla chronionej paczki.
+        /// </summary>
+        private string? WriteCredential(string normalizedCode, out bool hasToken)
+        {
+            var state = PackOwnerTokenStore.GetState(_ownerTokenStorePath, normalizedCode, out var token);
+            hasToken = state == OwnerTokenState.Available;
+            return state switch
+            {
+                OwnerTokenState.Available => token,
+                OwnerTokenState.Unreadable => null,
+                _ => CreatorHash
+            };
+        }
+
+        /// <summary>
+        /// Czy lokalny magazyn ma token właściciela tej paczki (do gatingu akcji zapisu w UI).
+        /// Niepoprawny kod lub błąd odczytu magazynu → false (fail-closed). Nie wystawia tokenu.
+        /// </summary>
+        public bool HasOwnerToken(string packCode) => GetOwnerTokenState(packCode) == OwnerTokenState.Available;
+
+        /// <summary>Tri-state magazynu dla UI: Missing (legacy) vs Unreadable (błąd odczytu) vs Available.</summary>
+        public OwnerTokenState GetOwnerTokenState(string packCode) =>
+            ModPackCodeValidator.IsValid(packCode)
+                ? PackOwnerTokenStore.GetState(_ownerTokenStorePath, ModPackCodeValidator.Normalize(packCode), out _)
+                : OwnerTokenState.Missing;
+
+        /// <summary>Migawka stanów dla wielu paczek po JEDNYM odczycie pliku magazynu (bez IO per paczka na wątku UI).</summary>
+        public IReadOnlyDictionary<string, OwnerTokenState> GetOwnerTokenStates(IEnumerable<string> packCodes) =>
+            PackOwnerTokenStore.GetStates(_ownerTokenStorePath, packCodes);
+
+        private static readonly System.Text.RegularExpressions.Regex OwnerTokenJsonRegex = new(
+            "(\"(?:ownerToken|owner_token)\")\\s*:\\s*\"[^\"]*\"",
+            System.Text.RegularExpressions.RegexOptions.Compiled |
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase |
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// Redakcja ciał odpowiedzi przed logiem/UI: klucze ownerToken/owner_token (case-insensitive)
+        /// oraz wartości bieżących credentiali (token, CreatorHash) w dowolnej treści.
+        /// </summary>
+        private string? RedactSecrets(string? text, string? credential)
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+            var redacted = OwnerTokenJsonRegex.Replace(text, "$1:\"[redacted]\"");
+            if (!string.IsNullOrEmpty(credential))
+                redacted = redacted.Replace(credential, "[redacted]", StringComparison.OrdinalIgnoreCase);
+            return redacted.Replace(CreatorHash, "[redacted]", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private const string OwnerTokenUnreadableMessage =
+            "Nie udało się sprawdzić uprawnień do tego zestawu. Spróbuj ponownie.";
 
         public async Task<ModPackCreateResult> CreatePackAsync(ModPackCreateRequest request, CancellationToken ct = default)
         {
@@ -86,11 +144,11 @@ namespace SUSModder.Core.Services
                     if (IsInvalidCreatorHashError(err, body))
                     {
                         var prefix = CreatorHash.Length >= 8 ? CreatorHash[..8] : CreatorHash;
-                        _log.Write($"[ModPack] API rejected creatorHash (len={CreatorHash.Length}, prefix={prefix}…): {body}");
+                        _log.Write($"[ModPack] API rejected creatorHash (len={CreatorHash.Length}, prefix={prefix}…): {RedactSecrets(body, null)}");
                     }
                     else
                     {
-                        _log.Write($"[ModPack] POST failed ({response.StatusCode}): {body}");
+                        _log.Write($"[ModPack] POST failed ({response.StatusCode}): {RedactSecrets(body, null)}");
                     }
 
                     return new ModPackCreateResult
@@ -99,20 +157,37 @@ namespace SUSModder.Core.Services
                         ErrorCode = NormalizeCreatorHashErrorCode(err, body)
                             ?? err?.Code
                             ?? response.StatusCode.ToString(),
-                        ErrorMessage = err?.Message ?? body
+                        ErrorMessage = RedactSecrets(err?.Message ?? body, null)
                     };
                 }
 
                 var result = ParseCreatePackResponse(body);
                 if (result == null || string.IsNullOrWhiteSpace(result.PackCode))
                 {
-                    _log.Write($"[ModPack] POST unexpected response: {body}");
+                    _log.Write($"[ModPack] POST unexpected response: {RedactSecrets(body, result?.OwnerToken)}");
                     return new ModPackCreateResult
                     {
                         Success = false,
                         ErrorCode = "INVALID_RESPONSE",
                         ErrorMessage = "Nieoczekiwana odpowiedź serwera przy tworzeniu zestawu."
                     };
+                }
+
+                // Token musi być zapisany PRZED uploadem DLL/finalizacją; błąd zapisu = fail-closed.
+                if (result.OwnerToken != null)
+                {
+                    try
+                    {
+                        PackOwnerTokenStore.Save(_ownerTokenStorePath, ModPackCodeValidator.Normalize(result.PackCode), result.OwnerToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Write($"[ModPack] ownerToken store failed: {ex.GetType().Name}: {ex.Message}");
+                        result.Success = false;
+                        result.ErrorCode = "OWNER_TOKEN_STORE_FAILED";
+                        result.ErrorMessage = "Zestaw został utworzony, ale nie można nim zarządzać z tego urządzenia.";
+                        return result;
+                    }
                 }
 
                 await UploadPendingExternalDllsAsync(result.PackCode, request.ExternalDllFilePaths, ct);
@@ -162,6 +237,10 @@ namespace SUSModder.Core.Services
                 var pack = TryDeserialize<GetPackApiResponse>(body)?.Pack;
                 pack ??= ParsePackFromJson(body);
 
+                // Ścieżka bezpośredniej deserializacji omija ParsePackElement — normalizuj tutaj też.
+                if (pack != null)
+                    pack.OwnershipMode = NormalizeOwnershipMode(pack.OwnershipMode);
+
                 if (pack != null && string.IsNullOrEmpty(pack.PackCode))
                     pack.PackCode = normalized;
 
@@ -204,13 +283,24 @@ namespace SUSModder.Core.Services
             try
             {
                 var normalized = ModPackCodeValidator.Normalize(packCode);
-                var payload = JsonSerializer.Serialize(new { creatorHash = CreatorHash }, JsonOptions);
+                var credential = WriteCredential(normalized, out var hasToken);
+                if (credential == null)
+                {
+                    return new ModPackDeleteResult
+                    {
+                        Success = false,
+                        ErrorCode = "OWNER_TOKEN_UNREADABLE",
+                        ErrorMessage = OwnerTokenUnreadableMessage
+                    };
+                }
+                var payload = JsonSerializer.Serialize(new { creatorHash = credential }, JsonOptions);
                 using var content = new StringContent(payload, Encoding.UTF8, "application/json");
                 var response = await _apiClient.SendAsync(new SusModderApiRequest
                 {
                     Method = HttpMethod.Delete,
                     RelativePath = PackPath(normalized),
                     Content = content,
+                    // Nagłówek tożsamości grupującej; autoryzacja zapisu wyłącznie przez pole creatorHash w body.
                     UserHash = CreatorHash,
                     IncludeAuthToken = true
                 }, ct);
@@ -227,12 +317,17 @@ namespace SUSModder.Core.Services
                 }
 
                 var err = ParseApiError(body);
-                _log.Write($"[ModPack] DELETE {normalized} failed ({response.StatusCode}): {body}");
+                _log.Write($"[ModPack] DELETE {normalized} failed ({response.StatusCode}): {RedactSecrets(body, credential)}");
+                // PACK_NOT_MANAGEABLE tylko gdy serwer nie podał stabilnego kodu innego niż FORBIDDEN.
+                var notManageable = !hasToken && response.StatusCode == System.Net.HttpStatusCode.Forbidden &&
+                    (string.IsNullOrEmpty(err?.Code) || string.Equals(err.Code, "FORBIDDEN", StringComparison.OrdinalIgnoreCase));
                 return new ModPackDeleteResult
                 {
                     Success = false,
-                    ErrorCode = err?.Code ?? ((int)response.StatusCode).ToString(),
-                    ErrorMessage = err?.Message,
+                    ErrorCode = notManageable ? "PACK_NOT_MANAGEABLE" : err?.Code ?? ((int)response.StatusCode).ToString(),
+                    ErrorMessage = notManageable
+                        ? "Tej paczki nie można już edytować z tego urządzenia. Wygaśnie ona sama."
+                        : RedactSecrets(err?.Message, credential),
                     StatusCode = (int)response.StatusCode
                 };
             }
@@ -389,7 +484,8 @@ namespace SUSModder.Core.Services
                 ExternalDllCount = GetInt(el, "externalDllCount", "external_dll_count"),
                 CreatedAt = createdAt,
                 ExpiresAt = expiresAt,
-                Active = GetBool(el, "active") || GetBool(el, "is_active")
+                Active = GetBool(el, "active") || GetBool(el, "is_active"),
+                OwnershipMode = NormalizeOwnershipMode(GetString(el, "ownershipMode", "ownership_mode"))
             };
         }
 
@@ -402,18 +498,25 @@ namespace SUSModder.Core.Services
             try
             {
                 var normalized = ModPackCodeValidator.Normalize(packCode);
+                var credential = WriteCredential(normalized, out _);
+                if (credential == null)
+                {
+                    _log.Write($"[ModPack] Upload DLL aborted: owner token store unreadable ({normalized})");
+                    return null;
+                }
                 using var form = new MultipartFormDataContent();
                 await using var fileStream = File.OpenRead(filePath);
                 var fileContent = new StreamContent(fileStream);
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                 form.Add(fileContent, "file", Path.GetFileName(filePath));
-                form.Add(new StringContent(CreatorHash), "creatorHash");
+                form.Add(new StringContent(credential), "creatorHash");
 
                 var response = await _apiClient.SendAsync(new SusModderApiRequest
                 {
                     Method = HttpMethod.Post,
                     RelativePath = $"{PackPath(normalized)}/dlls",
                     Content = form,
+                    // Nagłówek tożsamości grupującej; autoryzacja zapisu wyłącznie przez pole creatorHash w formie.
                     UserHash = CreatorHash,
                     IncludeAuthToken = false
                 }, ct);
@@ -421,7 +524,7 @@ namespace SUSModder.Core.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _log.Write($"[ModPack] Upload DLL failed ({response.StatusCode}): {body}");
+                    _log.Write($"[ModPack] Upload DLL failed ({response.StatusCode}): {RedactSecrets(body, credential)}");
                     return null;
                 }
 
@@ -443,18 +546,25 @@ namespace SUSModder.Core.Services
             try
             {
                 var normalized = ModPackCodeValidator.Normalize(packCode);
+                var credential = WriteCredential(normalized, out _);
+                if (credential == null)
+                {
+                    _log.Write($"[ModPack] Upload custom DLL aborted: owner token store unreadable ({normalized})");
+                    return null;
+                }
                 using var form = new MultipartFormDataContent();
                 await using var fileStream = File.OpenRead(filePath);
                 var fileContent = new StreamContent(fileStream);
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                 form.Add(fileContent, "file", Path.GetFileName(filePath));
-                form.Add(new StringContent(CreatorHash), "creatorHash");
+                form.Add(new StringContent(credential), "creatorHash");
 
                 var response = await _apiClient.SendAsync(new SusModderApiRequest
                 {
                     Method = HttpMethod.Post,
                     RelativePath = $"{PackPath(normalized)}/dlls",
                     Content = form,
+                    // Nagłówek tożsamości grupującej; autoryzacja zapisu wyłącznie przez pole creatorHash w formie.
                     UserHash = CreatorHash,
                     IncludeAuthToken = false
                 }, ct);
@@ -462,7 +572,7 @@ namespace SUSModder.Core.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _log.Write($"[ModPack] Upload custom DLL failed ({response.StatusCode}): {body}");
+                    _log.Write($"[ModPack] Upload custom DLL failed ({response.StatusCode}): {RedactSecrets(body, credential)}");
                     return null;
                 }
 
@@ -494,7 +604,13 @@ namespace SUSModder.Core.Services
             try
             {
                 var normalized = ModPackCodeValidator.Normalize(packCode);
-                request.CreatorHash = CreatorHash;
+                var credential = WriteCredential(normalized, out _);
+                if (credential == null)
+                {
+                    _log.Write($"[ModPack] Declare GitHub custom mod aborted: owner token store unreadable ({normalized})");
+                    return null;
+                }
+                request.CreatorHash = credential;
                 var payload = JsonSerializer.Serialize(request, JsonOptions);
                 using var content = new StringContent(payload, Encoding.UTF8, "application/json");
                 var response = await _apiClient.SendAsync(new SusModderApiRequest
@@ -502,6 +618,7 @@ namespace SUSModder.Core.Services
                     Method = HttpMethod.Post,
                     RelativePath = $"{PackPath(normalized)}/custom-github-mods",
                     Content = content,
+                    // Nagłówek tożsamości grupującej; autoryzacja zapisu wyłącznie przez pole creatorHash w body.
                     UserHash = CreatorHash,
                     IncludeAuthToken = false
                 }, ct);
@@ -509,7 +626,7 @@ namespace SUSModder.Core.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _log.Write($"[ModPack] Declare GitHub custom mod failed ({response.StatusCode}): {body}");
+                    _log.Write($"[ModPack] Declare GitHub custom mod failed ({response.StatusCode}): {RedactSecrets(body, credential)}");
                     return null;
                 }
 
@@ -542,13 +659,24 @@ namespace SUSModder.Core.Services
             try
             {
                 var normalized = ModPackCodeValidator.Normalize(packCode);
-                var finalizeBody = JsonSerializer.Serialize(new { creatorHash = CreatorHash }, JsonOptions);
+                var credential = WriteCredential(normalized, out var hasToken);
+                if (credential == null)
+                {
+                    return new ModPackFinalizeResult
+                    {
+                        Success = false,
+                        ErrorCode = "OWNER_TOKEN_UNREADABLE",
+                        ErrorMessage = OwnerTokenUnreadableMessage
+                    };
+                }
+                var finalizeBody = JsonSerializer.Serialize(new { creatorHash = credential }, JsonOptions);
                 using var content = new StringContent(finalizeBody, Encoding.UTF8, "application/json");
                 var response = await _apiClient.SendAsync(new SusModderApiRequest
                 {
                     Method = HttpMethod.Post,
                     RelativePath = $"{PackPath(normalized)}/finalize",
                     Content = content,
+                    // Nagłówek tożsamości grupującej; autoryzacja zapisu wyłącznie przez pole creatorHash w body.
                     UserHash = CreatorHash,
                     IncludeAuthToken = false
                 }, ct);
@@ -557,11 +685,17 @@ namespace SUSModder.Core.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var err = ParseApiError(body);
+                    _log.Write($"[ModPack] Finalize {normalized} failed ({response.StatusCode}): {RedactSecrets(body, credential)}");
+                    // PACK_NOT_MANAGEABLE tylko gdy serwer nie podał stabilnego kodu innego niż FORBIDDEN.
+                    var notManageable = !hasToken && response.StatusCode == System.Net.HttpStatusCode.Forbidden &&
+                        (string.IsNullOrEmpty(err?.Code) || string.Equals(err.Code, "FORBIDDEN", StringComparison.OrdinalIgnoreCase));
                     return new ModPackFinalizeResult
                     {
                         Success = false,
-                        ErrorCode = err?.Code ?? response.StatusCode.ToString(),
-                        ErrorMessage = err?.Message ?? body
+                        ErrorCode = notManageable ? "PACK_NOT_MANAGEABLE" : err?.Code ?? response.StatusCode.ToString(),
+                        ErrorMessage = notManageable
+                            ? "Tej paczki nie można już edytować z tego urządzenia. Wygaśnie ona sama."
+                            : RedactSecrets(err?.Message ?? body, credential)
                     };
                 }
 
@@ -774,6 +908,12 @@ namespace SUSModder.Core.Services
                 DateTimeOffset.TryParse(exp.GetString(), out var parsed))
                 expiresAt = parsed;
 
+            // Brak/niepoprawny token (stary backend) → null → ścieżka legacy.
+            // Token akceptuje dowolny case hex i jest zapisywany/wysyłany dokładnie jak zwrócony przez serwer.
+            var ownerToken = GetString(el, "ownerToken", "owner_token");
+            if (!PackOwnerTokenStore.IsValidTokenFormat(ownerToken))
+                ownerToken = null;
+
                 return new ModPackCreateResult
                 {
                     Success = true,
@@ -784,7 +924,8 @@ namespace SUSModder.Core.Services
                     ExpiresAt = expiresAt,
                     Status = GetString(el, "status") ?? "ready",
                     Installable = GetNullableBool(el, "installable"),
-                    CustomArtifacts = ParseCustomArtifacts(el)
+                    CustomArtifacts = ParseCustomArtifacts(el),
+                    OwnerToken = ownerToken
                 };
             }
 
@@ -872,7 +1013,8 @@ namespace SUSModder.Core.Services
                 TtlDays = GetInt(el, "ttlDays", "ttl_days") is var ttl && ttl > 0 ? ttl : 30,
                 VtStatus = GetString(el, "vtStatus", "vt_status") ?? "unknown",
                 Status = GetString(el, "status") ?? "ready",
-                Installable = GetNullableBool(el, "installable")
+                Installable = GetNullableBool(el, "installable"),
+                OwnershipMode = NormalizeOwnershipMode(GetString(el, "ownershipMode", "ownership_mode"))
             };
 
             if (TryGetProperty(el, "fullMod", "full_mod", out var fullModEl))
@@ -1195,6 +1337,16 @@ namespace SUSModder.Core.Services
 
             amongVersion = value.Trim();
             return true;
+        }
+
+        /// <summary>Tylko "legacy"/"ownerToken" (case-insensitive), znormalizowane do kanonicznej wartości; inne → null.</summary>
+        private static string? NormalizeOwnershipMode(string? value)
+        {
+            if (string.Equals(value, "ownerToken", StringComparison.OrdinalIgnoreCase))
+                return "ownerToken";
+            if (string.Equals(value, "legacy", StringComparison.OrdinalIgnoreCase))
+                return "legacy";
+            return null;
         }
 
         private static string? GetString(JsonElement el, params string[] names)

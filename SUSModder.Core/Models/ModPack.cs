@@ -30,6 +30,9 @@ namespace SUSModder.Core.Models
         public IReadOnlyList<ModPackCustomArtifact> CustomArtifacts { get; set; } = Array.Empty<ModPackCustomArtifact>();
         public JsonElement? TouConfig { get; set; }
 
+        /// <summary>Tryb własności z API ("legacy" / "ownerToken"); null = nieznany (traktuj jak legacy).</summary>
+        public string? OwnershipMode { get; set; }
+
         /// <summary>Custom full mod z GitHuba zamiast katalogowego FullMod.</summary>
         public ModPackCustomArtifact? CustomFullMod { get; set; }
 
@@ -112,6 +115,9 @@ namespace SUSModder.Core.Models
         public string Status { get; set; } = "ready";
         public bool? Installable { get; set; }
         public IReadOnlyList<ModPackCustomArtifact> CustomArtifacts { get; set; } = Array.Empty<ModPackCustomArtifact>();
+
+        /// <summary>Token właściciela (API v2, ownershipMode=ownerToken). NIGDY nie logować tej wartości.</summary>
+        public string? OwnerToken { get; set; }
     }
 
     /// <summary>
@@ -131,6 +137,9 @@ namespace SUSModder.Core.Models
         public DateTimeOffset? CreatedAt { get; set; }
         public DateTimeOffset? ExpiresAt { get; set; }
         public bool Active { get; set; }
+
+        /// <summary>Tryb własności z API ("legacy" / "ownerToken"); null = nieznany (traktuj jak legacy).</summary>
+        public string? OwnershipMode { get; set; }
     }
 
     /// <summary>

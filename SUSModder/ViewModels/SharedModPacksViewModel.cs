@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -7,6 +8,8 @@ using ReactiveUI;
 using SUSModder.Core.Models;
 using SUSModder.Core.Services;
 using SUSModder.Core.Services.Localization;
+using SUSModder.Core.Utilities;
+using SUSModder.ViewModels.ModPackWizard;
 
 namespace SUSModder.ViewModels;
 
@@ -17,9 +20,14 @@ namespace SUSModder.ViewModels;
 /// </summary>
 public sealed class SharedModPackItem : ViewModelBase
 {
-    public SharedModPackItem(ModPackListEntry entry, ILocalizationService loc)
+    public SharedModPackItem(ModPackListEntry entry, ILocalizationService loc, Func<string, OwnerTokenState>? accessState = null)
     {
         Entry = entry;
+        // ownerToken bez dostępnego tokenu → akcje zapisu zablokowane (fail-closed, bez żądań do serwera).
+        // Brak dostawcy stanu = fail-closed (Missing). Unreadable → neutralny komunikat do ponowienia.
+        var state = accessState?.Invoke(entry.PackCode) ?? OwnerTokenState.Missing;
+        CanManage = !ModPackOwnerTokenGate.IsWriteBlocked(entry.OwnershipMode, state);
+        WriteBlockedMessage = ModPackOwnerTokenGate.WriteBlockedMessage(entry.OwnershipMode, state, entry.ExpiresAt, loc);
         _modName = string.IsNullOrEmpty(entry.ModName)
             ? loc.Get("ModPacks.Shared.UnnamedPack")
             : entry.ModName;
@@ -43,6 +51,11 @@ public sealed class SharedModPackItem : ViewModelBase
     public int ExternalDllCount => Entry.ExternalDllCount;
     public string VtStatus => Entry.VtStatus;
     public string FullModVersion => Entry.FullModVersion;
+
+    /// <summary>Czy akcje zapisu (usuwanie) są dozwolone dla tej paczki na tym urządzeniu.</summary>
+    public bool CanManage { get; }
+    public bool IsWriteBlocked => !CanManage;
+    public string? WriteBlockedMessage { get; }
 
     public bool IsBusy
     {
@@ -195,6 +208,10 @@ public sealed class SharedModPacksViewModel : ViewModelBase
         try
         {
             var result = await _modPackService.ListOwnPacksDetailedAsync();
+            // Migawka stanów tokenów: jeden odczyt magazynu przy refresh, poza wątkiem UI (nie per wiersz).
+            var tokenStates = result.Success
+                ? _modPackService.GetOwnerTokenStates(result.Packs.Select(p => p.PackCode))
+                : null;
             _runOnUi(() =>
             {
                 Packs.Clear();
@@ -212,7 +229,10 @@ public sealed class SharedModPacksViewModel : ViewModelBase
                 }
 
                 foreach (var entry in result.Packs)
-                    Packs.Add(new SharedModPackItem(entry, _loc));
+                    Packs.Add(new SharedModPackItem(entry, _loc, code =>
+                        tokenStates != null && tokenStates.TryGetValue(ModPackCodeValidator.Normalize(code), out var state)
+                            ? state
+                            : OwnerTokenState.Missing));
 
                 ActiveCount = result.ActiveCount > 0 ? result.ActiveCount : Packs.Count;
                 MaxAllowed = result.MaxAllowed > 0 ? result.MaxAllowed : 10;
@@ -237,7 +257,8 @@ public sealed class SharedModPacksViewModel : ViewModelBase
 
     private async Task DeleteAsync(SharedModPackItem? item)
     {
-        if (item == null || item.IsBusy)
+        // Guard fail-closed: bez tokenu nie wysyłamy żądania usunięcia (nawet gdy command wywołano programowo).
+        if (item == null || item.IsBusy || !item.CanManage)
             return;
 
         var title = _loc.Get("ModPacks.Shared.DeleteTitle");
@@ -270,6 +291,7 @@ public sealed class SharedModPacksViewModel : ViewModelBase
                 var msg = result.ErrorCode switch
                 {
                     "NOT_PACK_OWNER" => _loc.Get("ModPacks.Shared.DeleteNotOwner"),
+                    "PACK_NOT_MANAGEABLE" => ModPackOwnerTokenGate.NotManageableMessage(item.Entry.OwnershipMode, item.Entry.ExpiresAt, _loc),
                     "PACK_NOT_FOUND" => _loc.Get("ModPacks.Shared.DeleteNotFound"),
                     "NETWORK_ERROR" => _loc.Get("ModPacks.Shared.NetworkError"),
                     _ => string.Format(

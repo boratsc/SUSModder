@@ -323,7 +323,9 @@ public class ModPackServiceCustomContentTests
         var log = new Mock<IDiagnosticsOutput>();
         var hardware = new Mock<IHardwareIdProvider>();
         hardware.Setup(x => x.GetAnonymousUserHash()).Returns(new string('c', 64));
-        return new ModPackService(config, log.Object, hardware.Object, apiClient);
+        // Izolacja od realnego magazynu tokenów użytkownika (magazyn tylko do odczytu w tych testach).
+        var storePath = Path.Combine(Path.GetTempPath(), "SUSModder.Core.Tests", Guid.NewGuid().ToString("N"), "pack-owner-tokens");
+        return new ModPackService(config, log.Object, hardware.Object, apiClient, storePath);
     }
 
     private static Mock<ISUSModderApiClient> CreateApi(

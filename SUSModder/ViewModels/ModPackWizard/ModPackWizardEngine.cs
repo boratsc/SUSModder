@@ -642,6 +642,12 @@ public sealed class ModPackWizardEngine
     public string? ResultShareUrl { get; set; }
     public string? ResultErrorCode { get; set; }
 
+    /// <summary>
+    /// Nieodwracalna utrata tokenu właściciela (OWNER_TOKEN_STORE_FAILED albo brak tokenu w trakcie
+    /// wysyłania/finalizacji). UI ukrywa „Ponów” i wskazówkę o ponowieniu — zostaje zamknięcie + informacja.
+    /// </summary>
+    public bool OwnerTokenWriteLost { get; set; }
+
     /// <summary>Błąd siatki: niepewne utworzenie — trzeba zweryfikować listę przed ponowieniem.</summary>
     public bool RequiresDuplicateProbeBeforeRetry { get; set; }
     public bool CanSubmitNewShareRequest => !RequiresDuplicateProbeBeforeRetry && !PackAlreadyCreatedOnServer;
@@ -722,6 +728,7 @@ public sealed class ModPackWizardEngine
         ExecutionStarted = true;
         ExecutionFinished = false;
         ResultErrorCode = null;
+        OwnerTokenWriteLost = false;
         RaiseChanged();
     }
 

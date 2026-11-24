@@ -311,7 +311,8 @@
 					<!-- KROK: Wykonanie i wynik -->
 					<StackPanel x:Name="ExecutionPanel" Spacing="10" IsVisible="False">
 						<StackPanel x:Name="ExecutionStagesPanel" Spacing="6"/>
-						<TextBlock x:Name="ExecutionResultText" TextWrapping="Wrap" IsVisible="False"/>
+						<TextBlock x:Name="ExecutionResultText" TextWrapping="Wrap" IsVisible="False"
+						           AutomationProperties.LiveSetting="Polite"/>
 						<StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left">
 							<Button x:Name="StopButton"
 							        Padding="12,8"
@@ -325,6 +326,7 @@
 					</StackPanel>
 
 					<TextBlock x:Name="ErrorText"
+					           AutomationProperties.LiveSetting="Assertive"
 					           Foreground="{DynamicResource DangerBrush}"
 					           TextWrapping="Wrap"
 					           IsVisible="False"/>

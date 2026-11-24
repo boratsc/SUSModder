@@ -52,6 +52,16 @@ public class ModPackCreateRequestSerializerTests
     }
 
     [Fact]
+    public void ToJson_RequestsOwnerTokenMode_OnWindowsOnly()
+    {
+        using var doc = JsonDocument.Parse(ModPackCreateRequestSerializer.ToJson(new ModPackCreateRequest()));
+        if (OperatingSystem.IsWindows())
+            Assert.Equal("ownerToken", doc.RootElement.GetProperty("ownershipMode").GetString());
+        else
+            Assert.False(doc.RootElement.TryGetProperty("ownershipMode", out _));
+    }
+
+    [Fact]
     public void ToJson_IncludesMetadata_WhenProvided()
     {
         var request = new ModPackCreateRequest

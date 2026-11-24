@@ -983,7 +983,7 @@ public partial class ModPackCreatorView : UserControl
         StopButton.IsVisible = Engine.IsExecuting && Engine.RunningStage is { Cancellable: true };
         StopButton.Content = _loc.Get("ModPacks.Wizard.Stop");
 
-        RetryButton.IsVisible = settled && !allDone && Engine.Stages.Count > 0;
+        RetryButton.IsVisible = ModPackOwnerTokenGate.ShouldShowRetry(settled, allDone, Engine.Stages.Count, Engine.OwnerTokenWriteLost);
         RetryButton.Content = _loc.Get(Engine.PackAlreadyCreatedOnServer
             ? "ModPacks.Wizard.Resume"
             : "ModPacks.Wizard.Retry");
@@ -1011,8 +1011,11 @@ public partial class ModPackCreatorView : UserControl
                 if (Engine.FailedCustomFileNames.Count > 0)
                     parts.Add(_loc.GetFormatted("ModPacks.Wizard.Result.CustomFilesFailed",
                         string.Join(", ", Engine.FailedCustomFileNames)));
-                if (Engine.PackAlreadyCreatedOnServer)
+                if (ModPackOwnerTokenGate.ShouldShowFinalizeRetryHint(Engine.PackAlreadyCreatedOnServer, Engine.OwnerTokenWriteLost))
                     parts.Add(_loc.Get("ModPacks.FinalizeRetryHint"));
+                // Warstwa „szczegóły” przy utracie tokenu: neutralne zdanie pomocnicze (bez nowego komponentu).
+                if (Engine.OwnerTokenWriteLost)
+                    parts.Add(_loc.Get("ModPacks.OwnerTokenStoreFailedDetails"));
                 if (Engine.RequiresDuplicateProbeBeforeRetry)
                     parts.Add(_loc.Get("ModPacks.Wizard.CreateUncertain"));
                 ExecutionResultText.Text = string.Join("\n", parts);
@@ -1900,6 +1903,22 @@ public partial class ModPackCreatorView : UserControl
             return false;
         }
 
+        if (string.Equals(result.ErrorCode, "OWNER_TOKEN_STORE_FAILED", StringComparison.OrdinalIgnoreCase))
+        {
+            // Paczka powstała na serwerze, ale bez tokenu nie wolno wysyłać DLL ani finalizować
+            // (fail-closed). Zapamiętujemy kod bez ścieżki wznowienia zapisu — bez duplikatu paczki.
+            Engine.RequiresDuplicateProbeBeforeRetry = false;
+            Engine.OwnerTokenWriteLost = true; // nieodwracalne: ukryj „Ponów”, zostaw zamknięcie + informację
+            _shareResult = result;
+            Engine.ResultPackCode = result.PackCode;
+            Engine.ResultShareUrl = result.ShareUrl;
+            Engine.PendingSharePackCode = null;
+            var storeFailedMsg = ModPackOwnerTokenGate.StoreFailedMessage(result.ExpiresAt, _loc);
+            Engine.SetStageFailed(ModPackWizardStageId.CreateSharePack, storeFailedMsg);
+            ShowError(storeFailedMsg);
+            return false;
+        }
+
         // Ponowienie bez duplikatu: niepewna porażka → najpierw sprawdź, czy serwer już utworzył paczkę.
         if (ModPackWizardCreateGuard.RequiresProbeBeforeRetry(result.ErrorCode))
         {
@@ -1944,6 +1963,9 @@ public partial class ModPackCreatorView : UserControl
                 _loc.Get("ModPacks.CreateFailed"));
             return false;
         }
+
+        if (TryBlockOwnerTokenWrite(packCode, ModPackWizardStageId.SendCustomContent))
+            return false;
 
         Engine.SetStageRunning(ModPackWizardStageId.SendCustomContent, cancellable: true);
 
@@ -2229,12 +2251,17 @@ public partial class ModPackCreatorView : UserControl
             return true;
         }
 
+        if (TryBlockOwnerTokenWrite(packCode, ModPackWizardStageId.FinalValidation))
+            return false;
+
         Engine.SetStageRunning(ModPackWizardStageId.FinalValidation, cancellable: true);
         var finalize = await _modPackService.FinalizePackAsync(packCode, ct);
         if (!finalize.Success || !finalize.Installable)
         {
             Engine.SetStageFailed(ModPackWizardStageId.FinalValidation);
-            ShowError(finalize.ErrorMessage ?? _loc.Get("ModPacks.CustomContent.InstallBlockedPendingScan"));
+            ShowError(string.Equals(finalize.ErrorCode, "PACK_NOT_MANAGEABLE", StringComparison.OrdinalIgnoreCase)
+                ? ModPackOwnerTokenGate.NotManageableMessage(_shareResult?.OwnerToken != null ? "ownerToken" : null, _shareResult?.ExpiresAt, _loc)
+                : finalize.ErrorMessage ?? _loc.Get("ModPacks.CustomContent.InstallBlockedPendingScan"));
             return false;
         }
 
@@ -2447,10 +2474,34 @@ public partial class ModPackCreatorView : UserControl
         }
     }
 
+    /// <summary>
+    /// Fail-closed gating zapisu w kreatorze: paczka ownerToken (serwer zwrócił token) bez dostępnego
+    /// tokenu w lokalnym magazynie → zero żądań zapisu. Missing = nieodwracalna utrata (ukryj „Ponów”,
+    /// komunikat kontraktu); Unreadable = błąd przejściowy (neutralny komunikat + „Ponów”, jak lista
+    /// „Udostępnione”). Reguły tri-state w <see cref="ModPackOwnerTokenGate"/>. Wartość tokenu jest
+    /// wyłącznie sprawdzana na null — nigdy wyświetlana/logowana.
+    /// </summary>
+    private bool TryBlockOwnerTokenWrite(string packCode, ModPackWizardStageId stageId)
+    {
+        var mode = _shareResult?.OwnerToken != null ? "ownerToken" : null;
+        var state = mode != null ? _modPackService.GetOwnerTokenState(packCode) : OwnerTokenState.Available;
+        if (!ModPackOwnerTokenGate.IsWriteBlocked(mode, state))
+            return false;
+
+        Engine.OwnerTokenWriteLost = ModPackOwnerTokenGate.IsIrreversibleWriteLoss(mode, state);
+        var msg = ModPackOwnerTokenGate.WriteBlockedMessage(mode, state, _shareResult?.ExpiresAt, _loc)!;
+        Engine.SetStageFailed(stageId, msg);
+        ShowError(msg);
+        return true;
+    }
+
     private string FormatCreatePackError(ModPackCreateResult result)
     {
         if (string.Equals(result.ErrorCode, "PACK_LIMIT_REACHED", StringComparison.OrdinalIgnoreCase))
             return _loc.Get("ModPacks.PackLimitReached");
+
+        if (string.Equals(result.ErrorCode, "PACK_NOT_MANAGEABLE", StringComparison.OrdinalIgnoreCase))
+            return ModPackOwnerTokenGate.NotManageableMessage(_shareResult?.OwnerToken != null ? "ownerToken" : null, result.ExpiresAt, _loc);
 
         if (string.Equals(result.ErrorCode, "INVALID_CREATOR_HASH", StringComparison.OrdinalIgnoreCase) ||
             (!string.IsNullOrEmpty(result.ErrorMessage) &&

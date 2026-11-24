@@ -325,7 +325,8 @@ public sealed class SUSModderApiClient : ISUSModderApiClient
             httpRequest.Headers.TryAddWithoutValidation("If-None-Match", request.IfNoneMatch);
         if (!string.IsNullOrWhiteSpace(request.UserHash))
             httpRequest.Headers.TryAddWithoutValidation("X-User-Hash", request.UserHash);
-        if (request.IncludeAuthToken)
+        // App token tylko po HTTPS (decyzja użytkownika): po plaintext http pomijamy Authorization po cichu.
+        if (request.IncludeAuthToken && httpRequest.RequestUri?.Scheme == Uri.UriSchemeHttps)
             httpRequest.Headers.TryAddWithoutValidation("Authorization", SecretProvider.GetDownloadToken());
 
         if (request.Content is not null)

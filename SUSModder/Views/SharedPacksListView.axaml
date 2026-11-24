@@ -132,6 +132,15 @@
 											   FontSize="11"
 											   Foreground="{DynamicResource TextSecondaryBrush}"/>
 								</StackPanel>
+								<!-- ownerToken bez tokenu na tym urządzeniu: neutralna informacja zamiast akcji zapisu -->
+								<TextBlock Grid.Row="3"
+										   IsVisible="{Binding IsWriteBlocked}"
+										   Text="{Binding WriteBlockedMessage}"
+										   FontSize="13"
+										   TextWrapping="Wrap"
+										   VerticalAlignment="Top"
+										   AutomationProperties.LiveSetting="Polite"
+										   Foreground="{DynamicResource TextSecondaryBrush}"/>
 								<StackPanel Grid.Row="4"
 											Orientation="Horizontal"
 											Spacing="4"
@@ -149,6 +158,7 @@
 									<Button Classes="secondary"
 											Command="{Binding $parent[ItemsControl].DataContext.DeleteCommand}"
 											CommandParameter="{Binding}"
+											IsVisible="{Binding CanManage}"
 											IsEnabled="{Binding !IsBusy}">
 										<ic:SymbolIcon Symbol="{x:Static fic:Symbol.Delete}" FontSize="12"/>
 									</Button>
