@@ -43,7 +43,7 @@ public sealed class SUSModderApiClient : ISUSModderApiClient
 
         var configSection = configuration.GetSection("Configuration");
         var configured = configSection["ApiV2BaseUrl"]
-            ?? "https://api.susmodder-cdn.ovh/v2";
+            ?? "https://susmodder.app/api/v2";
         BaseUrl = configured.TrimEnd('/');
         StaticAssetsBaseUrl = (configSection["BaseUrl"] ?? "https://susmodder.app/").TrimEnd('/');
 

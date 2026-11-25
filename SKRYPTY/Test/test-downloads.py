@@ -3,7 +3,7 @@ import urllib.request
 import urllib.parse
 import urllib.error
 
-BASE = "https://api.susmodder-cdn.ovh/v2"
+BASE = "https://susmodder.app/api/v2"
 
 cat = json.load(urllib.request.urlopen(f"{BASE}/catalog?limit=50"))
 for m in cat["data"]:

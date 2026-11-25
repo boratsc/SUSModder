@@ -34,7 +34,7 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
         var testConfig = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2"
+                ["Configuration:ApiV2BaseUrl"] = "https://susmodder.app/api/v2"
             })
             .Build();
         var apiClient = new SUSModderApiClient(testConfig, new TestDiagnosticsOutput());
@@ -54,7 +54,7 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2",
+                ["Configuration:ApiV2BaseUrl"] = "https://susmodder.app/api/v2",
                 ["Configuration:BaseUrl"] = "https://susmodder.app/",
                 ["Configuration:ModPacksEndpoint"] = "/api/mod-packs"
             })
@@ -111,7 +111,7 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
         var testConfig = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2"
+                ["Configuration:ApiV2BaseUrl"] = "https://susmodder.app/api/v2"
             })
             .Build();
         var apiClient = new SUSModderApiClient(testConfig, new TestDiagnosticsOutput());
@@ -131,7 +131,7 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2",
+                ["Configuration:ApiV2BaseUrl"] = "https://susmodder.app/api/v2",
                 ["Configuration:BaseUrl"] = "https://susmodder.app/",
                 ["Configuration:ModPacksEndpoint"] = "/api/mod-packs"
             })
@@ -191,7 +191,7 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
         var testConfig = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2"
+                ["Configuration:ApiV2BaseUrl"] = "https://susmodder.app/api/v2"
             })
             .Build();
         var apiClient = new SUSModderApiClient(testConfig, new TestDiagnosticsOutput());
@@ -211,7 +211,7 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2",
+                ["Configuration:ApiV2BaseUrl"] = "https://susmodder.app/api/v2",
                 ["Configuration:BaseUrl"] = "https://susmodder.app/",
                 ["Configuration:ModPacksEndpoint"] = "/api/mod-packs"
             })
@@ -259,7 +259,7 @@ public class ModPackInstallerInstallAsNewInstanceTests : IDisposable
         var testConfig = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2"
+                ["Configuration:ApiV2BaseUrl"] = "https://susmodder.app/api/v2"
             })
             .Build();
         var apiClient = new SUSModderApiClient(testConfig, new TestDiagnosticsOutput());

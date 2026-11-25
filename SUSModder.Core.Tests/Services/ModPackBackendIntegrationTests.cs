@@ -20,7 +20,7 @@ public class ModPackBackendIntegrationTests
             .AddJsonFile("../../../../SUSModder/appsettings.json", optional: true)
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Configuration:ApiV2BaseUrl"] = "https://api.susmodder-cdn.ovh/v2"
+                ["Configuration:ApiV2BaseUrl"] = "https://susmodder.app/api/v2"
             })
             .Build();
         return new SUSModderApiClient(config, new TestDiagnosticsOutput());

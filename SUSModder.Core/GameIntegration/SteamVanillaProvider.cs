@@ -230,8 +230,8 @@ public sealed class SteamVanillaProvider
         CancellationToken ct)
     {
         var archivePath = VanillaCacheService.GetArchivePath(vanillaRoot, storageVersion);
-        var baseUrl = _configuration.GetSection("Configuration")["BaseUrl"] ?? "https://susmodder.app/";
-        var downloadUrl = $"{baseUrl}api/susmodder-download-version?version={storageVersion}";
+        var apiBaseUrl = (_configuration.GetSection("Configuration")["ApiV2BaseUrl"] ?? "https://susmodder.app/api/v2").TrimEnd('/');
+        var downloadUrl = $"{apiBaseUrl}/downloads/vanilla/{storageVersion}";
 
         if (!File.Exists(archivePath))
         {

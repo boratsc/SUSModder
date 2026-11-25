@@ -20,7 +20,7 @@ public static class CdnAssetUrlResolver
 
     if (path.StartsWith("/api/v2/", StringComparison.OrdinalIgnoreCase))
     {
-      var apiBase = NormalizeBaseUrl(apiV2BaseUrl) ?? "https://api.susmodder-cdn.ovh/v2";
+      var apiBase = NormalizeBaseUrl(apiV2BaseUrl) ?? "https://susmodder.app/api/v2";
       var suffix = path["/api/v2".Length..];
       return $"{apiBase}{suffix}";
     }
@@ -32,20 +32,6 @@ public static class CdnAssetUrlResolver
     return path.StartsWith('/')
       ? $"{assetsBase}{path}"
       : $"{assetsBase}/{path}";
-  }
-
-  public static string DeriveCdnBaseUrl(string apiV2BaseUrl)
-  {
-    var baseUrl = apiV2BaseUrl.TrimEnd('/');
-    if (baseUrl.EndsWith("/v2", StringComparison.OrdinalIgnoreCase))
-      baseUrl = baseUrl[..^3];
-
-    const string apiPrefix = "://api.";
-    var schemeIndex = baseUrl.IndexOf(apiPrefix, StringComparison.OrdinalIgnoreCase);
-    if (schemeIndex >= 0)
-      baseUrl = string.Concat(baseUrl.AsSpan(0, schemeIndex + 3), baseUrl.AsSpan(schemeIndex + apiPrefix.Length));
-
-    return baseUrl.TrimEnd('/');
   }
 
   private static string RewriteMisroutedIconUrl(string url, string? staticAssetsBaseUrl)

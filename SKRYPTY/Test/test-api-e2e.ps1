@@ -2,7 +2,7 @@
 # Usage: .\SKRYPTY\Test\test-api-e2e.ps1 [-AuthToken "Bearer ..."] [-AdminSecret "..."]
 
 param(
-    [string]$V2Base = "https://api.susmodder-cdn.ovh/v2",
+    [string]$V2Base = "https://susmodder.app/api/v2",
     [string]$LegacyBase = "https://susmodder.app",
     [string]$CdnBase = "https://susmodder-cdn.ovh",
     [string]$AuthToken = "",

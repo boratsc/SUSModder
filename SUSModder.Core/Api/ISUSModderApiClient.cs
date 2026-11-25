@@ -8,7 +8,7 @@ namespace SUSModder.Core.Api;
 
 /// <summary>
 /// Jedyny punkt dostępu do API SUSModder v2 w warstwie Core.
-/// Wszystkie wywołania HTTP do api.susmodder-cdn.ovh/v2 powinny przechodzić przez ten interfejs.
+/// Wszystkie wywołania HTTP do susmodder.app/api/v2 powinny przechodzić przez ten interfejs.
 /// </summary>
 public interface ISUSModderApiClient : IDisposable
 {

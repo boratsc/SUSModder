@@ -1,6 +1,6 @@
 # SUSModder API v2 - client-aligned E2E verification (post-remediation)
 param(
-    [string]$V2Base = "https://api.susmodder-cdn.ovh/v2",
+    [string]$V2Base = "https://susmodder.app/api/v2",
     [string]$AuthToken = ""
 )
 

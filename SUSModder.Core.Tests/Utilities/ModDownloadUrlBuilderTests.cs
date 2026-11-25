@@ -89,7 +89,7 @@ public class ModDownloadUrlBuilderTests
         var mod = new ModConfiguration
         {
             ModName = "AleLuduMod",
-            GitHubRepoOrLink = "https://api.susmodder-cdn.ovh/v2/downloads/mod/5/1.1.2?platform=steam&arch=x86"
+            GitHubRepoOrLink = "https://susmodder.app/api/v2/downloads/mod/5/1.1.2?platform=steam&arch=x86"
         };
 
         var fileName = ModDownloadUrlBuilder.GetDllFileName(mod, "steam");

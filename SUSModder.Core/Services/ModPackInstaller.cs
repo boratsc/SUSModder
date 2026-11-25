@@ -46,7 +46,7 @@ namespace SUSModder.Core.Services
             _log = log;
             _instanceInstaller = instanceInstaller;
             _instanceRepository = instanceRepository;
-            _apiV2BaseUrl = (_configuration["Configuration:ApiV2BaseUrl"] ?? "https://api.susmodder-cdn.ovh/v2").TrimEnd('/');
+            _apiV2BaseUrl = (_configuration["Configuration:ApiV2BaseUrl"] ?? "https://susmodder.app/api/v2").TrimEnd('/');
         }
 
         public async Task<ModPackInstallResult> InstallPackAsync(

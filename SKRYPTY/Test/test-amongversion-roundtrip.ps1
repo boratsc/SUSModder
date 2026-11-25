@@ -1,6 +1,6 @@
 # Verify amongVersion round-trip for custom github_full modpacks (API v2).
 param(
-    [string]$V2Base = "https://api.susmodder-cdn.ovh/v2",
+    [string]$V2Base = "https://susmodder.app/api/v2",
     [string]$AmongVersion = "2024-6-18",
     [string]$GitHubFullUrl = "https://github.com/NuclearPowered/BepInEx/releases/download/v6.0.0-pre.1/BepInEx_UnityIL_x64_6.0.0-pre.1.zip"
 )

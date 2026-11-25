@@ -27,7 +27,7 @@ param(
     [string]$Platforms = "steam",
     [int]$ModId = 0,
     [switch]$NoCleanup,
-    [string]$ApiBase = "https://api.susmodder-cdn.ovh/v2",
+    [string]$ApiBase = "https://susmodder.app/api/v2",
     [int]$ObservationSeconds = 45,
     [string]$InstallRoot = "",
     [string]$OutputDir = ""

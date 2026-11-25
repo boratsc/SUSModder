@@ -1,7 +1,7 @@
 # SUSModder API v2 - modpack custom content smoke test
 # Verifies create -> DLL upload -> status -> optional GitHub declaration -> finalize -> preview.
 param(
-    [string]$V2Base = "https://api.susmodder-cdn.ovh/v2",
+    [string]$V2Base = "https://susmodder.app/api/v2",
     [Parameter(Mandatory = $false)]
     [string]$AuthToken = "",
     [Parameter(Mandatory = $false)]

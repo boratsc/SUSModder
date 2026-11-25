@@ -1,4 +1,4 @@
-param([string]$V2Base = "https://api.susmodder-cdn.ovh/v2")
+param([string]$V2Base = "https://susmodder.app/api/v2")
 
 $token = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(
     "YTBlMjNiZWFmMTBlZjQxZGM1ZjRiN2NhNGYxOWZmNDkyNDI4MjEyNWMzNzQ5Mzk5MjIwYzA5MDMzNGU3NGI4Mw=="))
